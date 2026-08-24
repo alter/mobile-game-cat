@@ -70,6 +70,211 @@ entirely.
 
 ---
 
+## Monetisation: decided, so it stops being re-argued
+
+**None of this ships in the MVP.** There are no payments by design; the lose
+screen carries one stub button and a counter. Recorded here so the question is
+not reopened every week.
+
+| Surface | Verdict | Why |
+|---|---|---|
+| Energy / lives gate | **Not in the MVP. Open for the product.** | See below — it would corrupt metric 3 |
+| Booster on failure ("+1 slot") | **Chosen** | Sells recovery, not admission; already task 6.6 |
+| Hints | **Good fit, post-MVP** | Becomes genuinely valuable once 3.9 hides kinds |
+| Items for the cat and the room | **Good fit, post-MVP** | Bed, bowl, toys — already the second wave in MVP §14 |
+| Frames, glow, backgrounds, poses around the cat | **Good fit, post-MVP** | Additive — they decorate her cat without replacing it |
+| Skins that repaint the cat's coat | **No — this one breaks the hook** | See below |
+| Rare coats on *rescued* kittens | **Yes** | A different animal she collects; this is the breed-rarity driver |
+| Breed rarity of the rescued kitten | **Already the named driver** | MVP §14 |
+| Shareable cat card | **Yes, but P2 in the MVP** | Cheap; see below |
+| Referral attribution | **No — the free options died** | Branch is now $499/mo; see below |
+
+### Why no energy gate before M8
+
+Metric 3 — return on day 1 — decides the project. Behind a gate, some share of
+returns means "the lock expired", not "she wanted to come back", and at roughly a
+hundred installs the two cannot be separated. The gate would also *raise* the
+number, so the decision to continue would rest on an inflated reading.
+
+It would also hide the problem 3.8 just found. Twelve levels finish in 14–24
+minutes; a gate stops players finishing in one sitting — not because there is
+more game, but because they were locked out. The content problem would remain,
+merely invisible.
+
+A distinction worth keeping, from Deconstructor of Fun (June 2026): "Match-3
+stops you with a loss, Merge stops you when you run out of energy." Our mechanic
+stops the player with a jam, so structurally we are in the match family, where
+the genre-consistent gate is lives-on-failure, not energy-to-play. Royal Match
+and Homescapes use lives; Merge Mansion and Travel Town use energy. All four are
+in the MVP's own reference list, so "the references do it" cuts both ways.
+
+Against any gate at all, for this game specifically: the audience plays "10–20
+минут в паузах между делами". The whole point is that she has fifteen free
+minutes *now*. A gate refuses her at precisely the moment paid acquisition
+bought. It is the same injury as losing progress on the metro (see 6.7), and it
+contradicts "котёнок не болеет".
+
+Honest cost of refusing: an economy built on cosmetics and rarity needs higher
+retention than one built on gates — few players pay, and they pay only after
+attachment forms. That is a real bet, not a free lunch. Revisit it on M8 data,
+not on instinct.
+
+### Why coat skins are the one item to refuse
+
+Selling items *for* the cat is sound. Selling a skin that **repaints the cat** is
+not, and the reason is the whole premise: the coat comes from her photograph.
+"Отличие от всего, что есть на рынке: это её кот." A skin that overwrites the
+coat sells her the removal of the one thing that made her attach.
+
+The workable rule is **additive versus substitutive**, not "cosmetics yes/no":
+
+- **Additive — sell freely.** Frames, neon outlines, glow, backgrounds, poses,
+  collars, beds, bowls, toys, the room. Every one of these decorates *her* cat and
+  makes the photo-derived coat more visible, not less.
+- **Substitutive — do not sell.** Anything that repaints or replaces the coat.
+
+"Уникальный раскрас" sits on both sides depending on the animal. A rare coat on a
+**rescued kitten** — a different creature she collects — is exactly the breed
+rarity already chosen as the revenue driver. A rare coat painted over **her own
+cat** erases the hook. Same word, opposite decisions.
+
+### The shareable cat card: yes to the sharing, no to the referral
+
+Two separate things, with very different price tags.
+
+**The card is cheap and should exist.** An in-app screen showing her cat, framed,
+rendered to an image, handed to the iOS share sheet with a plain App Store link.
+No server, no storage, no moderation queue, no privacy exposure — the photo never
+left the device to begin with, only the traits did, so what she shares is game
+art. A day of work at most.
+
+Note that the MVP currently dismisses this: section 14 lists "обмен снимками в
+сетях (даёт почти нулевой приток при заметной работе)" under "later or never".
+That judgement is right for the general case — share buttons on scores are dead
+weight — and **probably wrong for this game**, because the artifact is her cat
+rather than a number. Pet owners share pet pictures unprompted. This is an
+argument from reasoning, not from data; treat it as a cheap bet, not a certainty.
+
+**Referral attribution is the expensive half, and it just got more expensive.**
+Crediting an install to the person who shared needs deferred deep linking. The
+free option is gone: Firebase Dynamic Links shut down on 25 August 2025, and
+Branch has removed its free tier, starting at $499/month. That collides head-on
+with two standing decisions — no paid services, and no ATT prompt.
+
+So for the MVP: share the card, link to the plain App Store page, and **do not
+try to attribute**. Two free signals are still available:
+
+- count taps on the share button as an in-app event (intent, not conversion);
+- watch the App Store Connect referrer breakdown for web traffic — crude, but it
+  is already included in the $99 and needs no code.
+
+If sharing turns out to matter, buy attribution later with revenue. Buying it now
+would cost more per month than the entire retention test.
+
+**One content caution.** If the card carries the name she typed for her cat, that
+name becomes a public artifact next to your app's branding. Either leave the name
+off the shared image or filter it. Cheap to decide now, embarrassing to discover
+later.
+
+### The referral reward ladder: sound shape, wrong milestone
+
+Proposed: 1 invite → small bonus, 5 → triple bonus, 10 → simple skin, 30 → unique
+skin, 100 → a "blogger" item (blanket, cushion, basket, bow). Recorded as
+post-MVP design. **Not in the MVP**, for four reasons, in descending order of how
+hard they are to argue with.
+
+**1. The arithmetic kills it before the engineering does.** The retention test
+buys roughly a hundred installs *in total*. A ladder whose rungs are 5, 10, 30
+and 100 invites has four tiers that literally nobody can reach at that scale. You
+would build five rewards to observe one.
+
+**2. It needs the counter we cannot afford.** Crediting "five people came through
+your link" is deferred deep linking, and the free options are gone — Firebase
+Dynamic Links closed 25 August 2025, Branch starts at $499/month. Two cheap
+substitutes exist and both should be understood before choosing:
+
+- **Manual invite code.** Sharer gets a code, the new player types it during
+  onboarding. Free, no SDK, no ATT, real attribution — for the minority who
+  bother to type it. This is what small teams actually ship.
+- **Click counting on our own Worker.** A link like `…/r/ABC123` records the
+  click in D1 and redirects to the App Store. Free, uses infrastructure already
+  chosen, no ATT. But it counts *clicks*, not installs, and is trivially gamed by
+  clicking your own link. Tolerable if rewards are cosmetic; not if they are
+  currency.
+
+The workable combination later: reward on verified code entries, show click count
+as progress feedback.
+
+**3. Two rewards on the ladder do not exist and one should not.** "Extra energy"
+presupposes an energy gate, which is refused above. Hints are post-MVP. That
+leaves the booster as the only tier-1 reward that exists today.
+
+**4. The top rewards collide with the game's own care milestones.** The MVP gives
+a bowl at level 4 and a blanket at level 8 as evidence that the kitten is being
+looked after — "Полезности не дают и давать не должны". Handing out a blanket, a
+cushion or a basket as referral loot spends the same objects as recruitment
+prizes and dilutes what earning them through care is supposed to mean. Keep the
+two economies apart: care objects come from playing, referral rewards should be
+decoration around the cat — frames, glow, backgrounds — which we already decided
+are additive and safe.
+
+**And a tone check worth taking seriously.** The audience is defined as avoiding
+"соперничества" and pressure. A ladder that reads "recruit thirty friends" is
+transactional in a game whose whole proposition is care. The same mechanic framed
+as "покажи своего кота" — where the reward is that *her cat* gets a nicer frame,
+not that she hit a recruitment target — keeps the mechanic and drops the tone
+problem. A 100-invite tier is influencer territory; if it exists at all it should
+be an explicit creator programme, not a rung ordinary players stare at.
+
+### Correction: bloggers are the case where referral works, and it is free
+
+An earlier note here priced referral attribution at $499/month and left it at
+that. That conflated two different problems, and only one of them is expensive.
+
+- **Per-user attribution** — knowing that Masha specifically brought Olya. Needs
+  deferred deep linking, genuinely costs money, and is what the invite ladder
+  above requires. Still out.
+- **Per-partner attribution** — knowing that blogger X's link produced N installs
+  and how they retained. **Free, native, and already paid for in the $99.**
+
+Apple's Custom Product Pages do exactly this. Up to **70** additional versions of
+the store page, each with its own screenshots, preview video and **unique URL**:
+"Share your custom product pages with different audiences through unique URLs."
+App Analytics then reports, per page: product page impressions, downloads,
+redownloads, conversion rates, **retention data**, and average proceeds per
+paying user, with direct comparison against the default page.
+
+Seventy partners is far more than this project will ever have. No SDK, no ATT
+prompt, no vendor, no monthly fee. Apple also documents a conversion benefit:
+"Developers see a 2.5 percentage point increase on average when referring people
+to a custom product page […] a 156% increase compared to the 1.6% average
+conversion rate on default product pages."
+
+**Why the audience argument holds up.** Cat-content creators reach precisely the
+women 30–55 this game is aimed at, and the hook is unusually filmable: the
+creator photographs their own cat and it walks into the game. That is not a new
+asset — it is creative concept 0.4.2, already on the list. The blogger channel
+and the M0 creative are the same thing shot twice.
+
+**What replaces the ladder for creators.** Nothing to build. Each partner gets a
+custom product page; Apple counts. Compensation is a normal commercial
+arrangement — payment, revenue share, or an early build — not a rung in a
+progression bar. The "blogger skin at 100 invites" was solving a counting problem
+that Apple solves better and for nothing.
+
+**One constraint, already on record.** Custom Product Pages require the app to be
+live on the App Store — `knowledge/analytics/02-benchmarks-and-attribution.md`
+notes they "не работают как «фейковая страница» до появления реального листинга".
+So this channel opens after launch, not during M0.
+
+**And it upgrades the share card too.** Point task 6.14's share link at a
+dedicated custom product page rather than the plain store URL. Then App Analytics
+answers "does organic sharing produce installs, and do they stay" for free —
+aggregate, not per-user, which is all the MVP needs to know whether sharing is
+worth pursuing at all.
+
+---
+
 ## Part I. Agent roles
 
 Each role is a separate agent run with its own scope, its own subtree, and its
@@ -264,13 +469,121 @@ without it.
 | 3.2 | Solver: solvable, in how many moves (TOOLS) | P0 | answer under 2 s per level | 5 known-solvable and 5 known-dead-end levels |
 | 3.3 | Level generation (TOOLS) | P0 | batch of 100 per run | all 100 parse in the loader |
 | 3.4 | Difficulty curve (TOOLS) | P0 | pile size 36/48/60 across levels 1–12 | measured win rate: sensible play wins ~98% / ~87% / ~66% per band |
-| 3.5 | Ship 12 levels (TOOLS) | P0 | 12 definitions in `/Levels` | each solver-verified, zero dead ends |
-| 3.6 | JSON level loading in game (CORE) | P0 | game reads definitions | headless run of all 12 through Core |
+| 3.5 | **Ship 37 levels across 12 rooms** (TOOLS) | P0 | 37 definitions, each tagged with room and pile index | each solver-verified, zero dead ends |
+| 3.6 | JSON level loading in game (CORE) | P0 | game reads definitions | headless run of all 37 through Core |
 | 3.7 | **Five outsiders play the rectangle build** (HUMAN) | **P0** | five written answers | **at least 3 of 5 say they would keep playing** |
-| 3.8 | **Measure total playtime of 12 levels** (HUMAN) | **P0** | a number in minutes | stopwatch, one full run by someone who has not played |
+| 3.8 | ~~Measure total playtime~~ **DONE 2026-08-24** | P0 | **576 taps, 14–24 min** | owner played all 12 on the refactored curve |
+| 3.9 | **Hidden kinds: an item shows its kind only once it is reachable** (CORE) | **P0** | buried items render blank | unit tests; blocks 3.10 |
+| 3.10 | **Re-measure the curve under partial information** (TOOLS) | **P0** | new win-rate table | greedy policy that sees only reachable kinds |
+| 3.11 | **Three complications, one per room band** (CORE) | **P0** | each introduced in its own room, then combined | unit tests; a late room feels unlike an early one |
+| 3.12 | **Piles-per-room curve** (TOOLS) | P0 | 1,2,3,3,3,3,3,3,4,4,4,4 | property test: no room needs more than 4 piles |
 
 **Key property test:** for every generated level, the solver finds a solution.
 One unsolvable level in the output means the milestone is rejected.
+
+### One pile is not one room — and that is where the content was hiding
+
+A level was tied 1:1 to a room (`level_01 → room_01`), which is why there were
+twelve of them. Nothing justified the coupling. Levels are free — the generator
+already produces a hundred per run — while **rooms are the expensive part**: task
+4.7 is twelve dirty/clean pairs of art, and a hundred rooms would be two hundred
+images.
+
+So a room now holds **several piles**, and a level clears one of them. Twelve
+rooms stay; the content triples. The fiction is better than a counter, too: a
+room is not tidied in one sitting, and a player reads three heaps of junk as
+obvious where "the room advances every third level" reads as a rule.
+
+**Payoff becomes two-tier.** Each level visibly clears a corner — small reward,
+every time. Completing a room changes the light, moves the cat, and may hand over
+a possession — large reward, earned. Today it is all-or-nothing.
+
+**Art cost stays flat.** A room still needs one dirty background and one clean
+one. The clutter is composed from the ~30 prop sprites already being generated in
+4.1–4.3, and "a third cleared" is simply fewer sprites on the same background.
+No new room art for the extra levels.
+
+There may be a further saving — if "dirty" can be the clean background plus a
+grey-brown grade plus clutter, the second background disappears and 4.7 halves.
+Do not budget for it until an artist has shown one room passing the 4.7 test at
+thumbnail size; a real "before" is usually different light, not a filter.
+
+**It also makes 3.9 physical.** Drawn as an actual heap in a room, items overlap
+for real, so "you cannot see what is underneath" stops being a 35% opacity
+convention and becomes something the eye reads.
+
+### 3.12: the curve grows pacing, not difficulty
+
+Piles per room rises 1, 2, 3, then holds at 3, then 4 for the last four rooms —
+37 levels, roughly 44–74 minutes by tap count, and that is a floor, since hidden
+kinds and complications both slow play.
+
+The first room finishes in a single level on purpose. She sees the whole loop
+immediately: cleared, room brightens, kitten better. For an audience that must
+not be intimidated at the door, that is the strongest possible opening.
+
+**Why not simply grow it linearly to twelve.** That yields 78 levels and 94–156
+minutes, which is tempting, and it is a trap: the twelfth room would need twelve
+levels between large rewards. At 10–20 minute sessions that is two or three whole
+sittings in which nothing completes, arriving exactly where the player is most
+likely to stop. Content that stops paying out does not retain, it tires.
+
+**The rule this encodes.** Piles per room governs *pacing*; pile size and
+complications govern *difficulty*. Grow all three together and they multiply — a
+final room of six piles, sixty items each, under three complications. Keep them
+separate.
+
+### Cat states anchor to rooms, not level numbers
+
+With a variable curve, "state changes at level 5" stops meaning anything. States
+change after the **fourth and eighth completed room**, as the arc in
+`cat-shelter-mvp.md` §4 intends. Anchoring to rooms keeps the arc intact whatever
+3.12 is later tuned to.
+
+### 3.8 came back with a number, and the number is a problem
+
+The owner played all twelve levels on the refactored 36/48/60 curve: **576 taps,
+14 minutes brisk, 24 unhurried.** That is the entire content of the MVP, consumed
+in one sitting. Verdict on feel: mildly enjoyable, doubtful it lasts.
+
+This is exactly the failure 3.8 existed to catch. If everything finishes on day
+zero, metric 3 measures content exhaustion rather than desire — the player did
+not return because there was nothing to return to. The threshold in 8.0 cannot be
+set honestly until this is addressed.
+
+### 3.9 is the cheapest fix, and it repairs the mechanic as well as the metric
+
+The whole pile is visible today: tiles in a flat grid, blocked ones merely dimmed
+to 35% opacity. Nothing is concealed, so a level can be solved at a glance. The
+tension this genre runs on — not knowing what lies underneath — is absent, and
+that is the likeliest reason it wears thin.
+
+Show a buried item as a blank tile and reveal its kind once nothing covers it.
+One field on the item, one condition in the renderer. It buys discovery, slows
+play, and turns sorting back into a puzzle. Sheep a Sheep, named as a reference
+in the MVP, works exactly this way.
+
+### 3.10 exists because 3.9 invalidates the numbers we have
+
+The measured table — 98% / 87% / 66% at 36 / 48 / 60 items — came from a policy
+that could see every kind in the pile. Under hiding a player cannot plan ahead,
+and those rates will fall, possibly a long way.
+
+The solver remains useful as a feasibility oracle ("does a solution exist") but
+stops being a difficulty oracle. Order matters: hide first, measure second, tune
+pile size third. Tuning against the old numbers would be tuning against a game
+nobody will play.
+
+### 3.11 tests a pattern, not a feature
+
+Games of this kind that run for hundreds of rounds do not scale by enlarging the
+board. They introduce a new complication every thirty to fifty rounds — blockers,
+reordering, a different way items arrive. Twelve levels of "the same thing, more
+of it" is the shape that bores, and that is what we currently have.
+
+One complication, introduced once, is enough here: it proves the rhythm works and
+makes at least one room memorable. The full ladder is post-MVP design and belongs
+in `cat-shelter-mvp.md` section 14, not in this list.
 
 ### 3.7 fills the project's largest measurement hole
 
@@ -404,18 +717,71 @@ drop-off reaching it is measured in M7.
 | # | Task (role) | P | Done when | Verified by |
 |---|---|---|---|---|
 | 6.1 | Presentation, input, placement animation (VIEW) | P0 | level playable with real art | PlayMode: full level run |
-| 6.2 | Room bound to level number (VIEW) | P0 | 12 rooms cycle | PlayMode |
-| 6.3 | Three cat states (VIEW) | P0 | transitions at levels 5 and 9 | PlayMode at both boundaries |
+| 6.2 | **Room holds several piles; clearing one clears a corner** (VIEW) | P0 | 12 rooms, each cleaned in 1–4 stages | PlayMode across a whole room |
+| 6.2.1 | **House map: all 12 rooms, partial progress visible** (VIEW) | **P0** | one screen shows the whole house and what is left | **HUMAN: after two rooms, is it obvious how much remains?** |
+| 6.3 | Three cat states (VIEW) | P0 | transitions after the **4th and 8th completed room** | PlayMode at both boundaries |
 | 6.4 | Rewards at levels 4 and 8 (VIEW) | P1 | props appear in room | PlayMode |
 | 6.5 | Win screen, before/after (VIEW) | P0 | both frames shown | **HUMAN: difference readable in half a second** |
 | 6.6 | Lose screen, "+1 slot" button (VIEW) | P0 | tap recorded, stub shown; booster grows shelf by one slot in Core | PlayMode + event in analytics |
-| 6.7 | Local save (CORE) | P0 | close and reopen preserves progress | unit tests: write, read, corrupted file |
+| 6.7 | **Mid-level save, written every move** (CORE) | P0 | quitting mid-level and reopening resumes the same board | unit tests: write, read, corrupted file; **on device: kill the app mid-level, reopen, same position** |
 | 6.8 | Notification, permission after level 2 (NATIVE) | **P0** | fires after 24 h | on device |
 | 6.9 | Click and haptics on placement (VIEW) | P1 | present | **HUMAN plays 5 minutes straight** |
 | 6.10 | Post-level-12 screen (VIEW) | P1 | "to be continued" | PlayMode |
 | 6.11 | Copy in English (VIEW) | P0 | zero non-English strings | grep over asset tree |
 | 6.12 | Headless build (NATIVE) | P0 | one command produces an ipa | run from a clean checkout |
 | 6.13 | TestFlight distribution (NATIVE) | P0 | installs from invite | 3 people installed |
+| 6.14 | **Shareable before/after card** (VIEW) | P2 | card renders to an image, iOS share sheet opens with a **custom product page** link | on device: share to Notes, image arrives intact; `share_tap` event recorded |
+
+### 6.2.1 was missing, and it serves a motivator the MVP names explicitly
+
+There is no screen where the player sees the whole house. 6.2 binds a room to a
+level, 6.10 shows an end card, and nothing in between shows how much is left.
+
+The audience analysis lists, as motivator number three, "завершённость —
+незакрытый набор мучает". A house with four clean rooms and eight dirty ones is
+precisely that feeling made visible, and it costs one screen. Leaving it out
+discards a retention driver the design already identified.
+
+It also fixes something subtler. Progress in this game is meant to be *seen*, not
+counted — the room brightens, the cat improves, objects appear. But all of that
+is only visible one room at a time. The map turns twelve separate improvements
+into one accumulating thing, which is what makes an unfinished set nag.
+
+### 6.14: share the transformation, not a portrait
+
+The card should show **before and after**, not the cat standing still. The MVP
+already knows this: "зрелище «было — стало» снимается на ролик за восемь секунд".
+A scruffy cat in a dirty room is not a thing anyone posts; the pair is.
+
+Two moments are worth offering the share at, and no others: right after a room is
+cleaned, and at the cat's state transitions after levels 4 and 8, where the
+change in the animal itself is large enough to read at thumbnail size. Offering
+it on level 1 gives her nothing to show.
+
+### 6.7 was under-specified, and the gap punishes exactly our player
+
+It read "close and reopen preserves progress", and the `Player` entity in the MVP
+holds `levels_done, current_level` — level granularity. Nothing stores which
+items have been taken or what sits on the shelf, and `Board._taken` is private
+with no way out. So today: leave mid-level, lose the room.
+
+The audience is defined as playing "10–20 минут в паузах между делами".
+Interruption is their normal case, not an edge case. Riding the metro, the stop
+arrives, the app closes — and a half-cleared room evaporates. That is a
+punishment, and the MVP's own rule forbids punishments: "котёнок не болеет".
+
+Three things this task now requires:
+
+1. Serialise the board, not the level number: taken items, shelf contents,
+   current level, shelf capacity (the booster can change it).
+2. Write on **every move**, not on `OnApplicationPause`. iOS kills backgrounded
+   apps without warning; the pause callback is not a reliable last chance. This
+   is already documented in `knowledge/analytics/01-own-event-collection.md`.
+3. Make `Board` reconstructable from that state — today it can only be built
+   fresh from a `Level`.
+
+Cheap to build, and it removes the single most common way this audience will lose
+work.
 
 **6.8 was raised from P1 to P0, because the priorities contradicted each other.**
 Metric 3 — return on day 1 — is one of four numbers that decide the project, and

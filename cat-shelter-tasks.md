@@ -263,7 +263,7 @@ without it.
 | 3.1 | Rules reachable from solver (TOOLS) | P0 | Python calls the same rules engine | same level yields same outcome in C# and Python |
 | 3.2 | Solver: solvable, in how many moves (TOOLS) | P0 | answer under 2 s per level | 5 known-solvable and 5 known-dead-end levels |
 | 3.3 | Level generation (TOOLS) | P0 | batch of 100 per run | all 100 parse in the loader |
-| 3.4 | Difficulty curve (TOOLS) | P0 | move slack from 8 down to 2 | property test: every level's slack within bounds |
+| 3.4 | Difficulty curve (TOOLS) | P0 | pile size 36/48/60 across levels 1–12 | measured win rate: sensible play wins ~98% / ~87% / ~66% per band |
 | 3.5 | Ship 12 levels (TOOLS) | P0 | 12 definitions in `/Levels` | each solver-verified, zero dead ends |
 | 3.6 | JSON level loading in game (CORE) | P0 | game reads definitions | headless run of all 12 through Core |
 | 3.7 | **Five outsiders play the rectangle build** (HUMAN) | **P0** | five written answers | **at least 3 of 5 say they would keep playing** |
@@ -408,7 +408,7 @@ drop-off reaching it is measured in M7.
 | 6.3 | Three cat states (VIEW) | P0 | transitions at levels 5 and 9 | PlayMode at both boundaries |
 | 6.4 | Rewards at levels 4 and 8 (VIEW) | P1 | props appear in room | PlayMode |
 | 6.5 | Win screen, before/after (VIEW) | P0 | both frames shown | **HUMAN: difference readable in half a second** |
-| 6.6 | Lose screen, "+5 moves" button (VIEW) | P0 | tap recorded, stub shown | PlayMode + event in analytics |
+| 6.6 | Lose screen, "+1 slot" button (VIEW) | P0 | tap recorded, stub shown; booster grows shelf by one slot in Core | PlayMode + event in analytics |
 | 6.7 | Local save (CORE) | P0 | close and reopen preserves progress | unit tests: write, read, corrupted file |
 | 6.8 | Notification, permission after level 2 (NATIVE) | **P0** | fires after 24 h | on device |
 | 6.9 | Click and haptics on placement (VIEW) | P1 | present | **HUMAN plays 5 minutes straight** |
@@ -490,7 +490,7 @@ Getting this wrong means the levels do not appear in progression reports.
 | `level_start` | Progression | `GameAnalytics.NewProgressionEvent(GAProgressionStatus.Start, levelId);` |
 | `level_win` | Progression | `GameAnalytics.NewProgressionEvent(GAProgressionStatus.Complete, levelId);` |
 | `level_fail` | Progression | `GameAnalytics.NewProgressionEvent(GAProgressionStatus.Fail, levelId);` |
-| `moves_button_tap` | Design | `GameAnalytics.NewDesignEvent("moves:button_tap");` |
+| `booster_tap` | Design | `GameAnalytics.NewDesignEvent("booster:tap");` |
 | `notification_allowed` | Design | `GameAnalytics.NewDesignEvent("notification:allowed");` |
 
 Event names have character and length rules; a name that breaks them is dropped
@@ -535,7 +535,7 @@ it M8 is blind.
 | reached capture screen | > 90% | no external benchmark; internal funnel step | reasonable |
 | uploaded a photo | > 40% | none exists — the mechanic is novel | a guess, and unavoidably so |
 | returned on day 1 | > 35% | **puzzle median 19.66–20.74%** (GameAnalytics 2025, 11,600 games, 2024 data); all games averaged 27% (Adjust 2025) | **~1.8× the genre median** |
-| tapped "+5 moves" | > 15% | no comparable public figure found | a guess |
+| tapped "+1 slot" | > 15% of those who reached the lose screen | no comparable public figure found | a guess; denominator recorded separately |
 
 The day-1 number is the problem. As written, "> 35%" is not a floor separating a
 viable game from a dead one — it is a level well above typical for the genre. A
@@ -560,11 +560,16 @@ into theatre. Sources: `knowledge/analytics/02-benchmarks-and-attribution.md`.
 
 ### Metric 4 measures two things at once, and one of them is level tuning
 
-"Tapped +5 moves, at least once, > 15%" is written against all players. But the
-button only appears on the lose screen, and 3.4 tunes the difficulty curve to
-give eight moves of slack on level 1 falling to two by level 12. If the curve is
-generous, few players ever lose, few ever see the button, and a low reading means
-"the levels were easy", not "nobody would pay".
+"Tapped the booster, at least once, > 15%" is written against all players. But
+the button only appears on the lose screen, and 3.4 tunes the difficulty curve
+by pile size (36/48/60). If the curve is generous, few players ever lose, few
+ever see the button, and a low reading means "the levels were easy", not "nobody
+would pay". The measured win rates (~98% / ~87% / ~66%) mean roughly a third of
+level-9+ attempts jam — the denominator is real, but it must be recorded.
+
+The offer itself changed with the rules: the button is now "+1 shelf slot",
+not "+5 moves" — a move limit no longer exists, so extra moves could fix
+nothing. The event is `booster_tap`, neutral to what is offered.
 
 Fix the definition rather than the game: **measure taps as a share of players who
 reached the lose screen**, and record how many players that was. Two numbers

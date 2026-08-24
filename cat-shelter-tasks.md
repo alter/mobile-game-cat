@@ -82,8 +82,12 @@ not reopened every week.
 | Booster on failure ("+1 slot") | **Chosen** | Sells recovery, not admission; already task 6.6 |
 | Hints | **Good fit, post-MVP** | Becomes genuinely valuable once 3.9 hides kinds |
 | Items for the cat and the room | **Good fit, post-MVP** | Bed, bowl, toys — already the second wave in MVP §14 |
-| Skins that change the cat's coat | **No — this one breaks the hook** | See below |
+| Frames, glow, backgrounds, poses around the cat | **Good fit, post-MVP** | Additive — they decorate her cat without replacing it |
+| Skins that repaint the cat's coat | **No — this one breaks the hook** | See below |
+| Rare coats on *rescued* kittens | **Yes** | A different animal she collects; this is the breed-rarity driver |
 | Breed rarity of the rescued kitten | **Already the named driver** | MVP §14 |
+| Shareable cat card | **Yes, but P2 in the MVP** | Cheap; see below |
+| Referral attribution | **No — the free options died** | Branch is now $499/mo; see below |
 
 ### Why no energy gate before M8
 
@@ -122,8 +126,55 @@ not, and the reason is the whole premise: the coat comes from her photograph.
 "Отличие от всего, что есть на рынке: это её кот." A skin that overwrites the
 coat sells her the removal of the one thing that made her attach.
 
-Everything around the cat is fair game — collars, beds, bowls, toys, the room.
-The cat itself is not merchandise.
+The workable rule is **additive versus substitutive**, not "cosmetics yes/no":
+
+- **Additive — sell freely.** Frames, neon outlines, glow, backgrounds, poses,
+  collars, beds, bowls, toys, the room. Every one of these decorates *her* cat and
+  makes the photo-derived coat more visible, not less.
+- **Substitutive — do not sell.** Anything that repaints or replaces the coat.
+
+"Уникальный раскрас" sits on both sides depending on the animal. A rare coat on a
+**rescued kitten** — a different creature she collects — is exactly the breed
+rarity already chosen as the revenue driver. A rare coat painted over **her own
+cat** erases the hook. Same word, opposite decisions.
+
+### The shareable cat card: yes to the sharing, no to the referral
+
+Two separate things, with very different price tags.
+
+**The card is cheap and should exist.** An in-app screen showing her cat, framed,
+rendered to an image, handed to the iOS share sheet with a plain App Store link.
+No server, no storage, no moderation queue, no privacy exposure — the photo never
+left the device to begin with, only the traits did, so what she shares is game
+art. A day of work at most.
+
+Note that the MVP currently dismisses this: section 14 lists "обмен снимками в
+сетях (даёт почти нулевой приток при заметной работе)" under "later or never".
+That judgement is right for the general case — share buttons on scores are dead
+weight — and **probably wrong for this game**, because the artifact is her cat
+rather than a number. Pet owners share pet pictures unprompted. This is an
+argument from reasoning, not from data; treat it as a cheap bet, not a certainty.
+
+**Referral attribution is the expensive half, and it just got more expensive.**
+Crediting an install to the person who shared needs deferred deep linking. The
+free option is gone: Firebase Dynamic Links shut down on 25 August 2025, and
+Branch has removed its free tier, starting at $499/month. That collides head-on
+with two standing decisions — no paid services, and no ATT prompt.
+
+So for the MVP: share the card, link to the plain App Store page, and **do not
+try to attribute**. Two free signals are still available:
+
+- count taps on the share button as an in-app event (intent, not conversion);
+- watch the App Store Connect referrer breakdown for web traffic — crude, but it
+  is already included in the $99 and needs no code.
+
+If sharing turns out to matter, buy attribution later with revenue. Buying it now
+would cost more per month than the entire retention test.
+
+**One content caution.** If the card carries the name she typed for her cat, that
+name becomes a public artifact next to your app's branding. Either leave the name
+off the shared image or filter it. Cheap to decide now, embarrassing to discover
+later.
 
 ---
 
@@ -521,6 +572,7 @@ drop-off reaching it is measured in M7.
 | 6.11 | Copy in English (VIEW) | P0 | zero non-English strings | grep over asset tree |
 | 6.12 | Headless build (NATIVE) | P0 | one command produces an ipa | run from a clean checkout |
 | 6.13 | TestFlight distribution (NATIVE) | P0 | installs from invite | 3 people installed |
+| 6.14 | **Shareable cat card** (VIEW) | P2 | card renders to an image, iOS share sheet opens with a plain App Store link | on device: share to Notes, image arrives intact; `share_tap` event recorded |
 
 ### 6.7 was under-specified, and the gap punishes exactly our player
 

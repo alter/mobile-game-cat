@@ -25,7 +25,7 @@ namespace CatShelter.Core.Tests
                 for (int i = 0; i < deficit; i++)
                     list.Add(Entry(nextId++, group.Key));
             }
-            return new Level(1, "room_1", list);
+            return new Level(1, "room_1", 0, list);
         }
 
         // ---- GetAvailable ----------------------------------------------------
@@ -33,7 +33,7 @@ namespace CatShelter.Core.Tests
         [Test]
         public void EmptyPile_NoAvailableItems()
         {
-            var board = new Board(new Level(1, "room_1", Array.Empty<PileEntry>()));
+            var board = new Board(new Level(1, "room_1", 0, Array.Empty<PileEntry>()));
             Assert.That(board.GetAvailable(), Is.Empty);
         }
 
@@ -115,7 +115,7 @@ namespace CatShelter.Core.Tests
         public void DuplicateItemIds_ConstructorThrows()
         {
             Assert.Throws<ArgumentException>(() =>
-                new Board(new Level(1, "room_1",
+                new Board(new Level(1, "room_1", 0,
                     new[] { Entry(1, "a"), Entry(1, "b") })));
         }
 
@@ -129,7 +129,7 @@ namespace CatShelter.Core.Tests
                 Entry(2, "a"),
             };
             Assert.Throws<ArgumentException>(() =>
-                new Board(new Level(1, "room_1", pile)));
+                new Board(new Level(1, "room_1", 0, pile)));
         }
 
         [Test]
@@ -234,7 +234,7 @@ namespace CatShelter.Core.Tests
             new(new Item(id, new ItemKind(kind, kind)), blockedBy.ToList());
 
         private static Level L(params PileEntry[] pile) =>
-            new(7, "room_1", pile);
+            new(7, "room_1", 0, pile);
 
         [Test]
         public void Win_PileCleared_EvenWhenLastTakeFillsShelf()

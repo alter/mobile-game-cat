@@ -15,17 +15,19 @@ namespace CatShelter.Tests
             var root = Newtonsoft.Json.Linq.JObject.Parse(json);
             int number = (int)root["number"]!;
             string roomId = (string)root["room_id"]!;
+            int pileIndex = (int?)root["pile_index"] ?? 0;
 
             var entries = new List<PileEntry>();
             foreach (var e in (Newtonsoft.Json.Linq.JArray)root["pile"]!)
             {
                 var item = new Item((int)e["id"]!,
-                    new ItemKind((string)e["kind"]!, (string)e["kind"]!));
+                    new ItemKind((string)e["kind"]!, (string)e["kind"]!),
+                    (int?)e["locked_after_triples"] ?? 0);
                 var blocked = e["blocked_by"]!.Select(t => (int)t).ToList();
                 entries.Add(new PileEntry(item, blocked));
             }
 
-            return new Level(number, roomId, entries);
+            return new Level(number, roomId, pileIndex, entries);
         }
     }
 }

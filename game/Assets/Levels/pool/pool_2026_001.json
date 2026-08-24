@@ -1,7 +1,7 @@
 {
-  "number": 1,
-  "room_id": "room_01",
-  "moves_limit": 999,
+  "number": 2,
+  "room_id": "room_02",
+  "moves_limit": 43,
   "pile": [
     {
       "id": 1,

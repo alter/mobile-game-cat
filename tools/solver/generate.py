@@ -106,8 +106,9 @@ def main() -> None:
 
     made = rejected = 0
     for i in range(args.count):
-        level = generate_level(rng, item_count=args.items)
-        if solve(level) is None:
+        number = i % 12 + 1  # spread across the difficulty curve
+        level = generate_with_slack(rng, number=number, item_count=args.items)
+        if level is None:
             rejected += 1
             continue
         save_level(level, str(out_dir / f"pool_{args.seed}_{i:03d}.json"))

@@ -11,6 +11,9 @@
     <PackageReference Include="NUnit" Version="4.2.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <!-- Test-side JSON plumbing only; Core itself stays dependency-free.
+         In Unity this becomes com.unity.nuget.newtonsoft-json. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>

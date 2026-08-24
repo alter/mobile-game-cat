@@ -27,9 +27,13 @@ namespace CatShelter.Core
     {
         private readonly Dictionary<int, PileEntry> _entries;
         private readonly HashSet<int> _taken;
+        private readonly List<int> _takenOrder = new();
 
         /// <summary>Completed-triple count; unlocks locked items (task 3.11).</summary>
         public int TriplesCompleted { get; private set; }
+
+        /// <summary>Ids already taken, in take order (task 6.7 serialisation).</summary>
+        public IReadOnlyList<int> TakenOrder => _takenOrder;
 
         /// <summary>Locked items open after this many completed triples.</summary>
         public int LockThreshold { get; }
@@ -114,6 +118,7 @@ namespace CatShelter.Core
                 return false;
 
             _taken.Add(itemId);
+            _takenOrder.Add(itemId);
 
             if (!Shelf.TryPlace(entry.Item, out var matchedKind))
             {

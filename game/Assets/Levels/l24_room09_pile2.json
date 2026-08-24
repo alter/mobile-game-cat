@@ -5,159 +5,149 @@
   "pile": [
     {
       "id": 1,
-      "kind": "prop_09",
-      "blocked_by": []
+      "kind": "prop_02",
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 2,
-      "kind": "prop_04",
-      "blocked_by": []
+      "kind": "prop_02",
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 3,
-      "kind": "prop_08",
+      "kind": "prop_01",
       "blocked_by": []
     },
     {
       "id": 4,
-      "kind": "prop_00",
-      "blocked_by": []
-    },
-    {
-      "id": 5,
-      "kind": "prop_02",
-      "blocked_by": []
-    },
-    {
-      "id": 6,
-      "kind": "prop_05",
-      "blocked_by": []
-    },
-    {
-      "id": 7,
-      "kind": "prop_06",
-      "blocked_by": []
-    },
-    {
-      "id": 8,
-      "kind": "prop_02",
-      "blocked_by": []
-    },
-    {
-      "id": 9,
-      "kind": "prop_02",
-      "blocked_by": []
-    },
-    {
-      "id": 10,
       "kind": "prop_09",
       "blocked_by": []
     },
     {
-      "id": 11,
-      "kind": "prop_06",
-      "blocked_by": [
-        8,
-        6
-      ]
+      "id": 5,
+      "kind": "prop_09",
+      "blocked_by": []
     },
     {
-      "id": 12,
+      "id": 6,
+      "kind": "prop_06",
+      "blocked_by": []
+    },
+    {
+      "id": 7,
       "kind": "prop_00",
       "blocked_by": []
     },
     {
-      "id": 13,
+      "id": 8,
+      "kind": "prop_06",
+      "blocked_by": []
+    },
+    {
+      "id": 9,
+      "kind": "prop_00",
+      "blocked_by": []
+    },
+    {
+      "id": 10,
       "kind": "prop_00",
       "blocked_by": [
-        4,
+        5
+      ]
+    },
+    {
+      "id": 11,
+      "kind": "prop_05",
+      "blocked_by": []
+    },
+    {
+      "id": 12,
+      "kind": "prop_09",
+      "blocked_by": [
         6
       ]
+    },
+    {
+      "id": 13,
+      "kind": "prop_02",
+      "blocked_by": [
+        1
+      ],
+      "locked_after_triples": 2
     },
     {
       "id": 14,
-      "kind": "prop_06",
-      "blocked_by": [
-        6
-      ]
-    },
-    {
-      "id": 15,
-      "kind": "prop_07",
-      "blocked_by": [
-        1
-      ]
-    },
-    {
-      "id": 16,
       "kind": "prop_05",
       "blocked_by": [
         5
       ]
     },
     {
-      "id": 17,
-      "kind": "prop_03",
+      "id": 15,
+      "kind": "prop_04",
       "blocked_by": [
         7
       ]
     },
     {
-      "id": 18,
-      "kind": "prop_02",
-      "blocked_by": []
-    },
-    {
-      "id": 19,
-      "kind": "prop_07",
-      "blocked_by": []
-    },
-    {
-      "id": 20,
+      "id": 16,
       "kind": "prop_05",
       "blocked_by": []
     },
     {
-      "id": 21,
-      "kind": "prop_03",
+      "id": 17,
+      "kind": "prop_07",
       "blocked_by": []
     },
     {
-      "id": 22,
-      "kind": "prop_06",
+      "id": 18,
+      "kind": "prop_02",
+      "blocked_by": [],
+      "locked_after_triples": 2
+    },
+    {
+      "id": 19,
+      "kind": "prop_09",
+      "blocked_by": []
+    },
+    {
+      "id": 20,
+      "kind": "prop_07",
       "blocked_by": [
         17
       ]
     },
     {
-      "id": 23,
-      "kind": "prop_03",
+      "id": 21,
+      "kind": "prop_06",
       "blocked_by": []
     },
     {
-      "id": 24,
-      "kind": "prop_08",
+      "id": 22,
+      "kind": "prop_00",
       "blocked_by": [
         7,
         15
       ]
     },
     {
-      "id": 25,
-      "kind": "prop_08",
+      "id": 23,
+      "kind": "prop_07",
       "blocked_by": [
         8
       ]
     },
     {
-      "id": 26,
-      "kind": "prop_03",
+      "id": 24,
+      "kind": "prop_01",
       "blocked_by": [
         15
       ]
     },
     {
-      "id": 27,
+      "id": 25,
       "kind": "prop_01",
       "blocked_by": [
         6,
@@ -165,31 +155,44 @@
       ]
     },
     {
-      "id": 28,
-      "kind": "prop_09",
+      "id": 26,
+      "kind": "prop_08",
       "blocked_by": [
         13
       ]
     },
     {
-      "id": 29,
+      "id": 27,
       "kind": "prop_03",
       "blocked_by": [
         18
       ]
     },
     {
-      "id": 30,
-      "kind": "prop_01",
+      "id": 28,
+      "kind": "prop_04",
       "blocked_by": [
         16
       ]
     },
     {
-      "id": 31,
-      "kind": "prop_04",
+      "id": 29,
+      "kind": "prop_07",
       "blocked_by": [
         15
+      ]
+    },
+    {
+      "id": 30,
+      "kind": "prop_05",
+      "blocked_by": []
+    },
+    {
+      "id": 31,
+      "kind": "prop_09",
+      "blocked_by": [
+        3,
+        26
       ]
     },
     {
@@ -199,19 +202,6 @@
     },
     {
       "id": 33,
-      "kind": "prop_00",
-      "blocked_by": [
-        3,
-        26
-      ]
-    },
-    {
-      "id": 34,
-      "kind": "prop_04",
-      "blocked_by": []
-    },
-    {
-      "id": 35,
       "kind": "prop_01",
       "blocked_by": [
         24,
@@ -219,94 +209,105 @@
       ]
     },
     {
-      "id": 36,
-      "kind": "prop_08",
+      "id": 34,
+      "kind": "prop_06",
       "blocked_by": [
         6
       ]
     },
     {
-      "id": 37,
-      "kind": "prop_07",
+      "id": 35,
+      "kind": "prop_04",
       "blocked_by": [
         1
       ]
     },
     {
-      "id": 38,
-      "kind": "prop_05",
+      "id": 36,
+      "kind": "prop_03",
       "blocked_by": []
     },
     {
-      "id": 39,
-      "kind": "prop_02",
+      "id": 37,
+      "kind": "prop_03",
       "blocked_by": [
         21,
         33
       ]
     },
     {
-      "id": 40,
-      "kind": "prop_05",
+      "id": 38,
+      "kind": "prop_04",
       "blocked_by": [
         13
       ]
     },
     {
-      "id": 41,
-      "kind": "prop_04",
+      "id": 39,
+      "kind": "prop_08",
       "blocked_by": []
+    },
+    {
+      "id": 40,
+      "kind": "prop_03",
+      "blocked_by": []
+    },
+    {
+      "id": 41,
+      "kind": "prop_02",
+      "blocked_by": [
+        33
+      ],
+      "locked_after_triples": 2
     },
     {
       "id": 42,
-      "kind": "prop_04",
-      "blocked_by": []
-    },
-    {
-      "id": 43,
-      "kind": "prop_01",
-      "blocked_by": [
-        33
-      ]
-    },
-    {
-      "id": 44,
-      "kind": "prop_09",
+      "kind": "prop_05",
       "blocked_by": [
         27,
         28
       ]
     },
     {
-      "id": 45,
-      "kind": "prop_04",
+      "id": 43,
+      "kind": "prop_06",
       "blocked_by": [
         20
       ]
     },
     {
-      "id": 46,
-      "kind": "prop_09",
+      "id": 44,
+      "kind": "prop_01",
       "blocked_by": [
         32
       ]
     },
     {
-      "id": 47,
-      "kind": "prop_00",
+      "id": 45,
+      "kind": "prop_04",
       "blocked_by": [
         31,
         29
       ]
     },
     {
+      "id": 46,
+      "kind": "prop_03",
+      "blocked_by": []
+    },
+    {
+      "id": 47,
+      "kind": "prop_00",
+      "blocked_by": []
+    },
+    {
       "id": 48,
-      "kind": "prop_07",
+      "kind": "prop_00",
       "blocked_by": []
     },
     {
       "id": 49,
-      "kind": "prop_07",
+      "kind": "prop_05",
       "blocked_by": []
     },
     {
@@ -316,49 +317,40 @@
     },
     {
       "id": 51,
-      "kind": "prop_01",
-      "blocked_by": []
-    },
-    {
-      "id": 52,
       "kind": "prop_08",
       "blocked_by": []
     },
     {
-      "id": 53,
-      "kind": "prop_05",
-      "blocked_by": []
-    },
-    {
-      "id": 54,
-      "kind": "prop_06",
+      "id": 52,
+      "kind": "prop_01",
       "blocked_by": [
         27,
         40
       ]
     },
     {
-      "id": 55,
-      "kind": "prop_09",
+      "id": 53,
+      "kind": "prop_02",
       "blocked_by": [
         3
-      ]
+      ],
+      "locked_after_triples": 2
     },
     {
-      "id": 56,
-      "kind": "prop_02",
+      "id": 54,
+      "kind": "prop_08",
       "blocked_by": []
     },
     {
-      "id": 57,
-      "kind": "prop_01",
+      "id": 55,
+      "kind": "prop_07",
       "blocked_by": [
         5,
         8
       ]
     },
     {
-      "id": 58,
+      "id": 56,
       "kind": "prop_06",
       "blocked_by": [
         16,
@@ -366,16 +358,28 @@
       ]
     },
     {
-      "id": 59,
-      "kind": "prop_00",
+      "id": 57,
+      "kind": "prop_09",
       "blocked_by": [
         9
       ]
     },
     {
-      "id": 60,
+      "id": 58,
       "kind": "prop_08",
       "blocked_by": []
+    },
+    {
+      "id": 59,
+      "kind": "prop_04",
+      "blocked_by": []
+    },
+    {
+      "id": 60,
+      "kind": "prop_08",
+      "blocked_by": [
+        10
+      ]
     }
   ]
 }

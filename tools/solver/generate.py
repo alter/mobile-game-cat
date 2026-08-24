@@ -24,9 +24,17 @@ def _items_for_level(number: int) -> int:
     return 60
 
 
+# Task 3.11: the one complication shipped in the MVP. A whole kind is locked
+# until the player completes that many triples; introduced in room 9+ only,
+# so a late room feels unlike an early one.
+LOCKED_KIND_FROM_ROOM = 9
+LOCKED_TRIPLE_THRESHOLD = 2
+
+
 def generate_level(rng: random.Random, number: int = 1,
                    item_count: int = 30, kind_count: int | None = None,
-                   room_id: str | None = None) -> LevelDef:
+                   room_id: str | None = None,
+                   with_locked_kind: bool | None = None) -> LevelDef:
     """Build one level.
 
     Structure: kinds each appear a multiple of 3 times; items are laid out in
@@ -35,6 +43,9 @@ def generate_level(rng: random.Random, number: int = 1,
 
     kind_count is an explicit tuning lever (refactor decision 3); when omitted
     it defaults to the historical behaviour of ~2 triples per kind.
+
+    with_locked_kind (task 3.11): lock one kind behind LOCKED_TRIPLE_THRESHOLD
+    completed triples. Default: on for rooms >= LOCKED_KIND_FROM_ROOM, off before.
     """
     if item_count % 3 != 0:
         item_count += 3 - item_count % 3
@@ -77,6 +88,18 @@ def generate_level(rng: random.Random, number: int = 1,
             n_blockers = min(n_blockers, len(below))
             blockers = rng.sample(below, n_blockers)
             pile[pid - 1] = PileItem(pid, pile[pid - 1].kind, tuple(blockers))
+
+    # task 3.11: pick one kind and lock its three items behind N triples
+    if with_locked_kind is None:
+        with_locked_kind = number >= LOCKED_KIND_FROM_ROOM and bool(kinds)
+    if with_locked_kind and kinds:
+        locked_kind = rng.choice(kinds)
+        unlock_at = min(LOCKED_TRIPLE_THRESHOLD, len(kinds) - 1)
+        pile = [
+            PileItem(i.id, i.kind, i.blocked_by,
+                     i.locked_after_triples or (unlock_at if i.kind == locked_kind else 0))
+            for i in pile
+        ]
 
     return LevelDef(
         number=number,

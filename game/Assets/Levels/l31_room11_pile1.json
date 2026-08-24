@@ -45,7 +45,7 @@
     },
     {
       "id": 9,
-      "kind": "prop_03",
+      "kind": "prop_09",
       "blocked_by": []
     },
     {
@@ -61,7 +61,8 @@
     {
       "id": 12,
       "kind": "prop_04",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 13,
@@ -78,7 +79,8 @@
     {
       "id": 15,
       "kind": "prop_04",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 16,
@@ -90,11 +92,12 @@
     {
       "id": 17,
       "kind": "prop_04",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 18,
-      "kind": "prop_02",
+      "kind": "prop_03",
       "blocked_by": [
         7
       ]
@@ -152,7 +155,7 @@
     },
     {
       "id": 27,
-      "kind": "prop_03",
+      "kind": "prop_02",
       "blocked_by": []
     },
     {
@@ -163,7 +166,8 @@
     {
       "id": 29,
       "kind": "prop_04",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 30,
@@ -210,7 +214,7 @@
     },
     {
       "id": 36,
-      "kind": "prop_09",
+      "kind": "prop_03",
       "blocked_by": []
     },
     {
@@ -297,7 +301,8 @@
       "blocked_by": [
         12,
         44
-      ]
+      ],
+      "locked_after_triples": 2
     },
     {
       "id": 51,
@@ -315,7 +320,7 @@
     },
     {
       "id": 53,
-      "kind": "prop_08",
+      "kind": "prop_09",
       "blocked_by": [
         40
       ]
@@ -350,7 +355,8 @@
     {
       "id": 58,
       "kind": "prop_04",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 59,
@@ -359,7 +365,7 @@
     },
     {
       "id": 60,
-      "kind": "prop_09",
+      "kind": "prop_08",
       "blocked_by": [
         2,
         44

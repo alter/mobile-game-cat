@@ -17,7 +17,9 @@ for f in sorted(LEVELS.glob("l*.json")):
         "roomId": data["room_id"],
         "pileIndex": data.get("pile_index", 0),
         "pile": [{"id": e["id"], "kind": e["kind"],
-                  "blockedBy": e.get("blocked_by", [])} for e in data["pile"]],
+                  "blockedBy": e.get("blocked_by", []),
+                  "lockedAfter": e.get("locked_after_triples", 0)}
+                 for e in data["pile"]],
     })
 
 html = """<!DOCTYPE html>
@@ -82,14 +84,19 @@ const ROOM_ORDER = [...new Set(LEVELS.map(l => l.roomId))];
 const ROOM_SEGMENTS = {};
 for (const r of ROOM_ORDER) ROOM_SEGMENTS[r] = LEVELS.filter(l => l.roomId === r).length;
 
-let levelIdx = 0, taken, shelf, over, revealedIds, triplesDone, roomsCleared;
+let levelIdx = 0, taken, shelf, over, triplesDone;
 
 function byId(level){ const m={}; for(const it of level.pile) m[it.id]=it; return m; }
 
+function isLocked(item){
+  return item.lockedAfter > 0 && triplesDone < item.lockedAfter;
+}
 function isRevealed(level, item){
   if (taken.has(item.id)) return false;
-  return item.blockedBy.every(b => taken.has(b));
+  return item.blockedBy.every(b => taken.has(b)) && !isLocked(item);
 }
+// locked-but-revealed: player sees a seal icon on an otherwise visible tile
+function isSealed(item){ return isLocked(item); }
 
 function startLevel(i){
   levelIdx = i;
@@ -143,6 +150,7 @@ function take(level, item){
   const slot = shelf.indexOf(null);
   shelf[slot] = item.kind;
   const matched = tryMatch();
+  if (matched) triplesDone++;
   if (!matched && !shelf.includes(null)) return finish("jam");
   if (taken.size === level.pile.length) return finish("win");
   render();
@@ -204,8 +212,8 @@ function render(){
     if (isRevealed(L, it)){
       b.className = "item" + (availIds.has(it.id) ? "" : " blocked");
       b.style.background = s.bg;
-      b.textContent = s.label;
-      if (availIds.has(it.id)) b.onclick = () => take(L, it);
+      b.textContent = isSealed(it) ? "🔒" : s.label;
+      if (availIds.has(it.id) && !isSealed(it)) b.onclick = () => take(L, it);
     } else {
       // task 3.9: buried tile shows nothing
       b.className = "item blocked hidden";

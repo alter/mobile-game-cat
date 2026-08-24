@@ -159,7 +159,8 @@
     {
       "id": 27,
       "kind": "prop_03",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 28,
@@ -184,7 +185,8 @@
     {
       "id": 31,
       "kind": "prop_03",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 32,
@@ -218,7 +220,8 @@
     {
       "id": 37,
       "kind": "prop_03",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 38,
@@ -230,7 +233,8 @@
       "kind": "prop_03",
       "blocked_by": [
         16
-      ]
+      ],
+      "locked_after_triples": 2
     },
     {
       "id": 40,
@@ -267,7 +271,8 @@
     {
       "id": 45,
       "kind": "prop_03",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 46,
@@ -322,7 +327,8 @@
     {
       "id": 54,
       "kind": "prop_03",
-      "blocked_by": []
+      "blocked_by": [],
+      "locked_after_triples": 2
     },
     {
       "id": 55,

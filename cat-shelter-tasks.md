@@ -622,6 +622,11 @@ between the two money gates. The rest removes the "game is unplayable" risk.
 
 ## M4. Art
 
+**Full specification: `art-brief.md`** — every asset with size and format, the
+cat's layer structure, the prop families that keep ten kinds distinguishable at
+52 px, the work order, and acceptance per group. The table below is the schedule;
+the brief is the content.
+
 | # | Task (role) | P | Done when | Verified by |
 |---|---|---|---|---|
 | 4.1 | Prop list, ~30 items (ART) | P0 | list approved | — |

@@ -176,6 +176,56 @@ name becomes a public artifact next to your app's branding. Either leave the nam
 off the shared image or filter it. Cheap to decide now, embarrassing to discover
 later.
 
+### The referral reward ladder: sound shape, wrong milestone
+
+Proposed: 1 invite → small bonus, 5 → triple bonus, 10 → simple skin, 30 → unique
+skin, 100 → a "blogger" item (blanket, cushion, basket, bow). Recorded as
+post-MVP design. **Not in the MVP**, for four reasons, in descending order of how
+hard they are to argue with.
+
+**1. The arithmetic kills it before the engineering does.** The retention test
+buys roughly a hundred installs *in total*. A ladder whose rungs are 5, 10, 30
+and 100 invites has four tiers that literally nobody can reach at that scale. You
+would build five rewards to observe one.
+
+**2. It needs the counter we cannot afford.** Crediting "five people came through
+your link" is deferred deep linking, and the free options are gone — Firebase
+Dynamic Links closed 25 August 2025, Branch starts at $499/month. Two cheap
+substitutes exist and both should be understood before choosing:
+
+- **Manual invite code.** Sharer gets a code, the new player types it during
+  onboarding. Free, no SDK, no ATT, real attribution — for the minority who
+  bother to type it. This is what small teams actually ship.
+- **Click counting on our own Worker.** A link like `…/r/ABC123` records the
+  click in D1 and redirects to the App Store. Free, uses infrastructure already
+  chosen, no ATT. But it counts *clicks*, not installs, and is trivially gamed by
+  clicking your own link. Tolerable if rewards are cosmetic; not if they are
+  currency.
+
+The workable combination later: reward on verified code entries, show click count
+as progress feedback.
+
+**3. Two rewards on the ladder do not exist and one should not.** "Extra energy"
+presupposes an energy gate, which is refused above. Hints are post-MVP. That
+leaves the booster as the only tier-1 reward that exists today.
+
+**4. The top rewards collide with the game's own care milestones.** The MVP gives
+a bowl at level 4 and a blanket at level 8 as evidence that the kitten is being
+looked after — "Полезности не дают и давать не должны". Handing out a blanket, a
+cushion or a basket as referral loot spends the same objects as recruitment
+prizes and dilutes what earning them through care is supposed to mean. Keep the
+two economies apart: care objects come from playing, referral rewards should be
+decoration around the cat — frames, glow, backgrounds — which we already decided
+are additive and safe.
+
+**And a tone check worth taking seriously.** The audience is defined as avoiding
+"соперничества" and pressure. A ladder that reads "recruit thirty friends" is
+transactional in a game whose whole proposition is care. The same mechanic framed
+as "покажи своего кота" — where the reward is that *her cat* gets a nicer frame,
+not that she hit a recruitment target — keeps the mechanic and drops the tone
+problem. A 100-invite tier is influencer territory; if it exists at all it should
+be an explicit creator programme, not a rung ordinary players stare at.
+
 ---
 
 ## Part I. Agent roles

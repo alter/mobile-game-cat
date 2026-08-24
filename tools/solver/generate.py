@@ -81,6 +81,7 @@ def generate_level(rng: random.Random, number: int = 1,
     return LevelDef(
         number=number,
         room_id=room_id or f"room_{number:02d}",
+        pile_index=0,
         pile=tuple(pile),
     )
 

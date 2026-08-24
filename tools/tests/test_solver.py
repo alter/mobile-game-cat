@@ -9,15 +9,12 @@ from tools.solver.solver import solve
 
 
 def L(*pile):
-    return LevelDef(number=7, room_id="room_1", pile=tuple(pile))
+    return LevelDef(number=7, room_id="room_1", pile_index=0,
+                    pile=tuple(pile))
 
 
 def E(i, kind, *blocked):
     return PileItem(i, kind, tuple(blocked))
-
-
-def triples(kind, ids):
-    return [E(i, kind) for i in ids]
 
 
 def test_five_known_solvable():

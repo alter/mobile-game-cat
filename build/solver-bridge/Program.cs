@@ -24,6 +24,8 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
 {
     int number = levelEl.GetProperty("number").GetInt32();
     string roomId = levelEl.GetProperty("room_id").GetString()!;
+    int pileIndex = levelEl.TryGetProperty("pile_index", out var pi)
+        ? pi.GetInt32() : 0;
     int? shelfCapacity = levelEl.TryGetProperty("shelf_capacity", out var sc)
         ? sc.GetInt32() : null;
 
@@ -32,13 +34,16 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
     {
         var blocked = e.GetProperty("blocked_by").EnumerateArray()
             .Select(x => x.GetInt32()).ToList();
+        int locked = e.TryGetProperty("locked_after_triples", out var lt)
+            ? lt.GetInt32() : 0;
         entries.Add(new CatShelter.Core.PileEntry(
             new CatShelter.Core.Item(e.GetProperty("id").GetInt32(),
                 new CatShelter.Core.ItemKind(e.GetProperty("kind").GetString()!,
-                                             e.GetProperty("kind").GetString()!)),
+                                             e.GetProperty("kind").GetString()!),
+                locked),
             blocked));
     }
-    var level = new CatShelter.Core.Level(number, roomId, entries);
+    var level = new CatShelter.Core.Level(number, roomId, pileIndex, entries);
     var board = shelfCapacity.HasValue
         ? new CatShelter.Core.Board(level, shelfCapacity.Value)
         : new CatShelter.Core.Board(level);

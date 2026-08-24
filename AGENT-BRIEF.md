@@ -34,7 +34,7 @@
 
 | Слой | Решение |
 |---|---|
-| Движок | Unity 6.3 LTS, **6000.3.22f1** |
+| Движок | Unity 6.3 LTS, **6000.3.22f1** — ставить из [архива](https://unity.com/releases/editor/archive); по умолчанию Unity предлагает 6.5, она Update release и не подходит |
 | Язык | C#, .NET Standard 2.1 |
 | Показ | URP 2D Renderer |
 | Интерфейс | UI Toolkit, вёрстка в UXML/USS |

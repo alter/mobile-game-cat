@@ -4,7 +4,8 @@ using System.Linq;
 using CatShelter.Core;
 using NUnit.Framework;
 
-namespace CatShelter.Core.Tests;
+namespace CatShelter.Core.Tests
+{
 
 [TestFixture]
 public class BoardTests
@@ -261,4 +262,5 @@ public class OutcomeTests
         Assert.That(board.IsOver, Is.True);
         Assert.That(board.MovesLeft, Is.EqualTo(8));
     }
+}
 }

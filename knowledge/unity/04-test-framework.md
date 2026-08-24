@@ -103,6 +103,63 @@ Test Framework — пакет `com.unity.test-framework`, предназначе
 
 Общий вывод по всем приёмам: чтобы ядро гарантированно компилировалось и вне Unity, и внутри — держать его код в отдельном `.asmdef` без ссылок на `UnityEngine`/`UnityEditor`, ограничиваться API уровня .NET Standard 2.1, и собирать/тестировать его отдельным `dotnet test`/`dotnet build` поверх `.csproj`, который либо линкует те же `.cs`-файлы (`<Compile Include>`), либо ссылается на тот же asmdef как на project reference.
 
+## 3-бис. Временный прогон через `dotnet test` без установленного Unity
+
+Дописано 2026-08-24 по следам первой задачи M2, выполненной на машине без Unity.
+
+**Положение.** Пока Unity не установлен, Unity Test Framework недоступен, а
+приёмка M2 требует тестов на каждое изменение. Обходной путь — обычный проект
+`dotnet test`, ссылающийся на тот же `Core`. Обоснование принимается: без него
+ядро нечем собрать и нечем проверить.
+
+**Ловушка, из-за которой этот раздел вообще написан.** NuGet-пакет `NUnit` и
+NUnit внутри Unity — это **разные версии**: в Unity поставляется
+`com.unity.ext.nunit`, «Based on NUnit version 3.5», а с NuGet приезжает NUnit 4.x.
+Взять свежий NUnit и решить, что «синтаксис тот же», нельзя: в NUnit 4.0
+классические утверждения вынесены в отдельную библиотеку и переименованы.
+
+Дословно из [Breaking Changes](https://docs.nunit.org/articles/nunit/release-notes/breaking-changes.html):
+
+> The [Classic Asserts] have been moved to a separate library and their namespace
+> and their class name were renamed to: `NUnit.Framework.Legacy.ClassicAssert`.
+
+> The standalone assert classes have also been moved to the `NUnit.Framework.Legacy`
+> namespace. These classes are: Collection Assert, String Assert, Directory Assert,
+> File Assert.
+
+> `Assert.That` overloads with *format* specification and `params` have been removed
+> in favor of an overload using `FormattableString`.
+
+**Правило, чтобы тесты переехали в UTF без переписывания.**
+
+| Пишем | Не пишем |
+|---|---|
+| `Assert.That(actual, Is.EqualTo(expected))` — модель ограничений, есть и в 3.5, и в 4.x | `ClassicAssert.AreEqual(...)` — класса `ClassicAssert` в 3.5 нет вообще |
+| `[Test]`, `[TestCase]`, `[TestFixture]`, `[SetUp]`, `[ValueSource]` | `NUnit.Framework.Legacy.*` — этого пространства имён в 3.5 нет |
+| блочные `namespace X { }` | `namespace X;` — file-scoped, это C# 10, а потолок Unity — C# 9 |
+
+Модель ограничений (`Assert.That` с `Is.`/`Does.`/`Has.`) — единственный стиль,
+переносимый в обе стороны. Он и должен быть единственным разрешённым в тестах
+ядра, пока Unity не появится.
+
+**Проверка перед переездом на UTF.** Прогнать по тестам:
+
+```bash
+grep -rn "ClassicAssert\|NUnit.Framework.Legacy" game/Tests/   # должно быть пусто
+grep -rn "^namespace .*;$" game/Tests/                          # должно быть пусто
+```
+
+Первое ловит утверждения, которых в 3.5 не существует. Второе — file-scoped
+namespace, который не соберётся под C# 9.
+
+**Что остаётся непроверенным.** Возможности, добавленные в NUnit между 3.5 и
+4.x, в 3.5 отсутствуют, и полного их перечня здесь нет. Сюда попадают, среди
+прочего, поздние `Assert.Multiple`-обёртки и асинхронные утверждения. Пока
+тесты держатся модели ограничений и базовых атрибутов из таблицы выше, риск
+близок к нулю; шаг в сторону надо сверять с документацией 3.5 отдельно.
+
+---
+
 ## 4. NUnit внутри Unity: версия, атрибуты, ограничения
 
 Unity не использует ванильный NuGet-пакет NUnit — вместо этого поставляется собственный пакет `com.unity.ext.nunit`, описанный как «A custom version of NUnit used by Unity Test Framework», «Based on NUnit version 3.5 and works with all platforms, il2cpp and Mono AOT» ([Custom NUnit manual, 2.0.5](https://docs.unity3d.com/Packages/com.unity.ext.nunit@2.0/manual/index.html)). То есть база — NUnit 3.5, адаптированная под AOT/il2cpp-ограничения Unity; какая именно версия `com.unity.ext.nunit` идёт с 6000.3 — не проверено (страница пакета не указывает привязку к версии Editor).

@@ -226,6 +226,53 @@ not that she hit a recruitment target — keeps the mechanic and drops the tone
 problem. A 100-invite tier is influencer territory; if it exists at all it should
 be an explicit creator programme, not a rung ordinary players stare at.
 
+### Correction: bloggers are the case where referral works, and it is free
+
+An earlier note here priced referral attribution at $499/month and left it at
+that. That conflated two different problems, and only one of them is expensive.
+
+- **Per-user attribution** — knowing that Masha specifically brought Olya. Needs
+  deferred deep linking, genuinely costs money, and is what the invite ladder
+  above requires. Still out.
+- **Per-partner attribution** — knowing that blogger X's link produced N installs
+  and how they retained. **Free, native, and already paid for in the $99.**
+
+Apple's Custom Product Pages do exactly this. Up to **70** additional versions of
+the store page, each with its own screenshots, preview video and **unique URL**:
+"Share your custom product pages with different audiences through unique URLs."
+App Analytics then reports, per page: product page impressions, downloads,
+redownloads, conversion rates, **retention data**, and average proceeds per
+paying user, with direct comparison against the default page.
+
+Seventy partners is far more than this project will ever have. No SDK, no ATT
+prompt, no vendor, no monthly fee. Apple also documents a conversion benefit:
+"Developers see a 2.5 percentage point increase on average when referring people
+to a custom product page […] a 156% increase compared to the 1.6% average
+conversion rate on default product pages."
+
+**Why the audience argument holds up.** Cat-content creators reach precisely the
+women 30–55 this game is aimed at, and the hook is unusually filmable: the
+creator photographs their own cat and it walks into the game. That is not a new
+asset — it is creative concept 0.4.2, already on the list. The blogger channel
+and the M0 creative are the same thing shot twice.
+
+**What replaces the ladder for creators.** Nothing to build. Each partner gets a
+custom product page; Apple counts. Compensation is a normal commercial
+arrangement — payment, revenue share, or an early build — not a rung in a
+progression bar. The "blogger skin at 100 invites" was solving a counting problem
+that Apple solves better and for nothing.
+
+**One constraint, already on record.** Custom Product Pages require the app to be
+live on the App Store — `knowledge/analytics/02-benchmarks-and-attribution.md`
+notes they "не работают как «фейковая страница» до появления реального листинга".
+So this channel opens after launch, not during M0.
+
+**And it upgrades the share card too.** Point task 6.14's share link at a
+dedicated custom product page rather than the plain store URL. Then App Analytics
+answers "does organic sharing produce installs, and do they stay" for free —
+aggregate, not per-user, which is all the MVP needs to know whether sharing is
+worth pursuing at all.
+
 ---
 
 ## Part I. Agent roles
@@ -611,6 +658,7 @@ drop-off reaching it is measured in M7.
 |---|---|---|---|---|
 | 6.1 | Presentation, input, placement animation (VIEW) | P0 | level playable with real art | PlayMode: full level run |
 | 6.2 | Room bound to level number (VIEW) | P0 | 12 rooms cycle | PlayMode |
+| 6.2.1 | **House map: all 12 rooms, cleaned ones visibly done** (VIEW) | **P0** | one screen shows the whole house and what is left | **HUMAN: after level 3, is it obvious how much remains?** |
 | 6.3 | Three cat states (VIEW) | P0 | transitions at levels 5 and 9 | PlayMode at both boundaries |
 | 6.4 | Rewards at levels 4 and 8 (VIEW) | P1 | props appear in room | PlayMode |
 | 6.5 | Win screen, before/after (VIEW) | P0 | both frames shown | **HUMAN: difference readable in half a second** |
@@ -622,7 +670,33 @@ drop-off reaching it is measured in M7.
 | 6.11 | Copy in English (VIEW) | P0 | zero non-English strings | grep over asset tree |
 | 6.12 | Headless build (NATIVE) | P0 | one command produces an ipa | run from a clean checkout |
 | 6.13 | TestFlight distribution (NATIVE) | P0 | installs from invite | 3 people installed |
-| 6.14 | **Shareable cat card** (VIEW) | P2 | card renders to an image, iOS share sheet opens with a plain App Store link | on device: share to Notes, image arrives intact; `share_tap` event recorded |
+| 6.14 | **Shareable before/after card** (VIEW) | P2 | card renders to an image, iOS share sheet opens with a **custom product page** link | on device: share to Notes, image arrives intact; `share_tap` event recorded |
+
+### 6.2.1 was missing, and it serves a motivator the MVP names explicitly
+
+There is no screen where the player sees the whole house. 6.2 binds a room to a
+level, 6.10 shows an end card, and nothing in between shows how much is left.
+
+The audience analysis lists, as motivator number three, "завершённость —
+незакрытый набор мучает". A house with four clean rooms and eight dirty ones is
+precisely that feeling made visible, and it costs one screen. Leaving it out
+discards a retention driver the design already identified.
+
+It also fixes something subtler. Progress in this game is meant to be *seen*, not
+counted — the room brightens, the cat improves, objects appear. But all of that
+is only visible one room at a time. The map turns twelve separate improvements
+into one accumulating thing, which is what makes an unfinished set nag.
+
+### 6.14: share the transformation, not a portrait
+
+The card should show **before and after**, not the cat standing still. The MVP
+already knows this: "зрелище «было — стало» снимается на ролик за восемь секунд".
+A scruffy cat in a dirty room is not a thing anyone posts; the pair is.
+
+Two moments are worth offering the share at, and no others: right after a room is
+cleaned, and at the cat's state transitions after levels 4 and 8, where the
+change in the animal itself is large enough to read at thumbnail size. Offering
+it on level 1 gives her nothing to show.
 
 ### 6.7 was under-specified, and the gap punishes exactly our player
 

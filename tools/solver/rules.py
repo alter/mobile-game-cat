@@ -2,6 +2,9 @@
 
 The conformance test (tools/tests/conformance_test.py) is the guard: same
 level + same move order must produce the same outcome on both sides.
+
+No move limit: winning means taking every item, so a limit either blocks the
+level or can never be reached (reviews/2026-08-24-refactor-difficulty.md).
 """
 from __future__ import annotations
 
@@ -13,24 +16,30 @@ from .schema import LevelDef, PileItem
 
 class Outcome(enum.Enum):
     WIN = "win"
-    OUT_OF_MOVES = "out_of_moves"
     SHELF_JAMMED = "shelf_jammed"
 
 
 SLOTS_PER_ROW = 3
-CAPACITY = SLOTS_PER_ROW * 3  # nine places
+DEFAULT_CAPACITY = SLOTS_PER_ROW * 3  # nine places
 
 
-@dataclass
 class RulesState:
     """Mutable replay state. `taken` drives availability, `shelf` mirrors Shelf."""
 
-    level: LevelDef
-    moves_left: int
-    taken: set[int] = field(default_factory=set)
-    shelf: list[str] = field(default_factory=lambda: [None] * CAPACITY)  # kind per slot
-    over: bool = False
-    outcome: Outcome | None = None
+    def __init__(self, level: LevelDef, shelf_capacity: int = DEFAULT_CAPACITY):
+        counts: dict[str, int] = {}
+        for item in level.pile:
+            counts[item.kind] = counts.get(item.kind, 0) + 1
+        for kind, n in counts.items():
+            if n % 3 != 0:
+                raise ValueError(
+                    f"kind {kind!r} appears {n} times, not a multiple of three")
+        self.level = level
+        self.capacity = shelf_capacity
+        self.taken: set[int] = set()
+        self.shelf: list[str | None] = [None] * shelf_capacity
+        self.over = False
+        self.outcome: Outcome | None = None
 
     def available(self) -> list[PileItem]:
         by_id = self.level.by_id()
@@ -47,14 +56,11 @@ class RulesState:
             raise AssertionError("unreachable: jam handled before placement")
         self.shelf[slot] = kind
 
-        # A completely full shelf with nothing matched is a jam.
-        if None not in self.shelf:
-            if not self._try_match():
-                self.over = True
-                self.outcome = Outcome.SHELF_JAMMED
-                return
-
-        self._try_match()
+        # A completely full shelf with nothing matched is a jam; otherwise any
+        # completed triple is removed (mirrors Shelf.TryPlace → TryMatch).
+        if not self._try_match() and None not in self.shelf:
+            self.over = True
+            self.outcome = Outcome.SHELF_JAMMED
 
     def _try_match(self) -> bool:
         counts: dict[str, int] = {}
@@ -64,7 +70,7 @@ class RulesState:
         for kind, n in counts.items():
             if n >= 3:
                 removed = 0
-                for i in range(CAPACITY):
+                for i in range(len(self.shelf)):
                     if self.shelf[i] == kind and removed < 3:
                         self.shelf[i] = None
                         removed += 1
@@ -72,7 +78,7 @@ class RulesState:
         return False
 
     def take(self, item_id: int) -> bool:
-        """Mirror of Board.TakeItem."""
+        """Mirror of Board.TakeItem — win checked before the jam."""
         if self.over:
             return False
         by_id = self.level.by_id()
@@ -83,33 +89,38 @@ class RulesState:
             raise ValueError(f"illegal move {item_id}: blocked")
 
         self.taken.add(item_id)
-        self._place_and_match(item.kind)
-        if self.over:
-            return True
 
+        # win before jam: an emptied pile wins even if the shelf filled up
         if len(self.taken) == len(self.level.pile):
             self.over = True
             self.outcome = Outcome.WIN
             return True
 
-        self.moves_left -= 1
-        if self.moves_left <= 0:
-            self.over = True
-            self.outcome = Outcome.OUT_OF_MOVES
+        self._place_and_match(item.kind)
         return True
 
+    def add_slots(self, extra: int) -> None:
+        """Mirror of Shelf.AddSlots — the '+1 slot' booster."""
+        if extra < 0:
+            raise ValueError("extra must be >= 0")
+        self.shelf.extend([None] * extra)
+        self.capacity += extra
+        self.over = False
+        self.outcome = None
 
-def new_state(level: LevelDef) -> RulesState:
-    return RulesState(level=level, moves_left=level.moves_limit)
+
+def new_state(level: LevelDef, shelf_capacity: int = DEFAULT_CAPACITY) -> RulesState:
+    return RulesState(level, shelf_capacity)
 
 
-def replay(level: LevelDef, order: list[int]) -> tuple[Outcome | None, int]:
-    """Play a move order; returns (outcome, moves_left_at_end).
+def replay(level: LevelDef, order: list[int],
+           shelf_capacity: int = DEFAULT_CAPACITY) -> tuple[Outcome | None, int]:
+    """Play a move order; returns (outcome, slots_used_at_end).
 
     Raises ValueError if a move in the order is illegal after the game
     already ended (a solution script must never contain such moves).
     """
-    state = new_state(level)
+    state = new_state(level, shelf_capacity)
     for item_id in order:
         if not state.take(item_id):
             raise ValueError(
@@ -117,4 +128,4 @@ def replay(level: LevelDef, order: list[int]) -> tuple[Outcome | None, int]:
                 + (" (game already over)" if state.over else ""))
         if state.over:
             break
-    return state.outcome, state.moves_left
+    return state.outcome, state.capacity - state.shelf.count(None)

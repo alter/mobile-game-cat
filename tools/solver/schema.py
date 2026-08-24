@@ -19,7 +19,6 @@ class PileItem:
 class LevelDef:
     number: int
     room_id: str
-    moves_limit: int
     pile: tuple[PileItem, ...]
 
     def by_id(self) -> dict[int, PileItem]:
@@ -35,8 +34,6 @@ def validate(level: LevelDef) -> None:
         raise LevelValidationError("number must be >= 1")
     if not level.room_id:
         raise LevelValidationError("room_id must be non-empty")
-    if level.moves_limit <= 0:
-        raise LevelValidationError("moves_limit must be > 0")
 
     ids = [item.id for item in level.pile]
     if len(ids) != len(set(ids)):
@@ -89,7 +86,6 @@ def level_to_dict(level: LevelDef) -> dict:
     return {
         "number": level.number,
         "room_id": level.room_id,
-        "moves_limit": level.moves_limit,
         "pile": [
             {"id": i.id, "kind": i.kind, "blocked_by": list(i.blocked_by)}
             for i in level.pile
@@ -102,7 +98,6 @@ def level_from_dict(data: dict) -> LevelDef:
         return LevelDef(
             number=int(data["number"]),
             room_id=str(data["room_id"]),
-            moves_limit=int(data["moves_limit"]),
             pile=tuple(
                 PileItem(id=int(e["id"]), kind=str(e["kind"]),
                          blocked_by=tuple(int(x) for x in e.get("blocked_by", [])))

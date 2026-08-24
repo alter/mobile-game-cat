@@ -6,9 +6,8 @@ from tools.solver.schema import (
     level_from_dict, level_to_dict, validate)
 
 
-def make_level(pile=None, number=1, room_id="room_01", moves_limit=30):
-    return LevelDef(number=number, room_id=room_id,
-                    moves_limit=moves_limit, pile=tuple(pile or []))
+def make_level(pile=None, number=1, room_id="room_01"):
+    return LevelDef(number=number, room_id=room_id, pile=tuple(pile or []))
 
 
 def test_valid_roundtrip():
@@ -55,8 +54,6 @@ def test_malformed_dict_raises():
         level_from_dict({"number": 1})
 
 
-def test_empty_room_and_bad_moves_raise():
+def test_empty_room_raises():
     with pytest.raises(LevelValidationError):
         validate(make_level(room_id=""))
-    with pytest.raises(LevelValidationError):
-        validate(make_level(moves_limit=0))

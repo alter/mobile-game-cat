@@ -14,24 +14,32 @@ from .schema import LevelDef, PileItem, save_level
 from .solver import solve
 
 
-def _slack_for_level(number: int) -> int:
-    """Move slack from 8 (level 1) down to 2 (level 12)."""
-    table = {1: 8, 2: 7, 3: 7, 4: 6, 5: 6, 6: 5,
-             7: 4, 8: 4, 9: 3, 10: 3, 11: 2, 12: 2}
-    return table.get(number, 2)
+def _items_for_level(number: int) -> int:
+    """Difficulty curve by pile size (reviews/2026-08-24-refactor-difficulty.md):
+    36 items for levels 1–4 (~98% wins), 48 for 5–8 (~87%), 60 for 9–12 (~66%)."""
+    if number <= 4:
+        return 36
+    if number <= 8:
+        return 48
+    return 60
 
 
 def generate_level(rng: random.Random, number: int = 1,
-                   item_count: int = 30, room_id: str | None = None) -> LevelDef:
+                   item_count: int = 30, kind_count: int | None = None,
+                   room_id: str | None = None) -> LevelDef:
     """Build one level.
 
     Structure: kinds each appear a multiple of 3 times; items are laid out in
     layers where every item may be blocked only by items in strictly earlier
     layers — this makes cycles impossible by construction.
+
+    kind_count is an explicit tuning lever (refactor decision 3); when omitted
+    it defaults to the historical behaviour of ~2 triples per kind.
     """
     if item_count % 3 != 0:
         item_count += 3 - item_count % 3
-    kind_count = max(1, round(item_count / 3 / 2))  # ~2 triples per kind
+    if kind_count is None:
+        kind_count = max(1, round(item_count / 3 / 2))
     kinds = [f"prop_{i:02d}" for i in range(kind_count)]
 
     # expand kinds into a multiset of exactly item_count entries
@@ -47,9 +55,7 @@ def generate_level(rng: random.Random, number: int = 1,
     n_layers = max(2, item_count // 8)
     layers: list[list[str]] = [[] for _ in range(n_layers)]
     for idx, kind in enumerate(pool):
-        # distribute round-robin-ish with jitter
         layer = idx % n_layers
-        rng.shuffle(layers[layer])
         layers[layer].append(kind)
 
     pile: list[PileItem] = []
@@ -75,21 +81,18 @@ def generate_level(rng: random.Random, number: int = 1,
     return LevelDef(
         number=number,
         room_id=room_id or f"room_{number:02d}",
-        moves_limit=999,  # replaced after solving
         pile=tuple(pile),
     )
 
 
-def generate_with_slack(rng: random.Random, number: int,
-                        item_count: int) -> LevelDef | None:
-    """Generate and set moves_limit = min_moves + slack. None if unsolvable."""
-    level = generate_level(rng, number=number, item_count=item_count)
-    sol = solve(level)
-    if sol is None:
-        return None
-    slack = _slack_for_level(number)
-    return LevelDef(number=level.number, room_id=level.room_id,
-                    moves_limit=sol.move_count + slack, pile=level.pile)
+def generate_for_curve(rng: random.Random, number: int,
+                       kind_count: int | None = None) -> LevelDef | None:
+    """Generate at the curve's pile size for this level number. None if the
+    solver cannot verify solvability."""
+    level = generate_level(rng, number=number,
+                           item_count=_items_for_level(number),
+                           kind_count=kind_count)
+    return level if solve(level) is not None else None
 
 
 def main() -> None:
@@ -107,8 +110,9 @@ def main() -> None:
     made = rejected = 0
     for i in range(args.count):
         number = i % 12 + 1  # spread across the difficulty curve
-        level = generate_with_slack(rng, number=number, item_count=args.items)
-        if level is None:
+        level = generate_level(rng, number=number,
+                               item_count=args.items if args.items else None)
+        if solve(level) is None:
             rejected += 1
             continue
         save_level(level, str(out_dir / f"pool_{args.seed}_{i:03d}.json"))

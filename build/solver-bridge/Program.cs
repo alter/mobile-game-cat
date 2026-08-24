@@ -1,6 +1,10 @@
 // Throwaway conformance runner: replays solution scripts through Core and
 // writes results. Lives under /build, never referenced by game code.
-// Usage: dotnet run --project build/solver-bridge -- levels.json solutions.json results.json
+// Usage: dotnet run --project build/solver-bridge -- levels.json scripts.json results.json
+//
+// Script protocol: each case is a list of moves. A move is either a number
+// (take item id) or an array [itemId, "booster", extra] where the optional
+// booster element grows the shelf before the take.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,13 +12,11 @@ using System.Linq;
 using System.Text.Json;
 
 var levelsPath = args.Length > 0 ? args[0] : "levels.json";
-var solutionsPath = args.Length > 1 ? args[1] : "solutions.json";
+var scriptsPath = args.Length > 1 ? args[1] : "scripts.json";
 var resultsPath = args.Length > 2 ? args[2] : "results.json";
 
-var opts = new JsonDocumentOptions();
-
-using var levelsDoc = JsonDocument.Parse(File.ReadAllText(levelsPath), opts);
-using var solDoc = JsonDocument.Parse(File.ReadAllText(solutionsPath), opts);
+using var levelsDoc = JsonDocument.Parse(File.ReadAllText(levelsPath));
+using var scriptDoc = JsonDocument.Parse(File.ReadAllText(scriptsPath));
 
 var results = new List<object>();
 
@@ -22,7 +24,8 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
 {
     int number = levelEl.GetProperty("number").GetInt32();
     string roomId = levelEl.GetProperty("room_id").GetString()!;
-    int movesLimit = levelEl.GetProperty("moves_limit").GetInt32();
+    int? shelfCapacity = levelEl.TryGetProperty("shelf_capacity", out var sc)
+        ? sc.GetInt32() : null;
 
     var entries = new List<CatShelter.Core.PileEntry>();
     foreach (var e in levelEl.GetProperty("pile").EnumerateArray())
@@ -31,25 +34,43 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
             .Select(x => x.GetInt32()).ToList();
         entries.Add(new CatShelter.Core.PileEntry(
             new CatShelter.Core.Item(e.GetProperty("id").GetInt32(),
-                new CatShelter.Core.ItemKind(e.GetProperty("kind").GetString()!, e.GetProperty("kind").GetString()!)),
+                new CatShelter.Core.ItemKind(e.GetProperty("kind").GetString()!,
+                                             e.GetProperty("kind").GetString()!)),
             blocked));
     }
-    var level = new CatShelter.Core.Level(number, roomId, movesLimit, entries);
-    var board = new CatShelter.Core.Board(level);
+    var level = new CatShelter.Core.Level(number, roomId, entries);
+    var board = shelfCapacity.HasValue
+        ? new CatShelter.Core.Board(level, shelfCapacity.Value)
+        : new CatShelter.Core.Board(level);
 
     string key = number.ToString();
-    var order = solDoc.RootElement.GetProperty(key).EnumerateArray()
-        .Select(x => x.GetInt32()).ToList();
-
     bool legalSequence = true;
     string error = "";
-    foreach (var id in order)
+    foreach (var move in scriptDoc.RootElement.GetProperty(key).EnumerateArray())
     {
         if (board.IsOver) break;
-        if (!board.TakeItem(id))
+
+        // a move may be a bare id or [id, "booster", extra]
+        int itemId;
+        if (move.ValueKind == JsonValueKind.Number)
+        {
+            itemId = move.GetInt32();
+        }
+        else if (move.ValueKind == JsonValueKind.Array && move.GetArrayLength() >= 1)
+        {
+            itemId = move[0].GetInt32();
+            if (move.GetArrayLength() >= 3 && move[2].GetInt32() > 0)
+                board.Shelf.AddSlots(move[2].GetInt32());
+        }
+        else
+        {
+            continue;
+        }
+
+        if (!board.TakeItem(itemId))
         {
             legalSequence = false;
-            error = $"illegal move {id}";
+            error = $"illegal move {itemId}";
             break;
         }
     }
@@ -61,7 +82,7 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
         ["error"] = error,
         ["over"] = board.IsOver,
         ["outcome"] = board.Outcome?.ToString() ?? "none",
-        ["moves_left"] = board.MovesLeft
+        ["capacity"] = board.Shelf.Capacity
     });
 }
 

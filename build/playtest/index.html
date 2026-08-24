@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Разбор завала — прототип</title>
+<style>
+  :root { --bg:#f4ead8; --tile:#c9a97c; --shelf:#e8d9bd; --ink:#4a3b28; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:-apple-system,sans-serif; background:var(--bg); color:var(--ink);
+         display:flex; flex-direction:column; align-items:center; min-height:100vh; }
+  h1 { font-size:18px; margin:12px 0 4px; }
+  #status { font-size:14px; margin-bottom:8px; }
+  #pile { display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
+          max-width:360px; margin-bottom:14px; padding:10px;
+          background:rgba(0,0,0,.06); border-radius:12px; min-height:120px; }
+  .item { width:52px; height:52px; border-radius:10px; border:none;
+          display:flex; align-items:center; justify-content:center;
+          font-size:11px; color:#fff; cursor:pointer; }
+  .item.blocked { opacity:.35; }
+  #shelf { display:grid; grid-template-columns:repeat(9,34px); gap:4px;
+           background:var(--shelf); padding:8px; border-radius:10px; }
+  .slot { width:34px; height:38px; border-radius:7px; background:rgba(255,255,255,.5); }
+  .slot.filled { background-size:cover; }
+  #overlay { position:fixed; inset:0; background:rgba(0,0,0,.55);
+             display:none; align-items:center; justify-content:center; }
+  #card { background:#fff; border-radius:16px; padding:24px; max-width:320px;
+          text-align:center; font-size:15px; line-height:1.45; }
+  button { margin-top:12px; padding:10px 20px; border:none; border-radius:10px;
+           background:var(--ink); color:#fff; font-size:15px; }
+  textarea { width:100%; height:60px; margin-top:10px; font-size:14px; }
+</style>
+</head>
+<body>
+<h1 id="title">Уровень 1 из 12</h1>
+<div id="status"></div>
+<div id="pile"></div>
+<div id="shelf"></div>
+
+<div id="overlay"><div id="card"></div></div>
+
+<script>
+const LEVELS = [{"number": 1, "movesLimit": 44, "pile": [{"id": 1, "kind": "prop_01", "blockedBy": []}, {"id": 2, "kind": "prop_05", "blockedBy": []}, {"id": 3, "kind": "prop_05", "blockedBy": []}, {"id": 4, "kind": "prop_03", "blockedBy": []}, {"id": 5, "kind": "prop_03", "blockedBy": []}, {"id": 6, "kind": "prop_05", "blockedBy": []}, {"id": 7, "kind": "prop_01", "blockedBy": []}, {"id": 8, "kind": "prop_04", "blockedBy": []}, {"id": 9, "kind": "prop_00", "blockedBy": []}, {"id": 10, "kind": "prop_05", "blockedBy": [3, 9]}, {"id": 11, "kind": "prop_02", "blockedBy": []}, {"id": 12, "kind": "prop_00", "blockedBy": []}, {"id": 13, "kind": "prop_04", "blockedBy": []}, {"id": 14, "kind": "prop_00", "blockedBy": [5]}, {"id": 15, "kind": "prop_00", "blockedBy": []}, {"id": 16, "kind": "prop_01", "blockedBy": []}, {"id": 17, "kind": "prop_03", "blockedBy": []}, {"id": 18, "kind": "prop_03", "blockedBy": [7]}, {"id": 19, "kind": "prop_02", "blockedBy": [2]}, {"id": 20, "kind": "prop_05", "blockedBy": [10, 4]}, {"id": 21, "kind": "prop_02", "blockedBy": [17]}, {"id": 22, "kind": "prop_02", "blockedBy": []}, {"id": 23, "kind": "prop_01", "blockedBy": []}, {"id": 24, "kind": "prop_03", "blockedBy": [7]}, {"id": 25, "kind": "prop_05", "blockedBy": [4, 1]}, {"id": 26, "kind": "prop_00", "blockedBy": []}, {"id": 27, "kind": "prop_04", "blockedBy": [12, 17]}, {"id": 28, "kind": "prop_04", "blockedBy": [26]}, {"id": 29, "kind": "prop_03", "blockedBy": []}, {"id": 30, "kind": "prop_01", "blockedBy": []}, {"id": 31, "kind": "prop_04", "blockedBy": []}, {"id": 32, "kind": "prop_02", "blockedBy": []}, {"id": 33, "kind": "prop_00", "blockedBy": [16, 12]}, {"id": 34, "kind": "prop_04", "blockedBy": [21]}, {"id": 35, "kind": "prop_01", "blockedBy": []}, {"id": 36, "kind": "prop_02", "blockedBy": [7]}]}, {"number": 2, "movesLimit": 43, "pile": [{"id": 1, "kind": "prop_01", "blockedBy": []}, {"id": 2, "kind": "prop_01", "blockedBy": []}, {"id": 3, "kind": "prop_00", "blockedBy": []}, {"id": 4, "kind": "prop_03", "blockedBy": []}, {"id": 5, "kind": "prop_02", "blockedBy": []}, {"id": 6, "kind": "prop_04", "blockedBy": []}, {"id": 7, "kind": "prop_02", "blockedBy": []}, {"id": 8, "kind": "prop_01", "blockedBy": []}, {"id": 9, "kind": "prop_05", "blockedBy": []}, {"id": 10, "kind": "prop_00", "blockedBy": []}, {"id": 11, "kind": "prop_03", "blockedBy": [3]}, {"id": 12, "kind": "prop_05", "blockedBy": []}, {"id": 13, "kind": "prop_01", "blockedBy": [1, 7]}, {"id": 14, "kind": "prop_05", "blockedBy": [4]}, {"id": 15, "kind": "prop_00", "blockedBy": [9]}, {"id": 16, "kind": "prop_03", "blockedBy": []}, {"id": 17, "kind": "prop_04", "blockedBy": []}, {"id": 18, "kind": "prop_04", "blockedBy": [5]}, {"id": 19, "kind": "prop_04", "blockedBy": []}, {"id": 20, "kind": "prop_04", "blockedBy": []}, {"id": 21, "kind": "prop_03", "blockedBy": []}, {"id": 22, "kind": "prop_04", "blockedBy": [8, 11]}, {"id": 23, "kind": "prop_05", "blockedBy": [8]}, {"id": 24, "kind": "prop_01", "blockedBy": []}, {"id": 25, "kind": "prop_02", "blockedBy": [13]}, {"id": 26, "kind": "prop_02", "blockedBy": [18]}, {"id": 27, "kind": "prop_00", "blockedBy": []}, {"id": 28, "kind": "prop_02", "blockedBy": []}, {"id": 29, "kind": "prop_03", "blockedBy": []}, {"id": 30, "kind": "prop_05", "blockedBy": []}, {"id": 31, "kind": "prop_05", "blockedBy": []}, {"id": 32, "kind": "prop_01", "blockedBy": []}, {"id": 33, "kind": "prop_02", "blockedBy": []}, {"id": 34, "kind": "prop_03", "blockedBy": []}, {"id": 35, "kind": "prop_00", "blockedBy": []}, {"id": 36, "kind": "prop_00", "blockedBy": [23]}]}, {"number": 3, "movesLimit": 43, "pile": [{"id": 1, "kind": "prop_04", "blockedBy": []}, {"id": 2, "kind": "prop_05", "blockedBy": []}, {"id": 3, "kind": "prop_05", "blockedBy": []}, {"id": 4, "kind": "prop_01", "blockedBy": []}, {"id": 5, "kind": "prop_03", "blockedBy": []}, {"id": 6, "kind": "prop_01", "blockedBy": []}, {"id": 7, "kind": "prop_05", "blockedBy": []}, {"id": 8, "kind": "prop_01", "blockedBy": []}, {"id": 9, "kind": "prop_02", "blockedBy": []}, {"id": 10, "kind": "prop_01", "blockedBy": []}, {"id": 11, "kind": "prop_04", "blockedBy": []}, {"id": 12, "kind": "prop_04", "blockedBy": []}, {"id": 13, "kind": "prop_01", "blockedBy": []}, {"id": 14, "kind": "prop_05", "blockedBy": [6]}, {"id": 15, "kind": "prop_04", "blockedBy": []}, {"id": 16, "kind": "prop_03", "blockedBy": []}, {"id": 17, "kind": "prop_02", "blockedBy": [8]}, {"id": 18, "kind": "prop_00", "blockedBy": [9]}, {"id": 19, "kind": "prop_00", "blockedBy": []}, {"id": 20, "kind": "prop_02", "blockedBy": []}, {"id": 21, "kind": "prop_03", "blockedBy": [8]}, {"id": 22, "kind": "prop_02", "blockedBy": [18]}, {"id": 23, "kind": "prop_00", "blockedBy": [15]}, {"id": 24, "kind": "prop_00", "blockedBy": []}, {"id": 25, "kind": "prop_03", "blockedBy": [3]}, {"id": 26, "kind": "prop_02", "blockedBy": []}, {"id": 27, "kind": "prop_03", "blockedBy": [15, 7]}, {"id": 28, "kind": "prop_05", "blockedBy": [26, 8]}, {"id": 29, "kind": "prop_00", "blockedBy": [11]}, {"id": 30, "kind": "prop_04", "blockedBy": [13]}, {"id": 31, "kind": "prop_01", "blockedBy": [3]}, {"id": 32, "kind": "prop_00", "blockedBy": []}, {"id": 33, "kind": "prop_04", "blockedBy": [26]}, {"id": 34, "kind": "prop_02", "blockedBy": [16]}, {"id": 35, "kind": "prop_05", "blockedBy": [21, 4]}, {"id": 36, "kind": "prop_03", "blockedBy": []}]}, {"number": 4, "movesLimit": 42, "pile": [{"id": 1, "kind": "prop_03", "blockedBy": []}, {"id": 2, "kind": "prop_00", "blockedBy": []}, {"id": 3, "kind": "prop_03", "blockedBy": []}, {"id": 4, "kind": "prop_01", "blockedBy": []}, {"id": 5, "kind": "prop_05", "blockedBy": []}, {"id": 6, "kind": "prop_04", "blockedBy": []}, {"id": 7, "kind": "prop_01", "blockedBy": []}, {"id": 8, "kind": "prop_04", "blockedBy": []}, {"id": 9, "kind": "prop_05", "blockedBy": []}, {"id": 10, "kind": "prop_03", "blockedBy": [3]}, {"id": 11, "kind": "prop_05", "blockedBy": []}, {"id": 12, "kind": "prop_03", "blockedBy": []}, {"id": 13, "kind": "prop_02", "blockedBy": []}, {"id": 14, "kind": "prop_04", "blockedBy": [6]}, {"id": 15, "kind": "prop_00", "blockedBy": []}, {"id": 16, "kind": "prop_00", "blockedBy": [1]}, {"id": 17, "kind": "prop_03", "blockedBy": []}, {"id": 18, "kind": "prop_00", "blockedBy": [8]}, {"id": 19, "kind": "prop_05", "blockedBy": [18]}, {"id": 20, "kind": "prop_02", "blockedBy": [7]}, {"id": 21, "kind": "prop_04", "blockedBy": [15, 13]}, {"id": 22, "kind": "prop_01", "blockedBy": [7]}, {"id": 23, "kind": "prop_04", "blockedBy": [18, 7]}, {"id": 24, "kind": "prop_01", "blockedBy": []}, {"id": 25, "kind": "prop_05", "blockedBy": [3]}, {"id": 26, "kind": "prop_05", "blockedBy": [17]}, {"id": 27, "kind": "prop_00", "blockedBy": [9]}, {"id": 28, "kind": "prop_02", "blockedBy": []}, {"id": 29, "kind": "prop_01", "blockedBy": [9]}, {"id": 30, "kind": "prop_00", "blockedBy": []}, {"id": 31, "kind": "prop_03", "blockedBy": []}, {"id": 32, "kind": "prop_02", "blockedBy": []}, {"id": 33, "kind": "prop_04", "blockedBy": [11]}, {"id": 34, "kind": "prop_02", "blockedBy": [11]}, {"id": 35, "kind": "prop_02", "blockedBy": [25, 19]}, {"id": 36, "kind": "prop_01", "blockedBy": []}]}, {"number": 5, "movesLimit": 42, "pile": [{"id": 1, "kind": "prop_03", "blockedBy": []}, {"id": 2, "kind": "prop_01", "blockedBy": []}, {"id": 3, "kind": "prop_03", "blockedBy": []}, {"id": 4, "kind": "prop_01", "blockedBy": []}, {"id": 5, "kind": "prop_01", "blockedBy": []}, {"id": 6, "kind": "prop_00", "blockedBy": []}, {"id": 7, "kind": "prop_05", "blockedBy": []}, {"id": 8, "kind": "prop_04", "blockedBy": []}, {"id": 9, "kind": "prop_05", "blockedBy": []}, {"id": 10, "kind": "prop_00", "blockedBy": []}, {"id": 11, "kind": "prop_00", "blockedBy": [2]}, {"id": 12, "kind": "prop_04", "blockedBy": []}, {"id": 13, "kind": "prop_05", "blockedBy": []}, {"id": 14, "kind": "prop_03", "blockedBy": []}, {"id": 15, "kind": "prop_01", "blockedBy": [9, 4]}, {"id": 16, "kind": "prop_02", "blockedBy": [3]}, {"id": 17, "kind": "prop_02", "blockedBy": []}, {"id": 18, "kind": "prop_04", "blockedBy": []}, {"id": 19, "kind": "prop_02", "blockedBy": [16]}, {"id": 20, "kind": "prop_01", "blockedBy": [11, 5]}, {"id": 21, "kind": "prop_03", "blockedBy": [15]}, {"id": 22, "kind": "prop_03", "blockedBy": []}, {"id": 23, "kind": "prop_01", "blockedBy": []}, {"id": 24, "kind": "prop_00", "blockedBy": []}, {"id": 25, "kind": "prop_02", "blockedBy": []}, {"id": 26, "kind": "prop_04", "blockedBy": []}, {"id": 27, "kind": "prop_00", "blockedBy": [13, 15]}, {"id": 28, "kind": "prop_05", "blockedBy": []}, {"id": 29, "kind": "prop_05", "blockedBy": []}, {"id": 30, "kind": "prop_02", "blockedBy": []}, {"id": 31, "kind": "prop_05", "blockedBy": [21]}, {"id": 32, "kind": "prop_02", "blockedBy": []}, {"id": 33, "kind": "prop_03", "blockedBy": []}, {"id": 34, "kind": "prop_04", "blockedBy": [22]}, {"id": 35, "kind": "prop_00", "blockedBy": []}, {"id": 36, "kind": "prop_04", "blockedBy": [22]}]}, {"number": 6, "movesLimit": 41, "pile": [{"id": 1, "kind": "prop_04", "blockedBy": []}, {"id": 2, "kind": "prop_05", "blockedBy": []}, {"id": 3, "kind": "prop_05", "blockedBy": []}, {"id": 4, "kind": "prop_04", "blockedBy": []}, {"id": 5, "kind": "prop_03", "blockedBy": []}, {"id": 6, "kind": "prop_04", "blockedBy": []}, {"id": 7, "kind": "prop_01", "blockedBy": []}, {"id": 8, "kind": "prop_01", "blockedBy": []}, {"id": 9, "kind": "prop_01", "blockedBy": []}, {"id": 10, "kind": "prop_03", "blockedBy": []}, {"id": 11, "kind": "prop_03", "blockedBy": [3, 7]}, {"id": 12, "kind": "prop_05", "blockedBy": []}, {"id": 13, "kind": "prop_02", "blockedBy": []}, {"id": 14, "kind": "prop_04", "blockedBy": []}, {"id": 15, "kind": "prop_03", "blockedBy": []}, {"id": 16, "kind": "prop_02", "blockedBy": [4]}, {"id": 17, "kind": "prop_01", "blockedBy": []}, {"id": 18, "kind": "prop_04", "blockedBy": []}, {"id": 19, "kind": "prop_03", "blockedBy": []}, {"id": 20, "kind": "prop_00", "blockedBy": []}, {"id": 21, "kind": "prop_03", "blockedBy": [14]}, {"id": 22, "kind": "prop_05", "blockedBy": [16]}, {"id": 23, "kind": "prop_00", "blockedBy": [12]}, {"id": 24, "kind": "prop_02", "blockedBy": [18]}, {"id": 25, "kind": "prop_00", "blockedBy": []}, {"id": 26, "kind": "prop_05", "blockedBy": []}, {"id": 27, "kind": "prop_00", "blockedBy": [17]}, {"id": 28, "kind": "prop_02", "blockedBy": []}, {"id": 29, "kind": "prop_02", "blockedBy": [18]}, {"id": 30, "kind": "prop_02", "blockedBy": [11]}, {"id": 31, "kind": "prop_04", "blockedBy": []}, {"id": 32, "kind": "prop_01", "blockedBy": []}, {"id": 33, "kind": "prop_00", "blockedBy": []}, {"id": 34, "kind": "prop_01", "blockedBy": [7]}, {"id": 35, "kind": "prop_00", "blockedBy": []}, {"id": 36, "kind": "prop_05", "blockedBy": [3]}]}, {"number": 7, "movesLimit": 40, "pile": [{"id": 1, "kind": "prop_02", "blockedBy": []}, {"id": 2, "kind": "prop_00", "blockedBy": []}, {"id": 3, "kind": "prop_01", "blockedBy": []}, {"id": 4, "kind": "prop_04", "blockedBy": []}, {"id": 5, "kind": "prop_04", "blockedBy": []}, {"id": 6, "kind": "prop_01", "blockedBy": []}, {"id": 7, "kind": "prop_00", "blockedBy": []}, {"id": 8, "kind": "prop_02", "blockedBy": []}, {"id": 9, "kind": "prop_05", "blockedBy": []}, {"id": 10, "kind": "prop_02", "blockedBy": []}, {"id": 11, "kind": "prop_05", "blockedBy": []}, {"id": 12, "kind": "prop_04", "blockedBy": []}, {"id": 13, "kind": "prop_05", "blockedBy": [2]}, {"id": 14, "kind": "prop_05", "blockedBy": [4]}, {"id": 15, "kind": "prop_03", "blockedBy": [3]}, {"id": 16, "kind": "prop_04", "blockedBy": [4, 6]}, {"id": 17, "kind": "prop_05", "blockedBy": [8, 9]}, {"id": 18, "kind": "prop_02", "blockedBy": []}, {"id": 19, "kind": "prop_02", "blockedBy": [18]}, {"id": 20, "kind": "prop_04", "blockedBy": []}, {"id": 21, "kind": "prop_00", "blockedBy": []}, {"id": 22, "kind": "prop_03", "blockedBy": [15]}, {"id": 23, "kind": "prop_02", "blockedBy": []}, {"id": 24, "kind": "prop_01", "blockedBy": [1]}, {"id": 25, "kind": "prop_00", "blockedBy": []}, {"id": 26, "kind": "prop_01", "blockedBy": []}, {"id": 27, "kind": "prop_00", "blockedBy": []}, {"id": 28, "kind": "prop_04", "blockedBy": []}, {"id": 29, "kind": "prop_00", "blockedBy": []}, {"id": 30, "kind": "prop_01", "blockedBy": []}, {"id": 31, "kind": "prop_03", "blockedBy": [1, 14]}, {"id": 32, "kind": "prop_05", "blockedBy": []}, {"id": 33, "kind": "prop_03", "blockedBy": [11]}, {"id": 34, "kind": "prop_03", "blockedBy": []}, {"id": 35, "kind": "prop_01", "blockedBy": []}, {"id": 36, "kind": "prop_03", "blockedBy": []}]}, {"number": 8, "movesLimit": 40, "pile": [{"id": 1, "kind": "prop_01", "blockedBy": []}, {"id": 2, "kind": "prop_04", "blockedBy": []}, {"id": 3, "kind": "prop_00", "blockedBy": []}, {"id": 4, "kind": "prop_00", "blockedBy": []}, {"id": 5, "kind": "prop_04", "blockedBy": []}, {"id": 6, "kind": "prop_02", "blockedBy": []}, {"id": 7, "kind": "prop_00", "blockedBy": []}, {"id": 8, "kind": "prop_02", "blockedBy": []}, {"id": 9, "kind": "prop_01", "blockedBy": []}, {"id": 10, "kind": "prop_04", "blockedBy": []}, {"id": 11, "kind": "prop_03", "blockedBy": [2]}, {"id": 12, "kind": "prop_02", "blockedBy": [4]}, {"id": 13, "kind": "prop_01", "blockedBy": [4]}, {"id": 14, "kind": "prop_05", "blockedBy": []}, {"id": 15, "kind": "prop_05", "blockedBy": [3]}, {"id": 16, "kind": "prop_01", "blockedBy": [6]}, {"id": 17, "kind": "prop_03", "blockedBy": []}, {"id": 18, "kind": "prop_03", "blockedBy": []}, {"id": 19, "kind": "prop_05", "blockedBy": [11]}, {"id": 20, "kind": "prop_01", "blockedBy": [3, 9]}, {"id": 21, "kind": "prop_04", "blockedBy": [3, 11]}, {"id": 22, "kind": "prop_01", "blockedBy": []}, {"id": 23, "kind": "prop_02", "blockedBy": [15, 13]}, {"id": 24, "kind": "prop_05", "blockedBy": [11, 12]}, {"id": 25, "kind": "prop_02", "blockedBy": [9]}, {"id": 26, "kind": "prop_05", "blockedBy": [14, 15]}, {"id": 27, "kind": "prop_04", "blockedBy": []}, {"id": 28, "kind": "prop_00", "blockedBy": []}, {"id": 29, "kind": "prop_02", "blockedBy": []}, {"id": 30, "kind": "prop_00", "blockedBy": []}, {"id": 31, "kind": "prop_00", "blockedBy": []}, {"id": 32, "kind": "prop_05", "blockedBy": []}, {"id": 33, "kind": "prop_03", "blockedBy": []}, {"id": 34, "kind": "prop_03", "blockedBy": [20]}, {"id": 35, "kind": "prop_03", "blockedBy": []}, {"id": 36, "kind": "prop_04", "blockedBy": [26, 10]}]}, {"number": 9, "movesLimit": 39, "pile": [{"id": 1, "kind": "prop_00", "blockedBy": []}, {"id": 2, "kind": "prop_05", "blockedBy": []}, {"id": 3, "kind": "prop_00", "blockedBy": []}, {"id": 4, "kind": "prop_02", "blockedBy": []}, {"id": 5, "kind": "prop_04", "blockedBy": []}, {"id": 6, "kind": "prop_02", "blockedBy": []}, {"id": 7, "kind": "prop_04", "blockedBy": []}, {"id": 8, "kind": "prop_02", "blockedBy": []}, {"id": 9, "kind": "prop_05", "blockedBy": []}, {"id": 10, "kind": "prop_05", "blockedBy": []}, {"id": 11, "kind": "prop_01", "blockedBy": []}, {"id": 12, "kind": "prop_04", "blockedBy": [9]}, {"id": 13, "kind": "prop_04", "blockedBy": []}, {"id": 14, "kind": "prop_01", "blockedBy": []}, {"id": 15, "kind": "prop_03", "blockedBy": [1]}, {"id": 16, "kind": "prop_03", "blockedBy": [1, 4]}, {"id": 17, "kind": "prop_05", "blockedBy": [6, 7]}, {"id": 18, "kind": "prop_01", "blockedBy": [6]}, {"id": 19, "kind": "prop_02", "blockedBy": [5]}, {"id": 20, "kind": "prop_02", "blockedBy": []}, {"id": 21, "kind": "prop_00", "blockedBy": []}, {"id": 22, "kind": "prop_05", "blockedBy": []}, {"id": 23, "kind": "prop_03", "blockedBy": []}, {"id": 24, "kind": "prop_03", "blockedBy": [13]}, {"id": 25, "kind": "prop_03", "blockedBy": []}, {"id": 26, "kind": "prop_02", "blockedBy": []}, {"id": 27, "kind": "prop_00", "blockedBy": []}, {"id": 28, "kind": "prop_01", "blockedBy": []}, {"id": 29, "kind": "prop_00", "blockedBy": [23, 5]}, {"id": 30, "kind": "prop_01", "blockedBy": []}, {"id": 31, "kind": "prop_04", "blockedBy": []}, {"id": 32, "kind": "prop_03", "blockedBy": []}, {"id": 33, "kind": "prop_01", "blockedBy": [20]}, {"id": 34, "kind": "prop_00", "blockedBy": []}, {"id": 35, "kind": "prop_04", "blockedBy": []}, {"id": 36, "kind": "prop_05", "blockedBy": [17, 16]}]}, {"number": 10, "movesLimit": 39, "pile": [{"id": 1, "kind": "prop_03", "blockedBy": []}, {"id": 2, "kind": "prop_04", "blockedBy": []}, {"id": 3, "kind": "prop_00", "blockedBy": []}, {"id": 4, "kind": "prop_04", "blockedBy": []}, {"id": 5, "kind": "prop_05", "blockedBy": []}, {"id": 6, "kind": "prop_00", "blockedBy": []}, {"id": 7, "kind": "prop_02", "blockedBy": []}, {"id": 8, "kind": "prop_04", "blockedBy": []}, {"id": 9, "kind": "prop_00", "blockedBy": []}, {"id": 10, "kind": "prop_05", "blockedBy": []}, {"id": 11, "kind": "prop_04", "blockedBy": []}, {"id": 12, "kind": "prop_02", "blockedBy": [4, 1]}, {"id": 13, "kind": "prop_05", "blockedBy": [6]}, {"id": 14, "kind": "prop_02", "blockedBy": [1]}, {"id": 15, "kind": "prop_01", "blockedBy": []}, {"id": 16, "kind": "prop_03", "blockedBy": [2]}, {"id": 17, "kind": "prop_01", "blockedBy": []}, {"id": 18, "kind": "prop_05", "blockedBy": [2]}, {"id": 19, "kind": "prop_01", "blockedBy": []}, {"id": 20, "kind": "prop_02", "blockedBy": []}, {"id": 21, "kind": "prop_03", "blockedBy": [4]}, {"id": 22, "kind": "prop_03", "blockedBy": [13, 9]}, {"id": 23, "kind": "prop_02", "blockedBy": []}, {"id": 24, "kind": "prop_01", "blockedBy": []}, {"id": 25, "kind": "prop_04", "blockedBy": [5]}, {"id": 26, "kind": "prop_00", "blockedBy": []}, {"id": 27, "kind": "prop_00", "blockedBy": [5, 10]}, {"id": 28, "kind": "prop_05", "blockedBy": [20]}, {"id": 29, "kind": "prop_01", "blockedBy": [11]}, {"id": 30, "kind": "prop_05", "blockedBy": [24]}, {"id": 31, "kind": "prop_03", "blockedBy": []}, {"id": 32, "kind": "prop_00", "blockedBy": []}, {"id": 33, "kind": "prop_01", "blockedBy": []}, {"id": 34, "kind": "prop_03", "blockedBy": []}, {"id": 35, "kind": "prop_04", "blockedBy": []}, {"id": 36, "kind": "prop_02", "blockedBy": []}]}, {"number": 11, "movesLimit": 38, "pile": [{"id": 1, "kind": "prop_01", "blockedBy": []}, {"id": 2, "kind": "prop_00", "blockedBy": []}, {"id": 3, "kind": "prop_00", "blockedBy": []}, {"id": 4, "kind": "prop_00", "blockedBy": []}, {"id": 5, "kind": "prop_04", "blockedBy": []}, {"id": 6, "kind": "prop_04", "blockedBy": []}, {"id": 7, "kind": "prop_05", "blockedBy": []}, {"id": 8, "kind": "prop_03", "blockedBy": []}, {"id": 9, "kind": "prop_05", "blockedBy": []}, {"id": 10, "kind": "prop_02", "blockedBy": []}, {"id": 11, "kind": "prop_01", "blockedBy": []}, {"id": 12, "kind": "prop_05", "blockedBy": [2]}, {"id": 13, "kind": "prop_02", "blockedBy": [3]}, {"id": 14, "kind": "prop_02", "blockedBy": []}, {"id": 15, "kind": "prop_00", "blockedBy": [7]}, {"id": 16, "kind": "prop_04", "blockedBy": []}, {"id": 17, "kind": "prop_01", "blockedBy": []}, {"id": 18, "kind": "prop_02", "blockedBy": []}, {"id": 19, "kind": "prop_03", "blockedBy": []}, {"id": 20, "kind": "prop_05", "blockedBy": []}, {"id": 21, "kind": "prop_01", "blockedBy": []}, {"id": 22, "kind": "prop_03", "blockedBy": [10]}, {"id": 23, "kind": "prop_04", "blockedBy": [11]}, {"id": 24, "kind": "prop_02", "blockedBy": [8]}, {"id": 25, "kind": "prop_01", "blockedBy": [9]}, {"id": 26, "kind": "prop_03", "blockedBy": []}, {"id": 27, "kind": "prop_03", "blockedBy": []}, {"id": 28, "kind": "prop_04", "blockedBy": [22]}, {"id": 29, "kind": "prop_01", "blockedBy": [16]}, {"id": 30, "kind": "prop_05", "blockedBy": []}, {"id": 31, "kind": "prop_05", "blockedBy": [21]}, {"id": 32, "kind": "prop_03", "blockedBy": []}, {"id": 33, "kind": "prop_02", "blockedBy": [3]}, {"id": 34, "kind": "prop_04", "blockedBy": [1, 8]}, {"id": 35, "kind": "prop_00", "blockedBy": []}, {"id": 36, "kind": "prop_00", "blockedBy": []}]}, {"number": 12, "movesLimit": 38, "pile": [{"id": 1, "kind": "prop_02", "blockedBy": []}, {"id": 2, "kind": "prop_00", "blockedBy": []}, {"id": 3, "kind": "prop_04", "blockedBy": []}, {"id": 4, "kind": "prop_04", "blockedBy": []}, {"id": 5, "kind": "prop_03", "blockedBy": []}, {"id": 6, "kind": "prop_05", "blockedBy": []}, {"id": 7, "kind": "prop_00", "blockedBy": []}, {"id": 8, "kind": "prop_02", "blockedBy": []}, {"id": 9, "kind": "prop_05", "blockedBy": []}, {"id": 10, "kind": "prop_00", "blockedBy": [9]}, {"id": 11, "kind": "prop_04", "blockedBy": [4, 5]}, {"id": 12, "kind": "prop_02", "blockedBy": [6]}, {"id": 13, "kind": "prop_02", "blockedBy": [4, 3]}, {"id": 14, "kind": "prop_04", "blockedBy": [5, 6]}, {"id": 15, "kind": "prop_01", "blockedBy": []}, {"id": 16, "kind": "prop_03", "blockedBy": []}, {"id": 17, "kind": "prop_02", "blockedBy": [3]}, {"id": 18, "kind": "prop_05", "blockedBy": []}, {"id": 19, "kind": "prop_03", "blockedBy": []}, {"id": 20, "kind": "prop_03", "blockedBy": [3, 9]}, {"id": 21, "kind": "prop_04", "blockedBy": []}, {"id": 22, "kind": "prop_00", "blockedBy": []}, {"id": 23, "kind": "prop_05", "blockedBy": [11]}, {"id": 24, "kind": "prop_05", "blockedBy": [1]}, {"id": 25, "kind": "prop_01", "blockedBy": [8]}, {"id": 26, "kind": "prop_03", "blockedBy": [3]}, {"id": 27, "kind": "prop_01", "blockedBy": []}, {"id": 28, "kind": "prop_01", "blockedBy": [4]}, {"id": 29, "kind": "prop_00", "blockedBy": []}, {"id": 30, "kind": "prop_01", "blockedBy": []}, {"id": 31, "kind": "prop_03", "blockedBy": []}, {"id": 32, "kind": "prop_04", "blockedBy": [12]}, {"id": 33, "kind": "prop_00", "blockedBy": [16]}, {"id": 34, "kind": "prop_02", "blockedBy": []}, {"id": 35, "kind": "prop_05", "blockedBy": []}, {"id": 36, "kind": "prop_01", "blockedBy": []}]}];
+
+// kind -> color + label (plain rectangles, per debug-view spirit)
+const KIND_COLORS = ["#c0765a","#7f9e7a","#6b8cae","#b48ead","#d0a35c",
+                     "#8a7f8d","#a26d5f","#6da39c","#9c8a5a"];
+function kindStyle(kind) {
+  let idx = 0; for (let i = 0; i < kind.length; i++) idx = (idx*31 + kind.charCodeAt(i)) >>> 0;
+  const c = KIND_COLORS[idx % KIND_COLORS.length];
+  const n = kind.replace("prop_","");
+  return { bg:c, label:n };
+}
+
+let levelIdx = 0, taken, shelf, over, movesLeft;
+
+function byId(level){ const m={}; for(const it of level.pile) m[it.id]=it; return m; }
+
+function startLevel(i){
+  levelIdx = i; const L = LEVELS[i];
+  taken = new Set(); shelf = Array(9).fill(null);
+  movesLeft = L.movesLimit; over = false;
+  document.getElementById("title").textContent = `Уровень ${i+1} из 12`;
+  render();
+}
+
+function available(level){
+  const m = byId(level);
+  return level.pile.filter(it => !taken.has(it.id) &&
+    it.blockedBy.every(b => taken.has(b)));
+}
+
+function take(level, item){
+  if (over) return;
+  taken.add(item.id);
+  const slot = shelf.indexOf(null);
+  shelf[slot] = item.kind;
+  // full shelf with no match = jam
+  if (!shelf.includes(null) && !tryMatch()) return finish("jam");
+  tryMatch();
+  if (taken.size === level.pile.length) return finish("win");
+  movesLeft--;
+  if (movesLeft <= 0) return finish("moves");
+  render();
+}
+
+function tryMatch(){
+  const counts = {};
+  shelf.forEach(k => { if(k) counts[k]=(counts[k]||0)+1; });
+  for (const [k,n] of Object.entries(counts)){
+    if (n >= 3){
+      let removed = 0;
+      for (let i=0;i<9 && removed<3;i++) if (shelf[i]===k){ shelf[i]=null; removed++; }
+      return true;
+    }
+  }
+  return false;
+}
+
+function finish(how){
+  over = true;
+  if (how === "win" && levelIdx < LEVELS.length-1){
+    showCard(`<b>Комната чистая!</b><br>Котёнок довольствуется.<br><br>` +
+      `<button onclick="nextLevel()">Дальше</button>`);
+  } else if (how === "win"){
+    finalScreen(true);
+  } else {
+    finalScreen(false, how);
+  }
+}
+
+function nextLevel(){ hideCard(); startLevel(levelIdx+1); }
+
+function finalScreen(won, how){
+  showCard(
+    (won ? "<b>Ты прошёл все 12 комнат!</b>"
+         : (how==="jam" ? "<b>Полка переполнена.</b>" : "<b>Ходы кончились.</b>")) +
+    `<br><br><b>Сыграл бы ты дальше, если бы это была настоящая игра?</b>` +
+    `<textarea id="answer" placeholder="Пара слов почему"></textarea>` +
+    `<button onclick="sendAnswer(${won})">Отправить</button>`);
+}
+
+function sendAnswer(won){
+  const text = document.getElementById("answer").value || "(пусто)";
+  const body = `Ответ игрока:\nПрошёл: ${won ? "да" : "нет"}\n` +
+    `Сыграл бы дальше: ${text}`;
+  location.href = "mailto:?subject=Играл бы дальше&body=" + encodeURIComponent(body);
+}
+
+function showCard(html){
+  document.getElementById("card").innerHTML = html;
+  document.getElementById("overlay").style.display = "flex";
+}
+function hideCard(){ document.getElementById("overlay").style.display = "none"; }
+
+function render(){
+  const L = LEVELS[levelIdx];
+  const availIds = new Set(available(L).map(i=>i.id));
+  const pileEl = document.getElementById("pile");
+  pileEl.innerHTML = "";
+  for (const it of L.pile){
+    if (taken.has(it.id)) continue;
+    const b = document.createElement("button");
+    const s = kindStyle(it.kind);
+    b.className = "item" + (availIds.has(it.id) ? "" : " blocked");
+    b.style.background = s.bg;
+    b.textContent = s.label;
+    if (availIds.has(it.id))
+      b.onclick = () => take(L, it);
+    pileEl.appendChild(b);
+  }
+  const shelfEl = document.getElementById("shelf");
+  shelfEl.innerHTML = "";
+  shelf.forEach(k => {
+    const d = document.createElement("div");
+    d.className = "slot" + (k ? " filled" : "");
+    if (k){ const s = kindStyle(k); d.style.background = s.bg; }
+    shelfEl.appendChild(d);
+  });
+  document.getElementById("status").textContent =
+    `Осталось предметов: ${L.pile.length - taken.size} · Ходы: ${movesLeft}`;
+}
+
+startLevel(0);
+</script>
+</body>
+</html>

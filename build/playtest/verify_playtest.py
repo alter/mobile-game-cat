@@ -67,8 +67,7 @@ solutions = []
 for lv in levels:
     pile = tuple(PileItem(e["id"], e["kind"], tuple(e["blockedBy"]))
                  for e in lv["pile"])
-    level = LevelDef(lv["number"], f"room_{lv['number']:02d}",
-                     lv["movesLimit"], pile)
+    level = LevelDef(lv["number"], f"room_{lv['number']:02d}", pile)
     sol = solve(level)
     assert sol is not None, f"level {lv['number']} unsolvable"
     # verify through python rules too

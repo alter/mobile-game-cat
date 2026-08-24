@@ -1,95 +1,96 @@
 {
   "number": 8,
   "room_id": "room_08",
-  "moves_limit": 40,
   "pile": [
     {
       "id": 1,
-      "kind": "prop_01",
+      "kind": "prop_00",
       "blocked_by": []
     },
     {
       "id": 2,
-      "kind": "prop_04",
+      "kind": "prop_00",
       "blocked_by": []
     },
     {
       "id": 3,
-      "kind": "prop_00",
+      "kind": "prop_06",
       "blocked_by": []
     },
     {
       "id": 4,
-      "kind": "prop_00",
+      "kind": "prop_01",
       "blocked_by": []
     },
     {
       "id": 5,
-      "kind": "prop_04",
-      "blocked_by": []
-    },
-    {
-      "id": 6,
-      "kind": "prop_02",
-      "blocked_by": []
-    },
-    {
-      "id": 7,
       "kind": "prop_00",
       "blocked_by": []
     },
     {
+      "id": 6,
+      "kind": "prop_05",
+      "blocked_by": []
+    },
+    {
+      "id": 7,
+      "kind": "prop_07",
+      "blocked_by": []
+    },
+    {
       "id": 8,
-      "kind": "prop_02",
+      "kind": "prop_01",
       "blocked_by": []
     },
     {
       "id": 9,
-      "kind": "prop_01",
-      "blocked_by": []
+      "kind": "prop_07",
+      "blocked_by": [
+        4,
+        7
+      ]
     },
     {
       "id": 10,
-      "kind": "prop_04",
-      "blocked_by": []
-    },
-    {
-      "id": 11,
-      "kind": "prop_03",
-      "blocked_by": [
-        2
-      ]
-    },
-    {
-      "id": 12,
-      "kind": "prop_02",
-      "blocked_by": [
-        4
-      ]
-    },
-    {
-      "id": 13,
-      "kind": "prop_01",
-      "blocked_by": [
-        4
-      ]
-    },
-    {
-      "id": 14,
-      "kind": "prop_05",
-      "blocked_by": []
-    },
-    {
-      "id": 15,
-      "kind": "prop_05",
+      "kind": "prop_06",
       "blocked_by": [
         3
       ]
     },
     {
-      "id": 16,
-      "kind": "prop_01",
+      "id": 11,
+      "kind": "prop_04",
       "blocked_by": [
+        6
+      ]
+    },
+    {
+      "id": 12,
+      "kind": "prop_01",
+      "blocked_by": []
+    },
+    {
+      "id": 13,
+      "kind": "prop_00",
+      "blocked_by": [
+        3
+      ]
+    },
+    {
+      "id": 14,
+      "kind": "prop_04",
+      "blocked_by": []
+    },
+    {
+      "id": 15,
+      "kind": "prop_04",
+      "blocked_by": []
+    },
+    {
+      "id": 16,
+      "kind": "prop_05",
+      "blocked_by": [
+        8,
         6
       ]
     },
@@ -100,121 +101,188 @@
     },
     {
       "id": 18,
-      "kind": "prop_03",
-      "blocked_by": []
+      "kind": "prop_06",
+      "blocked_by": [
+        12
+      ]
     },
     {
       "id": 19,
-      "kind": "prop_05",
-      "blocked_by": [
-        11
-      ]
+      "kind": "prop_02",
+      "blocked_by": []
     },
     {
       "id": 20,
       "kind": "prop_01",
       "blocked_by": [
-        3,
-        9
+        1
       ]
     },
     {
       "id": 21,
-      "kind": "prop_04",
+      "kind": "prop_02",
       "blocked_by": [
-        3,
-        11
+        8
       ]
     },
     {
       "id": 22,
-      "kind": "prop_01",
+      "kind": "prop_07",
       "blocked_by": []
     },
     {
       "id": 23,
-      "kind": "prop_02",
+      "kind": "prop_03",
       "blocked_by": [
-        15,
-        13
+        10,
+        16
       ]
     },
     {
       "id": 24,
-      "kind": "prop_05",
+      "kind": "prop_02",
       "blocked_by": [
-        11,
-        12
+        6
       ]
     },
     {
       "id": 25,
-      "kind": "prop_02",
-      "blocked_by": [
-        9
-      ]
+      "kind": "prop_03",
+      "blocked_by": []
     },
     {
       "id": 26,
-      "kind": "prop_05",
+      "kind": "prop_06",
       "blocked_by": [
-        14,
-        15
+        1
       ]
     },
     {
       "id": 27,
-      "kind": "prop_04",
+      "kind": "prop_07",
       "blocked_by": []
     },
     {
       "id": 28,
-      "kind": "prop_00",
-      "blocked_by": []
+      "kind": "prop_06",
+      "blocked_by": [
+        23
+      ]
     },
     {
       "id": 29,
-      "kind": "prop_02",
+      "kind": "prop_07",
       "blocked_by": []
     },
     {
       "id": 30,
-      "kind": "prop_00",
+      "kind": "prop_01",
       "blocked_by": []
     },
     {
       "id": 31,
+      "kind": "prop_03",
+      "blocked_by": [
+        6
+      ]
+    },
+    {
+      "id": 32,
+      "kind": "prop_00",
+      "blocked_by": [
+        17
+      ]
+    },
+    {
+      "id": 33,
+      "kind": "prop_02",
+      "blocked_by": [
+        31,
+        8
+      ]
+    },
+    {
+      "id": 34,
+      "kind": "prop_02",
+      "blocked_by": []
+    },
+    {
+      "id": 35,
       "kind": "prop_00",
       "blocked_by": []
     },
     {
-      "id": 32,
+      "id": 36,
+      "kind": "prop_01",
+      "blocked_by": [
+        10
+      ]
+    },
+    {
+      "id": 37,
+      "kind": "prop_04",
+      "blocked_by": []
+    },
+    {
+      "id": 38,
+      "kind": "prop_02",
+      "blocked_by": []
+    },
+    {
+      "id": 39,
+      "kind": "prop_03",
+      "blocked_by": []
+    },
+    {
+      "id": 40,
       "kind": "prop_05",
       "blocked_by": []
     },
     {
-      "id": 33,
-      "kind": "prop_03",
+      "id": 41,
+      "kind": "prop_05",
       "blocked_by": []
     },
     {
-      "id": 34,
-      "kind": "prop_03",
+      "id": 42,
+      "kind": "prop_07",
       "blocked_by": [
-        20
+        1
       ]
     },
     {
-      "id": 35,
-      "kind": "prop_03",
+      "id": 43,
+      "kind": "prop_06",
       "blocked_by": []
     },
     {
-      "id": 36,
+      "id": 44,
       "kind": "prop_04",
+      "blocked_by": []
+    },
+    {
+      "id": 45,
+      "kind": "prop_04",
+      "blocked_by": []
+    },
+    {
+      "id": 46,
+      "kind": "prop_05",
+      "blocked_by": []
+    },
+    {
+      "id": 47,
+      "kind": "prop_03",
       "blocked_by": [
-        26,
-        10
+        25
+      ]
+    },
+    {
+      "id": 48,
+      "kind": "prop_05",
+      "blocked_by": [
+        29,
+        20
       ]
     }
   ]

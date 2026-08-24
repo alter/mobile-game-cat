@@ -5,8 +5,6 @@
     <Nullable>enable</Nullable>
     <LangVersion>9.0</LangVersion>
     <RootNamespace>CatShelter.Core</RootNamespace>
-    <!-- Core must stay engine-free; the grep step in build/ enforces this too -->
-    <NoWarn>CS8500</NoWarn>
   </PropertyGroup>
 
 </Project>

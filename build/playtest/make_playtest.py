@@ -15,7 +15,6 @@ for n in range(1, 13):
     data = json.loads((LEVELS / f"level_{n:02d}.json").read_text())
     levels.append({
         "number": data["number"],
-        "movesLimit": data["moves_limit"],
         "pile": [{"id": e["id"], "kind": e["kind"],
                   "blockedBy": e.get("blocked_by", [])} for e in data["pile"]],
     })
@@ -75,14 +74,14 @@ function kindStyle(kind) {
   return { bg:c, label:n };
 }
 
-let levelIdx = 0, taken, shelf, over, movesLeft;
+let levelIdx = 0, taken, shelf, over;
 
 function byId(level){ const m={}; for(const it of level.pile) m[it.id]=it; return m; }
 
 function startLevel(i){
   levelIdx = i; const L = LEVELS[i];
   taken = new Set(); shelf = Array(9).fill(null);
-  movesLeft = L.movesLimit; over = false;
+  over = false;
   document.getElementById("title").textContent = `Уровень ${i+1} из 12`;
   render();
 }
@@ -102,8 +101,6 @@ function take(level, item){
   if (!shelf.includes(null) && !tryMatch()) return finish("jam");
   tryMatch();
   if (taken.size === level.pile.length) return finish("win");
-  movesLeft--;
-  if (movesLeft <= 0) return finish("moves");
   render();
 }
 
@@ -137,8 +134,8 @@ function nextLevel(){ hideCard(); startLevel(levelIdx+1); }
 function finalScreen(won, how){
   showCard(
     (won ? "<b>Ты прошёл все 12 комнат!</b>"
-         : (how==="jam" ? "<b>Полка переполнена.</b>" : "<b>Ходы кончились.</b>")) +
-    `<br><br><b>Сыграл бы ты дальше, если бы это была настоящая игра?</b>` +
+         : "<b>Полка переполнена.</b>") +
+    `<br>Прошёл уровней: ${levelIdx+1} из 12<br><b>Сыграл бы ты дальше, если бы это была настоящая игра?</b>` +
     `<textarea id="answer" placeholder="Пара слов почему"></textarea>` +
     `<button onclick="sendAnswer(${won})">Отправить</button>`);
 }
@@ -181,7 +178,7 @@ function render(){
     shelfEl.appendChild(d);
   });
   document.getElementById("status").textContent =
-    `Осталось предметов: ${L.pile.length - taken.size} · Ходы: ${movesLeft}`;
+    `Осталось предметов: ${L.pile.length - taken.size}`;
 }
 
 startLevel(0);

@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <!-- Only .NET 10 runtime is installed on the dev machine; roll forward
+         instead of requiring DOTNET_ROLL_FORWARD by hand (review blocker). -->
+    <RollForward>Major</RollForward>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
   </PropertyGroup>

@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace CatShelter.Core.Tests
 {
     /// <summary>
-    /// Acceptance 3.6: the game reads the shipped definitions; all 12 run
+    /// Acceptance 3.6: the game reads the shipped definitions; all 37 run
     /// through Core headlessly and end in a Win when played with sensible play.
     /// </summary>
     [TestFixture]
@@ -24,18 +24,30 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
-        public void TwelveShippedLevelsExistAndParse()
+        public void AllShippedLevelFilesExistAndParse()
         {
-            var files = Enumerable.Range(1, 12)
-                .Select(n => Path.Combine(LevelsDir(), $"level_{n:00}.json"))
-                .ToList();
-            foreach (var f in files)
-                Assert.That(File.Exists(f), Is.True, f);
+            var files = Directory.GetFiles(LevelsDir(), "l*.json");
+            Assert.That(files.Length, Is.EqualTo(37), "expected 37 level files");
             Assert.DoesNotThrow(() =>
             {
                 foreach (var f in files)
                     _ = LevelLoader.FromJson(File.ReadAllText(f));
             });
+        }
+
+        [Test]
+        public void RoomAndPileIndices_CoverThePacingCurve()
+        {
+            var files = Directory.GetFiles(LevelsDir(), "l*.json");
+            var perRoom = files
+                .Select(f => LevelLoader.FromJson(File.ReadAllText(f)))
+                .GroupBy(l => l.RoomId)
+                .ToDictionary(g => g.Key, g => g.Count());
+            // rooms hold 1..4 piles; every room is present exactly once
+            Assert.That(perRoom.Count, Is.EqualTo(12));
+            Assert.That(perRoom.Values.Max(), Is.EqualTo(4));
+            Assert.That(perRoom["room_01"], Is.EqualTo(1));
+            Assert.That(perRoom["room_09"], Is.EqualTo(4));
         }
 
         [Test]
@@ -46,13 +58,12 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
-        public void AllTwelveLevelsPlayThroughToWin_Headless()
+        public void AllThirtySevenLevelsPlayThroughToWin_Headless()
         {
             var levelsDir = LevelsDir();
-            for (int n = 1; n <= 12; n++)
+            foreach (var file in Directory.GetFiles(levelsDir, "l*.json"))
             {
-                var level = LevelLoader.FromJson(
-                    File.ReadAllText(Path.Combine(levelsDir, $"level_{n:00}.json")));
+                var level = LevelLoader.FromJson(File.ReadAllText(file));
                 var board = new Board(level);
 
                 // Greedy sensible play: prefer kinds closest to completing,
@@ -60,17 +71,17 @@ namespace CatShelter.Core.Tests
                 while (!board.IsOver)
                 {
                     var avail = board.GetAvailable();
-                    Assert.That(avail, Is.Not.Empty, $"level {n}: stuck");
+                    Assert.That(avail, Is.Not.Empty, $"{file}: stuck");
                     var shelfCounts = board.Shelf.Slots
                         .OfType<Item>().GroupBy(i => i.Kind.Id)
                         .ToDictionary(g => g.Key, g => g.Count());
                     var pick = avail.OrderByDescending(
                         i => shelfCounts.TryGetValue(i.Kind.Id, out var c) ? c : 0).First();
-                    Assert.That(board.TakeItem(pick.Id), Is.True, $"level {n}");
+                    Assert.That(board.TakeItem(pick.Id), Is.True, file);
                 }
 
                 Assert.That(board.Outcome, Is.EqualTo(GameOutcome.Win),
-                    $"level {n} did not end in a win");
+                    $"{file} did not end in a win");
             }
         }
     }

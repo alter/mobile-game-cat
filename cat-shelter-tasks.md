@@ -70,6 +70,63 @@ entirely.
 
 ---
 
+## Monetisation: decided, so it stops being re-argued
+
+**None of this ships in the MVP.** There are no payments by design; the lose
+screen carries one stub button and a counter. Recorded here so the question is
+not reopened every week.
+
+| Surface | Verdict | Why |
+|---|---|---|
+| Energy / lives gate | **Not in the MVP. Open for the product.** | See below — it would corrupt metric 3 |
+| Booster on failure ("+1 slot") | **Chosen** | Sells recovery, not admission; already task 6.6 |
+| Hints | **Good fit, post-MVP** | Becomes genuinely valuable once 3.9 hides kinds |
+| Items for the cat and the room | **Good fit, post-MVP** | Bed, bowl, toys — already the second wave in MVP §14 |
+| Skins that change the cat's coat | **No — this one breaks the hook** | See below |
+| Breed rarity of the rescued kitten | **Already the named driver** | MVP §14 |
+
+### Why no energy gate before M8
+
+Metric 3 — return on day 1 — decides the project. Behind a gate, some share of
+returns means "the lock expired", not "she wanted to come back", and at roughly a
+hundred installs the two cannot be separated. The gate would also *raise* the
+number, so the decision to continue would rest on an inflated reading.
+
+It would also hide the problem 3.8 just found. Twelve levels finish in 14–24
+minutes; a gate stops players finishing in one sitting — not because there is
+more game, but because they were locked out. The content problem would remain,
+merely invisible.
+
+A distinction worth keeping, from Deconstructor of Fun (June 2026): "Match-3
+stops you with a loss, Merge stops you when you run out of energy." Our mechanic
+stops the player with a jam, so structurally we are in the match family, where
+the genre-consistent gate is lives-on-failure, not energy-to-play. Royal Match
+and Homescapes use lives; Merge Mansion and Travel Town use energy. All four are
+in the MVP's own reference list, so "the references do it" cuts both ways.
+
+Against any gate at all, for this game specifically: the audience plays "10–20
+минут в паузах между делами". The whole point is that she has fifteen free
+minutes *now*. A gate refuses her at precisely the moment paid acquisition
+bought. It is the same injury as losing progress on the metro (see 6.7), and it
+contradicts "котёнок не болеет".
+
+Honest cost of refusing: an economy built on cosmetics and rarity needs higher
+retention than one built on gates — few players pay, and they pay only after
+attachment forms. That is a real bet, not a free lunch. Revisit it on M8 data,
+not on instinct.
+
+### Why coat skins are the one item to refuse
+
+Selling items *for* the cat is sound. Selling a skin that **repaints the cat** is
+not, and the reason is the whole premise: the coat comes from her photograph.
+"Отличие от всего, что есть на рынке: это её кот." A skin that overwrites the
+coat sells her the removal of the one thing that made her attach.
+
+Everything around the cat is fair game — collars, beds, bowls, toys, the room.
+The cat itself is not merchandise.
+
+---
+
 ## Part I. Agent roles
 
 Each role is a separate agent run with its own scope, its own subtree, and its
@@ -267,10 +324,58 @@ without it.
 | 3.5 | Ship 12 levels (TOOLS) | P0 | 12 definitions in `/Levels` | each solver-verified, zero dead ends |
 | 3.6 | JSON level loading in game (CORE) | P0 | game reads definitions | headless run of all 12 through Core |
 | 3.7 | **Five outsiders play the rectangle build** (HUMAN) | **P0** | five written answers | **at least 3 of 5 say they would keep playing** |
-| 3.8 | **Measure total playtime of 12 levels** (HUMAN) | **P0** | a number in minutes | stopwatch, one full run by someone who has not played |
+| 3.8 | ~~Measure total playtime~~ **DONE 2026-08-24** | P0 | **576 taps, 14–24 min** | owner played all 12 on the refactored curve |
+| 3.9 | **Hidden kinds: an item shows its kind only once it is reachable** (CORE) | **P0** | buried items render blank | unit tests; blocks 3.10 |
+| 3.10 | **Re-measure the curve under partial information** (TOOLS) | **P0** | new win-rate table | greedy policy that sees only reachable kinds |
+| 3.11 | **One complication introduced around level 7** (CORE) | P1 | locked items that open after N matches | unit tests; level 7 differs from level 6 |
 
 **Key property test:** for every generated level, the solver finds a solution.
 One unsolvable level in the output means the milestone is rejected.
+
+### 3.8 came back with a number, and the number is a problem
+
+The owner played all twelve levels on the refactored 36/48/60 curve: **576 taps,
+14 minutes brisk, 24 unhurried.** That is the entire content of the MVP, consumed
+in one sitting. Verdict on feel: mildly enjoyable, doubtful it lasts.
+
+This is exactly the failure 3.8 existed to catch. If everything finishes on day
+zero, metric 3 measures content exhaustion rather than desire — the player did
+not return because there was nothing to return to. The threshold in 8.0 cannot be
+set honestly until this is addressed.
+
+### 3.9 is the cheapest fix, and it repairs the mechanic as well as the metric
+
+The whole pile is visible today: tiles in a flat grid, blocked ones merely dimmed
+to 35% opacity. Nothing is concealed, so a level can be solved at a glance. The
+tension this genre runs on — not knowing what lies underneath — is absent, and
+that is the likeliest reason it wears thin.
+
+Show a buried item as a blank tile and reveal its kind once nothing covers it.
+One field on the item, one condition in the renderer. It buys discovery, slows
+play, and turns sorting back into a puzzle. Sheep a Sheep, named as a reference
+in the MVP, works exactly this way.
+
+### 3.10 exists because 3.9 invalidates the numbers we have
+
+The measured table — 98% / 87% / 66% at 36 / 48 / 60 items — came from a policy
+that could see every kind in the pile. Under hiding a player cannot plan ahead,
+and those rates will fall, possibly a long way.
+
+The solver remains useful as a feasibility oracle ("does a solution exist") but
+stops being a difficulty oracle. Order matters: hide first, measure second, tune
+pile size third. Tuning against the old numbers would be tuning against a game
+nobody will play.
+
+### 3.11 tests a pattern, not a feature
+
+Games of this kind that run for hundreds of rounds do not scale by enlarging the
+board. They introduce a new complication every thirty to fifty rounds — blockers,
+reordering, a different way items arrive. Twelve levels of "the same thing, more
+of it" is the shape that bores, and that is what we currently have.
+
+One complication, introduced once, is enough here: it proves the rhythm works and
+makes at least one room memorable. The full ladder is post-MVP design and belongs
+in `cat-shelter-mvp.md` section 14, not in this list.
 
 ### 3.7 fills the project's largest measurement hole
 
@@ -409,13 +514,38 @@ drop-off reaching it is measured in M7.
 | 6.4 | Rewards at levels 4 and 8 (VIEW) | P1 | props appear in room | PlayMode |
 | 6.5 | Win screen, before/after (VIEW) | P0 | both frames shown | **HUMAN: difference readable in half a second** |
 | 6.6 | Lose screen, "+1 slot" button (VIEW) | P0 | tap recorded, stub shown; booster grows shelf by one slot in Core | PlayMode + event in analytics |
-| 6.7 | Local save (CORE) | P0 | close and reopen preserves progress | unit tests: write, read, corrupted file |
+| 6.7 | **Mid-level save, written every move** (CORE) | P0 | quitting mid-level and reopening resumes the same board | unit tests: write, read, corrupted file; **on device: kill the app mid-level, reopen, same position** |
 | 6.8 | Notification, permission after level 2 (NATIVE) | **P0** | fires after 24 h | on device |
 | 6.9 | Click and haptics on placement (VIEW) | P1 | present | **HUMAN plays 5 minutes straight** |
 | 6.10 | Post-level-12 screen (VIEW) | P1 | "to be continued" | PlayMode |
 | 6.11 | Copy in English (VIEW) | P0 | zero non-English strings | grep over asset tree |
 | 6.12 | Headless build (NATIVE) | P0 | one command produces an ipa | run from a clean checkout |
 | 6.13 | TestFlight distribution (NATIVE) | P0 | installs from invite | 3 people installed |
+
+### 6.7 was under-specified, and the gap punishes exactly our player
+
+It read "close and reopen preserves progress", and the `Player` entity in the MVP
+holds `levels_done, current_level` — level granularity. Nothing stores which
+items have been taken or what sits on the shelf, and `Board._taken` is private
+with no way out. So today: leave mid-level, lose the room.
+
+The audience is defined as playing "10–20 минут в паузах между делами".
+Interruption is their normal case, not an edge case. Riding the metro, the stop
+arrives, the app closes — and a half-cleared room evaporates. That is a
+punishment, and the MVP's own rule forbids punishments: "котёнок не болеет".
+
+Three things this task now requires:
+
+1. Serialise the board, not the level number: taken items, shelf contents,
+   current level, shelf capacity (the booster can change it).
+2. Write on **every move**, not on `OnApplicationPause`. iOS kills backgrounded
+   apps without warning; the pause callback is not a reliable last chance. This
+   is already documented in `knowledge/analytics/01-own-event-collection.md`.
+3. Make `Board` reconstructable from that state — today it can only be built
+   fresh from a `Level`.
+
+Cheap to build, and it removes the single most common way this audience will lose
+work.
 
 **6.8 was raised from P1 to P0, because the priorities contradicted each other.**
 Metric 3 — return on day 1 — is one of four numbers that decide the project, and

@@ -17,6 +17,10 @@ def E(i, kind, *blocked):
     return PileItem(i, kind, tuple(blocked))
 
 
+def Locked(i, kind, unlock_after):
+    return PileItem(i, kind, (), unlock_after)
+
+
 def test_five_known_solvable():
     cases = [
         L(E(1, "a"), E(2, "a"), E(3, "a")),                      # plain triple
@@ -42,23 +46,36 @@ def test_solution_is_legal_and_winning_on_generated_levels():
     assert outcome == Outcome.WIN
 
 
-def test_five_known_dead_ends():
-    # five kinds x 3 on a nine-slot shelf: taking one of each kind in a
-    # spread order jams the shelf before the pile clears
-    pile = []
-    for k in range(5):
-        for i in range(3):
-            pile.append(E(k * 3 + i + 1, f"k{k}"))
+def test_locked_items_in_search():
+    # locked 'x' triple + one free 'a' triple: solvable via the a-triple first
+    lvl = L(Locked(1, "x", 1), Locked(2, "x", 1), Locked(3, "x", 1),
+            E(4, "a"), E(5, "a"), E(6, "a"))
+    sol = solve(lvl)
+    assert sol is not None
+    outcome, _ = replay(lvl, list(sol.moves))
+    assert outcome == Outcome.WIN
 
-    # circular block makes items permanently unreachable -> unsolvable
+    # impossible variant: 'x' needs 2 triples but only 1 exists → unsolvable
+    hard = L(Locked(1, "x", 2), Locked(2, "x", 2), Locked(3, "x", 2),
+             E(4, "a"), E(5, "a"), E(6, "a"))
+    assert solve(hard) is None
+
+
+def test_circular_block_unsolvable():
     cycled = L(E(1, "a", 2), E(2, "a", 1), E(3, "a"),
                E(4, "b"), E(5, "b"), E(6, "b"))
     assert solve(cycled, state_cap=50000) is None
 
-    from tools.solver.rules import new_state, Outcome
+
+def test_shelf_jam_dead_end():
+    pile = []
+    for k in range(5):
+        for i in range(3):
+            pile.append(E(k * 3 + i + 1, f"k{k}"))
+    from tools.solver.rules import new_state
     st = new_state(L(*pile))
     order = [k * 3 + i + 1 for i in range(3) for k in range(5)]
-    for id_ in order:  # spread: cycle through kinds before completing any
+    for id_ in order:
         if st.over:
             break
         st.take(id_)

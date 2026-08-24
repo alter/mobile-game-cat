@@ -64,14 +64,13 @@ html = """<!DOCTYPE html>
 <script>
 const LEVELS = __LEVELS__;
 
-// kind -> color + label (plain rectangles, per debug-view spirit)
-const KIND_COLORS = ["#c0765a","#7f9e7a","#6b8cae","#b48ead","#d0a35c",
-                     "#8a7f8d","#a26d5f","#6da39c","#9c8a5a"];
+// kind -> color + label. Hue by golden angle so kinds stay distinct well
+// past 20 kinds; saturation/lightness held in the warm muted band.
 function kindStyle(kind) {
-  let idx = 0; for (let i = 0; i < kind.length; i++) idx = (idx*31 + kind.charCodeAt(i)) >>> 0;
-  const c = KIND_COLORS[idx % KIND_COLORS.length];
-  const n = kind.replace("prop_","");
-  return { bg:c, label:n };
+  let n = parseInt(kind.replace("prop_",""), 10);
+  if (isNaN(n)) { let h=0; for (let i=0;i<kind.length;i++) h=(h*31+kind.charCodeAt(i))>>>0; n=h; }
+  const hue = (n * 137.508) % 360;
+  return { bg:`hsl(${hue.toFixed(1)}, 38%, 62%)`, label:String(n) };
 }
 
 let levelIdx = 0, taken, shelf, over;

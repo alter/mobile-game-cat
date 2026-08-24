@@ -9,15 +9,15 @@ namespace CatShelter.Core
     {
         /// <summary>The pile is empty — the room is cleared, the player won.</summary>
         Win,
-        /// <summary>Moves ran out with items still in the pile.</summary>
-        OutOfMoves,
-        /// <summary>The shelf is full with no match available.</summary>
+        /// <summary>The shelf is full with no match available — the player is stuck.</summary>
         ShelfJammed
     }
 
     /// <summary>
-    /// The playing field: a pile of overlapped items plus the shelf. Owns the move
-    /// counter and decides win/lose. This is the whole rules engine.
+    /// The playing field: a pile of overlapped items plus the shelf. Decides
+    /// win/lose. There is no move limit: winning means taking every item, so
+    /// each move spends exactly one take and a limit either blocks the level or
+    /// can never be reached (reviews/2026-08-24-refactor-difficulty.md).
     /// </summary>
     public sealed class Board
     {
@@ -25,15 +25,28 @@ namespace CatShelter.Core
         private readonly HashSet<int> _taken;
 
         public Level Level { get; }
-        public Shelf Shelf { get; } = new();
-        public int MovesLeft { get; private set; }
+        public Shelf Shelf { get; }
         public bool IsOver { get; private set; }
         public GameOutcome? Outcome { get; private set; }
 
-        public Board(Level level)
+        public Board(Level level) : this(level, Shelf.SlotsPerRow * Shelf.RowCount)
+        {
+        }
+
+        public Board(Level level, int shelfCapacity)
         {
             Level = level ?? throw new ArgumentNullException(nameof(level));
-            MovesLeft = level.MovesLimit;
+            Shelf = new Shelf(shelfCapacity);
+            // Every kind must appear in triples: otherwise the pile empties
+            // while items remain stranded on the shelf and the win condition
+            // fires on an unfinished board.
+            foreach (var group in level.Pile.GroupBy(e => e.Item.Kind.Id))
+            {
+                if (group.Count() % 3 != 0)
+                    throw new ArgumentException(
+                        $"kind '{group.Key}' appears {group.Count()} times, " +
+                        "not a multiple of three", nameof(level));
+            }
             _entries = level.Pile.ToDictionary(e => e.Item.Id);
             // Reject duplicate ids up front: occlusion bookkeeping relies on
             // them being unique.
@@ -57,9 +70,9 @@ namespace CatShelter.Core
 
         /// <summary>Take an item from the pile and put it on the shelf.</summary>
         /// <remarks>
-        /// A jam (shelf full) or running out of moves ends the game immediately;
-        /// an item already taken from the pile stays on the shelf in both cases,
-        /// matching how such games behave visually.
+        /// Win is checked before the jam: an empty pile is a win even when the
+        /// final placement happens to fill the shelf. A full unmatched shelf is
+        /// the only loss — that is what the "+1 slot" booster answers.
         /// </remarks>
         public bool TakeItem(int itemId)
         {
@@ -72,29 +85,18 @@ namespace CatShelter.Core
 
             _taken.Add(itemId);
 
-            if (!Shelf.TryPlace(entry.Item, out _))
-            {
-                Finish(GameOutcome.ShelfJammed);
-                return true;
-            }
-
-            // A completely full shelf with nothing matched is also a jam: the
-            // player has nowhere to put the next item.
-            if (Shelf.IsFull)
-            {
-                Finish(GameOutcome.ShelfJammed);
-                return true;
-            }
-
             if (_taken.Count == _entries.Count)
             {
                 Finish(GameOutcome.Win);
                 return true;
             }
 
-            MovesLeft--;
-            if (MovesLeft <= 0)
-                Finish(GameOutcome.OutOfMoves);
+            if (!Shelf.TryPlace(entry.Item, out _) || Shelf.IsFull)
+            {
+                Finish(GameOutcome.ShelfJammed);
+                return true;
+            }
+
             return true;
         }
 

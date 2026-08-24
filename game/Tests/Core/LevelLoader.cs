@@ -15,7 +15,6 @@ namespace CatShelter.Tests
             var root = Newtonsoft.Json.Linq.JObject.Parse(json);
             int number = (int)root["number"]!;
             string roomId = (string)root["room_id"]!;
-            int movesLimit = (int)root["moves_limit"]!;
 
             var entries = new List<PileEntry>();
             foreach (var e in (Newtonsoft.Json.Linq.JArray)root["pile"]!)
@@ -26,7 +25,7 @@ namespace CatShelter.Tests
                 entries.Add(new PileEntry(item, blocked));
             }
 
-            return new Level(number, roomId, movesLimit, entries);
+            return new Level(number, roomId, entries);
         }
     }
 }

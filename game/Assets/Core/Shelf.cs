@@ -5,17 +5,36 @@ using System.Linq;
 namespace CatShelter.Core
 {
     /// <summary>
-    /// Three shelves of three slots each (nine places total), as in section 3 of
-    /// cat-shelter-mvp.md. Placing an item takes a free slot; when three items of
-    /// the same kind occupy the shelf they match and disappear.
+    /// The shelf the player places items on. Default layout is three rows of
+    /// three slots ("three shelves of three", section 3 of cat-shelter-mvp.md);
+    /// rows are presentation only — matching looks across all slots.
+    /// Capacity is mutable: the lose-screen booster "+1 slot" grows it.
     /// </summary>
     public sealed class Shelf
     {
         public const int SlotsPerRow = 3;
         public const int RowCount = 3;
-        public const int Capacity = SlotsPerRow * RowCount;
 
-        private readonly Item?[] _slots = new Item?[Capacity];
+        private Item?[] _slots;
+
+        public Shelf(int capacity = SlotsPerRow * RowCount)
+        {
+            if (capacity < 1)
+                throw new ArgumentOutOfRangeException(nameof(capacity));
+            _slots = new Item?[capacity];
+        }
+
+        /// <summary>Grow the shelf by <paramref name="extra"/> slots (booster).</summary>
+        public void AddSlots(int extra)
+        {
+            if (extra < 0)
+                throw new ArgumentOutOfRangeException(nameof(extra));
+            var grown = new Item?[_slots.Length + extra];
+            Array.Copy(_slots, grown, _slots.Length);
+            _slots = grown;
+        }
+
+        public int Capacity => _slots.Length;
 
         /// <summary>Number of currently occupied slots.</summary>
         public int Occupied => _slots.Count(s => s is not null);
@@ -45,8 +64,8 @@ namespace CatShelter.Core
 
         /// <summary>
         /// If some kind occupies three slots, remove those items and report the kind.
-        /// Only one triple can complete at once because a single placement adds a
-        /// single item, but the method clears every completed kind it finds.
+        /// A single placement adds a single item, so at most one triple can complete
+        /// per call; the method removes that triple and returns.
         /// </summary>
         public bool TryMatch(out ItemKind? matchedKind)
         {

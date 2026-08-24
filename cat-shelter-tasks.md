@@ -469,16 +469,76 @@ without it.
 | 3.2 | Solver: solvable, in how many moves (TOOLS) | P0 | answer under 2 s per level | 5 known-solvable and 5 known-dead-end levels |
 | 3.3 | Level generation (TOOLS) | P0 | batch of 100 per run | all 100 parse in the loader |
 | 3.4 | Difficulty curve (TOOLS) | P0 | pile size 36/48/60 across levels 1–12 | measured win rate: sensible play wins ~98% / ~87% / ~66% per band |
-| 3.5 | Ship 12 levels (TOOLS) | P0 | 12 definitions in `/Levels` | each solver-verified, zero dead ends |
-| 3.6 | JSON level loading in game (CORE) | P0 | game reads definitions | headless run of all 12 through Core |
+| 3.5 | **Ship 37 levels across 12 rooms** (TOOLS) | P0 | 37 definitions, each tagged with room and pile index | each solver-verified, zero dead ends |
+| 3.6 | JSON level loading in game (CORE) | P0 | game reads definitions | headless run of all 37 through Core |
 | 3.7 | **Five outsiders play the rectangle build** (HUMAN) | **P0** | five written answers | **at least 3 of 5 say they would keep playing** |
 | 3.8 | ~~Measure total playtime~~ **DONE 2026-08-24** | P0 | **576 taps, 14–24 min** | owner played all 12 on the refactored curve |
 | 3.9 | **Hidden kinds: an item shows its kind only once it is reachable** (CORE) | **P0** | buried items render blank | unit tests; blocks 3.10 |
 | 3.10 | **Re-measure the curve under partial information** (TOOLS) | **P0** | new win-rate table | greedy policy that sees only reachable kinds |
-| 3.11 | **One complication introduced around level 7** (CORE) | P1 | locked items that open after N matches | unit tests; level 7 differs from level 6 |
+| 3.11 | **Three complications, one per room band** (CORE) | **P0** | each introduced in its own room, then combined | unit tests; a late room feels unlike an early one |
+| 3.12 | **Piles-per-room curve** (TOOLS) | P0 | 1,2,3,3,3,3,3,3,4,4,4,4 | property test: no room needs more than 4 piles |
 
 **Key property test:** for every generated level, the solver finds a solution.
 One unsolvable level in the output means the milestone is rejected.
+
+### One pile is not one room — and that is where the content was hiding
+
+A level was tied 1:1 to a room (`level_01 → room_01`), which is why there were
+twelve of them. Nothing justified the coupling. Levels are free — the generator
+already produces a hundred per run — while **rooms are the expensive part**: task
+4.7 is twelve dirty/clean pairs of art, and a hundred rooms would be two hundred
+images.
+
+So a room now holds **several piles**, and a level clears one of them. Twelve
+rooms stay; the content triples. The fiction is better than a counter, too: a
+room is not tidied in one sitting, and a player reads three heaps of junk as
+obvious where "the room advances every third level" reads as a rule.
+
+**Payoff becomes two-tier.** Each level visibly clears a corner — small reward,
+every time. Completing a room changes the light, moves the cat, and may hand over
+a possession — large reward, earned. Today it is all-or-nothing.
+
+**Art cost stays flat.** A room still needs one dirty background and one clean
+one. The clutter is composed from the ~30 prop sprites already being generated in
+4.1–4.3, and "a third cleared" is simply fewer sprites on the same background.
+No new room art for the extra levels.
+
+There may be a further saving — if "dirty" can be the clean background plus a
+grey-brown grade plus clutter, the second background disappears and 4.7 halves.
+Do not budget for it until an artist has shown one room passing the 4.7 test at
+thumbnail size; a real "before" is usually different light, not a filter.
+
+**It also makes 3.9 physical.** Drawn as an actual heap in a room, items overlap
+for real, so "you cannot see what is underneath" stops being a 35% opacity
+convention and becomes something the eye reads.
+
+### 3.12: the curve grows pacing, not difficulty
+
+Piles per room rises 1, 2, 3, then holds at 3, then 4 for the last four rooms —
+37 levels, roughly 44–74 minutes by tap count, and that is a floor, since hidden
+kinds and complications both slow play.
+
+The first room finishes in a single level on purpose. She sees the whole loop
+immediately: cleared, room brightens, kitten better. For an audience that must
+not be intimidated at the door, that is the strongest possible opening.
+
+**Why not simply grow it linearly to twelve.** That yields 78 levels and 94–156
+minutes, which is tempting, and it is a trap: the twelfth room would need twelve
+levels between large rewards. At 10–20 minute sessions that is two or three whole
+sittings in which nothing completes, arriving exactly where the player is most
+likely to stop. Content that stops paying out does not retain, it tires.
+
+**The rule this encodes.** Piles per room governs *pacing*; pile size and
+complications govern *difficulty*. Grow all three together and they multiply — a
+final room of six piles, sixty items each, under three complications. Keep them
+separate.
+
+### Cat states anchor to rooms, not level numbers
+
+With a variable curve, "state changes at level 5" stops meaning anything. States
+change after the **fourth and eighth completed room**, as the arc in
+`cat-shelter-mvp.md` §4 intends. Anchoring to rooms keeps the arc intact whatever
+3.12 is later tuned to.
 
 ### 3.8 came back with a number, and the number is a problem
 
@@ -657,9 +717,9 @@ drop-off reaching it is measured in M7.
 | # | Task (role) | P | Done when | Verified by |
 |---|---|---|---|---|
 | 6.1 | Presentation, input, placement animation (VIEW) | P0 | level playable with real art | PlayMode: full level run |
-| 6.2 | Room bound to level number (VIEW) | P0 | 12 rooms cycle | PlayMode |
-| 6.2.1 | **House map: all 12 rooms, cleaned ones visibly done** (VIEW) | **P0** | one screen shows the whole house and what is left | **HUMAN: after level 3, is it obvious how much remains?** |
-| 6.3 | Three cat states (VIEW) | P0 | transitions at levels 5 and 9 | PlayMode at both boundaries |
+| 6.2 | **Room holds several piles; clearing one clears a corner** (VIEW) | P0 | 12 rooms, each cleaned in 1–4 stages | PlayMode across a whole room |
+| 6.2.1 | **House map: all 12 rooms, partial progress visible** (VIEW) | **P0** | one screen shows the whole house and what is left | **HUMAN: after two rooms, is it obvious how much remains?** |
+| 6.3 | Three cat states (VIEW) | P0 | transitions after the **4th and 8th completed room** | PlayMode at both boundaries |
 | 6.4 | Rewards at levels 4 and 8 (VIEW) | P1 | props appear in room | PlayMode |
 | 6.5 | Win screen, before/after (VIEW) | P0 | both frames shown | **HUMAN: difference readable in half a second** |
 | 6.6 | Lose screen, "+1 slot" button (VIEW) | P0 | tap recorded, stub shown; booster grows shelf by one slot in Core | PlayMode + event in analytics |

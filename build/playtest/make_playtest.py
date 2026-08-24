@@ -1,8 +1,7 @@
 """Build a self-contained playable HTML prototype of the puzzle.
 
-Embeds the 12 shipped levels and a JS mirror of the rules engine so the
-3.7 playtest can run in any phone browser without installing anything.
-Output: build/playtest/index.html
+Embeds all 37 shipped levels (rooms of 1-4 piles) with hidden kinds (3.9)
+and room progress (6.2). Output: build/playtest/index.html
 """
 import json
 from pathlib import Path
@@ -11,15 +10,16 @@ ROOT = Path(__file__).resolve().parents[2]
 LEVELS = ROOT / "game" / "Assets" / "Levels"
 
 levels = []
-for n in range(1, 13):
-    data = json.loads((LEVELS / f"level_{n:02d}.json").read_text())
+for f in sorted(LEVELS.glob("l*.json")):
+    data = json.loads(f.read_text())
     levels.append({
         "number": data["number"],
+        "roomId": data["room_id"],
+        "pileIndex": data.get("pile_index", 0),
         "pile": [{"id": e["id"], "kind": e["kind"],
                   "blockedBy": e.get("blocked_by", [])} for e in data["pile"]],
     })
 
-# palette per kind index — muted warm tones, no art, plain tiles
 html = """<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -32,7 +32,10 @@ html = """<!DOCTYPE html>
   body { margin:0; font-family:-apple-system,sans-serif; background:var(--bg); color:var(--ink);
          display:flex; flex-direction:column; align-items:center; min-height:100vh; }
   h1 { font-size:18px; margin:12px 0 4px; }
-  #status { font-size:14px; margin-bottom:8px; }
+  #status { font-size:14px; margin-bottom:6px; }
+  #roombar { display:flex; gap:4px; margin-bottom:8px; }
+  .rseg { width:22px; height:8px; border-radius:4px; background:rgba(0,0,0,.12); }
+  .rseg.done { background:#7f9e7a; }
   #pile { display:flex; flex-wrap:wrap; gap:6px; justify-content:center;
           max-width:360px; margin-bottom:14px; padding:10px;
           background:rgba(0,0,0,.06); border-radius:12px; min-height:120px; }
@@ -40,12 +43,12 @@ html = """<!DOCTYPE html>
           display:flex; align-items:center; justify-content:center;
           font-size:11px; color:#fff; cursor:pointer; }
   .item.blocked { opacity:.35; }
+  .item.hidden { background:#b9a88d !important; color:transparent; cursor:default; }
   #shelf { display:grid; grid-template-columns:repeat(9,34px); gap:4px;
            background:var(--shelf); padding:8px; border-radius:10px; }
   .slot { width:34px; height:38px; border-radius:7px; background:rgba(255,255,255,.5); }
-  .slot.filled { background-size:cover; }
   #overlay { position:fixed; inset:0; background:rgba(0,0,0,.55);
-             display:none; align-items:center; justify-content:center; }
+             display:none; align-items:center; justify-content:center; z-index:2; }
   #card { background:#fff; border-radius:16px; padding:24px; max-width:320px;
           text-align:center; font-size:15px; line-height:1.45; }
   button { margin-top:12px; padding:10px 20px; border:none; border-radius:10px;
@@ -54,18 +57,18 @@ html = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-<h1 id="title">Уровень 1 из 12</h1>
+<h1 id="title"></h1>
 <div id="status"></div>
+<div id="roombar"></div>
 <div id="pile"></div>
 <div id="shelf"></div>
 
 <div id="overlay"><div id="card"></div></div>
 
 <script>
-const LEVELS = __LEVELS__;
+const LEVELS = __LEVEL__;
 
-// kind -> color + label. Hue by golden angle so kinds stay distinct well
-// past 20 kinds; saturation/lightness held in the warm muted band.
+// Hue by golden angle so kinds stay distinct well past 20 kinds.
 function kindStyle(kind) {
   let n = parseInt(kind.replace("prop_",""), 10);
   if (isNaN(n)) { let h=0; for (let i=0;i<kind.length;i++) h=(h*31+kind.charCodeAt(i))>>>0; n=h; }
@@ -73,34 +76,52 @@ function kindStyle(kind) {
   return { bg:`hsl(${hue.toFixed(1)}, 38%, 62%)`, label:String(n) };
 }
 
-let levelIdx = 0, taken, shelf, over;
+// rooms in order of first appearance
+const ROOM_ORDER = [...new Set(LEVELS.map(l => l.roomId))];
+// piles per room for the progress bar
+const ROOM_SEGMENTS = {};
+for (const r of ROOM_ORDER) ROOM_SEGMENTS[r] = LEVELS.filter(l => l.roomId === r).length;
+
+let levelIdx = 0, taken, shelf, over, revealedIds, triplesDone, roomsCleared;
 
 function byId(level){ const m={}; for(const it of level.pile) m[it.id]=it; return m; }
 
+function isRevealed(level, item){
+  if (taken.has(item.id)) return false;
+  return item.blockedBy.every(b => taken.has(b));
+}
+
 function startLevel(i){
-  levelIdx = i; const L = LEVELS[i];
+  levelIdx = i;
   taken = new Set(); shelf = Array(9).fill(null);
-  over = false;
-  document.getElementById("title").textContent = `Уровень ${i+1} из 12`;
+  triplesDone = 0; over = false;
+  const L = LEVELS[i];
+  document.getElementById("title").textContent =
+    `Комната ${ROOM_ORDER.indexOf(L.roomId)+1} из 12 · завал ${L.pileIndex+1}`;
+  renderRoomBar();
   render();
+}
+
+function renderRoomBar(){
+  const bar = document.getElementById("roombar");
+  bar.innerHTML = "";
+  const currentRoom = LEVELS[levelIdx].roomId;
+  for (const r of ROOM_ORDER){
+    for (let p = 0; p < ROOM_SEGMENTS[r]; p++){
+      const seg = document.createElement("div");
+      seg.className = "rseg";
+      // this pile done? whole earlier rooms count as cleared
+      const idxInPlan = LEVELS.findIndex(l => l.roomId === r && l.pileIndex === p);
+      if (idxInPlan < levelIdx || (idxInPlan === levelIdx && false)) seg.classList.add("done");
+      bar.appendChild(seg);
+    }
+  }
 }
 
 function available(level){
   const m = byId(level);
   return level.pile.filter(it => !taken.has(it.id) &&
     it.blockedBy.every(b => taken.has(b)));
-}
-
-function take(level, item){
-  if (over) return;
-  taken.add(item.id);
-  const slot = shelf.indexOf(null);
-  shelf[slot] = item.kind;
-  // full shelf with no match = jam
-  if (!shelf.includes(null) && !tryMatch()) return finish("jam");
-  tryMatch();
-  if (taken.size === level.pile.length) return finish("win");
-  render();
 }
 
 function tryMatch(){
@@ -116,34 +137,53 @@ function tryMatch(){
   return false;
 }
 
+function take(level, item){
+  if (over) return;
+  taken.add(item.id);
+  const slot = shelf.indexOf(null);
+  shelf[slot] = item.kind;
+  const matched = tryMatch();
+  if (!matched && !shelf.includes(null)) return finish("jam");
+  if (taken.size === level.pile.length) return finish("win");
+  render();
+}
+
 function finish(how){
   over = true;
-  if (how === "win" && levelIdx < LEVELS.length-1){
-    showCard(`<b>Комната чистая!</b><br>Котёнок довольствуется.<br><br>` +
-      `<button onclick="nextLevel()">Дальше</button>`);
-  } else if (how === "win"){
-    finalScreen(true);
+  if (how === "win"){
+    const L = LEVELS[levelIdx];
+    const lastPileOfRoom = !LEVELS[levelIdx+1] || LEVELS[levelIdx+1].roomId !== L.roomId;
+    if (lastPileOfRoom){
+      showCard(`<b>Комната чистая!</b><br>Котёнку лучше.<br><br>` +
+        `<button onclick="nextLevel()">Дальше</button>`);
+      return;
+    }
+    showCard(`<b>Угол убран!</b><br>В комнате ещё остался завал.<br><br>` +
+      `<button onclick="nextLevel()">Продолжить</button>`);
   } else {
-    finalScreen(false, how);
+    showCard(
+      "<b>Полка переполнена.</b>" +
+      `<br>Прошёл уровней: ${levelIdx} из ${LEVELS.length}<br><br>` +
+      `<b>Сыграл бы ты дальше, если бы это была настоящая игра?</b>` +
+      `<textarea id="answer" placeholder="Пара слов почему"></textarea>` +
+      `<button onclick="sendAnswer(false)">Отправить</button>`);
   }
 }
 
 function nextLevel(){ hideCard(); startLevel(levelIdx+1); }
 
-function finalScreen(won, how){
+function finalScreenAll(){
   showCard(
-    (won ? "<b>Ты прошёл все 12 комнат!</b>"
-         : "<b>Полка переполнена.</b>") +
-    `<br>Прошёл уровней: ${levelIdx+1} из 12<br><b>Сыграл бы ты дальше, если бы это была настоящая игра?</b>` +
+    "<b>Ты прошёл все комнаты дома!</b>" +
+    `<br><br><b>Сыграл бы ты дальше, если бы это была настоящая игра?</b>` +
     `<textarea id="answer" placeholder="Пара слов почему"></textarea>` +
-    `<button onclick="sendAnswer(${won})">Отправить</button>`);
+    `<button onclick="sendAnswer(true)">Отправить</button>`);
 }
 
 function sendAnswer(won){
-  const text = document.getElementById("answer").value || "(пусто)";
-  const body = `Ответ игрока:\\nПрошёл: ${won ? "да" : "нет"}\\n` +
-    `Сыграл бы дальше: ${text}`;
-  location.href = "mailto:?subject=Играл бы дальше&body=" + encodeURIComponent(body);
+  const text = document.getElementById("answer")?.value || "(пусто)";
+  location.href = "mailto:?subject=Играл бы дальше&body=" +
+    encodeURIComponent(`Ответ игрока:\\nДошёл до уровня: ${levelIdx+1}\\nСыграл бы дальше: ${text}`);
 }
 
 function showCard(html){
@@ -161,18 +201,22 @@ function render(){
     if (taken.has(it.id)) continue;
     const b = document.createElement("button");
     const s = kindStyle(it.kind);
-    b.className = "item" + (availIds.has(it.id) ? "" : " blocked");
-    b.style.background = s.bg;
-    b.textContent = s.label;
-    if (availIds.has(it.id))
-      b.onclick = () => take(L, it);
+    if (isRevealed(L, it)){
+      b.className = "item" + (availIds.has(it.id) ? "" : " blocked");
+      b.style.background = s.bg;
+      b.textContent = s.label;
+      if (availIds.has(it.id)) b.onclick = () => take(L, it);
+    } else {
+      // task 3.9: buried tile shows nothing
+      b.className = "item blocked hidden";
+    }
     pileEl.appendChild(b);
   }
   const shelfEl = document.getElementById("shelf");
   shelfEl.innerHTML = "";
   shelf.forEach(k => {
     const d = document.createElement("div");
-    d.className = "slot" + (k ? " filled" : "");
+    d.className = "slot";
     if (k){ const s = kindStyle(k); d.style.background = s.bg; }
     shelfEl.appendChild(d);
   });
@@ -189,5 +233,5 @@ startLevel(0);
 out_dir = ROOT / "build" / "playtest"
 out_dir.mkdir(parents=True, exist_ok=True)
 out = out_dir / "index.html"
-out.write_text(html.replace("__LEVELS__", json.dumps(levels, ensure_ascii=False)))
-print(f"wrote {out} ({out.stat().st_size // 1024} KB)")
+out.write_text(html.replace("__LEVEL__", json.dumps(levels, ensure_ascii=False)))
+print(f"wrote {out} ({out.stat().st_size // 1024} KB), {len(levels)} levels")

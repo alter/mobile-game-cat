@@ -67,7 +67,7 @@ solutions = []
 for lv in levels:
     pile = tuple(PileItem(e["id"], e["kind"], tuple(e["blockedBy"]))
                  for e in lv["pile"])
-    level = LevelDef(lv["number"], f"room_{lv['number']:02d}", pile)
+    level = LevelDef(lv["number"], lv["roomId"], lv.get("pileIndex", 0), pile)
     sol = solve(level)
     assert sol is not None, f"level {lv['number']} unsolvable"
     # verify through python rules too
@@ -86,4 +86,4 @@ print(f"{len(wins)}/{len(results)} levels end in WIN inside the prototype engine
 for r in results:
     status = "OK " if r["outcome"] == "win" else "FAIL"
     print(f"  {status} level {r['level']}: {r['outcome']}")
-assert len(wins) == 12
+assert len(wins) == 37

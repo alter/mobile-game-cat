@@ -23,4 +23,20 @@ public static class BuildScript
 
     /// <summary>The single boot scene; the UI is assembled from code at runtime.</summary>
     private static string[] SceneList() => new[] { "Assets/Scenes/Empty.unity" };
+
+    // Xcode project for iOS: -executeMethod BuildScript.BuildIOSXcodeProject
+    // Output opens in Xcode: pick your device, set the team, press Play.
+    public static void BuildIOSXcodeProject()
+    {
+        var report = BuildPipeline.BuildPlayer(
+            SceneList(),
+            "build/ios/CatShelter",
+            BuildTarget.iOS,
+            BuildOptions.None);
+
+        var result = report.summary.result;
+        Console.WriteLine($"[BuildScript] result={result} errors={report.summary.totalErrors}");
+        if (result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            throw new Exception("iOS build failed: " + result);
+    }
 }

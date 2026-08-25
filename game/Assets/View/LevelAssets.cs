@@ -27,7 +27,9 @@ namespace CatShelter.View
             for (int room = 1; room <= 12; room++)
                 for (int pile = 0; pile < PilesPerRoom[room - 1]; pile++)
                 {
-                    var name = $"l{seq:00}_room{room:02d}_pile{pile}";
+                    var name = string.Format(
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        "l{0:00}_room{1:00}_pile{2}", seq, room, pile);
                     var asset = Resources.Load<TextAsset>($"Levels/{name}");
                     if (asset == null)
                         throw new InvalidOperationException(

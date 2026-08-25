@@ -1,0 +1,35 @@
+TASK: Nine events wired
+
+GOAL
+  Wire all nine events to their GameAnalytics types and names, so progression
+  and funnel reports populate correctly.
+
+CONTEXT
+  knowledge/analytics/04-gameanalytics-unity-usage.md (event name character
+  and length rules; a bad name is dropped silently, not rejected)
+  DECISIONS.md
+
+SCOPE
+  + Design events with exact colon-hierarchical names: app:open,
+    photo:screen_shown, photo:uploaded, photo:rejected, booster:tap,
+    notification:allowed.
+  + Progression events keyed by levelId: level_start (Start),
+    level_win (Complete), level_fail (Fail).
+  - No event names beyond these nine - see DECISIONS.md.
+  - Not the SDK init itself - that is 01-sdk-integration.
+
+OUTCOME
+  All nine call sites present, each firing at the correct point in the actual
+  gameplay flow.
+
+VERIFY (GROWTH)
+  1. One manual playthrough covering photo capture, one win and one loss
+     produces all nine event types in the GameAnalytics dashboard.
+  2. level_start/win/fail appear under Progression, not Design, in the
+     dashboard.
+
+ROLE
+  VIEW
+
+DEPENDS
+  70-analytics/01-sdk-integration

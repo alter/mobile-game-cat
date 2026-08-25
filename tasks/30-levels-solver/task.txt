@@ -1,0 +1,39 @@
+TASK: Levels, solver, and the fun gate
+
+GOAL
+  A solver-verified level pipeline deep enough to run the cheapest and most
+  skippable gate in the project: five outsiders judging whether the loop is
+  worth building, before any art or shell exists.
+
+CONTEXT
+  cat-shelter-mvp.md section 9 (levels are data, generated and solver-checked)
+  DECISIONS.md D1-D4 (no move counter, pacing vs difficulty, hidden kinds, booster)
+  reviews/2026-08-24-refactor-difficulty.md, reviews/2026-08-24-m2-m3.md
+
+SCOPE
+  + 01-06: solver, generator, difficulty curve, 37 levels across 12 rooms,
+    JSON loading in Core.
+  + 07: the outsider playtest, gate 2 of the project.
+  + 08: total playtime measurement (already done, informs 05).
+  + 09-12: hidden kinds, curve re-measured under partial information,
+    complications, piles-per-room pacing curve.
+  - Not the rules engine itself (Board, Shelf, outcomes) - see 20-rules-core.
+  - Not art or shell rendering of items/rooms - that is 40-art, 60-shell-build.
+
+OUTCOME
+  37 solver-verified levels across 12 rooms, a difficulty curve measured under
+  the same partial information a player has, and a signed verdict from five
+  outsiders on whether the mechanic is worth carrying forward.
+
+VERIFY (ARCH)
+  1. `pytest tools/tests` and the C# test suite are green from a clean checkout.
+  2. Property test: every generated level is solver-verified; zero unsolvable
+     levels in shipped output.
+  3. 30-levels-solver/07-outsiders-playtest carries five written answers and a
+     human-confirmed gate result.
+
+ROLE
+  TOOLS, CORE, ARCH (review), HUMAN (07, 08)
+
+DEPENDS
+  20-rules-core

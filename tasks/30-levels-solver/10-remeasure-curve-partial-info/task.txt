@@ -1,0 +1,39 @@
+TASK: Re-measure the curve under partial information
+
+GOAL
+  Replace the invalidated full-information win-rate table with one measured by
+  a policy that only sees reachable (revealed) kinds, as a real player does.
+
+CONTEXT
+  09-hidden-kinds/NOTES.md (why the old table cannot be reused, and the
+    hide-first/measure-second/tune-third order)
+  tools/solver/rules.py, solver.py (policy to adapt: restrict its view to
+    `available()` kinds only, drop the full-pile lookahead)
+  04-difficulty-curve/task.txt (the table being replaced)
+
+SCOPE
+  + A greedy policy limited to reachable kinds only (no peeking at buried
+    items) driving ~400 games per pile-size band, same method as 04.
+  + A new win-rate table at 36/48/60 items, published alongside the old one
+    with an explicit note that the old one is retired.
+  - Not choosing new pile sizes yet - tuning happens only after this
+    measurement exists (hide first, measure second, tune third).
+  - Not the solver's solvability search - solve() stays an unchanged oracle.
+
+OUTCOME
+  A new win-rate table, sourced to a measurement script, produced after
+  09-hidden-kinds merges.
+
+VERIFY (ARCH)
+  1. Measurement script exists and its output is the published table - not a
+     hand-typed number.
+  2. Policy provably only reads `available()`/reachable kinds, verified by
+     code review against 09's Revealed/hidden field.
+  3. New table is lower than the 98/87/66 baseline at every band (partial
+     information cannot make the game easier).
+
+ROLE
+  TOOLS, ARCH (review)
+
+DEPENDS
+  30-levels-solver/09-hidden-kinds

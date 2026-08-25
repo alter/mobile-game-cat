@@ -1,0 +1,39 @@
+TASK: Ship 37 levels across 12 rooms
+
+GOAL
+  Replace the one-level-per-room coupling with several piles per room, and
+  ship 37 solver-verified level definitions distributed 1,2,3,3,3,3,3,3,4,4,4,4
+  across the twelve rooms.
+
+CONTEXT
+  tools/solver/ship_levels.py (currently ships 12, one per room - needs the
+    room/pile_index split)
+  tools/solver/schema.py, level_format.md (room_id exists; pile_index does not
+    yet - add it)
+  DECISIONS.md D2 (the pacing curve and why it is not linear to 12)
+  NOTES.md in this directory (why one pile is not one room)
+
+SCOPE
+  + `pile_index` field on a level: which pile within its room.
+  + ship_levels.py distributes 37 verified levels across 12 rooms per the
+    1,2,3,3,3,3,3,3,4,4,4,4 curve.
+  + Every shipped level solver-verified, zero dead ends.
+  - Not room art or the two-tier reward (level clears a corner, room clears
+    fully) - that is 40-art and 60-shell-build.
+  - Not the piles-per-room property test itself (max 4/room) - that is
+    12-piles-per-room-curve.
+
+OUTCOME
+  `game/Assets/Levels/` holds 37 definitions, each tagged with room and pile index.
+
+VERIFY (ARCH)
+  1. `python -m tools.solver.ship_levels` produces exactly 37 files.
+  2. Every file's room_id + pile_index pair is unique; per-room pile counts
+     match 1,2,3,3,3,3,3,3,4,4,4,4.
+  3. Every shipped level passes `solve()` - zero dead ends.
+
+ROLE
+  TOOLS, ARCH (review)
+
+DEPENDS
+  30-levels-solver/04-difficulty-curve

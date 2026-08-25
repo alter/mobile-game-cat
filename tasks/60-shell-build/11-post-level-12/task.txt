@@ -1,0 +1,34 @@
+TASK: Post-level-12 screen
+
+GOAL
+  Give the player a clear, honest stop when the house is fully clean and no
+  more content exists in the MVP, instead of the game silently having
+  nothing left to do.
+
+CONTEXT
+  cat-shelter-mvp.md section 14 (what is deliberately out of the MVP - the
+  shelter expansion, breeds, grooming - all belong later, not here)
+
+SCOPE
+  + A "to be continued" screen shown once all 12 rooms are closed.
+  + Shows the fully-clean house map and the cat in its final (state 3) form.
+  − Not a waitlist, email capture, or any second-wave feature teaser - the
+    MVP's own rule is not to build economy/progression before gate 3.
+  − Not a replay-from-scratch option - out of scope for this screen.
+
+OUTCOME
+  A definite, legible ending screen that a player reaches naturally after
+  room 12.
+
+VERIFY (QA)
+  1. PlayMode: closing room 12 shows this screen exactly once, not the
+     regular win screen.
+  2. Screen contains no call to action beyond acknowledging completion (no
+     purchase prompt, no share prompt beyond what 15-share-card already
+     offers at earlier transformation moments).
+
+ROLE
+  VIEW
+
+DEPENDS
+  60-shell-build/03-house-map

@@ -1,0 +1,39 @@
+TASK: Vision plugin, native
+
+GOAL
+  On-device stage 1: is there a cat in the photo. Free, offline, on the
+  neural co-processor, and the only gate before a paid model call.
+
+CONTEXT
+  knowledge/ios/03-vision-animal-recognition.md (two APIs, cat/dog only,
+  bounding box normalised bottom-left, orientation must be passed explicitly)
+  knowledge/ios/04-unity-swift-native-plugin.md (Assets/Plugins/iOS layout,
+  `@_cdecl` bridge, UnitySendMessage vs MonoPInvokeCallback)
+
+SCOPE
+  + Swift plugin under Assets/Plugins/iOS calling `VNRecognizeAnimalsRequest`
+    (iOS 13+, reachable from the Objective-C-compatible bridge Unity needs).
+  + Returns to C#: animal found y/n, cat vs dog, bounding box, confidence.
+  + Correct `CGImagePropertyOrientation` on every call - a named source of
+    false results if skipped.
+  - Not `RecognizeAnimalsRequest` (iOS 18+ Swift-only) - the older API already
+    covers cat/dog through the same bridge.
+  - Not the crop/downscale step, not the four-outcome copy - those are 07, 06.
+
+OUTCOME
+  A C# call that, given a photo, returns whether an animal was found, which
+  species, its bounding box, and a confidence value - on device, no network.
+
+VERIFY (ARCH)
+  1. Run the plugin against all 40 reference-set images on a physical device.
+  2. Cats correctly flagged as cat, dogs as dog, empty frames as no animal.
+  3. Bounding-box pixel coordinates match the visible animal by eye, on at
+     least 5 spot-checked images.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  10-accounts/03-xcode
+  10-accounts/04-unity
+  50-photo/01-reference-photo-set

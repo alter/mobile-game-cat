@@ -1,0 +1,33 @@
+TASK: ATT silent-failure check
+
+GOAL
+  Prove that GameAnalytics events reach the dashboard from a build that never
+  calls ATT, before wiring anything else. A dropped event raises no error, so
+  this must be checked before the other eight events and long before M8.
+
+CONTEXT
+  knowledge/analytics/04-gameanalytics-unity-usage.md (tracking domain,
+  privacy manifest, debug logging)
+  knowledge/00-vendor-lock-in.md
+
+SCOPE
+  + Minimal SDK init on a real device build, one test event sent.
+  + EnableAdvertisingIdTracking(false) called before Initialize().
+  - No RequestTrackingAuthorization call anywhere - see DECISIONS.md.
+  - Not the other eight events or the funnel - that is 02-nine-events and
+    04-funnel-retention.
+
+OUTCOME
+  One event visible in the GameAnalytics dashboard from a build that never
+  requested ATT.
+
+VERIFY (GROWTH)
+  1. GameAnalytics dashboard shows at least one event after the test build
+     runs on device.
+  2. Device log confirms RequestTrackingAuthorization was never called.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  60-shell-build

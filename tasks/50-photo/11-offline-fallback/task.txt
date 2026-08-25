@@ -1,0 +1,39 @@
+TASK: Offline fallback, base colour only
+
+GOAL
+  Show a cat even when the Worker is unreachable. Capped by physics, not
+  effort: pattern cannot be read on device, so the fallback is partial.
+
+CONTEXT
+  knowledge/ios/06-on-device-coat-traits.md (1303 categories, none a coat
+  pattern; CIAreaAverage/CIKMeans base colour is the honest ceiling)
+  cat-shelter-tech.md section 3, "offline fallback path" (k-means colour,
+  pattern forced solid)
+
+SCOPE
+  + On Worker-call failure or timeout, run the on-device colour estimate
+    (Core Image average/k-means over the cropped photo) for base_color only.
+  + All other fields get fixed defaults: pattern=solid, fur_length=short,
+    eye_color=green, white_markings=[].
+  + The meet-your-cat screen renders this partial-trait cat like any other.
+  - Not on-device pattern detection - knowledge/ios/06 shows no API or
+    licensed model for it; no heuristic classifier here.
+  - Not a retry/backoff policy - only what happens once a call has failed.
+
+OUTCOME
+  With the Worker unreachable, the player still gets a cat with her real base
+  colour and defaults elsewhere, never an error screen.
+
+VERIFY (QA)
+  1. Block the Worker's domain on the test device, run the full capture flow
+     with a reference-set cat photo.
+  2. Rendered base colour matches the photo's dominant fur colour by eye;
+     pattern is solid regardless of the real cat's pattern.
+  3. No error screen or crash when the Worker is unreachable.
+
+ROLE
+  VIEW, NATIVE
+
+DEPENDS
+  50-photo/07-crop-downscale
+  50-photo/02-traits-worker

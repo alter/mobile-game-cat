@@ -1,0 +1,35 @@
+TASK: Go / iterate / no-go decision
+
+GOAL
+  Decide whether the game is worth continuing to build, by comparing the
+  measured numbers against thresholds fixed before those numbers existed.
+
+CONTEXT
+  tasks/GOAL.md (four metrics, three gates, anti-pattern: fitting thresholds
+    to a result already obtained)
+
+SCOPE
+  + Compare each measured number (five, counting the split booster metric)
+    against the matching threshold filed in 00-thresholds.
+  + Write the verdict: keep building, iterate once, or close.
+  + State plainly which threshold(s) passed and which did not.
+  - Not changing any threshold after seeing the numbers - that reopens
+    00-thresholds and defeats its purpose.
+  - Not the publisher submission - that is 04-publisher-submission, and does
+    not wait on this verdict.
+
+OUTCOME
+  A dated decision record naming the verdict and citing 00's thresholds and
+  02's numbers by value.
+
+VERIFY (HUMAN)
+  1. The record quotes 00-thresholds' filed values, unedited from their
+     original date.
+  2. The record quotes 02-collect-metrics' numbers, with source.
+  3. The verdict is exactly one of: keep building, iterate once, close.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  80-live-validation/02-collect-metrics

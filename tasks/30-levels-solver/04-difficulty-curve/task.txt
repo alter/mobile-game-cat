@@ -1,0 +1,36 @@
+TASK: Difficulty curve by pile size
+
+GOAL
+  A measured, not assumed, difficulty curve: pile size 36/48/60 across levels
+  1-12, with win rate under sensible play as the source of truth.
+
+CONTEXT
+  tools/solver/generate.py (_items_for_level: 36 for 1-4, 48 for 5-8, 60 for 9-12)
+  reviews/2026-08-24-refactor-difficulty.md (the win-rate measurement table)
+  DECISIONS.md D1 (move counter deleted - it measured nothing), D2 (pile size
+    is the difficulty knob, not shelf slots)
+
+SCOPE
+  + Pile-size curve replacing the deleted move-limit curve.
+  + Win rate measured by a greedy "sensible play" policy (prefers kinds
+    already 2-of-3 on the shelf), ~400 games per band.
+  - Not shelf slot count - stays fixed at nine, see DECISIONS.md D2.
+  - This measurement assumes full visibility of the pile. It does NOT hold
+    once hidden kinds ship - see 09-hidden-kinds and
+    10-remeasure-curve-partial-info/NOTES.md.
+
+OUTCOME
+  Curve implemented in `_items_for_level`, with a sourced measurement: ~98% /
+  ~87% / ~66% win rate at 36 / 48 / 60 items, nine shelf slots.
+
+VERIFY (ARCH)
+  1. `pytest tools/tests/test_generate.py::test_pile_size_curve` green.
+  2. Win-rate numbers in reviews/2026-08-24-refactor-difficulty.md are
+     reproducible by re-running the measurement script referenced there.
+  3. Curve is monotonically decreasing band-to-band.
+
+ROLE
+  TOOLS, ARCH (review)
+
+DEPENDS
+  30-levels-solver/03-level-generation

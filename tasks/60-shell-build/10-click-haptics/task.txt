@@ -1,0 +1,33 @@
+TASK: Click and haptics on placement
+
+GOAL
+  Give placing an item on the shelf a satisfying click sound and haptic tap,
+  the small per-move feedback that makes 10-20 minutes of play feel good
+  rather than mechanical.
+
+CONTEXT
+  cat-shelter-mvp.md section 3 (the tactile "tidying" appeal the genre is
+  built on)
+
+SCOPE
+  + A short click/thunk sound on successful placement.
+  + A light haptic pulse on successful placement (iOS haptics API).
+  + A distinct (stronger or different) cue on a triple match.
+  − Not sound/haptics on failed placement or on the lose screen tap - keep
+    negative moments quiet, this task is about the satisfying ones.
+  − Not a settings toggle for sound/haptics - out of scope for the MVP.
+
+OUTCOME
+  Every successful placement and every match has an audible and tactile
+  response.
+
+VERIFY (HUMAN)
+  1. A person plays 5 minutes straight on device and confirms the feedback
+     feels present and pleasant, not absent or annoying, without being
+     prompted about what to listen or feel for.
+
+ROLE
+  VIEW, HUMAN
+
+DEPENDS
+  60-shell-build/01-presentation-input

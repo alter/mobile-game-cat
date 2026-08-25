@@ -1,0 +1,39 @@
+TASK: Traits schema via structured outputs
+
+GOAL
+  Make every Worker response parse, with no value outside the allowed set.
+  Wording in the prompt gets "usually parses"; the bar here is 100%.
+
+CONTEXT
+  knowledge/vision-model/01-traits-strict-json.md (output_config.format,
+  enum per field, additionalProperties: false, maxItems unsupported)
+  cat-shelter-tech.md section 3 (the five trait fields and their enums)
+
+SCOPE
+  + `output_config.format` with a `json_schema`: enum on base_color, pattern,
+    fur_length, eye_color; array of enum on white_markings.
+  + `additionalProperties: false` on the schema object.
+  + Cap on `white_markings` length enforced in the Worker's own code, since
+    `maxItems` is not a supported schema keyword.
+  + Model choice recorded (Haiku 4.5 vs Sonnet 5) with a reason.
+  - Not accuracy of the colour/pattern read - a ginger cat called cream is not
+    a defect here, only a value outside the enum or a parse failure is.
+  - Not the rate limit or the endpoint scaffolding - that is 02 and 04.
+
+OUTCOME
+  The /traits endpoint always returns a JSON object matching the schema, or a
+  clear error - never free text and never an out-of-enum value.
+
+VERIFY (ARCH)
+  1. Run all 40 reference-set images through the deployed endpoint.
+  2. Parse rate: 100%.
+  3. Zero values outside the declared enums, checked by a script that
+     validates every field against the schema.
+  4. `white_markings` never exceeds its capped length on any response.
+
+ROLE
+  TOOLS
+
+DEPENDS
+  50-photo/01-reference-photo-set
+  50-photo/02-traits-worker

@@ -1,0 +1,38 @@
+TASK: Rules reachable from solver
+
+GOAL
+  The Python solver plays by exactly the same rules as C# Core, so a level
+  judged solvable in Python is solvable in the shipped game.
+
+CONTEXT
+  tools/solver/rules.py (Python mirror of Board.cs)
+  game/Assets/Core/Board.cs, Shelf.cs
+  build/solver-bridge/Program.cs, solver-bridge.csproj
+  tools/tests/conformance_test.py
+  reviews/2026-08-24-m2-m3.md (why win-only comparison was rejected)
+
+SCOPE
+  + rules.py mirrors take/match/jam/win and AddSlots (booster recovery).
+  + conformance_test.py drives both sides from the same level and move script,
+    comparing win, shelf_jammed, and post-booster outcomes.
+  - Not a shared codebase between languages - the port-plus-diff approach is
+    kept deliberately, see reviews/2026-08-24-refactor-difficulty.md "what we
+    do not change".
+  - Not the solver's search algorithm - that is 02-solver.
+
+OUTCOME
+  `pytest tools/tests/conformance_test.py` passes from a clean checkout with no
+  hand-exported environment variables; win, jam and booster cases all agree.
+
+VERIFY (ARCH)
+  1. `pytest tools/tests/conformance_test.py -v` green, no env vars set by hand.
+  2. Test file asserts both WIN and SHELF_JAMMED appear among compared cases,
+     not wins only.
+  3. `solver-bridge.csproj` has no reliance on DOTNET_ROLL_FORWARD exported by
+     the caller (RollForward pinned in the project file).
+
+ROLE
+  TOOLS, ARCH (review)
+
+DEPENDS
+  20-rules-core/04-outcomes

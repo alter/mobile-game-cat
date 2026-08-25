@@ -1,0 +1,38 @@
+TASK: Rules engine
+
+GOAL
+  The rules of the game as engine-free C#: a layered pile with occlusion, the
+  shelf, matching, outcomes. Covered by tests, runnable without Unity.
+
+CONTEXT
+  cat-shelter-mvp.md section 3 (how the game plays), section 8 (entities)
+  cat-shelter-tech.md section 6 (what lives where)
+  knowledge/unity/04-test-framework.md (two NUnit versions, test portability)
+
+SCOPE
+  + 01-entities: Item, Shelf, Level, Room, Board.
+  + 02-pile-occlusion: layers, blocked_by, reachable items, hidden kinds.
+  + 03-shelf-match: placement, triple match across all nine slots, mutable
+    capacity.
+  + 04-outcomes: two outcomes, win and jam. There is no move counter.
+  + 05-coverage: at least 90% line coverage on Core.
+  + 06-debug-view: a playable build of plain rectangles, no art at all.
+  − Not presentation, animation or shell — that is 60-shell-build.
+  − Not level generation — that is 30-levels-solver.
+
+OUTCOME
+  A netstandard2.1 rules library that compiles both inside and outside Unity,
+  with zero occurrences of `using UnityEngine` under Assets/Core.
+
+VERIFY (ARCH)
+  1. `bash build/check-core-purity.sh` passes.
+  2. Tests are green from a clean checkout with no environment variables
+     exported by hand.
+  3. Line coverage on Core is at least 90%; the report is attached.
+  4. A human plays one level through on a phone.
+
+ROLE
+  CORE, VIEW (06), ARCH (review), HUMAN (06)
+
+DEPENDS
+  10-accounts/04-unity

@@ -1,0 +1,8 @@
+phase:levels
+role:CORE
+type:feature
+priority:P0
+status:in_progress
+verify:pending
+depends:30-levels-solver/05-ship-37-levels
+milestone:M3

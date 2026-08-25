@@ -1,0 +1,26 @@
+TASK: Core coverage
+
+GOAL
+  Line coverage on Core at 90% or above, with every termination branch reached.
+
+CONTEXT
+  knowledge/unity/04-test-framework.md (coverage from the command line; the
+  package has no built-in threshold, enforcement is a separate CI step)
+
+SCOPE
+  + Coverage measured and reported.
+  + A CI step that fails the build below the threshold.
+  - Not a coverage target for View or Tools.
+
+OUTCOME
+  Coverage report produced by command, threshold enforced by the build.
+
+VERIFY (ARCH)
+  1. Coverage report shows line rate at or above 90% on Core.
+  2. Lowering the threshold in CI and reverting proves the step actually fails.
+
+ROLE
+  CORE, QA
+
+DEPENDS
+  20-rules-core/04-outcomes

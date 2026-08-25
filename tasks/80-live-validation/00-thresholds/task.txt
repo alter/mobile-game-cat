@@ -1,0 +1,39 @@
+TASK: Threshold re-decision
+
+GOAL
+  Fix the four go/no-go numbers against market data, before any money moves,
+  so the test cannot be fitted to its own result afterwards.
+
+CONTEXT
+  knowledge/analytics/02-benchmarks-and-attribution.md
+  tasks/GOAL.md (four metrics table, three stances on day-1)
+  tasks/DECISIONS.md (the booster: what "one more shelf" offers, and why)
+
+SCOPE
+  + Re-examine all four: capture screen >90%, photo upload >40%, day-1
+    retention (originally >35%), booster-tap >15% of lose-screen reachers.
+  + Day-1: pick and record one of three stances - keep 35% (breakout only),
+    lower to ~25%, or bands (below 20% stop, 20-30% iterate, above 30% push).
+  + Booster tap: record as two numbers, never one - share who ever reached
+    the lose screen, and share of those who tapped.
+  + Ask the five publishers in 04-publisher-submission what they expect on
+    monetisation before finalising that threshold, rather than guessing.
+  - Not spending any money - that is 01-spend, blocked until this is filed.
+  - Not re-running the benchmark research - already done in
+    knowledge/analytics/02-benchmarks-and-attribution.md.
+
+OUTCOME
+  A dated, written threshold table for all four metrics, filed before
+  01-spend starts, naming the chosen day-1 stance and the reason.
+
+VERIFY (HUMAN)
+  1. The file's date precedes the start date of 01-spend's campaign.
+  2. The day-1 threshold states one of the three named stances explicitly,
+     not a bare number.
+  3. The fourth metric is recorded as two separate numbers, not one.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  70-analytics

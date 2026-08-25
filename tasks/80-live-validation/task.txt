@@ -1,0 +1,35 @@
+TASK: Live validation
+
+GOAL
+  Gate 3: find out, with real installs and real money, whether players return
+  and would pay. The last of the three tests that measure the actual goal.
+
+CONTEXT
+  tasks/GOAL.md (three gates, four metrics)
+  knowledge/analytics/02-benchmarks-and-attribution.md (retention benchmarks)
+
+SCOPE
+  + 00-thresholds: fix the four thresholds against market data, before spend.
+  + 01-spend: $400, 100+ installs.
+  + 02-collect-metrics: measure the four metrics via GameAnalytics and App
+    Store Connect.
+  + 03-decision: go / iterate / no-go, judged against 00's thresholds.
+  + 04-publisher-submission: submit results to five publishers.
+  - Not new game features. Building economy or a second wave before this gate
+    closes is the anti-pattern GOAL.md names explicitly.
+  - Not the analytics instrumentation itself - that is 70-analytics.
+
+OUTCOME
+  A dated decision record, with sourced numbers, on whether to keep building;
+  five publisher submissions sent regardless of the decision.
+
+VERIFY (QA)
+  1. 00-thresholds' four numbers are dated and predate any 01-spend activity.
+  2. 03-decision cites 02's numbers against 00's thresholds, not the reverse.
+  3. Five publisher submissions exist, each carrying the measured numbers.
+
+ROLE
+  HUMAN (00, 03), GROWTH (01, 02, 04)
+
+DEPENDS
+  70-analytics

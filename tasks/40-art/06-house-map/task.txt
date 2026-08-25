@@ -1,0 +1,37 @@
+TASK: House map
+
+GOAL
+  The screen showing all 12 rooms and how much is left - new asset group,
+  absent from the old M4 list; serves the "unfinished set nags" motive.
+
+CONTEXT
+  art-brief.md section 9 (file list, why a house cutaway, far-glance
+  readability requirement)
+  art-prompts.md section 6, subsection "Карта дома" (cutaway prompt, the
+  3-state rule: lightness carries the difference, not hue)
+
+SCOPE
+  + map_background.png: whole house, cutaway (more legible than a grid per
+    art-brief.md section 9), empty rooms.
+  + 3 state cells x 12 rooms = 36 files: dirty (dark), partial (half-lit,
+    clear boundary), clean (warm, light) - lightness, not colour.
+  - Not the room backgrounds - see 40-art/07-rooms; these are small map
+    cells, not full-screen art, not derived pixel-for-pixel from the rooms.
+  - No numbers, progress bars or text baked into the cells.
+
+OUTCOME
+  37 PNGs: map_background.png plus map_room_<nn>_<state>.png for nn 01..12,
+  state in {dirty,partial,clean}, 256x256 per cell, under game/Assets/Art.
+
+VERIFY (QA)
+  1. 37 files present, cells 256x256, background sized per section 9.
+  2. Converted to greyscale, the three states of any one room still order
+     dark-to-light - proves the distinction survives on lightness alone.
+  3. All 12 rooms' cells laid out together read as "mostly unfinished" or
+     "mostly done" in one glance, checked by someone other than the author.
+
+ROLE
+  ART, QA
+
+DEPENDS
+  40-art/01-props

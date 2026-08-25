@@ -1,0 +1,36 @@
+TASK: Solver - solvable, in how many moves
+
+GOAL
+  Answer, for one level, whether it is solvable at all and how many moves a
+  sensible policy needs, fast enough to gate generation.
+
+CONTEXT
+  tools/solver/solver.py (DFS with failure memoization, sensible-play heuristic)
+  tools/solver/rules.py (Outcome, replay - what "solved" means)
+  tools/tests/test_solver.py
+  knowledge/solver/01-tile-match-solver.md (why full search does not scale,
+    the memoization approach)
+
+SCOPE
+  + `solve(level)` returns a move sequence or None within a time deadline.
+  + Failure-state memoization to prune repeated dead branches.
+  - Not a difficulty measure - solvability only. Win-rate measurement is
+    04-difficulty-curve and, later, 10-remeasure-curve-partial-info.
+  - Not used as a difficulty oracle once hidden kinds land - see
+    09-hidden-kinds/NOTES.md.
+
+OUTCOME
+  `solve()` answers under 2 seconds per level on known-solvable and
+  known-dead-end fixtures.
+
+VERIFY (ARCH)
+  1. `pytest tools/tests/test_solver.py -v` green.
+  2. Five known-solvable and five known-dead-end fixtures both resolve
+     correctly (test_five_known_solvable, test_five_known_dead_ends).
+  3. Manual timing: `solve()` on a 60-item level completes under 2s.
+
+ROLE
+  TOOLS, ARCH (review)
+
+DEPENDS
+  30-levels-solver/01-rules-in-solver

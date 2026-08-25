@@ -1,0 +1,38 @@
+TASK: Rewards at rooms 4 and 8
+
+GOAL
+  A reward prop (bowl, blanket) appears in the room on the same two
+  boundaries as the cat state change, as a visible sign of care - not a
+  gameplay upgrade.
+
+CONTEXT
+  cat-shelter-mvp.md section 4 (bowl at room 4, blanket at room 8; rewards
+  must not be earnable by invitation, must not add utility)
+  art-brief.md section 10 ("Вещи-награды": no glow, no arrows, no numbers -
+  it is a gift, not a booster)
+
+SCOPE
+  + reward_bowl placed in-room after the 4th completed room.
+  + reward_blanket placed in-room after the 8th completed room.
+  + Both persist visually in the room afterwards.
+  − No gameplay effect of any kind - no shelf capacity, no move bonus,
+    nothing that a min-maxer could chase. If a future task proposes one,
+    it does not belong here; see cat-shelter-mvp.md section 4.
+  − Not distributable through invitations/referrals - that belongs to a
+    later, not-yet-built growth task, not this one.
+
+OUTCOME
+  Two reward props that appear on schedule and read as affection, not as
+  currency.
+
+VERIFY (QA)
+  1. PlayMode: reward_bowl appears exactly once, right after room 4 closes;
+     reward_blanket right after room 8.
+  2. Grep/inspection of the reward prefabs and their scripts: no reference to
+     Shelf.AddSlots, move count, or any other rule-engine effect.
+
+ROLE
+  VIEW
+
+DEPENDS
+  60-shell-build/04-cat-states

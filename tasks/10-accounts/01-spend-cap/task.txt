@@ -1,0 +1,32 @@
+TASK: Spend cap on the model provider account
+
+GOAL
+  A hard ceiling on what the agent-driven build can cost, set before agents
+  are given free rein to run commands and consume tokens unsupervised.
+
+CONTEXT
+  cat-shelter-tasks.md lines 407-447, row 1.6 and its rationale
+
+SCOPE
+  + Hard spend limit set below the reserve, on the account that pays for
+    model usage.
+  + Email alert on the limit turned on.
+  - Not request-signing or any code-side rate limiting - that task was
+    deleted; this is the actual protection against a runaway bill.
+  - Not the App Store spend cap or Apple Developer Program billing - see
+    02-apple-developer-program.
+
+OUTCOME
+  Console shows an active spend limit below the reserve, with an alert
+  channel configured.
+
+VERIFY (HUMAN)
+  1. Console → Billing → Spend limits shows the cap.
+  2. A test alert (or the console's own confirmation) shows the email
+     channel is live.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  (none)

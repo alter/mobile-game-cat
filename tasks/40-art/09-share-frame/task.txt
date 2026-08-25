@@ -1,0 +1,37 @@
+TASK: Before/after share-card frame
+
+GOAL
+  The frame around the image a player shares - room before on the left, after
+  on the right, cat in front. New asset, absent from the old M4 list.
+
+CONTEXT
+  art-brief.md section 10, subsection "Рамка карточки «было — стало»"
+  art-prompts.md section 6, subsection "Рамка карточки «было — стало»"
+
+SCOPE
+  + share_frame.png: square frame split into two equal halves by a thin
+    vertical line, light-oak moulding, both halves empty (the app composites
+    room/cat images into it at share time, this task draws the frame only).
+  + Transparent overlay, so it can sit on top of whatever image is composited
+    behind it.
+  - No space reserved for the cat's name - decided against putting a name on
+    the public card, art-brief.md section 10.
+  - Not the composited share image itself (room + cat placed inside the
+    frame) - that is runtime/VIEW work in a later phase, not an art asset.
+
+OUTCOME
+  1 PNG, share_frame.png, 1080x1080, transparent alpha except the moulding,
+  under game/Assets/Art.
+
+VERIFY (QA)
+  1. File present, 1080x1080, alpha transparent inside both halves.
+  2. No name field, no text, no logo baked into the frame.
+  3. A placeholder room image and a placeholder cat cut-out, dropped behind
+     the frame, land inside the two halves without being cropped by the
+     moulding.
+
+ROLE
+  ART, QA
+
+DEPENDS
+  40-art/01-props

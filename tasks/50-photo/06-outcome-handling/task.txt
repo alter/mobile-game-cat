@@ -1,0 +1,39 @@
+TASK: Four-outcome handling
+
+GOAL
+  Turn the Vision plugin's raw result into one of four distinct player-facing
+  messages, so a rejected photo tells the player what to do next instead of
+  failing silently.
+
+CONTEXT
+  cat-shelter-tech.md section 3 (four branches: no animal, dog, low-confidence
+  cat, accepted cat - with the reference copy)
+  knowledge/ios/03-vision-animal-recognition.md (Apple publishes no confidence
+  threshold - 0.6 is ours to tune against the reference set)
+
+SCOPE
+  + Four branches: no animal found -> "can't see a cat" copy; dog found ->
+    "that's a dog" copy; cat found below confidence threshold -> "try a
+    clearer photo" copy; cat found above threshold -> proceed to crop.
+  + Threshold value chosen and recorded against the reference set, not
+    guessed.
+  - Not the crop/downscale itself (07), run only on the fourth branch.
+  - Not the capture screen's camera/gallery UI (08) - only the message per result.
+
+OUTCOME
+  Every possible Vision plugin result maps to exactly one of four messages,
+  with no fifth silent case.
+
+VERIFY (ARCH)
+  1. Run all 40 reference-set images through the pipeline.
+  2. 20 cats accepted, 5 dogs rejected with the dog message, 5 empty frames
+     rejected with the no-animal message.
+  3. Blurry and multi-cat images land in one of the four branches, never
+     unhandled.
+
+ROLE
+  VIEW
+
+DEPENDS
+  50-photo/05-vision-plugin
+  50-photo/01-reference-photo-set

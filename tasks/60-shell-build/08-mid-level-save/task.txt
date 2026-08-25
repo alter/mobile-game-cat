@@ -1,0 +1,42 @@
+TASK: Mid-level save, written every move
+
+GOAL
+  Quitting mid-level and reopening the app resumes the exact same board.
+  iOS kills backgrounded apps without warning, and this audience plays in
+  interruptions - losing a half-cleared pile is a punishment the MVP forbids.
+
+CONTEXT
+  cat-shelter-mvp.md section 8 (Board is meant to be saved whole, not just a
+  level number)
+
+SCOPE
+  + Serialise: taken items, shelf contents, current room, current pile,
+    shelf capacity (capacity is mutable - see 20-rules-core/03-shelf-match).
+  + Write on every move, not on OnApplicationPause - the pause callback is
+    not a reliable last chance on iOS.
+  + Board becomes reconstructable from saved state alone; today it can only
+    be built fresh from a Level.
+  + A corrupted or missing save file falls back to a fresh Board for the
+    current level, not a crash.
+  − Not Player-level progress (rooms_done, cat state) beyond what's needed to
+    resume the current board - that data is derived, not re-saved here.
+  − Not cloud sync or cross-device resume - single local file only.
+
+OUTCOME
+  Board.Save()/Board.Load() round-trip losslessly, and a killed-and-reopened
+  app lands on the same position on device.
+
+VERIFY (QA)
+  1. Unit tests: write then read reproduces an identical Board; reading a
+     corrupted file falls back to a fresh Board without throwing.
+  2. On device: kill the app mid-level (not just background it), reopen,
+     confirm same taken items, same shelf contents, same pile state.
+  3. Grep confirms a save call exists on every move-completing code path, not
+     only in OnApplicationPause/OnApplicationQuit.
+
+ROLE
+  CORE
+
+DEPENDS
+  20-rules-core/01-entities
+  20-rules-core/03-shelf-match

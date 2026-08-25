@@ -1,0 +1,27 @@
+TASK: Shelf, matching, mutable capacity
+
+GOAL
+  Nine slots, three of a kind vanish, capacity can grow.
+
+CONTEXT
+  cat-shelter-mvp.md section 3
+  DECISIONS.md (booster: what capacity growth is for)
+
+SCOPE
+  + Shelf.TryPlace, Shelf.TryMatch across all nine slots.
+  + Shelf.AddSlots(n) - capacity is not a constant.
+  - Matching is NOT per row. Rows are a visual layout, not a rule.
+  - AddSlots must not be called from the MVP lose screen, see DECISIONS.md.
+
+OUTCOME
+  Shelf with variable capacity and a single matching rule over all slots.
+
+VERIFY (ARCH)
+  1. Unit tests: match at a slot boundary, full shelf, match after a slot frees.
+  2. A shelf grown by three accepts three more items.
+
+ROLE
+  CORE
+
+DEPENDS
+  20-rules-core/01-entities

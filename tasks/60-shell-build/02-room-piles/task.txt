@@ -1,0 +1,39 @@
+TASK: Room holds several piles, clearing one clears a corner
+
+GOAL
+  Bind a level to one pile within a room. A room holds one to four piles;
+  clearing a pile visibly cleans one corner of the room, not the whole room.
+
+CONTEXT
+  cat-shelter-mvp.md section 3 ("one clutter is not one room") and section 4
+  (room lighting, dirty-to-clean)
+  art-brief.md section 8 (room pairs: same room, two lightings, no new
+  furniture; clutter is the same 30 props laid over the background)
+
+SCOPE
+  + Room selects which of its 1-4 piles is active, in order, from
+    Room.piles_cleared.
+  + Clearing a pile removes that corner's clutter sprites from the dirty
+    background; the last pile in a room swaps the whole background to clean.
+  + 12 rooms wired to their level ranges (37 levels total).
+  − Not the house map screen - that is 03-house-map.
+  − Not cat state or reward props - those are 04-cat-states, 05-rewards.
+  − Not which items sit in which corner at generation time - that is decided
+    by 30-levels-solver's level data, this task only renders it.
+
+OUTCOME
+  A room played across 1-4 consecutive levels shows visibly increasing
+  cleanliness, corner by corner, and swaps to the clean background art on the
+  last pile.
+
+VERIFY (QA)
+  1. PlayMode across a whole room (all its piles): each pile clear removes
+     exactly its own corner's clutter, no other corner changes.
+  2. PlayMode: the room's background swaps dirty to clean only after its last
+     pile, not before.
+
+ROLE
+  VIEW
+
+DEPENDS
+  60-shell-build/01-presentation-input

@@ -1,0 +1,33 @@
+TASK: Publisher submission
+
+GOAL
+  Put the measured numbers in front of publishers who might fund or acquire
+  the game, independent of the internal go/no-go verdict.
+
+CONTEXT
+  tasks/GOAL.md
+
+SCOPE
+  + Submit to five named publishers: SayGames, Homa, Kwalee, CrazyLabs,
+    Rollic.
+  + Include the measured numbers from 02-collect-metrics.
+  + Ask each publisher directly what they expect to see on monetisation,
+    rather than guessing what to attach.
+  - Not waiting for a "go" verdict from 03-decision - numbers go out either
+    way.
+  - Not negotiating terms - submission only.
+
+OUTCOME
+  Five submissions sent, one per publisher, each carrying the measured
+  numbers.
+
+VERIFY (QA)
+  1. A sent submission (email or portal record) exists for each of:
+     SayGames, Homa, Kwalee, CrazyLabs, Rollic.
+  2. Each submission includes the numbers from 02-collect-metrics.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  80-live-validation/02-collect-metrics

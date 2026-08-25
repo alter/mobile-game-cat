@@ -1,0 +1,36 @@
+TASK: House map - all 12 rooms, partial progress visible
+
+GOAL
+  One screen shows the whole house and what remains, so twelve separate
+  room improvements read as a single accumulating thing.
+
+CONTEXT
+  cat-shelter-mvp.md section 4 ("завершённость" motivator, the house map)
+  art-brief.md section 9 (map_background, three cell states per room: dirty,
+  partial, clean; states must differ at a glance, not by shade)
+  tasks/DECISIONS.md
+
+SCOPE
+  + One screen rendering map_background.png plus 12 room cells, each in one
+    of three states: dirty (not started), partial (started), clean (closed).
+  + Cell state driven by Room.piles_cleared vs pile_count - no separate
+    state to keep in sync.
+  + Entry point from the room-select / level-select flow.
+  − Not the in-room clearing animation itself - that is 02-room-piles.
+  − Not cat state art - that is 04-cat-states.
+
+OUTCOME
+  A map screen that a first-time viewer reads correctly after two rooms are
+  touched, without being told what it means.
+
+VERIFY (HUMAN)
+  1. After two rooms are played (one finished, one half-done), a person who
+     did not build it is asked "how much is left in this house?" and answers
+     correctly within a couple of seconds, unprompted.
+
+ROLE
+  VIEW, HUMAN
+
+DEPENDS
+  60-shell-build/02-room-piles
+  40-art

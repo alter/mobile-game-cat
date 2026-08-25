@@ -1,0 +1,40 @@
+TASK: Three cat states
+
+GOAL
+  The cat visibly changes twice across the game, tied to rooms finished, not
+  to level numbers, so the arc survives if the pile count per room is later
+  rebalanced.
+
+CONTEXT
+  cat-shelter-mvp.md section 4 (three states table: rooms 1-4 gaunt, 5-8
+  tidier, 9-12 groomed)
+  art-brief.md section 7 (how the cat is assembled from parts)
+
+SCOPE
+  + Cat.state derived from count of fully completed rooms: 1 for 1-4 done,
+    2 for 5-8 done, 3 for 9-12 done.
+  + Transition fires immediately after the 4th and 8th completed room, not
+    at any fixed level number.
+  + Transition swaps the cat's pose/behaviour set and is visible in the room
+    the transition happens in.
+  − Not reward props (bowl, blanket) - that is 05-rewards, even though both
+    fire on the same two boundaries.
+  − Not the photo-derived per-cat traits (colour, pattern) - that is
+    50-photo; this task only switches state on top of whatever cat was built.
+
+OUTCOME
+  A cat whose appearance and behaviour change exactly twice, at completed
+  rooms 4 and 8, regardless of how many levels those rooms took.
+
+VERIFY (QA)
+  1. PlayMode at both boundaries: state changes the instant the 4th and the
+     8th room close, not before, not on a later level inside the next room.
+  2. Changing a room's pile_count in level data does not shift when the
+     transition fires - it still fires on room completion count.
+
+ROLE
+  VIEW
+
+DEPENDS
+  60-shell-build/02-room-piles
+  40-art

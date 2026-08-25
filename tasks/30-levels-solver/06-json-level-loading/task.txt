@@ -1,0 +1,37 @@
+TASK: JSON level loading in game
+
+GOAL
+  Core-adjacent code reads shipped level JSON and plays it headlessly to
+  completion, proving the pipeline end to end without Unity or art.
+
+CONTEXT
+  game/Tests/Core/LevelLoader.cs (Newtonsoft parse, deliberately outside Core)
+  game/Tests/Core/HeadlessRunTests.cs (currently hardcoded to levels 1-12)
+  game/Assets/Levels/*.json
+
+SCOPE
+  + LevelLoader.FromJson: parses number, room_id, pile, blocked_by into Level.
+  + Headless run: load every shipped level, play greedy-sensible, assert Win.
+  + Loud failure on corrupt JSON (CorruptedJsonFailsLoudly).
+  - Loader stays outside Core (ARCH rule: Core has zero JSON/engine deps); in
+    Unity it moves to a View/infrastructure assembly using
+    com.unity.nuget.newtonsoft-json.
+  - Not room/pile_index grouping in the runtime data model - loader currently
+    reads a flat list of files; extending it to group piles by room is part of
+    finishing this task once 05 ships 37.
+
+OUTCOME
+  Headless run of all 37 shipped levels through Core, each ending in Win under
+  sensible play.
+
+VERIFY (ARCH)
+  1. `dotnet test` on game/Tests/Core: HeadlessRunTests green.
+  2. Loop bound updated from 12 to 37 and file existence asserted for all 37
+     (currently `Enumerable.Range(1, 12)` - stale relative to 05).
+  3. CorruptedJsonFailsLoudly still throws.
+
+ROLE
+  CORE, ARCH (review)
+
+DEPENDS
+  30-levels-solver/05-ship-37-levels

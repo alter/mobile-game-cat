@@ -1,0 +1,38 @@
+TASK: Meet-your-cat screen, name entry
+
+GOAL
+  Render the game cat from the player's own traits and let her name it. This
+  is where attachment forms - the moment GOAL.md and metric-2 tracking exist
+  for.
+
+CONTEXT
+  cat-shelter-mvp.md section 5 (traits -> composited cat; similarity, not
+  exact likeness, is enough - "my ginger tabby with white paws" is attachment)
+  cat-shelter-tech.md section 3, "cat assembled from parts" (silhouette +
+  base colour + pattern mask + white-marking overlay + eyes, via coat shader)
+
+SCOPE
+  + Reads the parsed CatTraits object from 03-traits-schema's response and
+    feeds it to the coat compositing shader.
+  + Name entry field, stored with the save data.
+  - Not the coat shader or art layers it composites (40-art/06, 40-art/05).
+  - Not what happens on skip, no traits at all - that is 10-skip-default-cat,
+    a separate path into this same screen.
+
+OUTCOME
+  A screen showing a cat built from the traits the Worker returned, with a
+  name the player enters and that persists.
+
+VERIFY (HUMAN)
+  1. A human photographs her own cat through the real capture screen and
+     confirms the rendered cat resembles it (colour, pattern family, white
+     markings) - a rough match is the bar, not an exact one.
+  2. The entered name is still shown after the screen is left and reopened.
+
+ROLE
+  VIEW
+
+DEPENDS
+  50-photo/08-capture-screen
+  50-photo/03-traits-schema
+  40-art/06-coat-shader

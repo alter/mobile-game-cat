@@ -1,0 +1,37 @@
+TASK: Buried-item blank and lock overlay
+
+GOAL
+  Two assets the old list never named: the blank a buried item shows before
+  it is reachable, and the overlay a locked item wears until cleared.
+
+CONTEXT
+  art-brief.md section 10, subsections "Болванка" and "Запертый предмет"
+  art-prompts.md section 6, same two subsections
+  cat-shelter-tasks.md lines 476, 478 (3.9 hidden kinds, 3.11 complications -
+  why these exist)
+
+SCOPE
+  + prop_unknown.png: "something is here", no reveal - draped-cloth
+    silhouette, low detail (tiles the screen in numbers, must stay quiet).
+  + prop_locked.png: semi-transparent overlay, prop underneath still shows.
+  - Not the 30 base props under it - see 40-art/01-props.
+  - No chain, padlock, metal, rust on the lock - reads as punishment, not
+    care, per art-prompts.md section 6.
+  - No skull, face or anything recognisable under the cloth.
+
+OUTCOME
+  2 PNGs, prop_unknown.png and prop_locked.png, 256x256, same frame/alpha
+  rules as the 30 props, under game/Assets/Art.
+
+VERIFY (QA)
+  1. Both files present, 256x256, clean alpha.
+  2. prop_unknown in the 30-prop contact sheet: viewer confirms "something
+     is under there" without naming an object.
+  3. prop_locked composited over any one of the 30 props: prop underneath
+     still identifiable through the overlay.
+
+ROLE
+  ART, QA
+
+DEPENDS
+  40-art/01-props

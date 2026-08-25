@@ -1,0 +1,36 @@
+TASK: Thirty clutter props
+
+GOAL
+  The pile the player digs through: 30 household items, one visual set, each
+  distinguishable from the others at tile size.
+
+CONTEXT
+  art-brief.md section 6 (silhouette/colour families, readability
+  constraint, acceptance)
+  art-prompts.md section 3 (30-item table, prompt template, nuances: no
+  food, no text, no reflections, wear-not-destruction)
+
+SCOPE
+  + 30 files, one generation batch, one prompt template, one seed/session.
+  + Curation: background cleanup, alpha check, crop/centre to uniform frame.
+  + One contact-sheet.png of all 30 for the coherence check.
+  - Not prop_unknown or prop_locked - see 40-art/02-prop-blockers.
+  - Not the reward items - see 40-art/08-rewards, deliberately "nicer" than
+    this set and must not share its palette rule.
+
+OUTCOME
+  30 PNGs prop_<name>.png, 256x256, transparent alpha, uniform frame, plus
+  contact-sheet.png, under game/Assets/Art.
+
+VERIFY (HUMAN)
+  1. All 30 files present, 256x256, clean alpha - checked by QA, not ART.
+  2. Contact sheet reviewed by someone other than the author: reads as one
+     set, not a mismatched pile.
+  3. Outsider shown any 10 of the 30 shrunk to 52px: confident yes that they
+     are 10 different things, answer recorded in VERIFY.md.
+
+ROLE
+  ART, QA, HUMAN
+
+DEPENDS
+  00-validate-demand/03-art-prompt-props

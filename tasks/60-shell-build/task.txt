@@ -1,0 +1,62 @@
+TASK: Shell and build
+
+GOAL
+  Turn the rules engine into a playable, savable, notifying iOS build: rooms
+  with multi-pile clearing, a house map, three cat states, win/lose screens
+  (the lose screen is a fake door), mid-level save on every move, a day-1
+  notification, and a headless build distributed through TestFlight.
+
+CONTEXT
+  cat-shelter-mvp.md section 4 (shell), section 6 (fake-door money), section 8
+  (entities), section 12 (the four metrics), section 13 (week-3 plan)
+  cat-shelter-tech.md section 5 (iOS build), section 6 (file layout)
+  art-brief.md sections 8-10 (rooms, house map, share frame)
+  tasks/DECISIONS.md
+
+SCOPE
+  + 01-presentation-input .. 15-share-card, listed below.
+  + 01 presentation, input, placement animation
+  + 02 room holds several piles, clearing one clears a corner
+  + 03 house map, all 12 rooms, partial progress
+  + 04 three cat states, tied to completed rooms not level numbers
+  + 05 rewards at rooms 4 and 8
+  + 06 win screen, before/after
+  + 07 lose screen, "one more shelf" fake door
+  + 08 mid-level save, written every move
+  + 09 notification permission after level 2
+  + 10 click and haptics on placement
+  + 11 post-level-12 screen
+  + 12 copy in English
+  + 13 headless build
+  + 14 TestFlight distribution
+  + 15 shareable before/after card
+  − Not the rules engine itself - that is 20-rules-core.
+  − Not level generation or the solver - that is 30-levels-solver.
+  − Not art asset production - that is 40-art; this phase only integrates it.
+  − Not on-device photo capture or cat assembly from traits - that is 50-photo.
+  − Not the analytics SDK wiring itself - that is 70-analytics; tasks here
+    only fire event hooks for it to pick up.
+  − Not the paid live-validation test - that is 80-live-validation.
+
+OUTCOME
+  A TestFlight build where a player can play through rooms, see the house map
+  fill in, watch the cat improve, lose and be offered the (inert) booster,
+  quit mid-level and resume exactly where they left off, receive a day-1
+  notification, and share a before/after card - all copy in English.
+
+VERIFY (QA)
+  1. `bash build/check-core-purity.sh` still passes after Shell/View work.
+  2. `bash build/headless-build.sh` from a clean checkout produces an .ipa.
+  3. On device: kill the app mid-level, reopen, same board position.
+  4. A human plays at least two rooms end to end: house map updates, cat
+     state and rewards appear on schedule, lose screen offers the fake door
+     without ever calling `AddSlots`, and no non-English string is visible.
+
+ROLE
+  VIEW, CORE, NATIVE, QA (review), HUMAN (03, 06, 10)
+
+DEPENDS
+  30-levels-solver
+  40-art
+  50-photo
+  10-accounts

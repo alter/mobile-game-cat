@@ -1,0 +1,39 @@
+TASK: Three complications, one per room band
+
+GOAL
+  Prove the rhythm this genre runs on - a new complication every so often, not
+  a bigger board - via one complication (locked items, opened after N
+  collected triples), introduced alone then combined with what came before.
+
+CONTEXT
+  cat-shelter-mvp.md section 14 (the full post-MVP ladder; only the first two
+    rungs - hidden kinds and locked items - are in the MVP)
+  NOTES.md in this directory (why a pattern, not a feature)
+  09-hidden-kinds (the first rung, already in scope elsewhere)
+
+SCOPE
+  + One complication for M3: locked items, unlocked after N triples collected
+    on the shelf.
+  + Introduced wordlessly in its own room band, then combined with hidden
+    kinds (09) in a later room.
+  - Not the full ladder (blocked slots, paired items, four-of-a-kind,
+    external supply, reordering) - post-MVP, cat-shelter-mvp.md section 14.
+  - Not piles-per-room pacing - that is a separate knob, see
+    12-piles-per-room-curve/NOTES.md.
+
+OUTCOME
+  A complication type implemented in Core, unit-tested, present in a shipped
+  room's levels and combined with hidden kinds in a later room.
+
+VERIFY (ARCH)
+  1. Unit tests: locked item stays untakeable until N triples collected;
+     unlocks exactly at N, not before.
+  2. A late room (hidden kinds + this complication) reads as distinct from an
+     early room to someone who did not build it.
+  3. `bash build/check-core-purity.sh` still passes.
+
+ROLE
+  CORE, ARCH (review)
+
+DEPENDS
+  30-levels-solver/09-hidden-kinds

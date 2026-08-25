@@ -1,0 +1,29 @@
+TASK: Apple Developer Program account
+
+GOAL
+  An active Apple developer account, the prerequisite for an App Store
+  Connect app record and for code-signing a device build.
+
+CONTEXT
+  cat-shelter-tasks.md lines 407-447, row 1.1 and the 1.2 rationale
+    (what the free program does and does not require)
+
+SCOPE
+  + Enrolment in the Apple Developer Program, account reaches Active state.
+  - Not the Paid Apps Agreement, tax forms or bank payout details - a free
+    app needs none of those; see 06-tax-forms-payout/NOTES.md.
+  - Not the App Store Connect app record itself - see
+    05-app-store-connect-record.
+
+OUTCOME
+  Apple developer account in Active state, usable to sign builds and to
+  create an app record.
+
+VERIFY (HUMAN)
+  1. Dashboard login shows account status Active.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  (none)

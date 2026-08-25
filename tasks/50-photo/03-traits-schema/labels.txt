@@ -1,0 +1,8 @@
+phase:photo
+role:TOOLS
+type:feature
+priority:P0
+status:todo
+verify:pending
+depends:50-photo/02-traits-worker
+milestone:M5

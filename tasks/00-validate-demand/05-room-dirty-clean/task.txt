@@ -1,0 +1,37 @@
+TASK: One room, dirty and clean
+
+GOAL
+  Prove a before/after room pair reads at thumbnail size in half a second -
+  the second piece of art the creatives cannot be filmed without.
+
+CONTEXT
+  cat-shelter-mvp.md section 4 (room before/after, why it must read fast)
+  art-brief.md section 8 (12 rooms cleared in parts, 2 backgrounds per room)
+  art-prompts.md section 5 (generate clean FIRST then edit for dirty, same
+    camera angle/furniture/window, colour and light shift only)
+
+SCOPE
+  + One room, one pair: clean generated first, dirty derived by editing the
+    same image (muddy taupe/umber, dim light, clutter) - not two independent
+    generations.
+  + Identical camera angle, furniture, and window position between the pair
+    - see art-prompts.md section 5 for why two separate prompts breaks this.
+  - Not the other 11 rooms or partial-clearing variants - that is
+    40-art/4.7, after "go".
+  - Not the clutter props on top of the room - those come from
+    03-art-prompt-props, composited in-game, not baked into the room image.
+
+OUTCOME
+  One room pair (dirty, clean) as two images sharing identical composition.
+
+VERIFY (HUMAN)
+  1. Outside person, shown the pair at thumbnail size (200x400), identifies
+     which is clean within half a second.
+  2. A human confirms camera angle, furniture, and window match between the
+     two images.
+
+ROLE
+  ART, HUMAN
+
+DEPENDS
+  00-validate-demand/03-art-prompt-props

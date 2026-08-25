@@ -1,0 +1,39 @@
+TASK: Cat photo capture
+
+GOAL
+  Let the player photograph her own cat and see it in the game. This is where
+  attachment forms (GOAL.md), and where metric 2, "uploaded a photo", fires.
+
+CONTEXT
+  cat-shelter-mvp.md section 5 (capture flow, why no image generation)
+  cat-shelter-tech.md sections 3-4 (two-stage recognition, the Worker)
+  DECISIONS.md D11 (request signing deleted, spend cap instead)
+  ROLES.md (TOOLS owns /worker, NATIVE owns Plugins/iOS, VIEW owns screens)
+
+SCOPE
+  + 01: the 40-image fixture every other task measures against.
+  + 02..04: the Cloudflare Worker - endpoint, strict-JSON schema, rate limit.
+  + 05..07: on-device gate - Vision plugin, outcome copy, crop/downscale.
+  + 08..10: capture screen, meet-your-cat screen, skip path.
+  + 11: offline fallback.
+  - Not the cat's art layers, silhouettes or coat shader - that is 40-art.
+  - Not the booster or lose-screen economy - that is DECISIONS.md D4.
+  - Not GameAnalytics event wiring for the funnel - that is 70-analytics.
+
+OUTCOME
+  A player can take or pick a photo, get accepted or rejected with the right
+  message, and see a cat built from her own cat's traits - or skip to a
+  default cat - all working with the Worker reachable or not.
+
+VERIFY (ARCH)
+  1. The reference set exists, checked against 01-reference-photo-set/task.txt.
+  2. The Worker is deployed, 100% parseable in-enum traits on the reference set.
+  3. The on-device gate produces four distinct outcomes on the reference set.
+  4. A human photographs her own cat and recognises the result.
+
+ROLE
+  HUMAN, TOOLS, NATIVE, VIEW, ARCH (review)
+
+DEPENDS
+  10-accounts/01-spend-cap
+  40-art/06-coat-shader

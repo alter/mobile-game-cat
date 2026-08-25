@@ -69,7 +69,7 @@ namespace CatShelter.Tests
             for (int i = 0; i < 12 && dir != null; i++)
             {
                 dir = System.IO.Path.GetDirectoryName(dir);
-                var candidate = System.IO.Path.Combine(dir, "game", "Assets", "Levels");
+                var candidate = System.IO.Path.Combine(dir, "game", "Assets", "Resources", "Levels");
                 if (System.IO.Directory.Exists(candidate))
                 {
                     levelsDir = candidate;

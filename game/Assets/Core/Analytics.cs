@@ -110,7 +110,7 @@ namespace CatShelter.Core
         // GameAnalytics rules (knowledge/analytics/04): 1–64 chars for design
         // event names; allowed: [a-zA-Z0-9:_-.] — we stay stricter: colon +
         // word chars only, so every current and future name passes.
-        internal static void EnsureValid(string name)
+        public static void EnsureValid(string name)
         {
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("event name empty");

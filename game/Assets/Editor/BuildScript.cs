@@ -6,18 +6,10 @@ using UnityEngine;
 public static class BuildScript
 {
     // Headless build entry: -executeMethod BuildScript.BuildOSXPlayer
-    // (iOS requires signing; macOS player verifies the whole pipeline.)
     public static void BuildOSXPlayer()
     {
-        var scenes = EditorBuildSettings.scenes
-            .Where(s => s.enabled)
-            .Select(s => s.path)
-            .ToArray();
-        if (scenes.Length == 0)
-            scenes = new[] { "Assets/Scenes/Empty.unity" };
-
         var report = BuildPipeline.BuildPlayer(
-            scenes,
+            SceneList(),
             "build/osx/CatShelter.app",
             BuildTarget.StandaloneOSX,
             BuildOptions.None);
@@ -28,4 +20,7 @@ public static class BuildScript
         if (result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
             throw new Exception("Build failed: " + result);
     }
+
+    /// <summary>The single boot scene; the UI is assembled from code at runtime.</summary>
+    private static string[] SceneList() => new[] { "Assets/Scenes/Empty.unity" };
 }

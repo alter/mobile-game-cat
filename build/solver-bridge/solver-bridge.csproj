@@ -9,6 +9,7 @@
     <AssemblyName>solver-bridge</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../game/Assets/Core/CatShelter.Core.csproj" />
+    <Compile Include="../../game/Assets/Core/**/*.cs" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>

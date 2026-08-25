@@ -65,3 +65,23 @@ rescuing 98%. That measurement is wrong on both counts - it used an
 unrealistic player and a looser success condition. The conclusion (three
 slots, not one) held up under re-measurement; the specific numbers did not,
 and the 58%/98% figures should not be repeated.
+
+## Post-fix state (25 Aug 2026), from actual build verification
+DebugGameView already contains the fake-door screen (shown on GameOutcome.ShelfJammed):
+- Button text is "One more shelf" (not "+3 slots") per DECISIONS.md D4.
+- Tap counts via Analytics.BoosterTap() (event "booster:tap" pinned in Analytics.cs).
+- Stub shown: "Coming soon."; AddSlots never called; replay offered.
+- No AddSlots call site exists anywhere in Assets/Core/ or Assets/View/.
+- Verified by vision on /tmp/game_screen.png: win/lose cards render correctly.
+
+Remaining for verify:passed (HUMAN gate 3.7 / metric 4):
+- 5 live outsiders tap the button; count must match Analytics event count.
+- The level must stay lost after tap (replay, not win).
+- Documented command: build p /app, play, kill at jam, verify log shows booster:tap exactly once and outcome remains ShelfJammed.
+
+## Actual verification (from build, not from imagination)
+- Build passes: build/osx/CatShelter.app (Succeeded, 105MB), scene loads.
+- Visual proof: /tmp/game_screen.png shows win/lose cards, button text "One more shelf".
+- AddSlots call-site grep across Assets/Core/ and Assets/View/: zero matches (D4 enforced).
+- Analytics.BoosterTap() fires; event name "booster:tap" pinned per DECISIONS.md.
+- HUMAN gate 3.7 / metric 4 NOT executed — requires 5 outsiders. Leave verify:pending.

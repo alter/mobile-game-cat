@@ -1,0 +1,48 @@
+TASK: Repair the build wiring left broken by the Unity project
+
+GOAL
+  Core tests and the C#/Python conformance suite must both run green from a
+  clean checkout, with no Unity run beforehand and no environment variable
+  exported by hand. Neither does today.
+
+CONTEXT
+  AGENT-BRIEF.md section "Задача 1.4: проекта Unity ещё нет, и есть коллизия"
+  tasks/10-accounts/04-unity/task.txt
+  tasks/README.md, the verify:passed contract
+  build/solver-bridge/solver-bridge.csproj
+  game/.gitignore
+
+SCOPE
+  + Fix the solver-bridge project reference. It points at
+    `../../game/Assets/Core/CatShelter.Core.csproj`, which 04-unity deleted.
+    Four conformance tests error with CS0246 because the bridge compiles
+    against no Core types.
+  + Give the Core tests an entry point that survives a clean checkout. Today
+    they run through `game/CatShelter.Core.Tests.csproj`, which Unity generates
+    and `game/.gitignore` excludes, so it does not exist until someone opens the
+    editor.
+  + Write the choice down: which of the two options in AGENT-BRIEF was taken,
+    and why. Option A moves the engine-free C# out of Assets entirely; option B
+    keeps the sources in Assets and adds a dotnet project outside Assets that
+    pulls them in by glob.
+  + A CI step, or a documented command, that proves both suites run from clean.
+  - Not a rewrite of the rules engine. The code is fine; the plumbing is not.
+  - Not the Unity-side asmdef arrangement, which works. That belongs to 04-unity.
+
+OUTCOME
+  Two commands, runnable from a fresh clone with an empty environment, that run
+  the Core unit tests and the conformance suite. Both green.
+
+VERIFY (QA)
+  1. From a clean clone into an empty directory, with no Unity launched and no
+     variables exported, run the documented Core test command: green.
+  2. Same clean state: `pytest tools/tests` — green, all conformance tests
+     included, none skipped.
+  3. `git ls-files '*.csproj'` lists no file that Unity generates.
+  4. The written choice exists and names the rejected option.
+
+ROLE
+  CORE, TOOLS
+
+DEPENDS
+  10-accounts/04-unity

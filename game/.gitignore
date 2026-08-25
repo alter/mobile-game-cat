@@ -13,3 +13,4 @@
 *.booproj
 .vscode/
 .idea/
+*.log

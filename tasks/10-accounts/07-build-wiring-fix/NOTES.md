@@ -71,4 +71,64 @@ both.
 `10-accounts/04-unity` cannot hold `verify:passed`. Its acceptance requires the
 project to build and the tests to run, and from a clean state neither is true.
 Set it back to `verify:failed` until this task closes.
-</content>
+
+## Update, 25 August 2026: it now fails silently, which is worse
+
+Re-checked on `main` at `1ba991c`. Two things changed since the note above, and
+the combination is more dangerous than the original break.
+
+**The bridge was repaired.** `build/solver-bridge/solver-bridge.csproj` no
+longer references the deleted `CatShelter.Core.csproj`; it pulls the sources in
+by glob (`<Compile Include="../../game/Assets/Core/**/*.cs" />`) and adds
+`<RollForward>Major</RollForward>`. It builds clean: 0 warnings, 0 errors.
+
+**The Unity-generated projects were committed.** All four of them:
+
+```
+game/Assembly-CSharp-Editor.csproj      generated
+game/Assembly-CSharp.csproj             generated
+game/CatShelter.Core.Tests.csproj       generated
+game/CatShelter.Core.csproj             generated
+```
+
+Each carries Unity's own header: "Generated file, do not modify, your changes
+will be overwritten". That directly fails VERIFY step 3 of this task, which
+requires `git ls-files '*.csproj'` to list no generated file.
+
+**And it produces a green result with zero tests run.** Measured, not inferred:
+
+```
+$ dotnet test game/CatShelter.Core.Tests.csproj --list-tests
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+$ echo $?
+0
+```
+
+Against 43 tests actually declared in `game/Assets/Tests/Core/*.cs`:
+`BoardTests` 21, `PartialInformationTests` 7, `BoardSaveTests` 5,
+`HeadlessRunTests` 5, `PlayerProgressTests` 5.
+
+The reason is in the generated file: `<OutputType>Library</OutputType>`,
+`<NoStandardLibraries>true</NoStandardLibraries>`, and no
+`Microsoft.NET.Test.Sdk`, no `IsTestProject`, no NUnit adapter. It is a Unity
+assembly description, not a runnable test project. VSTest finds no test host,
+discovers nothing, and exits 0.
+
+**Why this is worse than the CS0246 it replaced.** The original break was loud:
+four tests errored and anyone running the suite saw it. The current state
+returns success. A CI step, a pre-merge check, or a person running the
+documented command all get a zero exit code and conclude the core is covered by
+43 passing tests, when in fact nothing executed. Committing the generated
+projects removed the symptom and kept the disease.
+
+**This does not change what the task asks for.** Option B from `AGENT-BRIEF.md`
+is still the work: a hand-written dotnet test project **outside** `Assets`,
+carrying `Microsoft.NET.Test.Sdk` and an NUnit adapter, pulling the test and
+Core sources in by glob the same way the bridge now does. Then remove the four
+generated `.csproj` files from git and add them to `game/.gitignore`.
+
+**Add one acceptance criterion.** Green is not enough, because green is exactly
+what the broken state produces. The documented command must also **report a test
+count, and that count must match the number declared in the sources.** A run that
+executes zero tests must fail the check, not pass it.

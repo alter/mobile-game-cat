@@ -37,10 +37,16 @@ OUTCOME
 VERIFY (QA)
   1. From a clean clone into an empty directory, with no Unity launched and no
      variables exported, run the documented Core test command: green.
-  2. Same clean state: `pytest tools/tests` — green, all conformance tests
+  2. The same run reports a test count, and the count equals the number of
+     tests declared in `game/Assets/Tests/Core/*.cs` (43 as of 25.08.2026).
+     A run that executes zero tests must FAIL this check. Green alone proves
+     nothing: the state recorded in NOTES.md exits 0 having run nothing.
+  3. Same clean state: `pytest tools/tests` — green, all conformance tests
      included, none skipped.
-  3. `git ls-files '*.csproj'` lists no file that Unity generates.
-  4. The written choice exists and names the rejected option.
+  4. `git ls-files '*.csproj'` lists no file that Unity generates. Check by
+     content, not by name: a generated file carries the header
+     "Generated file, do not modify".
+  5. The written choice exists and names the rejected option.
 
 ROLE
   CORE, TOOLS

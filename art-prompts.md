@@ -230,3 +230,326 @@ to sort through a dump.
 Shrink any ten to 52 points, put them side by side, show them to an outside
 person: does he confidently say these are ten different things. Not "is it
 pretty," but "is it distinguishable."
+
+---
+
+## 4. The cat
+
+### The general idea to keep in mind
+
+The player compares this cat **to their own cat, lying next to them on the
+couch.** Everything else follows from this: realistic proportions, eyes a
+bit larger than life but not saucers; no human facial expressions, no
+eyebrows; fur reads as texture, not individual strands.
+
+The cat goes through three states, and the transition between them is **half
+the meaning of the game**. The difference must read instantly, but it's the
+same animal: not a thin black kitten at the start and a fluffy ginger one at
+the end, but one cat that got better.
+
+| State | Rooms | Pose | Fur | Ears, tail | Gaze |
+|---|---|---|---|---|---|
+| 1 | 1–4 | sitting hunched in a corner | matted, sticking out in tufts, dull | ears flattened, tail wrapped around the paws | looking away, not at the viewer |
+| 2 | 5–8 | standing, walking | tidy, not yet glossy | ears up, tail lowered but not tucked | looking at the viewer |
+| 3 | 9–12 | lying on the windowsill, paws tucked | sleek, glossy | ears relaxed, tail resting loosely | eyes half closed, content |
+
+### Correction to the previous version
+
+In `cat-shelter-mvp.md`, section 10, it says the cat is assembled from parts —
+body, head, tail, paws. **This is wrong for our case.** Parts pay off only
+with animation, and the MVP has none, and the pose changes wholesale from
+state to state. Splitting into parts would create seams and triple the work.
+
+Correct approach: **a whole silhouette per state**, with coloring applied in
+layers on top.
+
+### What the neural network generates and what it doesn't
+
+Generated: **six silhouettes** — three states × two fur lengths.
+
+**Masks are not generated.** The pattern mask and the white-patch mask must
+match the base point for point. A neural network will never give you that: it
+will redraw the cat from scratch. Masks are made by **editing the finished
+silhouette** in an editor — trace the areas, fill white on black. This is
+manual work, and it must be budgeted into the schedule.
+
+Same for fur length: if you generate "the same cat but fluffy" as a separate
+prompt, you get two different cats. The right way is to generate the
+short-haired one, and get the long-haired one by editing the same image or by
+generating with a reference.
+
+### Prompts for the six silhouettes
+
+Shared part for all: base block, item frame, negative part — plus additionally
+into the negative:
+
+```
+collar, clothing, accessories, human hands, background objects,
+multiple cats, kitten and adult cat together, cat food, bowl
+```
+
+**Important:** the silhouettes are generated **desaturated** — coloring is
+applied by code.
+
+| File | Middle part of the prompt |
+|---|---|
+| `cat_1_short_base` | `a thin young short-haired cat sitting hunched in a corner, desaturated greyscale fur with no colour, matted uneven coat sticking out in tufts, ears flattened back, tail wrapped tightly around the front paws, looking to the side away from the viewer, realistic cat proportions, eyes only slightly larger than life, dull lifeless coat` |
+| `cat_2_short_base` | `the same short-haired cat now standing and mid-step, desaturated greyscale fur with no colour, coat tidy but not yet glossy, ears upright, tail lowered but not tucked, looking directly at the viewer, calm and curious, realistic cat proportions` |
+| `cat_3_short_base` | `the same short-haired cat lying on a windowsill with paws tucked under, desaturated greyscale fur with no colour, sleek glossy coat, ears relaxed, tail resting loosely alongside the body, eyes half closed and content, realistic cat proportions` |
+| `cat_1_long_base` | `identical pose and framing to cat_1_short_base but long-haired, desaturated greyscale fur, matted clumped long coat, visible tangles, ruff around the neck` |
+| `cat_2_long_base` | `identical pose and framing to cat_2_short_base but long-haired, desaturated greyscale fur, coat combed out, full tail plume` |
+| `cat_3_long_base` | `identical pose and framing to cat_3_short_base but long-haired, desaturated greyscale fur, soft flowing coat, thick tail curled alongside` |
+
+The phrase "identical pose and framing" won't work on its own — for the
+long-haired variant you must feed the short-haired version in as a reference
+image.
+
+### Layers made by hand
+
+For each of the six silhouettes:
+
+| File | What to draw | Nuance |
+|---|---|---|
+| `..._pattern_tabby` | stripes across the back and sides, rings on the tail, an "M" on the forehead | stripes narrow toward the belly, don't reach the chest |
+| `..._pattern_bicolor` | lower half of the body and paws | uneven border, running along the shoulder and hip |
+| `..._pattern_calico` | three to four large uneven patches | patches asymmetric, one must cover an ear |
+| `..._pattern_tuxedo` | chest bib, paws, tail tip | bib shaped like a drop, narrowing downward |
+| `..._pattern_pointed` | face, ears, paws, tail | edges soft, not sharp |
+| `..._mark_chest` | chest patch | oval, offset from center |
+| `..._mark_paws` | "socks" on all four paws | different heights, back ones higher |
+| `..._mark_face` | face patch | asymmetric, covers one eye or the nose |
+| `..._eyes` | irises only, no eyelids or sclera | almond-shaped, vertical pupil |
+
+Masks strictly black and white, edge anti-aliasing no more than two points,
+don't extend past the base silhouette.
+
+**Separate nuance about the white cat.** White patches on a white cat aren't
+visible. So patch masks are drawn to read via outline and soft shadow, not
+just fill: the patch edge gets a slightly darker contour of the same shade.
+
+### Acceptance
+
+Show the six silhouettes to an outside person: **is this one cat or
+different ones?** Answer "different" — not accepted, no matter how much
+effort went in.
+
+---
+
+## 5. Twelve rooms
+
+### Main nuance: the pair cannot be generated with two prompts
+
+If you generate a "dirty living room" and then a "clean living room," you get
+two different living rooms. The window will move, the sofa will change shape,
+and the whole power of the "before — after" pair will be lost.
+
+Correct order:
+
+1. Generate the **clean** room — it's harder and sets up the layout.
+2. Get the dirty one by **editing the same image**: mute it toward
+   grey-brown, add dust, peeling wallpaper, scattered clutter. Or by
+   generating with the clean room as a reference and the prompt "the same
+   room, neglected."
+
+The clean room is generated first deliberately: spoiling is easier than
+tidying.
+
+### Shared part of the prompts
+
+Base block, room frame, negative part — plus additionally into the negative:
+
+```
+people, cat, animals, modern electronics, television, computer,
+open flame, mould, insects, rubbish bags, broken glass, decay, rot,
+text on walls, posters with writing
+```
+
+The cat and clutter are overlaid by code, they must not be in the room itself.
+
+### Clean rooms
+
+Middle parts of the prompt; each starts with the base block.
+
+| File | Middle part |
+|---|---|
+| `room_01_clean` | `a small tidy entrance hall, coat hooks on the wall, a bench with a cushion, a round mirror, morning light through the door glass, warm and welcoming` |
+| `room_02_clean` | `a tidy cottage kitchen, open shelves with plain crockery, a kettle on the stove, checked curtain, sunlight on the counter` |
+| `room_03_clean` | `a tidy living room, a soft sofa with cushions, a low table, a rug, tall window with light curtains, warm afternoon light` |
+| `room_04_clean` | `a tidy bedroom, a made bed with a folded quilt, a bedside table with a lamp, a small window, soft calm light` |
+| `room_05_clean` | `a tidy child's room, a low bed, a shelf of toys neatly arranged, a small rug, bright cheerful light` |
+| `room_06_clean` | `a tidy study, a wooden desk, a chair, a bookshelf with upright books, a desk lamp, quiet focused light` |
+| `room_07_clean` | `a tidy bathroom, a claw-foot tub, folded towels on a rack, a small window with frosted glass, clean bright light` |
+| `room_08_clean` | `a tidy pantry, wooden shelves with jars and baskets in rows, a step stool, cool even light` |
+| `room_09_clean` | `a tidy attic, sloped ceiling, a round window, a few neatly stacked boxes, a rocking chair, dusty golden light` |
+| `room_10_clean` | `a tidy veranda, wicker chair, potted plants, wooden railing, view of green outside, bright open light` |
+| `room_11_clean` | `a tidy corridor, a runner rug, framed empty pictures on the wall, doors along one side, soft even light` |
+| `room_12_clean` | `a tidy loft room under the roof, a window seat with cushions, low bookshelf, warm evening light through a skylight` |
+
+### Dirty variants
+
+Editing the clean room. Prompt for generation with a reference:
+
+```
+[BASE] , the same room, neglected and long abandoned,
+overall colour shifted to muddy taupe #6B6055 and dull umber #55493D,
+dim grey light instead of warm light, dust in the air,
+wallpaper peeling at the seams, cobwebs in the upper corners,
+furniture out of place and covered with dust sheets,
+scattered clutter on the floor, curtains sagging,
+identical camera angle, identical furniture layout, identical window position,
+[FRAME_ROOM]
+```
+
+The key words here are the last three: **same angle, same furniture, same
+window.** Without them the pair drifts apart.
+
+### Nuances
+
+**Abandoned, but not destroyed.** Dust, cobwebs, peeling wallpaper — yes.
+Mould, holes in the floor, broken glass, trash bags — no: the audience came
+to create coziness, not to clear out a condemned building. This is also in
+the negative part.
+
+**Bottom third of the frame empty.** That's where the shelf and pile will go.
+In the clean room the floor and maybe a corner of the rug can land there;
+nothing important — windows, furniture, the cat — should be there.
+
+**Light is the one variable you can't skimp on.** Two-thirds of the
+"before — after" difference is made by light, not clutter. The dirty room is
+grey-brown and dim, the clean one is warm and bright. If that's not the case,
+the 200×400 acceptance check won't pass.
+
+**Room order.** The attic, veranda, and loft go last — they're the coziest,
+and they coincide with the cat's third state and the last rewards.
+
+---
+
+## 6. The rest of the assets
+
+### Blank tile — item under the clutter
+
+```
+[BASE] , an unidentifiable object hidden under a dust sheet,
+warm grey #B0A79B cloth draped over an unknown shape,
+soft folds, a little dust, the shape underneath unreadable,
+calm and quiet, not spooky, [FRAME_PROP]
+```
+
+Additionally into the negative: `ghost, skull, face, eyes, anything
+recognisable under the cloth`.
+
+Nuance: there can be as many as thirty of these tiles on screen at once. It
+must be **quiet** — minimal detail, even tone, or the board will get noisy.
+
+### Locked item
+
+```
+[BASE] , a length of rough twine wound crosswise several times,
+warm grey #B0A79B cord, tied in a simple knot at the centre,
+rendered as a standalone overlay on transparent background,
+nothing underneath, [FRAME_PROP]
+```
+
+This is an **overlay on top of a regular item**, so the middle must stay
+open — the item underneath should be guessable through the rope. Into the
+negative: `chain, padlock, metal, rust, prison bars`. A lock and chain read
+as punishment, and ours is a game about care.
+
+### Rewards
+
+```
+reward_bowl:
+[BASE] , a ceramic cat bowl, dusty mint #A8C9B5,
+low and wide, empty, a small paw print painted on the side,
+slightly nicer and cleaner than ordinary household objects,
+[FRAME_PROP]
+
+reward_blanket:
+[BASE] , a small folded blanket for a cat, muted peach #E8B79A,
+soft knitted texture, neatly folded in three, one corner turned over,
+slightly nicer and cleaner than ordinary household objects,
+[FRAME_PROP]
+```
+
+Mandatory in the negative: `glow, sparkle, magic aura, rarity border,
+star, badge, plus sign, number`. Rewards **must not look like a power-up** —
+the moment the bowl starts glowing, care turns into gear math.
+
+### App icon, five variants
+
+One prompt, five passes with a different middle part:
+
+| Variant | Middle part |
+|---|---|
+| 1 | `close-up of a content cat face, warm cream background, no objects` |
+| 2 | `a cat sitting inside a cosy cleaned room seen through a doorway` |
+| 3 | `a cat peeking out from behind a cardboard box` |
+| 4 | `split composition, dull grey clutter on the left, warm tidy room with a cat on the right` |
+| 5 | `a cat curled asleep on a folded blanket, seen from above` |
+
+Different frame: `square composition, fills the entire frame, no margins,
+no rounded corners, no transparency`. Rounding is applied by the system.
+
+Acceptance — survey ten people: **which of the five would you tap.** Not
+"which is prettier."
+
+### House map
+
+```
+map_background:
+[BASE] , a cutaway view of a small two-storey house,
+twelve empty rooms arranged in a grid inside the walls,
+plain interior, roof and outer walls in light oak #C9A97C,
+rooms empty and unfurnished, seen straight on, [FRAME_ROOM]
+```
+
+Room tiles — three states, distinguishable from a distance: `dirty` dark
+grey-brown, `partial` half light with a clear boundary, `clean` warm light.
+
+Nuance: the distinction is made by **lightness, not hue.** The map is viewed
+at a glance and as a whole; a color difference doesn't read at that size, a
+lightness difference always does.
+
+### "Before — after" card frame
+
+```
+[BASE] , a simple square photo frame divided into two equal halves
+by a thin vertical line, light oak #C9A97C moulding, both halves empty,
+rendered as an overlay on transparent background, [FRAME_PROP]
+```
+
+Space for the cat's name is **not provided** — it was decided not to put a
+name on the public card.
+
+---
+
+## 7. Order and acceptance
+
+Generate in this order, and accept each step before the next:
+
+1. **Pilot:** three items from different families, one cat in states 1 and 3,
+   one room as a pair. This answers the question "will this even work," and
+   it's needed before the ad creatives.
+2. Thirty items in one pass.
+3. Blank tile and locked overlay.
+4. Six cat silhouettes, then masks by hand.
+5. Five icons.
+6. House map.
+7. Twelve rooms: all clean ones first, then all dirty ones.
+8. Rewards and frame.
+
+Curation after each pass is **manual**. The neural network delivers something
+usable about half the time, and you should budget two to three passes per
+item.
+
+Three checks that can't be delegated to a machine and can't be delegated to
+yourself:
+
+- ten items at 52 points — are they distinguishable (outsider);
+- six cat silhouettes — one cat or different ones (outsider);
+- a room pair at 200×400 for half a second — which one is clean (outsider).
+
+The author always sees the concept, the player sees the picture.
+</content>
+
+

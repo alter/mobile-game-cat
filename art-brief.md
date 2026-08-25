@@ -1,478 +1,486 @@
-# Техническое задание на графику — «Спасённый котёнок»
+# Art brief — "Rescued Kitten"
 
-Дата: 25 августа 2026
-Для художника или для пакетного порождения с ручным отбором — годится и то и
-другое.
+Date: 25 August 2026
+For an artist or for batch generation with manual curation — either works.
 
-**Дословные наказы на каждый актив — в `art-prompts.md`:** палитра в
-шестнадцатеричных значениях, общие положительный и отрицательный блоки, наказ на
-каждый из тридцати предметов, на шесть силуэтов кота, на каждую из двенадцати
-комнат и на мелочи. Этот файл отвечает на «что и зачем», тот — на «чем это
-породить».
+**Verbatim prompts for each asset are in `art-prompts.md`:** the palette in
+hex values, shared positive and negative blocks, a prompt for each of the
+thirty items, for the six cat silhouettes, for each of the twelve rooms, and
+for the small stuff. This file answers "what and why," that one answers "what
+to generate it with."
 
-Замысел игры — в `cat-shelter-mvp.md`, задачи и приёмка — в
-`cat-shelter-tasks.md`, разбор средств порождения — в
+The game concept is in `cat-shelter-mvp.md`, tasks and acceptance are in
+`cat-shelter-tasks.md`, the breakdown of generation tools is in
 `knowledge/artgen/01-art-pipeline.md`.
 
 ---
 
-## 1. Что за игра, в трёх абзацах
+## 1. What kind of game, in three paragraphs
 
-Головоломка на разбор завала под iPhone. Игрок вытаскивает предметы из кучи
-хлама и раскладывает на полку из девяти мест; три одинаковых предмета исчезают.
-Куча лежит слоями, и **вид предмета не виден, пока до него не добрались** — под
-завалом он выглядит болванкой.
+A clutter-clearing puzzle for iPhone. The player pulls items out of a pile of
+junk and arranges them on a shelf with nine slots; three matching items
+disappear. The pile sits in layers, and **an item's appearance is invisible
+until you've reached it** — under the clutter it looks like a blank tile.
 
-Разбирают не ради разбора. В заброшенном доме сидит котёнок, и с каждой
-расчищенной комнатой ему становится лучше на глазах. Дом из двенадцати комнат,
-в каждой от одного до четырёх завалов; уровень — это разбор одного завала, то
-есть комната расчищается по частям.
+They don't clear it just to clear it. An abandoned house holds a kitten, and
+with each cleared room it visibly gets better. The house has twelve rooms,
+each with one to four piles of clutter; a level is clearing one pile, meaning
+a room is cleared in parts.
 
-На первом экране игрок фотографирует своего настоящего кота. Игра читает окрас
-и собирает котёнка из готовых частей так, чтобы он был похож. **Это её кот** —
-в этом вся суть, и вся графика работает на то, чтобы он был узнаваем и чтобы
-ему становилось лучше заметно.
+On the first screen the player photographs their real cat. The game reads the
+coloring and assembles a kitten from ready-made parts so it resembles theirs.
+**This is her cat** — that's the whole point, and all the art works toward
+making it recognizable and making its improvement visible.
 
-Аудитория: женщины 30–55, играют по 10–20 минут в паузах между делами.
-
----
-
-## 2. Три требования важнее стиля
-
-Если придётся чем-то жертвовать — жертвуйте красотой отдельной вещи, но не этим.
-
-**Первое. Кот должен быть узнаваемо котом, а не выдуманным существом.**
-Пропорции близко к настоящим, глаза чуть крупнее живых. Не мультяшный зверёк с
-человеческой мимикой, не «кавайный» шар. Игрок сравнивает его со своим котом,
-который лежит рядом на диване.
-
-**Второе. Разница «до и после» читается на снимке 200×400 за полсекунды.**
-Грязь — приглушённый серо-бурый. Чистота — светлое и тёплое. Это половина силы
-рекламного ролика, а ролик решает, купится ли установка. Если пару «было —
-стало» приходится разглядывать, пара не годится.
-
-**Третье. Единство вида важнее красоты отдельного предмета.** Разнобой стилей —
-это то, по чему сразу видно самодельную игру. Тридцать одинаково хороших
-предметов лучше, чем пять отличных и двадцать пять разных.
+Audience: women 30–55, playing 10–20 minutes in breaks between tasks.
 
 ---
 
-## 3. Стилевой канон
+## 2. Three requirements that outrank style
 
-### Работает
+If something has to be sacrificed, sacrifice the beauty of a single item, not this.
 
-- округлые очертания, никаких острых углов;
-- толстая мягкая обводка;
-- объём мягким рассеянным светом сверху-слева;
-- тёплая приглушённая палитра: кремовый, персиковый, мятный, светлое дерево;
-- свет как утро в комнате.
+**First. The cat must be recognizably a cat, not a made-up creature.**
+Proportions close to real ones, eyes a bit larger than life. Not a cartoon
+critter with human expressions, not a "kawaii" blob. The player compares it to
+their own cat lying next to them on the couch.
 
-### Не работает
+**Second. The "before and after" difference reads in a 200×400 screenshot in
+half a second.** Dirt is muted grey-brown. Clean is light and warm. This is
+half the power of the ad creative, and the creative decides whether an install
+gets bought. If the "was — became" pair needs studying, the pair doesn't work.
 
-- точечная графика — её любят мужчины 25–40, наша аудитория читает её как
-  недоделанное;
-- темнота и высокая контрастность;
-- острые плоские очертания;
-- переслащённость: розовое с блёстками читается как игра для восьмилетних, а
-  платят взрослые;
-- кислотные цвета.
-
-### Наказ для порождения
-
-Он же — словесное описание стиля для художника:
-
-> мягкий трёхмерный мультипликационный вид, вид сверху под углом 30 градусов,
-> округлые формы без острых углов, толстая мягкая обводка, объём мягким
-> рассеянным светом сверху-слева, тёплая приглушённая палитра — кремовый,
-> персиковый, мятный, светлое дерево, никакой кислотности и высокой
-> контрастности, чистый однотонный фон, предмет по центру кадра
-
-Весь набор порождается **одним наказом за один заход**, а не по мере
-надобности. Стиль разъезжается именно тогда, когда предметы делаются партиями в
-разные дни.
-
-### Образцы для сверки
-
-Royal Match, Gossip Harbor, Merge Mansion, Travel Town, Homescapes. Снимки
-берутся со страниц в App Store, по 6–8 кадров на игру, и складываются в одну
-папку до начала работы (задача 0.2).
+**Third. Visual unity outranks the beauty of any single item.** Mismatched
+styles are the first sign of a homemade game. Thirty equally good items beat
+five excellent ones and twenty-five mismatched ones.
 
 ---
 
-## 4. Технические требования, общие для всего
+## 3. Style canon
 
-Основания — `knowledge/artgen/01-art-pipeline.md`, раздел «Подготовка спрайтов
-для Unity».
+### Works
 
-| Параметр | Значение |
+- rounded outlines, no sharp corners;
+- thick soft outline;
+- volume via soft diffuse light from upper-left;
+- warm muted palette: cream, peach, mint, light wood;
+- light like morning in a room.
+
+### Doesn't work
+
+- pixel art — men 25–40 like it, our audience reads it as unfinished;
+- darkness and high contrast;
+- sharp flat outlines;
+- oversweetness: pink with glitter reads as a game for eight-year-olds, and
+  adults are the ones paying;
+- acid colors.
+
+### Generation prompt
+
+Also serves as the verbal style description for an artist:
+
+> soft 3D cartoon look, top-down view at a 30-degree angle, rounded shapes
+> with no sharp corners, thick soft outline, volume via soft diffuse light
+> from upper-left, warm muted palette — cream, peach, mint, light wood, no
+> acid tones or high contrast, clean flat-color background, subject centered
+> in frame
+
+The whole set is generated **with one prompt in one pass**, not as needed.
+Style drifts precisely when items are made in batches on different days.
+
+### Reference set for comparison
+
+Royal Match, Gossip Harbor, Merge Mansion, Travel Town, Homescapes.
+Screenshots are taken from App Store pages, 6–8 shots per game, and collected
+into one folder before work begins (task 0.2).
+
+---
+
+## 4. Technical requirements, common to everything
+
+Basis — `knowledge/artgen/01-art-pipeline.md`, section "Preparing sprites for
+Unity".
+
+| Parameter | Value |
 |---|---|
-| Формат | PNG, 8 бит на канал, с альфа-каналом |
-| Фон | полностью прозрачный, без ореола и белой каймы |
-| Тип текстуры в Unity | `Sprite (2D and UI)` |
-| Фильтрация | `Bilinear` (не `Point` — у нас не точечная графика) |
-| Сжатие на iOS | ASTC |
-| Pixels Per Unit | **100**, единый по всему проекту |
-| Сторона текстуры | степень двойки, ширина и высота могут различаться |
-| Отступ в листах | 2–4 px между спрайтами |
-| Цветовое пространство | sRGB |
+| Format | PNG, 8-bit per channel, with alpha channel |
+| Background | fully transparent, no halo or white fringe |
+| Unity texture type | `Sprite (2D and UI)` |
+| Filtering | `Bilinear` (not `Point` — we're not doing pixel art) |
+| iOS compression | ASTC |
+| Pixels Per Unit | **100**, uniform across the whole project |
+| Texture side | power of two, width and height may differ |
+| Sheet padding | 2–4 px between sprites |
+| Color space | sRGB |
 
-Единый PPU — не придирка: при разных значениях предметы будут разного масштаба в
-одной сцене, и это заметно.
+A uniform PPU isn't nitpicking: with different values items will be at
+different scales in the same scene, and it shows.
 
-### Именование
+### Naming
 
-Строчные буквы, подчёркивания, без пробелов и кириллицы:
+Lowercase letters, underscores, no spaces or Cyrillic:
 
 ```
-prop_<name>.png                 предмет кучи
-prop_unknown.png                болванка (предмет под завалом)
-prop_locked.png                 запертый предмет
-cat_<state>_<fur>_base.png      силуэт кота
-cat_<state>_<fur>_<layer>.png   слой кота
-room_<nn>_dirty.png             комната до
-room_<nn>_clean.png             комната после
+prop_<name>.png                 pile item
+prop_unknown.png                blank tile (item under the clutter)
+prop_locked.png                 locked item
+cat_<state>_<fur>_base.png      cat silhouette
+cat_<state>_<fur>_<layer>.png   cat layer
+room_<nn>_dirty.png             room, before
+room_<nn>_clean.png             room, after
 reward_bowl.png, reward_blanket.png
-map_room_<nn>_<state>.png       клетка карты дома
-icon_<n>.png                    значок приложения
+map_room_<nn>_<state>.png       house map tile
+icon_<n>.png                    app icon
 ```
 
-### Как сдавать
+### How to deliver
 
-Одна папка на группу, внутри — файлы по именованию выше, плюс `contact-sheet.png`
-с миниатюрами всей группы на одном листе. Лист нужен для приёмки на единство
-вида: разнобой видно только когда всё рядом.
+One folder per group, containing files per the naming above, plus
+`contact-sheet.png` with thumbnails of the whole group on one sheet. The sheet
+is needed for checking visual unity: mismatches only show up when everything
+is side by side.
 
-Исходники (слои) сдаются отдельно и в репозиторий не кладутся.
+Source files (layers) are delivered separately and not put in the repository.
 
 ---
 
-## 5. Полный перечень работ
+## 5. Full list of work
 
-| Группа | Файлов | Размер | Приоритет | Задача |
+| Group | Files | Size | Priority | Task |
 |---|---|---|---|---|
-| Предметы кучи | 30 | 256×256 | P0 | 4.1–4.3 |
-| Болванка «под завалом» | 1 | 256×256 | P0 | новая, из 3.9 |
-| Запертый предмет | 1 | 256×256 | P0 | новая, из 3.11 |
-| Силуэты кота | 6 | 512×512 | P0 | 4.4 |
-| Слои кота | см. §7 | 512×512 | P0 | 4.5 |
-| Комнаты, пары | 24 | 1024×2048 | P1 | 4.7 |
-| Вещи-награды | 2 | 256×256 | P1 | 4.8 |
-| Карта дома | 12+3 | см. §9 | P0 | новая, из 6.2.1 |
-| Значок приложения | 5 | 1024×1024 | P0 | 4.9 |
-| Рамка карточки «было — стало» | 1 | 1080×1080 | P2 | новая, из 6.14 |
+| Pile items | 30 | 256×256 | P0 | 4.1–4.3 |
+| "Under the clutter" blank tile | 1 | 256×256 | P0 | new, from 3.9 |
+| Locked item | 1 | 256×256 | P0 | new, from 3.11 |
+| Cat silhouettes | 6 | 512×512 | P0 | 4.4 |
+| Cat layers | see §7 | 512×512 | P0 | 4.5 |
+| Rooms, pairs | 24 | 1024×2048 | P1 | 4.7 |
+| Reward items | 2 | 256×256 | P1 | 4.8 |
+| House map | 12+3 | see §9 | P0 | new, from 6.2.1 |
+| App icon | 5 | 1024×1024 | P0 | 4.9 |
+| "Before — after" card frame | 1 | 1080×1080 | P2 | new, from 6.14 |
 
-Порядок работ — не сверху вниз, а: сначала **пилот** (§11), потом предметы,
-потом кот, потом комнаты.
+Order of work is not top to bottom, but: first the **pilot** (§11), then
+items, then the cat, then the rooms.
 
 ---
 
-## 6. Предметы кучи — 30 штук
+## 6. Pile items — 30 pieces
 
-### Что это
+### What this is
 
-Хлам из заброшенного дома, который игрок разбирает: посуда, книги, инструменты,
-игрушки, тряпьё. Каждый предмет рисуется отдельно, в кадре 256×256, по центру,
-с полями примерно 10% от стороны.
+Junk from an abandoned house that the player clears: dishware, books, tools,
+toys, rags. Each item is drawn separately, in a 256×256 frame, centered, with
+margins of about 10% of the side.
 
-### Ограничение, которое важнее красоты
+### The constraint that outranks beauty
 
-На поле одновременно бывает **от шести до десяти разных видов**, и игрок
-опознаёт их за доли секунды на плитке около 52 точек. Значит любые десять
-предметов из набора обязаны различаться **силуэтом и цветовым пятном**, а не
-деталями.
+The board can have **six to ten different kinds at once**, and the player
+identifies them in a fraction of a second on a tile about 52 points. So any
+ten items from the set must differ **by silhouette and color patch**, not by
+detail.
 
-Это уже подводило: в прототипе два вида получили один и тот же цвет, и уровень
-стал нечитаемым. Поэтому набор строится по семействам.
+This has already gone wrong once: in the prototype two kinds got the same
+color, and the level became unreadable. So the set is built by families.
 
-**Шесть семейств силуэта, по пять предметов в каждом:**
+**Six silhouette families, five items each:**
 
-| Семейство | Очертание | Примеры |
+| Family | Outline | Examples |
 |---|---|---|
-| круглое | шар, диск | клубок, мяч, тарелка, часы, катушка |
-| высокое | вертикаль | бутылка, ваза, лампа, банка, свеча |
-| плоское | горизонталь | книга, коробка, поднос, доска, коврик |
-| угловатое | острые грани | чемодан, ящик, рамка, зеркало, шкатулка |
-| ветвистое | торчащие части | ключи, ножницы, вешалка, вилка, гребень |
-| мягкое | бесформенное | подушка, тряпка, шарф, варежка, мешок |
+| round | ball, disc | ball of yarn, ball, plate, clock, spool |
+| tall | vertical | bottle, vase, lamp, jar, candle |
+| flat | horizontal | book, box, tray, board, mat |
+| angular | sharp edges | suitcase, crate, frame, mirror, box |
+| branching | protruding parts | keys, scissors, hanger, fork, comb |
+| soft | shapeless | pillow, rag, scarf, mitten, sack |
 
-**Шесть цветовых групп**, по пять предметов: кремовый, персиковый, мятный,
-светлое дерево, пыльно-голубой, тёпло-серый. Все в пределах приглушённой
-палитры — никакой кислотности.
+**Six color groups**, five items each: cream, peach, mint, light wood,
+dusty blue, warm grey. All within the muted palette — no acid tones.
 
-Раскладывать так, чтобы **семейство и цвет не совпадали**: пять круглых
-предметов должны быть пяти разных цветов. Тогда любая выборка из десяти видов
-окажется различимой хотя бы по одной оси.
+Arrange so that **family and color don't coincide**: the five round items must
+be five different colors. Then any sample of ten kinds turns out
+distinguishable along at least one axis.
 
-### Приёмка
+### Acceptance
 
-- 30 файлов PNG, альфа чистая, единый размер кадра;
-- на контрольном листе набор читается как **один комплект**, а не как сборная
-  солянка (смотрит человек);
-- **проверка на различимость:** уменьшить любые десять предметов до 52 точек,
-  положить рядом — посторонний человек должен уверенно сказать, что это десять
-  разных вещей.
+- 30 PNG files, clean alpha, uniform frame size;
+- on the contact sheet the set reads as **one matched set**, not a random mix
+  (a human looks at it);
+- **distinguishability check:** shrink any ten items to 52 points, put them
+  side by side — an outside person must confidently say these are ten
+  different things.
 
 ---
 
-## 7. Кот — самая дорогая и самая рискованная часть
+## 7. The cat — the most expensive and riskiest part
 
-Это задача 4.4, и в списке задач она помечена как единственная, которую
-исполнитель может провалить начисто. Читать этот раздел внимательнее прочих.
+This is task 4.4, and on the task list it's marked as the one the performer
+can fail completely. Read this section more carefully than the others.
 
-### Как кот устроен
+### How the cat is built
 
-Готовой картинки кота нет. Есть **обесцвеченная основа и набор чёрно-белых
-масок**, а окончательный цвет собирает шейдер во время игры по чертам,
-прочитанным с фотографии игрока. Так один и тот же кот показывается во всех
-состояниях, а нарисовать надо шесть наборов вместо сотен сочетаний.
+There's no finished cat image. There's a **desaturated base and a set of
+black-and-white masks**, and the final color is assembled by a shader at
+runtime from traits read off the player's photo. That way the same cat is
+shown in every state, and only six sets need to be drawn instead of hundreds
+of combinations.
 
-Черты, которые приходят с фотографии:
+Traits that come from the photo:
 
 ```
 base_color      ginger | grey | black | white | cream | brown
 pattern         solid | tabby | bicolor | calico | tuxedo | pointed
 fur_length      short | long
 eye_color       green | amber | blue
-white_markings  chest, paws, face — любое подмножество
+white_markings  chest, paws, face — any subset
 ```
 
-### Что рисуется
+### What gets drawn
 
-**Шесть силуэтов:** три состояния × две длины шерсти.
+**Six silhouettes:** three states × two fur lengths.
 
-| Состояние | Когда | Как выглядит |
+| State | When | How it looks |
 |---|---|---|
-| 1 | комнаты 1–4 | худой, шерсть свалявшаяся, уши прижаты, сидит в углу |
-| 2 | комнаты 5–8 | опрятнее, ходит по комнате, смотрит на игрока |
-| 3 | комнаты 9–12 | ухоженный, играет, спит на подоконнике |
+| 1 | rooms 1–4 | thin, matted fur, ears back, sitting in a corner |
+| 2 | rooms 5–8 | tidier, walking around the room, watching the player |
+| 3 | rooms 9–12 | well-groomed, playing, sleeping on the windowsill |
 
-**Слои на каждый силуэт:**
+**Layers for each silhouette:**
 
-| Файл | Что это | Как используется |
+| File | What it is | How it's used |
 |---|---|---|
-| `..._base.png` | кот целиком, **обесцвеченный**, только светотень | красится в `base_color` |
-| `..._pattern_tabby.png` | маска: белое там, где полосы | накладывается более тёмным оттенком основы |
-| `..._pattern_bicolor.png` | маска второго цвета | то же |
-| `..._pattern_calico.png` | маска пятен | то же |
-| `..._pattern_tuxedo.png` | маска «манишки» | то же |
-| `..._pattern_pointed.png` | маска морды, лап, хвоста | то же |
-| `..._mark_chest.png` | маска белого пятна на груди | заливается белым |
-| `..._mark_paws.png` | маска белых лап | то же |
-| `..._mark_face.png` | маска белого на морде | то же |
-| `..._eyes.png` | только глаза | красится в `eye_color` |
+| `..._base.png` | the whole cat, **desaturated**, light and shadow only | tinted with `base_color` |
+| `..._pattern_tabby.png` | mask: white where the stripes are | overlaid with a darker shade of the base |
+| `..._pattern_bicolor.png` | mask for the second color | same |
+| `..._pattern_calico.png` | mask for patches | same |
+| `..._pattern_tuxedo.png` | mask for the "shirtfront" | same |
+| `..._pattern_pointed.png` | mask for face, paws, tail | same |
+| `..._mark_chest.png` | mask for the white chest patch | filled with white |
+| `..._mark_paws.png` | mask for white paws | same |
+| `..._mark_face.png` | mask for white on the face | same |
+| `..._eyes.png` | eyes only | tinted with `eye_color` |
 
-Узор `solid` маски не требует — это и есть чистая основа.
+The `solid` pattern needs no mask — that's just the plain base.
 
-Итого на один силуэт: **1 основа + 5 масок узора + 3 маски пятен + глаза = 10
-файлов.** На шесть силуэтов — 60.
+Total per silhouette: **1 base + 5 pattern masks + 3 patch masks + eyes = 10
+files.** For six silhouettes — 60.
 
-### Требования к маскам
+### Mask requirements
 
-- маски строго чёрно-белые, без полутонов по краям кроме мягкого сглаживания в
-  1–2 точки;
-- маска совпадает с основой **точка в точку**: один и тот же кадр, одна и та же
-  поза, никакого смещения;
-- маска не выходит за силуэт основы;
-- белые пятна рисуются так, чтобы читались на любом основном цвете — на белом
-  коте они обозначаются только обводкой и тенью.
+- masks strictly black and white, no halftones at the edges except 1–2 points
+  of soft anti-aliasing;
+- the mask matches the base **point for point**: same frame, same pose, no
+  offset;
+- the mask doesn't extend past the base silhouette;
+- white patches are drawn so they read against any base color — on a white
+  cat they're indicated only by outline and shadow.
 
-### Приёмка, отданная постороннему человеку намеренно
+### Acceptance, deliberately handed to an outside person
 
-**Показать шесть силуэтов постороннему и спросить: это один кот или разные?**
-Ответ «один» — принято. Ответ «разные» — не принято, сколько бы усилий ни было
-вложено.
+**Show the six silhouettes to an outside person and ask: is this one cat or
+different ones?** Answer "one" — accepted. Answer "different" — not accepted,
+no matter how much effort went in.
 
-Формулировка выбрана специально: исполнитель почти всегда докладывает, что
-получилось единообразно. Судить должен тот, кому всё равно.
+The phrasing is chosen deliberately: the performer almost always reports that
+it came out consistent. The judge must be someone who doesn't care either way.
 
-Вторая проверка: собрать шесть разных наборов черт и убедиться, что получаются
-**шесть различимых котов** и ни один не выглядит поломанным — маска не съехала,
-белое пятно не оказалось в воздухе.
+Second check: assemble six different trait sets and confirm you get **six
+distinguishable cats**, none of them looking broken — no mask misaligned, no
+white patch floating in midair.
 
-**Две попытки, дальше нанимать художника.** Это записано в задачах, и тянуть с
-этим решением дороже, чем принять его.
+**Two attempts, then hire an artist.** This is written into the tasks, and
+delaying this decision costs more than making it.
 
 ---
 
-## 8. Комнаты — двенадцать, но расчищаются по частям
+## 8. Rooms — twelve, but cleared in parts
 
-### Что изменилось против прежней редакции
+### What changed from the previous version
 
-Раньше уровень был равен комнате: разобрал кучу — комната стала чистой. Теперь в
-комнате **от одного до четырёх завалов**, и уровень разбирает один из них.
-Комната светлеет постепенно: угол, стена, подоконник.
+Previously a level equaled a room: clear the pile, the room becomes clean. Now
+a room has **one to four piles**, and a level clears one of them. The room
+lightens gradually: a corner, a wall, a windowsill.
 
-Для графики это устроено так, чтобы не удорожать работу:
+For the art, this is set up so as not to raise the cost of the work:
 
-- **фонов по-прежнему два на комнату** — грязный и чистый;
-- **хлам — это те же тридцать предметов**, разложенные по комнате поверх фона;
-- «расчищена треть» — это тот же фон, но части предметов на нём уже нет.
+- **still two backgrounds per room** — dirty and clean;
+- **the clutter is the same thirty items**, laid out over the background;
+- "a third cleared" is the same background, just with some items already gone
+  from it.
 
-То есть двенадцать комнат дают тридцать семь уровней без единого нового рисунка
-комнаты.
+So twelve rooms give thirty-seven levels without a single new room drawing.
 
-### Требования
+### Requirements
 
-| Параметр | Значение |
+| Parameter | Value |
 |---|---|
-| Размер | 1024×2048 (вертикаль под телефон) |
-| Формат | PNG без альфы (фон непрозрачный) |
-| Пара | `room_01_dirty.png` и `room_01_clean.png`, точно одна и та же комната с одной точки |
-| Свободное место | нижняя треть кадра остаётся под полку и кучу, туда ничего важного не помещать |
+| Size | 1024×2048 (portrait, for phone) |
+| Format | PNG without alpha (opaque background) |
+| Pair | `room_01_dirty.png` and `room_01_clean.png`, exactly the same room from the same viewpoint |
+| Clear space | the bottom third of the frame stays reserved for the shelf and pile, don't put anything important there |
 
-Грязная: приглушённый серо-бурый, тусклый свет, пыль, отставшие обои. Чистая: та
-же комната, светлая и тёплая, свет как утро, никакой новой мебели — **это должна
-быть та же комната, просто прибранная**, а не другая.
+Dirty: muted grey-brown, dim light, dust, peeling wallpaper. Clean: the same
+room, light and warm, light like morning, no new furniture — **it must be the
+same room, just tidied**, not a different one.
 
-Двенадцать комнат: прихожая, кухня, гостиная, спальня, детская, кабинет, ванная,
-кладовая, чердак, веранда, коридор, мансарда. Порядок не обязателен, но чердак и
-мансарда — в конец, они самые уютные.
+Twelve rooms: hallway, kitchen, living room, bedroom, nursery, study,
+bathroom, pantry, attic, porch, corridor, loft. Order isn't mandatory, but the
+attic and loft go last — they're the coziest.
 
-### Возможная экономия вдвое, которую надо проверить, а не закладывать
+### Possible 2x savings that must be verified, not assumed
 
-Если «грязно» получится как чистый фон плюс серо-бурое приглушение плюс хлам
-сверху, то второй фон не нужен, и работа сокращается с двадцати четырёх файлов
-до двенадцати.
+If "dirty" can be produced as the clean background plus a grey-brown muting
+filter plus clutter on top, then the second background isn't needed, and the
+work drops from twenty-four files to twelve.
 
-**Не закладывать в план, пока одна комната не пройдёт проверку.** Художник вам
-скажет, что настоящее «было» отличается светом, а не фильтром, и, скорее всего,
-будет прав. Но проверить на одной комнате стоит — экономия крупная.
+**Don't build this into the plan until one room passes the test.** The artist
+will likely tell you the real "before" differs by lighting, not a filter, and
+is probably right. But it's worth testing on one room — the savings are large.
 
-### Приёмка
+### Acceptance
 
-Уменьшить пару до 200×400, показать человеку на полсекунды и спросить, какая
-чистая. Ответ должен быть мгновенным. Если приходится вглядываться — пара не
-годится.
+Shrink the pair to 200×400, show it to a person for half a second and ask
+which one is clean. The answer must be instant. If it takes staring, the pair
+doesn't work.
 
 ---
 
-## 9. Карта дома
+## 9. House map
 
-Экран, где видно все двенадцать комнат и сколько осталось. Нужен потому, что
-третий по силе мотив аудитории — «завершённость, незакрытый набор мучает», и
-незакрытый дом это ровно он.
+The screen showing all twelve rooms and how much remains. Needed because the
+audience's third-strongest motivator is "completeness, an unfinished set is
+nagging," and an unfinished house is exactly that.
 
-Рисуется как разрез дома или сетка комнат — на выбор художника, разрез нагляднее.
+Drawn as a cutaway of the house or a grid of rooms — artist's choice, the
+cutaway is more legible.
 
-| Файл | Что |
+| File | What |
 |---|---|
-| `map_background.png` | дом целиком, пустой контур |
-| `map_room_<nn>_dirty.png` | клетка комнаты, не начата |
-| `map_room_<nn>_partial.png` | начата, но не закончена |
-| `map_room_<nn>_clean.png` | закрыта |
+| `map_background.png` | the whole house, empty outline |
+| `map_room_<nn>_dirty.png` | room tile, not started |
+| `map_room_<nn>_partial.png` | started but not finished |
+| `map_room_<nn>_clean.png` | closed out |
 
-Три состояния клетки, двенадцать комнат. Клетка маленькая — 256×256 хватит.
-Главное требование: **состояния различаются издали**, чтобы весь дом читался
-одним взглядом. Не оттенками, а заметно: тёмная, наполовину, светлая.
-
----
-
-## 10. Мелкие, но обязательные
-
-### Болванка — предмет под завалом
-
-`prop_unknown.png`. Предмет, до которого ещё не добрались, вида не показывает.
-Это не «серый квадрат»: болванка должна читаться как накрытая вещь — мешковатый
-силуэт, тряпка поверх, пыль. Должно быть видно, что там что-то есть, но не
-видно, что именно.
-
-Появляется на экране в больших количествах, поэтому не должна быть шумной.
-
-### Запертый предмет
-
-`prop_locked.png`. Одна из трёх помех: предмет, который открывается после
-нескольких собранных троек. Накладывается поверх обычного предмета — значит это
-**полупрозрачный слой**: обмотка, верёвка, наледь. Нужно, чтобы под ним
-угадывался сам предмет.
-
-### Вещи-награды
-
-`reward_bowl.png` — миска за четвёртую комнату. `reward_blanket.png` — одеяло за
-восьмую. Обе появляются в комнате и видимо меняют поведение котёнка. Рисуются в
-том же стиле, что предметы, но чуть богаче — это подарок, а не хлам.
-
-Важно: они **не дают никакой пользы в игре** и не должны выглядеть как усилитель.
-Никаких свечений, стрелок и цифр.
-
-### Значок приложения
-
-Пять вариантов, 1024×1024, без прозрачности и без скруглений — их накладывает
-система. Значок решает больше, чем двенадцать уровней: его видят до установки.
-
-На всех пяти должен быть кот. Проверка — опрос десяти человек: **на какой из
-пяти вы бы нажали.** Не «какой красивее».
-
-### Рамка карточки «было — стало»
-
-`share_frame.png`, 1080×1080. Рамка для картинки, которой игрок делится: слева
-комната до, справа после, кот на переднем плане. Место под имя кота **не
-предусматривать** — имя на публичной карточке решено не выносить.
+Three tile states, twelve rooms. The tile is small — 256×256 is enough. Main
+requirement: **states are distinguishable from a distance**, so the whole
+house reads at a single glance. Not by shade, but visibly: dark, halfway,
+light.
 
 ---
 
-## 11. Порядок работ: сначала пилот, потом всё остальное
+## 10. Small but mandatory
 
-Не начинайте с тридцати предметов. Начните с пилота, который стоит день и
-отвечает на вопрос «получится ли вообще».
+### Blank tile — item under the clutter
 
-**Пилот, задачи 0.3, 0.3.1, 0.3.2:**
+`prop_unknown.png`. An item not yet reached, showing no appearance. This isn't
+a "gray square": the blank tile must read as a covered object — a baggy
+silhouette, a rag on top, dust. It should be visible that something is there,
+but not visible what.
 
-1. три предмета, которые читаются как один комплект;
-2. **один кот в двух состояниях** — заметно хуже и заметно лучше;
-3. **одна комната, грязная и чистая.**
+Appears on screen in large numbers, so it must not be visually noisy.
 
-Проверка пилота — посторонним человеком, по двум вопросам: «это один кот или
-два разных?» и «какая комната чистая?» (на полсекунды).
+### Locked item
 
-Почему именно так. Рекламные ролики для проверки спроса снимаются **до** того,
-как написана игра, и без кота и комнаты их не снять. Если пилот не выйдет, вы
-узнаете худшую новость проекта за ноль долларов вместо трёхсот и трёх недель.
+`prop_locked.png`. One of three obstacles: an item that unlocks after several
+completed triples. Overlaid on top of a regular item — so it's a
+**semi-transparent layer**: wrapping, rope, ice. It needs to let the item
+underneath be guessable.
 
-И отдельно: **всё, что попадёт в ролики, должно быть сделано тем же конвейером,
-что и настоящая игра.** Ролик, обещающий графику, которую игра не выдаст,
-превращает измеренную стоимость установки в бесполезное число — вы измерите
-спрос на игру, которой не будет.
+### Reward items
 
-Дальше по убыванию важности: предметы (30) → кот (6 силуэтов и слои) → значок →
-карта дома → комнаты → мелочи.
+`reward_bowl.png` — a bowl for the fourth room. `reward_blanket.png` — a
+blanket for the eighth. Both appear in the room and visibly change the
+kitten's behavior. Drawn in the same style as the items, but a bit richer —
+this is a gift, not junk.
 
-Значок стоит выше комнат намеренно: его видят до установки, а комнаты — после.
+Important: they **give no gameplay benefit** and must not look like a
+power-up. No glows, arrows, or numbers.
+
+### App icon
+
+Five variants, 1024×1024, no transparency and no rounded corners — the system
+applies those. The icon decides more than twelve levels do: it's seen before
+the install.
+
+All five must feature the cat. Test: survey ten people — **which of the five
+would you tap.** Not "which is prettier."
+
+### "Before — after" card frame
+
+`share_frame.png`, 1080×1080. Frame for the image the player shares: room
+before on the left, after on the right, cat in the foreground. Space for the
+cat's name is **not provided** — it was decided not to put a name on the
+public card.
 
 ---
 
-## 12. Сводная приёмка
+## 11. Order of work: pilot first, then everything else
 
-| Группа | Проверяет машина | Проверяет человек |
+Don't start with thirty items. Start with a pilot that costs a day and
+answers the question "will this even work."
+
+**Pilot, tasks 0.3, 0.3.1, 0.3.2:**
+
+1. three items that read as one matched set;
+2. **one cat in two states** — visibly worse and visibly better;
+3. **one room, dirty and clean.**
+
+Pilot check — by an outside person, on two questions: "is this one cat or two
+different ones?" and "which room is clean?" (half a second).
+
+Why this way. Ad creatives for demand testing are shot **before** the game is
+written, and you can't shoot them without a cat and a room. If the pilot
+doesn't work out, you learn the project's worst news for zero dollars instead
+of three hundred and three weeks.
+
+And separately: **everything that goes into the ads must be made by the same
+pipeline as the actual game.** An ad promising art the game can't deliver
+turns the measured install cost into a useless number — you'd be measuring
+demand for a game that won't exist.
+
+Next in descending order of importance: items (30) → cat (6 silhouettes and
+layers) → icon → house map → rooms → small stuff.
+
+The icon ranks above the rooms deliberately: it's seen before the install,
+the rooms after.
+
+---
+
+## 12. Acceptance summary
+
+| Group | Machine checks | Human checks |
 |---|---|---|
-| Предметы | 30 файлов, альфа, единый размер | набор читается как один комплект; десять штук при 52 px различимы |
-| Болванка, запертый | формат | видно, что вещь есть, но не видно какая |
-| Силуэты кота | 6 файлов | **посторонний: один кот или разные?** |
-| Слои кота | маски совпадают с основой точка в точку | шесть наборов черт дают шесть целых котов |
-| Комнаты | 24 файла, размер | разница читается на 200×400 за полсекунды |
-| Карта дома | 3 состояния × 12 | весь дом читается одним взглядом |
-| Значок | 5 файлов 1024×1024 | **опрос десяти: на какой нажали бы** |
-| Награды | формат | не выглядят усилителем |
+| Items | 30 files, alpha, uniform size | set reads as one matched set; ten pieces distinguishable at 52 px |
+| Blank tile, locked | format | visible that something's there, not visible what |
+| Cat silhouettes | 6 files | **outsider: one cat or different ones?** |
+| Cat layers | masks match the base point for point | six trait sets produce six whole cats |
+| Rooms | 24 files, size | difference reads at 200×400 in half a second |
+| House map | 3 states × 12 | whole house reads at a glance |
+| Icon | 5 files 1024×1024 | **survey of ten: which would they tap** |
+| Rewards | format | don't look like a power-up |
 
-Общее правило приёмки во всём проекте: **тот, кто делал, не принимает.** И там,
-где судья — посторонний человек, заменить его своим мнением нельзя. Про графику
-это особенно верно: автор видит замысел, а игрок видит картинку.
+General acceptance rule across the whole project: **whoever made it doesn't
+accept it.** And wherever the judge is an outside person, they can't be
+replaced by your own opinion. This is especially true for art: the author sees
+the concept, the player sees the picture.
 
 ---
 
-## 13. Чего в этом задании намеренно нет
+## 13. What's deliberately not in this brief
 
-**Анимации.** В MVP её нет вовсе, кроме простого перемещения предмета на полку —
-это делается кодом, не художником. Кот в трёх состояниях — три статичных позы.
+**Animations.** The MVP has none at all, except simple movement of an item to
+the shelf — done in code, not by the artist. The cat in three states is three
+static poses.
 
-**Одежды и скинов на кота.** Решено не продавать перекраску: окрас берётся с
-фотографии игрока, и это единственное, ради чего игра существует. Продаваться
-будет всё **вокруг** кота — рамки, подсветка, лежанки, — но это вторая очередь
-и в этом задании не описано.
+**Clothing and skins for the cat.** Decided not to sell recoloring: the
+coloring comes from the player's photo, and that's the one thing the game
+exists for. What will be sold is everything **around** the cat — frames,
+lighting, beds — but that's a later phase and isn't described in this brief.
 
-**Экранов интерфейса.** Кнопки, надписи и раскладка делаются на UI Toolkit
-средствами вёрстки, не рисунками.
+**Interface screens.** Buttons, labels, and layout are done in UI Toolkit with
+layout tools, not drawings.
 
-**Двенадцати разных куч.** Куча собирается из тех же тридцати предметов
-случайной раскладкой — отдельно её рисовать не надо.
+**Twelve different piles.** The pile is assembled from the same thirty items
+in a random layout — no need to draw it separately.
 
 </content>
+

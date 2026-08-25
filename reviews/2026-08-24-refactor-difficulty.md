@@ -1,112 +1,118 @@
-# Перестройка: сложность, условие проигрыша и предложение на экране проигрыша
+# Restructuring: difficulty, the loss condition, and the offer on the loss screen
 
-Дата: 2026-08-24
-Основание: разбор `reviews/2026-08-24-m2-m3.md` и замеры на отгруженных уровнях.
-Затрагивает: `game/Assets/Core`, `tools/solver`, `game/Assets/Levels`,
+Date: 2026-08-24
+Basis: the review `reviews/2026-08-24-m2-m3.md` and measurements on the shipped levels.
+Affects: `game/Assets/Core`, `tools/solver`, `game/Assets/Levels`,
 `cat-shelter-mvp.md`, `cat-shelter-tasks.md`.
 
 ---
 
-## Что выяснилось и почему нужна перестройка
+## What came to light, and why restructuring is needed
 
-Три факта, каждый получен запуском кода, а не рассуждением.
+Three facts, each obtained by running the code, not by reasoning.
 
-**Лимит ходов недостижим.** Во всех двенадцати отгруженных уровнях куча из 36
-предметов, а лимит от 44 до 38. Ход снимает ровно один предмет, предмет берётся
-один раз — значит больше 36 ходов не сделать. Исход `OutOfMoves` не наступает
-никогда, и кривая запаса ходов с 8 до 2 не влияет ни на что.
+**The move limit is unreachable.** In all twelve shipped levels the pile has
+36 items, and the limit ranges from 44 to 38. A move removes exactly one
+item, an item is taken once — meaning more than 36 moves can never be made.
+The `OutOfMoves` outcome never occurs, and the move-budget slack curve from
+8 to 2 affects nothing.
 
-**Прогрессии сложности нет.** Прогон по 400 партий на уровень правилами из
-`tools/solver/rules.py`:
+**There is no difficulty progression.** A run of 400 games per level using
+the rules from `tools/solver/rules.py`:
 
-| | случайные ходы | разумная игра |
+| | random moves | sensible play |
 |---|---|---|
-| Уровень 1 | 23,5% побед | 99,5% |
-| Уровень 12 | 11,5% побед | 99,2% |
+| Level 1 | 23.5% wins | 99.5% |
+| Level 12 | 11.5% wins | 99.2% |
 
-«Разумная игра» — игрок, предпочитающий предмет, которого на полке уже два.
-Двенадцатый уровень не сложнее первого.
+"Sensible play" means a player who prefers the item that already has two on
+the shelf. Level twelve is no harder than level one.
 
-**Предложение на экране проигрыша не отвечает причине проигрыша.** Единственный
-достижимый проигрыш — забитая полка. Кнопка «+5 ходов» забитую полку не
-разбирает. Метрика «нажали +5 ходов > 15%» измеряла бы готовность купить
-бесполезное — и знаменатель почти пуст, потому что разумный игрок не проигрывает.
-
----
-
-## Карта сложности: что действительно работает
-
-Замер на порождённых уровнях, по 200 на клетку, доля побед разумного игрока.
-Это опорная таблица для всех решений ниже — числа получены на существующем
-порождателе и существующих правилах.
-
-| мест на полке | 36 предметов (6 видов) | 48 (8 видов) | 60 (10 видов) |
-|---|---|---|---|
-| **9** (сейчас) | **98,0%** | 86,5% | 66,0% |
-| 8 | 90,5% | 68,0% | 43,5% |
-| 7 (жанровый) | 84,5% | 55,5% | 33,5% |
-| 6 | 56,5% | 28,0% | 7,5% |
-
-Размер кучи оказался более сильным рычагом, чем число мест.
+**The offer on the loss screen doesn't address the cause of the loss.** The
+only reachable loss is a jammed shelf. The "+5 moves" button doesn't clear a
+jammed shelf. The metric "tapped +5 moves > 15%" would measure willingness
+to buy something useless — and the denominator is nearly empty, because a
+sensible player doesn't lose.
 
 ---
 
-## Решения
+## Difficulty map: what actually works
 
-### Решение 1. Лимит ходов убрать полностью
+Measurement on generated levels, 200 per cell, sensible-player win rate.
+This is the reference table for all decisions below — the numbers were
+obtained with the existing generator and existing rules.
 
-Не «поправить числа», а убрать сущность.
-
-Лимит ходов **несовместим** с условием победы. Победа — «куча разобрана до
-конца», каждый ход снимает один предмет, значит для победы нужно ровно столько
-ходов, сколько предметов. Лимит меньше размера кучи делает уровень непроходимым,
-лимит больше — недостижимым. Промежутка нет: осмысленного значения у этого
-параметра не существует.
-
-Подтверждение со стороны жанра: в образцах, названных в самом замысле —
-«Sheep a Sheep», «Triple Match 3D», «Zen Match» — счётчика ходов нет. Единственный
-проигрыш там тоже затор.
-
-Что удаляется: `Level.MovesLimit`, `Board.MovesLeft`, `GameOutcome.OutOfMoves`,
-поле `moves_limit` в описании уровня, весь расчёт запаса ходов в
-`tools/solver/generate.py` и `ship_levels.py`, соответствующие тесты.
-
-Остаётся два исхода: победа и затор. Это честно отражает игру, которая уже
-написана.
-
-### Решение 2. Сложность задаётся размером кучи
-
-Полка остаётся на девять мест. Это часть зрительного образа («три полки по три»),
-и менять её незачем: размер кучи двигает сложность сильнее.
-
-Кривая на двенадцать уровней, по таблице выше:
-
-| Уровни | Предметов | Видов | Ожидаемая доля побед |
+| shelf spots | 36 items (6 kinds) | 48 (8 kinds) | 60 (10 kinds) |
 |---|---|---|---|
-| 1–4 | 36 | 6 | около 98% |
-| 5–8 | 48 | 8 | около 87% |
-| 9–12 | 60 | 10 | около 66% |
+| **9** (current) | **98.0%** | 86.5% | 66.0% |
+| 8 | 90.5% | 68.0% | 43.5% |
+| 7 (genre standard) | 84.5% | 55.5% | 33.5% |
+| 6 | 56.5% | 28.0% | 7.5% |
 
-Начало нарочно лёгкое. Аудитория — женщины 30–55, играющие в паузах; замысел
-прямо требует избегать наказаний и унижения при проигрыше. Первые четыре уровня
-должны учить и радовать, а не отсеивать. Проигрыш появляется к девятому уровню,
-когда котёнок уже перешёл во второе состояние и привязанность возникла.
+Pile size turned out to be a stronger lever than the number of spots.
 
-Диапазон «30–60 предметов» уже записан в замысле — новых сущностей не вводим.
+---
 
-### Решение 3. Порождатель: отделить число видов от размера кучи
+## Decisions
 
-Сейчас в `tools/solver/generate.py`:
+### Decision 1. Remove the move limit entirely
+
+Not "fix the numbers," but remove the entity.
+
+The move limit is **incompatible** with the win condition. A win is "the
+pile is fully cleared," each move removes one item, so a win requires
+exactly as many moves as there are items. A limit smaller than the pile
+size makes the level unbeatable; a larger one makes it unreachable. There
+is no middle ground: no meaningful value exists for this parameter.
+
+Confirmation from the genre: in the reference examples named in the concept
+itself — "Sheep a Sheep," "Triple Match 3D," "Zen Match" — there is no move
+counter. The only loss there is also a jam.
+
+What gets removed: `Level.MovesLimit`, `Board.MovesLeft`,
+`GameOutcome.OutOfMoves`, the `moves_limit` field in the level description,
+the entire move-budget-slack calculation in `tools/solver/generate.py` and
+`ship_levels.py`, and the corresponding tests.
+
+Two outcomes remain: win and jam. This honestly reflects the game that's
+already written.
+
+### Decision 2. Difficulty is set by pile size
+
+The shelf stays at nine spots. This is part of the visual identity ("three
+shelves of three"), and there's no reason to change it: pile size moves
+difficulty more strongly.
+
+A twelve-level curve, per the table above:
+
+| Levels | Items | Kinds | Expected win rate |
+|---|---|---|---|
+| 1–4 | 36 | 6 | about 98% |
+| 5–8 | 48 | 8 | about 87% |
+| 9–12 | 60 | 10 | about 66% |
+
+The start is deliberately easy. The audience is women 30–55 playing during
+breaks; the concept explicitly requires avoiding punishment and humiliation
+on loss. The first four levels should teach and delight, not filter people
+out. Losing appears around level nine, once the kitten has already moved
+into its second state and attachment has formed.
+
+The "30–60 items" range is already recorded in the concept — no new
+entities are introduced.
+
+### Decision 3. Generator: decouple the number of kinds from pile size
+
+Currently in `tools/solver/generate.py`:
 
 ```python
 kind_count = max(1, round(item_count / 3 / 2))  # ~2 triples per kind
 ```
 
-Число видов жёстко следует за размером кучи. Настраивать нечего — это и есть
-причина, по которой все двенадцать уровней одинаковы.
+The number of kinds rigidly follows pile size. There's nothing to tune —
+this is exactly why all twelve levels are the same.
 
-Сделать `kind_count` явным необязательным доводом с прежним поведением по
-умолчанию:
+Make `kind_count` an explicit optional argument with the previous behavior
+kept as the default:
 
 ```python
 def generate_level(rng, number=1, item_count=30, kind_count=None, room_id=None):
@@ -114,127 +120,134 @@ def generate_level(rng, number=1, item_count=30, kind_count=None, room_id=None):
         kind_count = max(1, round(item_count / 3 / 2))
 ```
 
-Работы на десять строк, а рычагов становится два вместо одного.
+Ten lines of work, and the levers become two instead of one.
 
-### Решение 4. Предложение на экране проигрыша — «+1 место на полке»
+### Decision 4. The offer on the loss screen — "+1 shelf spot"
 
-Кнопка должна снимать ту беду, которая случилась. Случается только затор.
+The button should relieve the specific trouble that occurred. Only a jam
+occurs.
 
-Из жанровых решений — убрать три предмета с полки, добавить место, отменить ход —
-берём **добавить место**: это прямое противоядие затору, понятно без объяснений
-и стоит в ядре одного целого числа (вместимость полки перестаёт быть константой).
+Among the genre solutions — remove three items from the shelf, add a spot,
+undo a move — we take **add a spot**: it's a direct antidote to a jam,
+self-explanatory without needing an explanation, and in the core it's a
+single integer (shelf capacity stops being a constant).
 
-В MVP оплаты нет, кнопка остаётся заглушкой со счётчиком нажатий. Меняется
-надпись и смысл, а не устройство.
+There's no payment in the MVP; the button stays a stub with a tap counter.
+The label and meaning change, not the mechanism.
 
-Последствия для замеров: событие `moves_button_tap` переименовывается. Предлагаю
-`booster_tap` — нейтрально к тому, что именно предлагается, и переживёт смену
-предложения. Четвёртая метрика перестаёт измерять готовность купить бесполезное.
+Consequences for measurement: the event `moves_button_tap` gets renamed. I
+propose `booster_tap` — neutral to whatever the offer actually is, and it
+will survive a change of offer. The fourth metric stops measuring
+willingness to buy something useless.
 
-### Решение 5. Заодно закрыть найденное при разборе
+### Decision 5. While we're at it, close out what the review found
 
-Раз ядро всё равно вскрывается:
+Since the core is being opened up anyway:
 
-- **Кратность трём.** Проверку в конструктор `Level`: число предметов каждого
-  вида кратно трём. Иначе победа наступает по опустевшей куче с предметами,
-  застрявшими на полке.
-- **Порядок победы и затора.** В `Board.TakeItem` проверка затора стоит раньше
-  проверки победы. Поменять местами: куча разобрана — это победа, даже если
-  полка при этом заполнилась.
-- **`SlotsPerRow` и `RowCount`.** Совпадение ищется по всем девяти местам, ряды
-  ни на что не влияют. Либо убрать, либо пометить комментарием, что это только
-  раскладка для показа. С решением 4 вместимость всё равно становится
-  изменяемой — заодно.
-- **Комментарий в `Shelf.TryMatch`** обещает, что метод убирает все собранные
-  тройки, а код возвращает управление после первой. Поведение верное, поправить
-  надо текст.
-
----
-
-## Порядок работ
-
-Ядро → порождатель → уровни → показ → документы. Каждый шаг заканчивается
-зелёными тестами.
-
-**Шаг 1. Ядро.**
-Убрать лимит ходов и `OutOfMoves`; поменять местами проверки победы и затора;
-добавить проверку кратности трём; сделать вместимость полки изменяемой.
-Приёмка: тесты C# зелёные, покрытие не ниже 90%, `check-core-purity.sh` проходит.
-
-**Шаг 2. Зеркало правил на Python.**
-Те же изменения в `tools/solver/rules.py`. Приёмка: `pytest tools/tests`
-зелёный **без единой переменной окружения, выставленной руками** — сначала
-починить `<RollForward>Major</RollForward>` в `build/solver-bridge/solver-bridge.csproj`
-(блокирующий пункт 1 разбора).
-
-**Шаг 3. Согласование.**
-Добавить в `conformance_test.py` случаи с затором, а не только победы: обрывать
-решение на середине и доигрывать жадно до конца. Приёмка: среди случаев есть и
-`win`, и `shelf_jammed`, обе стороны совпадают. Пока этого нет, задача 3.1
-закрытой не считается.
-
-**Шаг 4. Порождатель.**
-Явный `kind_count`. Приёмка: property-тест — для каждого порождённого уровня
-решатель находит решение; виды кратны трём.
-
-**Шаг 5. Двенадцать уровней заново.**
-По кривой из решения 2. Приёмка: каждый уровень проверен решателем; замер
-разумной игрой даёт долю побед в пределах 90–100% на уровнях 1–4, 80–92% на 5–8,
-55–75% на 9–12. Числа — ориентир, а не догма: важно, что кривая убывает.
-
-**Шаг 6. Гигиена из разбора.**
-`__pycache__` из репозитория и в `.gitignore`, судьба `.hermes/` и `pool/`,
-снять `NoWarn` либо объяснить.
-
-**Шаг 7. Документы.**
-`cat-shelter-mvp.md`: раздел 3 — убрать лимит ходов, записать кривую по размеру
-кучи; раздел 6 — заменить «+5 ходов» на «+1 место»; раздел 12 — переименовать
-событие. `cat-shelter-tasks.md`: задача 3.4 переписывается с запаса ходов на
-кривую размера кучи; 6.6 — новая надпись кнопки; M7 — имя события; 8.0 — уточнить
-определение четвёртой метрики.
-
-Документы правятся **в конце**, когда код уже подтвердил числа. Наоборот было бы
-повторением исходной ошибки: сперва записать цифру, потом обнаружить, что она
-недостижима.
+- **Multiple-of-three.** Add a check to `Level`'s constructor: the count of
+  each item kind is a multiple of three. Otherwise a win occurs on an
+  emptied pile with items stuck on the shelf.
+- **Order of win and jam.** In `Board.TakeItem` the jam check comes before
+  the win check. Swap them: the pile being cleared is a win, even if the
+  shelf happens to fill up at the same time.
+- **`SlotsPerRow` and `RowCount`.** The match is searched across all nine
+  spots; the rows don't affect anything. Either remove them or mark with a
+  comment that this is display layout only. With decision 4 the capacity
+  becomes mutable anyway — do it at the same time.
+- **The comment in `Shelf.TryMatch`** promises the method clears every
+  completed triple it finds, but the code returns control after the first.
+  The behavior is correct; the text needs fixing.
 
 ---
 
-## Чего сознательно не меняем
+## Order of work
 
-**Полка остаётся на девять мест.** Жанровый стандарт — семь, и с семью игра была
-бы ближе к образцам. Но девять — часть зрительного образа, а размер кучи даёт тот
-же диапазон сложности. Менять и то и другое сразу — потерять понимание, что на
-что повлияло.
+Core → generator → levels → display → documents. Each step ends with green
+tests.
 
-**Решатель и его алгоритм не трогаем.** Он работает, проверен, отвечает быстро.
+**Step 1. Core.**
+Remove the move limit and `OutOfMoves`; swap the order of the win and jam
+checks; add the multiple-of-three check; make shelf capacity mutable.
+Acceptance: C# tests green, coverage no lower than 90%, `check-core-purity.sh`
+passes.
 
-**Подход «порт плюс сверка» между C# и Python остаётся.** Он слабее общего кода
-— обе стороны могут ошибиться одинаково, как в случае с порядком проверок, — но
-переделка на общий код стоит дороже, чем даёт на трёхнедельной заготовке. Плата
-за это — шаг 3: сверка обязана покрывать все исходы, а не только победу.
+**Step 2. The rules mirror in Python.**
+The same changes in `tools/solver/rules.py`. Acceptance: `pytest tools/tests`
+green **with not a single manually set environment variable** — first fix
+`<RollForward>Major</RollForward>` in
+`build/solver-bridge/solver-bridge.csproj` (blocking item 1 from the review).
+
+**Step 3. Conformance.**
+Add cases with a jam to `conformance_test.py`, not just wins: cut the
+solution off partway and finish greedily to the end. Acceptance: among the
+cases there are both `win` and `shelf_jammed`, and both sides match. Until
+this exists, task 3.1 isn't considered closed.
+
+**Step 4. Generator.**
+Explicit `kind_count`. Acceptance: a property test — for every generated
+level the solver finds a solution; kinds are multiples of three.
+
+**Step 5. Twelve levels regenerated.**
+Per the curve from decision 2. Acceptance: every level is checked by the
+solver; measuring with sensible play gives a win rate within 90–100% on
+levels 1–4, 80–92% on 5–8, 55–75% on 9–12. The numbers are a guide, not
+dogma: what matters is that the curve decreases.
+
+**Step 6. Hygiene from the review.**
+`__pycache__` out of the repository and into `.gitignore`, the fate of
+`.hermes/` and `pool/`, remove `NoWarn` or explain it.
+
+**Step 7. Documents.**
+`cat-shelter-mvp.md`: section 3 — remove the move limit, record the curve by
+pile size; section 6 — replace "+5 moves" with "+1 spot"; section 12 —
+rename the event. `cat-shelter-tasks.md`: task 3.4 gets rewritten from
+move-budget slack to the pile-size curve; 6.6 — the new button label; M7 —
+the event name; 8.0 — clarify the definition of the fourth metric.
+
+The documents are edited **last**, once the code has already confirmed the
+numbers. The other way around would repeat the original mistake: writing
+down a number first, then discovering it's unreachable.
 
 ---
 
-## Что это стоит
+## What we're deliberately not changing
 
-Ядро и зеркало — несколько часов, изменения мелкие и точечные. Двенадцать уровней
-порождаются заново запуском. Дороже всего шаг 3, потому что там надо придумать
-способ порождать проигрышные партии.
+**The shelf stays at nine spots.** The genre standard is seven, and with
+seven the game would be closer to the reference examples. But nine is part
+of the visual identity, and pile size gives the same range of difficulty.
+Changing both at once would mean losing track of what affected what.
 
-Взамен: исчезает мёртвый параметр, появляется настоящая кривая сложности,
-проверенная замером, и четвёртая метрика начинает измерять то, ради чего
-задумана.
+**The solver and its algorithm are untouched.** It works, it's verified, it
+answers fast.
+
+**The "port plus cross-check" approach between C# and Python stays.** It's
+weaker than shared code — both sides can get it wrong the same way, as in
+the case with the order of checks — but rewriting it as shared code costs
+more than it's worth on a three-week prototype. The price for this is
+step 3: conformance must cover all outcomes, not just wins.
 
 ---
 
-## Одна проверка, которую всё это не заменяет
+## What this costs
 
-Доля побед — не то же самое, что интересно. Таблица говорит, что на девятом
-уровне игрок будет проигрывать примерно каждую третью попытку; она не говорит,
-захочет ли он попробовать снова.
+The core and the mirror — a few hours, the changes are small and targeted.
+The twelve levels are regenerated by running the generator. Step 3 is the
+most expensive, because it requires figuring out a way to generate losing
+games.
 
-Это выясняет задача 3.7 — пять посторонних играют в отладочную сборку. Прототип
-для неё уже собран (`build/playtest/`). Перестройку стоит доводить до конца
-именно ради того, чтобы на 3.7 сажать людей за игру с настоящей кривой, а не за
-двенадцать одинаковых уровней.
-</content>
+In return: a dead parameter disappears, a real difficulty curve appears,
+verified by measurement, and the fourth metric starts measuring what it was
+meant to measure.
+
+---
+
+## One check that none of this replaces
+
+Win rate isn't the same thing as being fun. The table says that on level
+nine the player will lose roughly every third attempt; it doesn't say
+whether they'll want to try again.
+
+That's what task 3.7 finds out — five outside people playing the debug
+build. A prototype for it is already built (`build/playtest/`). It's worth
+seeing the restructuring through to the end precisely so that 3.7 sits
+people down with a game that has a real curve, not twelve identical levels.

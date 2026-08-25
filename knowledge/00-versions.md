@@ -1,122 +1,128 @@
-# Сводка версий: что проверено лично
+# Version summary: personally verified
 
-Дата проверки: 2026-08-24
-Назначение: единая точка правды по номерам версий. Всё остальное в `knowledge/`
-опирается на эти числа. Перед началом работ сверить заново — записи стареют.
+Date verified: 2026-08-24
+Purpose: a single point of truth for version numbers. Everything else in
+`knowledge/` relies on these figures. Recheck against the source before
+starting work — entries go stale.
 
 ---
 
-## Проверено по первоисточникам
+## Verified against primary sources
 
-| Составляющая | Версия | Состояние на 2026-08-24 | Источник |
+| Component | Version | Status as of 2026-08-24 | Source |
 |---|---|---|---|
-| Unity LTS | **6.3 LTS (6000.3.x)** | выпущена в декабре 2025, первая LTS после 6.0; поддержка два года, до декабря 2027 | [unity.com/blog](https://unity.com/blog/unity-6-3-lts-is-now-available), [docs 6000.3](https://docs.unity3d.com/6000.3/Documentation/Manual/UnityManual.html) |
-| Unity, ветка правок 6.3 | **6000.3.22f1** (13 августа 2026) | последний f-выпуск ветки; поддержка до 04.12.2027, расширенная до 04.12.2028 | [endoflife.date/unity](https://endoflife.date/unity) |
-| Unity 6.5 | **6000.5.9f1** (19 августа 2026) | Update release, вышла 15 июня 2026; **это то, что Unity предлагает по умолчанию** | [endoflife.date/unity](https://endoflife.date/unity) |
-| Unity 6.0 LTS | 6000.0.82f1 (19 августа 2026) | поддержка кончается **16 октября 2026** — через полтора месяца | [endoflife.date/unity](https://endoflife.date/unity) |
-| Godot 4.6 | 4.6.3 stable | 4.6 вышла 26 января 2026, 4.6.3 — 20 мая 2026 | [godotengine.org/releases/4.6](https://godotengine.org/releases/4.6/), [GitHub 4.6.3](https://github.com/godotengine/godot/releases/tag/4.6.3-stable) |
-| Godot 4.7 | **4.7.2** (16 августа 2026) | 4.7 вышла 18 июня 2026, уже две починки | [endoflife.date/godot](https://endoflife.date/godot) |
+| Unity LTS | **6.3 LTS (6000.3.x)** | released December 2025, first LTS after 6.0; two years of support, until December 2027 | [unity.com/blog](https://unity.com/blog/unity-6-3-lts-is-now-available), [docs 6000.3](https://docs.unity3d.com/6000.3/Documentation/Manual/UnityManual.html) |
+| Unity, 6.3 patch branch | **6000.3.22f1** (August 13, 2026) | latest f-release of the branch; support until 04.12.2027, extended to 04.12.2028 | [endoflife.date/unity](https://endoflife.date/unity) |
+| Unity 6.5 | **6000.5.9f1** (August 19, 2026) | Update release, released June 15, 2026; **this is what Unity offers by default** | [endoflife.date/unity](https://endoflife.date/unity) |
+| Unity 6.0 LTS | 6000.0.82f1 (August 19, 2026) | support ends **October 16, 2026** — in a month and a half | [endoflife.date/unity](https://endoflife.date/unity) |
+| Godot 4.6 | 4.6.3 stable | 4.6 released January 26, 2026, 4.6.3 — May 20, 2026 | [godotengine.org/releases/4.6](https://godotengine.org/releases/4.6/), [GitHub 4.6.3](https://github.com/godotengine/godot/releases/tag/4.6.3-stable) |
+| Godot 4.7 | **4.7.2** (August 16, 2026) | 4.7 released June 18, 2026, already two patch releases | [endoflife.date/godot](https://endoflife.date/godot) |
 
-### Что это подтверждает в замысле
+### What this confirms in the concept
 
-Раздел 1 `cat-shelter-tech.md` написан по действительному положению дел:
-Unity 6.3 LTS существует, поддержка до декабря 2027 — как и записано; выпуски
-6.4 и 6.5 действительно свежее и без двухлетней поддержки; Godot 4.6.3 stable
-существует и действительно имеет три выпуска починок за спиной.
+Section 1 of `cat-shelter-tech.md` was written according to the actual state
+of affairs: Unity 6.3 LTS exists, support until December 2027 — as recorded;
+releases 6.4 and 6.5 are indeed newer and without two-year support; Godot
+4.6.3 stable exists and does indeed have three patch releases behind it.
 
-Довод «не брать 6.4/6.5» подтверждается, но **не тем обоснованием, что стояло
-здесь раньше.**
+The argument "don't take 6.4/6.5" is confirmed, but **not for the reasoning
+that stood here before.**
 
-Прежняя редакция утверждала, что 6000.5 в бета-состоянии. Это устарело: 6.5
-вышла 15 июня 2026, последняя правка `6000.5.9f1` от 19 августа — обычный
-стабильный `f`-выпуск. Именно её Unity предлагает по умолчанию тому, кто скачивает
-редактор сегодня.
+The previous edition claimed 6000.5 was in beta. This is outdated: 6.5
+was released June 15, 2026, and the latest patch, `6000.5.9f1`, from August
+19, is an ordinary stable `f` release. It is exactly this version that Unity
+offers by default to anyone downloading the editor today.
 
-Довод сохраняется по другой причине: **6.5 — это Update release.** Такие живут
-«until the next release (update or LTS) is published», то есть поддержка
-кончится с выходом следующей версии, возможно через пару месяцев. У 6.3 LTS —
-до 4 декабря 2027, расширенная до 2028.
+The argument still holds, but for a different reason: **6.5 is an Update
+release.** Such releases live "until the next release (update or LTS) is
+published," meaning support will end when the next version comes out,
+possibly in a couple of months. 6.3 LTS has support until December 4, 2027,
+extended to 2028.
 
-### Как поставить 6.3 LTS, если Unity предлагает 6.5
+### How to install 6.3 LTS if Unity offers 6.5
 
-Выбор есть, он просто не на виду. Два пути:
+There is a choice, it's just not in plain sight. Two paths:
 
-1. **Архив выпусков** — [unity.com/releases/editor/archive](https://unity.com/releases/editor/archive).
-   Найти `6000.3.22f1`, нажать «Unity Hub» — откроется ссылка вида `unityhub://`,
-   и Hub поставит именно её.
-2. **Из самого Hub** — Installs → Install Editor, там же есть ссылка на архив
-   ([документация Hub](https://docs.unity.com/hub/add-editor)).
+1. **Release archive** — [unity.com/releases/editor/archive](https://unity.com/releases/editor/archive).
+   Find `6000.3.22f1`, click "Unity Hub" — this opens a link of the form
+   `unityhub://`, and Hub will install exactly that version.
+2. **From Hub itself** — Installs → Install Editor, there's also a link to
+   the archive there ([Hub documentation](https://docs.unity.com/hub/add-editor)).
 
-Не «6.3 недоступна», а «страница загрузки показывает рекомендованную».
+Not "6.3 is unavailable," but "the download page shows the recommended one."
 
-### Если всё же придётся работать на 6.5
+### If you end up having to work on 6.5 anyway
 
-Катастрофы не будет: то, что мы используем — URP 2D, UI Toolkit, Test Framework,
-`JsonUtility` — между этими версиями не менялось. Настоящая цена в другом: весь
-каталог `knowledge/unity/` собран по страницам `docs.unity3d.com/6000.3/…`, и
-привязанные к версии утверждения пришлось бы перепроверять. Плюс главный довод
-раздела 0 технического документа — агент точнее на той версии, которой больше в
-обучающих данных, а 6.5 вышла в июне 2026.
+It won't be a disaster: what we use — URP 2D, UI Toolkit, Test Framework,
+`JsonUtility` — hasn't changed between these versions. The real cost lies
+elsewhere: the entire `knowledge/unity/` catalog was compiled from
+`docs.unity3d.com/6000.3/…` pages, and version-tied claims would have to be
+rechecked. Plus the main argument of section 0 of the tech document — the
+agent is more accurate on the version that's more represented in its
+training data, and 6.5 was released in June 2026.
 
-### Что в замысле устарело
+### What in the concept is outdated
 
-**Довод про Godot 4.7 больше не работает.** В `cat-shelter-tech.md` написано:
-«Не 4.7, хотя он вышел 18 июня 2026: на 4.6.3 уже три выпуска починок, на 4.7
-их пока нет». На 24 августа 2026 у 4.7 **две починки** — 4.7.1 от 14 июля и
-4.7.2 от 16 августа. Правило поддержки Godot гласит: «Stable branches are
-supported at minimum until the next stable branch is released and has received
-its first patch update». Значит гарантированный срок 4.6 уже истёк, и она
-держится на доброй воле сопровождающих.
+**The argument about Godot 4.7 no longer holds.** `cat-shelter-tech.md`
+states: "Not 4.7, even though it was released June 18, 2026: 4.6.3 already
+has three patch releases, 4.7 doesn't have any yet." As of August 24, 2026,
+4.7 has **two patches** — 4.7.1 from July 14 and 4.7.2 from August 16.
+Godot's support rule states: "Stable branches are supported at minimum until
+the next stable branch is released and has received its first patch
+update." This means 4.6's guaranteed support period has already expired, and
+it is being kept alive by the maintainers' goodwill.
 
-Вывод не «срочно переходить на 4.7» — Godot остаётся запасным путём, и трогать
-его до отказа издателей незачем. Вывод в другом: **довод, которым обоснован
-выбор, протух за два месяца.** Если до Godot дойдёт дело, выбор версии надо
-будет делать заново, а не доставать из этого документа.
+The conclusion is not "urgently switch to 4.7" — Godot remains a fallback
+path, and there's no need to touch it before the publishers reject the game.
+The conclusion is different: **the argument used to justify the choice went
+stale in two months.** If it comes to Godot, the version choice will need to
+be made again, not pulled from this document.
 
 ---
 
-## Цены облачной модели
+## Cloud model prices
 
-Проверено по [странице цен](https://platform.claude.com/docs/en/about-claude/pricing)
-на 2026-08-24. Все цены за миллион токенов.
+Verified against the [pricing page](https://platform.claude.com/docs/en/about-claude/pricing)
+as of 2026-08-24. All prices per million tokens.
 
-| Модель | Вход | Выход |
+| Model | Input | Output |
 |---|---|---|
 | Claude Haiku 4.5 | $1 | $5 |
 | Claude Sonnet 5 | $2 | $10 |
 | Claude Opus 5 | $5 | $25 |
 | Claude Fable 5 | $10 | $50 |
 
-Отдельно: льготная цена Sonnet 5 ($2/$10) объявлена постоянной, повышения до
-$3/$15 первого сентября 2026 **не будет**.
+Separately: the discounted price of Sonnet 5 ($2/$10) has been announced as
+permanent; the increase to $3/$15 on September 1, 2026 **will not happen**.
 
-Расчёт стоимости разбора снимка — в
+The cost calculation for parsing a photo is in
 [`vision-model/01-traits-strict-json.md`](vision-model/01-traits-strict-json.md).
-Итог: около 0,10 цента на Haiku 4.5, около 0,20 на Sonnet 5. Оценка
-«0,1–0,3 цента» из раздела 3 `cat-shelter-tech.md` подтверждается расчётом.
+Bottom line: about 0.10 cents on Haiku 4.5, about 0.20 on Sonnet 5. The
+estimate of "0.1–0.3 cents" from section 3 of `cat-shelter-tech.md` is
+confirmed by the calculation.
 
 ---
 
-## Требует проверки перед началом работ
+## Needs verification before starting work
 
-Эти числа взяты из `cat-shelter-tech.md` и `cat-shelter-mvp.md` и должны быть
-сверены с первоисточником отдельно — их проверка ведётся в соответствующих
-файлах `knowledge/`:
+These figures are taken from `cat-shelter-tech.md` and `cat-shelter-mvp.md`
+and must be checked against the primary source separately — their
+verification is carried out in the corresponding `knowledge/` files:
 
-- требование App Store к iOS SDK и дата вступления в силу
-  (в замысле: «с апреля 2026 только iOS 26 SDK») — см. `ios/01-appstore-requirements-2026.md`;
-- существование MCP-сервера Unity первой стороны — см. `agents/01-unity-mcp.md`;
-- текущее название API Apple Vision для распознавания животных — см. `ios/03-vision-animal-recognition.md`;
-- версии Python, FastAPI, Pydantic, pytest — см. `python/01-fastapi-service.md`;
-- состояние Godot 4.7 — см. `godot/01-godot-4.6-fallback.md`.
+- the App Store's iOS SDK requirement and the date it takes effect
+  (in the concept: "starting April 2026, iOS 26 SDK only") — see `ios/01-appstore-requirements-2026.md`;
+- the existence of a first-party Unity MCP server — see `agents/01-unity-mcp.md`;
+- the current name of the Apple Vision API for animal recognition — see `ios/03-vision-animal-recognition.md`;
+- versions of Python, FastAPI, Pydantic, pytest — see `python/01-fastapi-service.md`;
+- the state of Godot 4.7 — see `godot/01-godot-4.6-fallback.md`.
 
 ---
 
-## Правило обращения с этим каталогом
+## Rule for handling this catalog
 
-Записи в `knowledge/` — снимок положения дел на 2026-08-24, а не вечная истина.
-Прежде чем опереться на номер версии, ключ командной строки или имя API из этих
-файлов, стоит открыть указанную ссылку. Особенно это касается всего, что связано
-с Apple: сроки и требования магазина меняются объявлением на сайте, без
-предупреждения.
-</content>
+The entries in `knowledge/` are a snapshot of the state of affairs as of
+2026-08-24, not eternal truth. Before relying on a version number, a
+command-line key, or an API name from these files, it's worth opening the
+linked source. This is especially true for everything related to Apple:
+store deadlines and requirements change with an announcement on the website,
+without warning.

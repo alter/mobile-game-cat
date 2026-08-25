@@ -1,30 +1,30 @@
-# Тестирование узла-посредника: pytest и FastAPI
+# Testing the proxy worker: pytest and FastAPI
 
-Дата сбора сведений: 2026-08-24.
+Date of information gathering: 2026-08-24.
 
-Проверенные номера версий (по PyPI, дата обращения 2026-08-24):
+Verified version numbers (per PyPI, accessed 2026-08-24):
 
-| Пакет | Версия | Дата выпуска | Источник |
+| Package | Version | Release date | Source |
 |---|---|---|---|
 | pytest | 9.1.1 | 2026-06-19 | [pypi.org/project/pytest](https://pypi.org/project/pytest/) |
 | pytest-cov | 7.1.0 | 2026-03-21 | [pypi.org/project/pytest-cov](https://pypi.org/project/pytest-cov/) |
 | respx | 0.23.1 | 2026-04-08 | [pypi.org/project/respx](https://pypi.org/project/respx/) |
-| pytest-httpx | 0.36.2 | 2026-04-09 (по данным Socket.dev, PyPI напрямую открыть не удалось) | см. примечание в разделе ниже |
+| pytest-httpx | 0.36.2 | 2026-04-09 (per Socket.dev data, PyPI itself could not be opened directly) | see the note in the section below |
 
-## Кратко
+## Summary
 
-- Последняя версия pytest на дату сбора — 9.1.1 (19 июня 2026) — [pypi.org/project/pytest](https://pypi.org/project/pytest/).
-- Официальная документация FastAPI рекомендует `TestClient` (обёртка над `httpx`, встроенная в Starlette) для обычных синхронных тестов и `httpx.AsyncClient` с `ASGITransport` — для тестов, написанных как `async def` (например, если внутри теста нужно вызывать и `await`-ить другой асинхронный код).
-- `app.dependency_overrides` — штатный механизм FastAPI для подмены зависимостей в тестах, в том числе для подмены обращения к облачной модели заглушкой.
-- Для перехвата вызовов `httpx` без реального обращения к сети есть отдельные библиотеки `respx` (0.23.1, требует httpx ≥0.25) и `pytest-httpx`; обе моложе, чем `httpx` 1.0 — обе явно ориентированы на `httpx`, а не на его форк `httpx2` (см. файл 01), поэтому при переходе на `httpx2` совместимость этих библиотек нужно проверять отдельно — «не проверено» в рамках этого сбора.
-- 40 эталонных снимков естественно ложатся на `pytest.mark.parametrize`: список файлов (или их путей) передаётся как параметры, тест выполняется один раз на каждый снимок.
-- Прогон по эталонному набору не должен обращаться к реальной облачной модели на каждый запуск — для этого её обращение подменяется фикстурой/заглушкой (либо заранее записанными ответами), а не реальным сетевым вызовом.
-- Проверка «все ответы разбираются» — это по сути обычный тест на успешный `model_validate_json`/`model_validate` и последующую проверку принадлежности значений допустимому перечню (`Literal`/`Enum`).
-- `pytest-cov` (7.1.0) добавляет отчёт покрытия и опцию `--cov-fail-under MIN` для проверки порога прямо в CI.
+- The latest version of pytest as of the collection date is 9.1.1 (June 19, 2026) — [pypi.org/project/pytest](https://pypi.org/project/pytest/).
+- The official FastAPI documentation recommends `TestClient` (a wrapper over `httpx`, built into Starlette) for ordinary synchronous tests, and `httpx.AsyncClient` with `ASGITransport` — for tests written as `async def` (for example, if other asynchronous code needs to be called and awaited inside the test).
+- `app.dependency_overrides` is FastAPI's standard mechanism for substituting dependencies in tests, including substituting a call to the cloud model with a stub.
+- To intercept `httpx` calls without an actual network request, there are separate libraries `respx` (0.23.1, requires httpx ≥0.25) and `pytest-httpx`; both are younger than `httpx` 1.0 — both are explicitly aimed at `httpx`, not at its fork `httpx2` (see file 01), so when moving to `httpx2` the compatibility of these libraries needs to be checked separately — "not verified" within the scope of this collection.
+- 40 reference snapshots naturally map onto `pytest.mark.parametrize`: a list of files (or their paths) is passed as parameters, and the test runs once per snapshot.
+- A run over the reference set must not hit the real cloud model on every run — for that, the call to it is replaced by a fixture/stub (or by pre-recorded responses), rather than a real network call.
+- The check "all responses parse" is essentially an ordinary test for a successful `model_validate_json`/`model_validate` call, followed by a check that the values belong to the allowed enumeration (`Literal`/`Enum`).
+- `pytest-cov` (7.1.0) adds a coverage report and the `--cov-fail-under MIN` option to check a threshold right in CI.
 
-## Устройство pytest: фикстуры, параметризация, маркеры, conftest.py
+## How pytest is structured: fixtures, parametrization, markers, conftest.py
 
-Фикстура — функция, декорированная `@pytest.fixture`, которая предоставляет данные для настройки теста; тестовая функция «запрашивает» фикстуру, указывая её имя как параметр — [docs.pytest.org/…/fixtures](https://docs.pytest.org/en/stable/how-to/fixtures.html):
+A fixture is a function decorated with `@pytest.fixture` that provides data for setting up a test; the test function "requests" the fixture by naming it as a parameter — [docs.pytest.org/…/fixtures](https://docs.pytest.org/en/stable/how-to/fixtures.html):
 
 ```python
 import pytest
@@ -38,7 +38,7 @@ def test_fruit_salad(fruit_bowl):
     assert all(fruit.cubed for fruit in fruit_salad.fruit)
 ```
 
-Параметризация — декоратор `@pytest.mark.parametrize` задаёт набор наборов аргументов, и тест выполняется отдельно для каждого набора — [docs.pytest.org/…/parametrize](https://docs.pytest.org/en/stable/how-to/parametrize.html):
+Parametrization — the `@pytest.mark.parametrize` decorator specifies a set of argument sets, and the test is run separately for each set — [docs.pytest.org/…/parametrize](https://docs.pytest.org/en/stable/how-to/parametrize.html):
 
 ```python
 # content of test_expectation.py
@@ -50,7 +50,7 @@ def test_eval(test_input, expected):
     assert eval(test_input) == expected
 ```
 
-Маркеры регистрируются в конфигурационном файле (в `pyproject.toml` в формате TOML или в `pytest.ini`/`setup.cfg` в формате INI), «всё, что стоит после `:` в имени метки — необязательное описание»; регистрация меток избавляет от предупреждений и рекомендуется для сторонних плагинов; «метки можно применять только к тестам, на фикстуры они не действуют» — [docs.pytest.org/…/mark](https://docs.pytest.org/en/stable/how-to/mark.html):
+Markers are registered in a configuration file (in `pyproject.toml` in TOML format, or in `pytest.ini`/`setup.cfg` in INI format); "everything after the `:` in a mark name is an optional description"; registering marks removes warnings and is recommended for third-party plugins; "marks can only be applied to tests, they do not work on fixtures" — [docs.pytest.org/…/mark](https://docs.pytest.org/en/stable/how-to/mark.html):
 
 ```toml
 [pytest]
@@ -60,7 +60,7 @@ markers = [
 ]
 ```
 
-Маркеры можно регистрировать и программно, через хук в `conftest.py`:
+Markers can also be registered programmatically, via a hook in `conftest.py`:
 
 ```python
 def pytest_configure(config):
@@ -69,11 +69,11 @@ def pytest_configure(config):
     )
 ```
 
-Для узла-посредника типовое устройство `conftest.py` — общие фикстуры: тестовый экземпляр FastAPI-приложения, тестовый клиент, путь к каталогу с эталонными снимками, подмена настроек (`Settings`) с фиктивным ключом облачной модели, чтобы реальный ключ не требовался для запуска тестов.
+For the proxy worker, a typical `conftest.py` layout is: shared fixtures — a test instance of the FastAPI application, a test client, the path to the directory with reference snapshots, an override of the settings (`Settings`) with a fake cloud model key, so a real key is not required to run the tests.
 
-## Тестирование FastAPI: TestClient против httpx.AsyncClient с ASGITransport
+## Testing FastAPI: TestClient versus httpx.AsyncClient with ASGITransport
 
-Официальная документация FastAPI по тестированию описывает `TestClient` как основной способ: «Testing FastAPI applications is easy and enjoyable thanks to Starlette's TestClient, which is based on HTTPX (designed after Requests)»; тестовые функции пишутся как обычный `def` (не `async def`), вызовы к клиенту делаются без `await` — [fastapi.tiangolo.com/tutorial/testing](https://fastapi.tiangolo.com/tutorial/testing/):
+The official FastAPI testing documentation describes `TestClient` as the primary method: "Testing FastAPI applications is easy and enjoyable thanks to Starlette's TestClient, which is based on HTTPX (designed after Requests)"; test functions are written as an ordinary `def` (not `async def`), and calls to the client are made without `await` — [fastapi.tiangolo.com/tutorial/testing](https://fastapi.tiangolo.com/tutorial/testing/):
 
 ```python
 from fastapi import FastAPI
@@ -93,7 +93,7 @@ def test_read_main():
     assert response.json() == {"msg": "Hello World"}
 ```
 
-Расширенный пример с проверкой заголовка и телом запроса — тот же источник:
+An extended example checking a header and a request body — same source:
 
 ```python
 from typing import Annotated
@@ -134,7 +134,7 @@ def test_read_item():
     }
 ```
 
-Для тестов, написанных как `async def` (например, чтобы внутри теста вызывать другой асинхронный код), `TestClient` не подходит — «while TestClient uses magic to call async FastAPI applications from synchronous test functions, this doesn't work inside async functions»; вместо него используется `httpx.AsyncClient` с `ASGITransport`, а тест помечается `@pytest.mark.anyio` — [fastapi.tiangolo.com/advanced/async-tests](https://fastapi.tiangolo.com/advanced/async-tests/):
+For tests written as `async def` (for example, to call other asynchronous code inside the test), `TestClient` does not fit — "while TestClient uses magic to call async FastAPI applications from synchronous test functions, this doesn't work inside async functions"; instead, `httpx.AsyncClient` with `ASGITransport` is used, and the test is marked with `@pytest.mark.anyio` — [fastapi.tiangolo.com/advanced/async-tests](https://fastapi.tiangolo.com/advanced/async-tests/):
 
 ```python
 import pytest
@@ -151,11 +151,11 @@ async def test_root():
     assert response.json() == {"message": "Tomato"}
 ```
 
-Важная оговорка того же источника: если приложение использует события жизненного цикла (`lifespan`), `AsyncClient` их автоматически не запускает — для этого нужен `LifespanManager` из пакета `asgi-lifespan` — [fastapi.tiangolo.com/advanced/async-tests](https://fastapi.tiangolo.com/advanced/async-tests/). Для узла-посредника это означает: если инициализация клиента к облачной модели или подключения к Redis (для ограничения частоты обращений, см. файл 03) происходит в `lifespan`, асинхронные тесты должны явно поднимать `LifespanManager`, иначе эти ресурсы в тесте просто не будут созданы.
+An important caveat from the same source: if the application uses lifespan events (`lifespan`), `AsyncClient` does not run them automatically — for that, `LifespanManager` from the `asgi-lifespan` package is needed — [fastapi.tiangolo.com/advanced/async-tests](https://fastapi.tiangolo.com/advanced/async-tests/). For the proxy worker this means: if the initialization of the cloud model client or the Redis connection (for rate limiting, see file 03) happens in `lifespan`, asynchronous tests must explicitly bring up `LifespanManager`, otherwise those resources simply will not be created in the test.
 
-## Подмена внешних вызовов: dependency_overrides, respx, pytest-httpx
+## Substituting external calls: dependency_overrides, respx, pytest-httpx
 
-`app.dependency_overrides` — простой словарь на объекте приложения FastAPI: ключ — исходная зависимость (функция), значение — функция-подмена; FastAPI вызывает подмену вместо оригинала. Это официально рекомендуемый способ «avoid calling expensive external services (like authentication providers) in tests» — [fastapi.tiangolo.com/advanced/testing-dependencies](https://fastapi.tiangolo.com/advanced/testing-dependencies/):
+`app.dependency_overrides` is a simple dictionary on the FastAPI application object: the key is the original dependency (a function), the value is the replacement function; FastAPI calls the replacement instead of the original. This is the officially recommended way to "avoid calling expensive external services (like authentication providers) in tests" — [fastapi.tiangolo.com/advanced/testing-dependencies](https://fastapi.tiangolo.com/advanced/testing-dependencies/):
 
 ```python
 from typing import Annotated
@@ -187,11 +187,11 @@ def test_override_in_items():
     }
 ```
 
-Сброс подмен после теста: `app.dependency_overrides = {}` — тот же источник. Для узла-посредника это означает: обращение к облачной модели стоит вынести в отдельную зависимость (`Depends(get_cloud_client)` или аналогичную функцию, возвращающую клиента или сам вызов), чтобы в тестах подменить её на заглушку, возвращающую заранее заданный набор черт окраса, без единого реального HTTP-обращения наружу.
+Resetting the overrides after a test: `app.dependency_overrides = {}` — same source. For the proxy worker this means: the call to the cloud model is worth pulling out into a separate dependency (`Depends(get_cloud_client)` or a similar function returning a client or the call itself), so that in tests it can be replaced with a stub returning a pre-set list of coat traits, without a single real outbound HTTP call.
 
-Если внешний вызов сделан напрямую через `httpx` внутри кода (а не как отдельная FastAPI-зависимость), перехватывать сетевые вызовы можно на уровне самой библиотеки `httpx` двумя специализированными библиотеками:
+If the external call is made directly through `httpx` inside the code (rather than as a separate FastAPI dependency), network calls can be intercepted at the level of the `httpx` library itself, using two specialized libraries:
 
-**respx** (последняя версия 0.23.1, 8 апреля 2026, требует httpx ≥0.25) — «A utility for mocking out the Python HTTPX and HTTP Core libraries» — [pypi.org/project/respx](https://pypi.org/project/respx/). Пример через декоратор и через фикстуру pytest — [lundberg.github.io/respx](https://lundberg.github.io/respx/):
+**respx** (latest version 0.23.1, April 8, 2026, requires httpx ≥0.25) — "A utility for mocking out the Python HTTPX and HTTP Core libraries" — [pypi.org/project/respx](https://pypi.org/project/respx/). An example via a decorator and via a pytest fixture — [lundberg.github.io/respx](https://lundberg.github.io/respx/):
 
 ```python
 import httpx
@@ -217,23 +217,23 @@ def test_default(respx_mock):
     assert response.status_code == 204
 ```
 
-**pytest-httpx** — по данным поисковой выдачи (напрямую страницу PyPI открыть через WebFetch в ходе сбора не удалось — сервер возвращал ошибку загрузки страницы), последняя версия на момент сбора — 0.36.2, выпущена 9 апреля 2026, по данным стороннего каталога Socket.dev — этот номер версии помечается как «не проверено напрямую по PyPI», в отличие от остальных версий в этом файле. Библиотека предоставляет фикстуру для перехвата запросов `httpx` без явного мока каждого вызова вручную — конкретный код использования в рамках этого сбора дословно не процитирован, так как первоисточник открыть не удалось; перед применением стоит свериться с актуальным README на PyPI напрямую.
+**pytest-httpx** — per search results (the PyPI page itself could not be opened directly via WebFetch during this collection — the server kept returning a page-load error), the latest version as of the collection date is 0.36.2, released April 9, 2026, per data from the third-party catalog Socket.dev — this version number is flagged as "not verified directly against PyPI," unlike the other versions in this file. The library provides a fixture for intercepting `httpx` requests without explicitly mocking each call by hand — the specific usage code is not quoted verbatim within this collection, since the primary source could not be opened; before use, the current README should be checked directly on PyPI.
 
-Обе библиотеки ориентированы на `httpx`, а не на упомянутый в файле 01 форк `httpx2` — совместимость с `httpx2` в рамках этого сбора не проверялась.
+Both libraries are aimed at `httpx`, not at the `httpx2` fork mentioned in file 01 — compatibility with `httpx2` was not checked within this collection.
 
-## Прогон по набору из 40 эталонных снимков
+## Running the set of 40 reference snapshots
 
-Официальный механизм для этого — `pytest.mark.parametrize`, применённый к списку путей файлов (см. пример выше в разделе про устройство pytest). Практическая схема, вытекающая из документированных возможностей pytest, но не процитированная дословно как единый готовый пример (составлена по задаче, а не взята из одного источника):
+The official mechanism for this is `pytest.mark.parametrize`, applied to a list of file paths (see the example above in the section on how pytest is structured). A practical scheme following from pytest's documented capabilities, but not quoted verbatim as a single ready-made example (assembled for the task, not taken from one source):
 
-- Эталонные снимки хранить внутри репозитория теста, например `tests/fixtures/cat_photos/*.jpg`, рядом — файл или структуру с ожидаемыми/эталонными чертами окраса для каждого снимка (например, JSON-файл с сопоставлением «имя файла → ожидаемые черты» либо просто ожидание «ответ успешно разбирается и укладывается в перечень», если эталонных «правильных» черт по каждому снимку нет).
-- Список файлов собирать динамически (например, через `pathlib.Path.glob`) и передавать в `pytest.mark.parametrize("image_path", ...)`, либо использовать `pytest_generate_tests` в `conftest.py` для параметризации на основе содержимого каталога — эта функция официально описана в документации pytest по генерации тестов, но отдельно в рамках этого сбора не открывалась постранично, поэтому здесь не цитируется дословно.
-- Чтобы не гонять реальное обращение к облаку на каждый из 40 снимков при каждом запуске тестов, сам вызов к облачной модели подменяется на уровне зависимости FastAPI (`dependency_overrides`) или на уровне HTTP-библиотеки (`respx`/`pytest-httpx`, см. выше) — обращение к сети не выполняется, тестируется код разбора и валидации ответа, а не сама модель. Отдельный маркер (например, зарегистрированный `@pytest.mark.cloud`, см. раздел про маркеры) может выделять те немногие тесты, которые всё же обращаются к реальному облаку — такие тесты по умолчанию исключаются из обычного прогона (`pytest -m "not cloud"`) и запускаются отдельно, вручную или по расписанию.
+- Store the reference snapshots inside the test repository, e.g. `tests/fixtures/cat_photos/*.jpg`, alongside a file or structure with the expected/reference coat traits for each snapshot (for example, a JSON file mapping "file name → expected traits," or simply the expectation "the response parses successfully and fits within the enumeration," if there are no reference "correct" traits for each snapshot).
+- Collect the list of files dynamically (for example, via `pathlib.Path.glob`) and pass it to `pytest.mark.parametrize("image_path", ...)`, or use `pytest_generate_tests` in `conftest.py` for parametrization based on the directory contents — this function is officially described in the pytest documentation on generating tests, but was not opened page by page separately within this collection, so it is not quoted verbatim here.
+- To avoid making a real call to the cloud on each of the 40 snapshots on every test run, the call to the cloud model itself is replaced at the level of a FastAPI dependency (`dependency_overrides`) or at the level of the HTTP library (`respx`/`pytest-httpx`, see above) — no network call is made, and what is tested is the response-parsing and validation code, not the model itself. A separate marker (for example, a registered `@pytest.mark.cloud`, see the section on markers) can single out the few tests that do reach the real cloud — such tests are excluded from the ordinary run by default (`pytest -m "not cloud"`) and run separately, either manually or on a schedule.
 
-## Проверка того, что ответ модели разбирается
+## Checking that the model's response parses
 
-Из устройства Pydantic v2 (см. файл 01) прямо следует форма такой проверки: если модель ответа облачной модели описана как `BaseModel` с полями типа `Literal[...]` или `Enum`, то сам факт успешного вызова `Model.model_validate_json(raw_response)` (или `Model.model_validate(parsed_dict)`, если тело уже разобрано из JSON заранее) уже доказывает, что: 1) JSON синтаксически корректен, 2) все обязательные поля присутствуют, 3) значения перечислимых полей принадлежат допустимому множеству — Pydantic поднимет `ValidationError`, если значение не входит в `Literal`/`Enum`, это прямое следствие описанного в файле 01 поведения `field_validator`/`Literal`.
+From how Pydantic v2 is structured (see file 01) the form of this check follows directly: if the cloud model's response model is described as a `BaseModel` with fields of type `Literal[...]` or `Enum`, then the mere fact of a successful call to `Model.model_validate_json(raw_response)` (or `Model.model_validate(parsed_dict)`, if the body was already parsed from JSON beforehand) already proves that: 1) the JSON is syntactically correct, 2) all required fields are present, 3) the values of the enumerated fields belong to the allowed set — Pydantic will raise `ValidationError` if a value is not among the `Literal`/`Enum` options, which is a direct consequence of the `field_validator`/`Literal` behavior described in file 01.
 
-Практический тест на все 40 эталонных ответов (или ответов заглушки, эмулирующей облако) — сама идея параметризованной проверки следует из документированного `pytest.mark.parametrize` (см. выше), составлена для задачи, а не процитирована как готовый пример:
+A practical test over all 40 reference responses (or stub responses emulating the cloud) — the idea itself of a parametrized check follows from the documented `pytest.mark.parametrize` (see above), assembled for the task, not quoted as a ready-made example:
 
 ```python
 import pytest
@@ -245,35 +245,33 @@ def test_all_responses_parse(raw_response):
     assert model.color_pattern in ColorPattern
 ```
 
-Отдельно стоит проверять и обратный случай — что заведомо некорректный ответ (лишнее поле недопустимого значения, отсутствующее обязательное поле) действительно поднимает `ValidationError`, а не проходит валидацию молча; это стандартная практика тестирования на отрицательных примерах, отдельного специфичного источника именно под эту задачу в ходе сбора не требовалось, так как это прямое следствие поведения Pydantic, описанного и процитированного в файле 01.
+It is also worth separately checking the reverse case — that a deliberately invalid response (an extra field with a disallowed value, a missing required field) does indeed raise `ValidationError`, rather than silently passing validation; this is standard practice for testing negative examples, and no separate source specific to this task was needed during collection, since it is a direct consequence of Pydantic's behavior described and quoted in file 01.
 
-## Покрытие: pytest-cov
+## Coverage: pytest-cov
 
-Последняя версия `pytest-cov` — 7.1.0, выпущена 21 марта 2026; в примечаниях к выпуску упомянуто исправление подсчёта суммарного покрытия и работы с `ResourceWarning` от `sqlite3` — [pypi.org/project/pytest-cov](https://pypi.org/project/pytest-cov/).
+The latest version of `pytest-cov` is 7.1.0, released March 21, 2026; the release notes mention a fix to the total coverage count and to handling of `ResourceWarning` from `sqlite3` — [pypi.org/project/pytest-cov](https://pypi.org/project/pytest-cov/).
 
-Опция `--cov-fail-under MIN` описана в документации так: «Fail if the total coverage is less than MIN» — [pytest-cov.readthedocs.io/…/config](https://pytest-cov.readthedocs.io/en/latest/config.html). Порог также можно задать в конфигурационном файле (`.coveragerc`, либо секция в `setup.cfg`/`pyproject.toml`) — та же страница; конкретного числового порога сама документация не предписывает, выбор конкретного значения (например, 80% или 90%) — решение проекта, а не требование инструмента, поэтому здесь не указывается как «рекомендуемое число» — «конкретной рекомендованной цифры в официальном источнике не найдено».
+The `--cov-fail-under MIN` option is described in the documentation as: "Fail if the total coverage is less than MIN" — [pytest-cov.readthedocs.io/…/config](https://pytest-cov.readthedocs.io/en/latest/config.html). The threshold can also be set in a configuration file (`.coveragerc`, or a section in `setup.cfg`/`pyproject.toml`) — same page; the documentation itself does not prescribe any specific numeric threshold, and choosing a particular value (for example, 80% or 90%) is a project decision, not a tool requirement, so it is not given here as a "recommended figure" — "no specific recommended figure was found in the official source."
 
-Практическая команда для запуска с проверкой покрытия и порогом (составлена по документированным опциям, а не процитирована целиком как единый пример из одного источника):
+A practical command for running with coverage checking and a threshold (assembled from documented options, not quoted in full as a single example from one source):
 
 ```bash
 pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 ```
 
-## Источники
+## Sources
 
-- [pypi.org/project/pytest](https://pypi.org/project/pytest/) — версия pytest
-- [docs.pytest.org/en/stable/how-to/fixtures.html](https://docs.pytest.org/en/stable/how-to/fixtures.html) — фикстуры
-- [docs.pytest.org/en/stable/how-to/parametrize.html](https://docs.pytest.org/en/stable/how-to/parametrize.html) — параметризация
-- [docs.pytest.org/en/stable/how-to/mark.html](https://docs.pytest.org/en/stable/how-to/mark.html) — маркеры, регистрация в конфигурации и через conftest.py
+- [pypi.org/project/pytest](https://pypi.org/project/pytest/) — pytest version
+- [docs.pytest.org/en/stable/how-to/fixtures.html](https://docs.pytest.org/en/stable/how-to/fixtures.html) — fixtures
+- [docs.pytest.org/en/stable/how-to/parametrize.html](https://docs.pytest.org/en/stable/how-to/parametrize.html) — parametrization
+- [docs.pytest.org/en/stable/how-to/mark.html](https://docs.pytest.org/en/stable/how-to/mark.html) — markers, registration in configuration and via conftest.py
 - [fastapi.tiangolo.com/tutorial/testing](https://fastapi.tiangolo.com/tutorial/testing/) — TestClient
-- [fastapi.tiangolo.com/advanced/async-tests](https://fastapi.tiangolo.com/advanced/async-tests/) — httpx.AsyncClient с ASGITransport, pytest.mark.anyio, LifespanManager
+- [fastapi.tiangolo.com/advanced/async-tests](https://fastapi.tiangolo.com/advanced/async-tests/) — httpx.AsyncClient with ASGITransport, pytest.mark.anyio, LifespanManager
 - [fastapi.tiangolo.com/advanced/testing-dependencies](https://fastapi.tiangolo.com/advanced/testing-dependencies/) — app.dependency_overrides
-- [pypi.org/project/respx](https://pypi.org/project/respx/) — версия respx
-- [lundberg.github.io/respx](https://lundberg.github.io/respx/) — примеры использования respx
-- [pypi.org/project/pytest-cov](https://pypi.org/project/pytest-cov/) — версия pytest-cov
-- [pytest-cov.readthedocs.io/en/latest/config.html](https://pytest-cov.readthedocs.io/en/latest/config.html) — опция --cov-fail-under
-
-
+- [pypi.org/project/respx](https://pypi.org/project/respx/) — respx version
+- [lundberg.github.io/respx](https://lundberg.github.io/respx/) — respx usage examples
+- [pypi.org/project/pytest-cov](https://pypi.org/project/pytest-cov/) — pytest-cov version
+- [pytest-cov.readthedocs.io/en/latest/config.html](https://pytest-cov.readthedocs.io/en/latest/config.html) — the --cov-fail-under option
 
 
 

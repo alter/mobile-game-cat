@@ -1,44 +1,44 @@
-# Определение окраса кота на устройстве iOS без облака — 2026-08-24
+# Determining a cat's coat on-device on iOS without the cloud — 2026-08-24
 
-Вопрос: можно ли распознать окрас, узор, длину шерсти, цвет глаз и белые отметины кота силами самого устройства iOS — без облачной модели со зрением и без узла-посредника.
+Question: can coat, pattern, fur length, eye color and white markings of a cat be recognized by the iOS device itself — without a cloud vision model and without an intermediary node.
 
-## Кратко
+## Summary
 
-1. В таксономии `VNClassifyImageRequest` / `ClassifyImageRequest` подтверждено **1303 категории** (сверено по трём независимым выгрузкам, выложенным разработчиками на GitHub). Пород и окрасов кошки там нет вообще — только пять общих слов: `cat`, `adult_cat`, `kitten`, `bobcat`, `feline`. Ни `tabby`, ни `calico`, ни `siamese`, ни `persian`, ни `tortoiseshell` не встречаются ни разу. При этом собачьих пород в том же списке — свыше тридцати (`beagle`, `corgi`, `dachshund`, `pomeranian` и так далее). Слово `tuxedo` в списке есть, но это предмет одежды (смокинг), а не окрас кошки «в смокинге» — рядом по алфавиту с ним стоят `turtle`, `typewriter`, а не другие обозначения кошек.
-2. `hasMinimumPrecision(_:forRecall:)` и `hasMinimumRecall(_:forPrecision:)` — официальный, задокументированный Apple способ фильтровать выдачу классификатора под нужный баланс полноты и точности. Рабочий пример есть прямо в официальной документации.
-3. `VNDetectAnimalBodyPoseRequest` (и новый `AnimalBodyPoseRequest` без приставки VN) официально распознаёт именно кошек и собак — это подтверждено стенограммой доклада WWDC23-10045 — и даёт 25 точек тела: уши, глаза, нос, шею, локти/колени/лапы (по отдельности для передних и задних, левых и правых), три точки хвоста. Отдельной точки «грудь» в перечне нет.
-4. Основной цвет шерсти реально получить своими силами через Core Image (`CIAreaAverage`, `CIKMeans`) — это рабочий и бесплатный, но не идеально надёжный при плохом освещении и пестрой шерсти способ.
-5. Узор (полосатый против однотонного) — это не вопрос API Apple, а вопрос анализа текстуры общими средствами обработки изображений. Такие признаки существуют (дисперсия яркости, спектр Фурье, локальные бинарные шаблоны), но их надёжность именно на фотографиях кошачьей шерсти никем при подготовке этого разбора не измерялась — подтверждённых цифр точности нет.
-6. Готовой открытой модели Core ML именно под окрас или узор кошки не найдено — ни на официальной странице Apple ML models, ни в крупном кураторском списке Awesome-CoreML-Models. На GitHub есть модель пород (37 классов, судя по числу — вероятно Oxford-IIIT Pet Dataset) весом около 98 МБ, но без файла лицензии — использовать её в коммерческом продукте юридически рискованно. Есть общая модель zero-shot классификации SigLIP (лицензия Apache-2.0, суммарно около 386 МБ на два файла), но её точность именно на тонких различиях окраса кошек не проверялась.
-7. Цвет глаз получить можно только очень приблизительно: Vision даёт точку `leftEye`/`rightEye` из позы тела животного, но не выделяет радужку или зрачок. Отдельного API для поиска глаз животных (аналога `VNDetectFaceLandmarksRequest` для человека) в Vision не существует.
-8. Из пяти нужных черт устойчиво и бесплатно на устройстве получается разве что длина шерсти (косвенно, через собственную эвристику) и приблизительный основной цвет. Узор, точный цвет глаз и точные белые отметины — в лучшем случае грубое приближение собственными эвристиками, не готовое решение от Apple.
+1. The `VNClassifyImageRequest` / `ClassifyImageRequest` taxonomy is confirmed to contain **1303 categories** (cross-checked against three independent dumps published by developers on GitHub). There are no cat breeds or coats there at all — only five general words: `cat`, `adult_cat`, `kitten`, `bobcat`, `feline`. Neither `tabby`, nor `calico`, nor `siamese`, nor `persian`, nor `tortoiseshell` appears even once. Meanwhile the same list has over thirty dog breeds (`beagle`, `corgi`, `dachshund`, `pomeranian`, and so on). The word `tuxedo` is present in the list, but it's a piece of clothing (a tuxedo), not a cat's "tuxedo" coat — its alphabetical neighbors are `turtle`, `typewriter`, not other cat designations.
+2. `hasMinimumPrecision(_:forRecall:)` and `hasMinimumRecall(_:forPrecision:)` are an official, documented Apple way to filter the classifier's output for the balance of recall and precision you need. A working example is right in the official documentation.
+3. `VNDetectAnimalBodyPoseRequest` (and the new `AnimalBodyPoseRequest` without the VN prefix) officially recognizes specifically cats and dogs — confirmed by the transcript of WWDC23-10045 — and gives 25 body points: ears, eyes, nose, neck, elbows/knees/paws (separately for front and back, left and right), three tail points. There is no separate "chest" point in the list.
+4. The dominant coat color can actually be obtained on your own through Core Image (`CIAreaAverage`, `CIKMeans`) — this is a working, free, but not perfectly reliable method under poor lighting and mottled fur.
+5. Pattern (striped vs. solid) is not a question of an Apple API but a question of texture analysis using general image-processing tools. Such features exist (brightness variance, Fourier spectrum, local binary patterns), but their reliability specifically on photos of cat fur was not measured by anyone while preparing this analysis — there are no confirmed accuracy figures.
+6. No ready-made open Core ML model specifically for cat coat or pattern was found — neither on the official Apple ML models page, nor in the large curated Awesome-CoreML-Models list. GitHub has a breed model (37 classes, judging by the number — likely the Oxford-IIIT Pet Dataset) weighing about 98 MB, but with no license file — using it in a commercial product is legally risky. There is a general SigLIP zero-shot classification model (Apache-2.0 license, about 386 MB total across two files), but its accuracy specifically on fine distinctions of cat coats has not been checked.
+7. Eye color can only be obtained very roughly: Vision gives a `leftEye`/`rightEye` point from the animal's body pose, but does not isolate the iris or pupil. There is no separate API for finding animal eyes (an analogue of `VNDetectFaceLandmarksRequest` for humans) in Vision.
+8. Of the five needed traits, only fur length (indirectly, via a custom heuristic) and an approximate dominant color can be obtained reliably and for free on-device. Pattern, exact eye color and exact white markings are, at best, a rough approximation via custom heuristics, not a ready-made solution from Apple.
 
-## 1. Классификация изображений Vision: есть ли окрасы и породы кошек в таксономии
+## 1. Vision image classification: are cat coats and breeds in the taxonomy
 
-### Как получить список категорий
+### How to get the category list
 
-Старый Objective-C-совместимый API — `VNClassifyImageRequest`. Он даёт статический метод, возвращающий все классификации для конкретной ревизии алгоритма:
+The old Objective-C-compatible API is `VNClassifyImageRequest`. It provides a static method returning all classifications for a specific algorithm revision:
 
 ```swift
 import Vision
 
-// VNClassifyImageRequestRevision1 — единственная существующая ревизия на сегодня.
+// VNClassifyImageRequestRevision1 — the only revision that exists today.
 let allClassifications = try VNClassifyImageRequest
     .knownClassifications(forRevision: VNClassifyImageRequestRevision1)
 
 for observation in allClassifications {
     print(observation.identifier)
 }
-print("Итого категорий: \(allClassifications.count)")
+print("Total categories: \(allClassifications.count)")
 ```
 
-Сигнатура подтверждена по официальной странице документации:
+The signature is confirmed against the official documentation page:
 
 ```
 class func knownClassifications(forRevision requestRevision: Int) throws -> [VNClassificationObservation]
 ```
 
-Новый Swift-вариант — `ClassifyImageRequest` (доступен с iOS 18). У него список категорий отдаётся через свойство экземпляра:
+The new Swift variant is `ClassifyImageRequest` (available from iOS 18). Its category list is exposed through an instance property:
 
 ```swift
 import Vision
@@ -48,17 +48,17 @@ let identifiers = request.supportedIdentifiers   // [String], var supportedIdent
 print(identifiers.count)
 ```
 
-Сама документация Apple **не публикует** содержимое этого списка текстом — ни на странице `ClassifyImageRequest`, ни на странице `knownClassifications(forRevision:)`. Список можно получить только вызовом метода на устройстве. Это подтверждено содержимым обеих официальных страниц (получены через служебный JSON-адрес `developer.apple.com/tutorials/data/...`): текст ограничивается фразой «Requests the collection of classifications that the Vision framework recognizes» — без перечисления.
+Apple's documentation itself **does not publish** the contents of this list as text — neither on the `ClassifyImageRequest` page nor on the `knownClassifications(forRevision:)` page. The list can only be obtained by calling the method on-device. This is confirmed by the content of both official pages (retrieved via the internal JSON endpoint `developer.apple.com/tutorials/data/...`): the text is limited to the phrase "Requests the collection of classifications that the Vision framework recognizes" — with no listing.
 
-### Опубликованный кем-то полный список
+### A full list published by someone
 
-Три независимых человека выгрузили и опубликовали результат вызова `knownClassifications(forRevision:)` в виде гист-файлов на GitHub:
+Three independent people dumped and published the result of calling `knownClassifications(forRevision:)` as gist files on GitHub:
 
-- `ktustanowski/56c0d7541813868fed4aceb60ab5d149` — «Contains a list of supported identifiers for VNClassifyImageRequest (VNClassifyImageRequestRevision1)», 1303 строки.
-- `ozgurshn/0e19568b3f930c58491ddbbe7dbb9170` — «VNClassifyImageRequest supportedIdentifiers», тот же набор в виде JSON-массива.
-- `mikeparisstuff/94a31c29e2bc1e84faea39429bb3879f` — «VNClassifyImageRequest_supportedIdentifiers_dec_26_2023.csv», 1302 строки данных (без учёта возможной строки-заголовка).
+- `ktustanowski/56c0d7541813868fed4aceb60ab5d149` — "Contains a list of supported identifiers for VNClassifyImageRequest (VNClassifyImageRequestRevision1)", 1303 lines.
+- `ozgurshn/0e19568b3f930c58491ddbbe7dbb9170` — "VNClassifyImageRequest supportedIdentifiers", the same set as a JSON array.
+- `mikeparisstuff/94a31c29e2bc1e84faea39429bb3879f` — "VNClassifyImageRequest_supportedIdentifiers_dec_26_2023.csv", 1302 data lines (not counting a possible header line).
 
-Все три файла были загружены и сверены построчно командой grep. Число категорий во всех трёх сходится на **1303** (revision 1). Кошачьи записи во всех трёх списках идентичны и исчерпываются пятью позициями:
+All three files were downloaded and cross-checked line by line with grep. The category count converges on **1303** in all three (revision 1). The cat entries are identical across all three lists and are limited to exactly five items:
 
 ```
 adult_cat
@@ -68,28 +68,28 @@ feline
 kitten
 ```
 
-Ни `tabby`, ни `calico`, ни `siamese`, ни `persian`, ни `tortoiseshell`, ни `maine_coon`, ни `ragdoll`, ни `sphynx`, ни `bengal`, ни `abyssinian` — не найдены ни разу ни в одном из трёх файлов (проверено точным поиском подстроки, включая проверку на ложное совпадение — `tabbouleh`, ближневосточное блюдо, в списке есть, но это не «tabby»). Для контраста, собачьих пород в том же списке — множество: `australian_shepherd`, `basenji`, `beagle`, `basset`, `bichon`, `bulldog`, `chihuahua`, `collie`, `corgi`, `dachshund`, `dalmatian`, `doberman`, `german_shepherd`, `greyhound`, `husky`, `jack_russell_terrier`, `malamute`, `malinois`, `mastiff`, `newfoundland`, `pitbull`, `pomeranian`, `poodle`, `pug`, `retriever`, `ridgeback`, `rottweiler`, `saint_bernard`, `schnauzer`, `setter`, `sheepdog`, `spaniel`, `terrier`, `vizsla`, `weimaraner`, `irish_wolfhound`, `bernese_mountain`, `hound` — свыше тридцати позиций.
+Neither `tabby`, nor `calico`, nor `siamese`, nor `persian`, nor `tortoiseshell`, nor `maine_coon`, nor `ragdoll`, nor `sphynx`, nor `bengal`, nor `abyssinian` was found even once in any of the three files (checked via exact substring search, including a check for false matches — `tabbouleh`, the Middle Eastern dish, is in the list, but that's not "tabby"). By contrast, the same list has many dog breeds: `australian_shepherd`, `basenji`, `beagle`, `basset`, `bichon`, `bulldog`, `chihuahua`, `collie`, `corgi`, `dachshund`, `dalmatian`, `doberman`, `german_shepherd`, `greyhound`, `husky`, `jack_russell_terrier`, `malamute`, `malinois`, `mastiff`, `newfoundland`, `pitbull`, `pomeranian`, `poodle`, `pug`, `retriever`, `ridgeback`, `rottweiler`, `saint_bernard`, `schnauzer`, `setter`, `sheepdog`, `spaniel`, `terrier`, `vizsla`, `weimaraner`, `irish_wolfhound`, `bernese_mountain`, `hound` — over thirty entries.
 
-Слово `tuxedo` в списке присутствует (проверено), но по соседству в алфавитном порядке с ним стоят `turmeric`, `turntable`, `turtle`, `typewriter` — весь блок относится либо к кухонной утвари, либо к предметам одежды/техники; ближайшая по смыслу категория одежды — `bowtie`, `gown`, `kilt`, `poncho`, `suit` — тоже в списке. Нет оснований считать, что `tuxedo` в этой таксономии означает окрас кошки «в смокинге»; для этого пункта — «не подтверждено», а по совокупности контекста — «вероятно, обычный смокинг как предмет одежды».
+The word `tuxedo` is present in the list (checked), but its alphabetical neighbors are `turmeric`, `turntable`, `turtle`, `typewriter` — the whole block belongs either to kitchenware or to clothing/equipment items; the closest clothing category by meaning — `bowtie`, `gown`, `kilt`, `poncho`, `suit` — is also in the list. There is no basis for treating `tuxedo` in this taxonomy as meaning a cat's "tuxedo" coat; for this point — "not confirmed", and going by the overall context — "probably an ordinary tuxedo as a clothing item."
 
-**Отдельно про смежный запрос `VNRecognizeAnimalsRequest`** (не тот, о котором спрашивалось, но легко спутать): это отдельный, более старый запрос, который распознаёт не 1303 категории, а ровно два вида животных. Официальная документация прямо отсылает к методу `knownAnimalIdentifiers(forRevision:)` для получения списка, а независимо опубликованный разбор (статья на Medium с примером кода и ссылкой на репозиторий) показывает, что для revision 1 этот список — `["Cat", "Dog"]`. Это подтверждает, что где бы Apple ни давала животным собственную категорию — она останавливается на уровне вида, а не окраса или породы.
+**Separately, about the related `VNRecognizeAnimalsRequest`** (not the one asked about, but easily confused with it): this is a separate, older request that recognizes not 1303 categories but exactly two animal species. The official documentation directly points to the `knownAnimalIdentifiers(forRevision:)` method for obtaining the list, and an independently published breakdown (a Medium article with a code sample and a link to the repository) shows that for revision 1 this list is `["Cat", "Dog"]`. This confirms that wherever Apple does give animals their own category, it stops at the species level, not coat or breed.
 
-## 2. Как фильтровать выдачу классификатора: hasMinimumPrecision / hasMinimumRecall
+## 2. How to filter classifier output: hasMinimumPrecision / hasMinimumRecall
 
-Оба метода объявлены на `VNClassificationObservation` (и на новом `ClassificationObservation`):
+Both methods are declared on `VNClassificationObservation` (and on the new `ClassificationObservation`):
 
 ```
 func hasMinimumPrecision(_ minimumPrecision: Float, forRecall recall: Float) -> Bool
 func hasMinimumRecall(_ minimumRecall: Float, forPrecision precision: Float) -> Bool
 ```
 
-Официальное определение (страница `hasPrecisionRecallCurve`, раздел Discussion):
+Official definition (the `hasPrecisionRecallCurve` page, Discussion section):
 
 > Precision refers to the percentage of your classification results that are relevant, while recall refers to the percentage of total relevant results correctly classified.
 
-То есть точность (precision) — какая доля выданных меток действительно верна, а полнота (recall) — какая доля реально присутствующих меток вообще была выдана. Оба метода работают только тогда, когда `hasPrecisionRecallCurve == true` — если `false`, результат не будет содержательным (это отдельно оговорено в документации).
+That is, precision is what fraction of the returned labels is actually correct, and recall is what fraction of the labels that are actually present was returned at all. Both methods only work when `hasPrecisionRecallCurve == true` — if `false`, the result will not be meaningful (this is separately noted in the documentation).
 
-Официальный образец кода Apple (страница-статья «Analyze and label images using a Vision classification request») показывает именно тот сценарий, который нужен для игры — фильтрацию по порогу с явным выбором стратегии:
+Apple's official code sample (the documentation article "Analyze and label images using a Vision classification request") shows exactly the scenario needed for the game — filtering by threshold with an explicit choice of strategy:
 
 ```swift
 // Vision request to classify an image.
@@ -97,39 +97,39 @@ let request = ClassifyImageRequest()
 
 // Perform the request on the image, and return an array of ClassificationObservation objects.
 let results = try await request.perform(on: url)
-    // Высокая полнота: пропускаем больше вариантов, но выше риск ложных срабатываний.
+    // High recall: let more candidates through, but higher risk of false positives.
     .filter { $0.hasMinimumPrecision(0.1, forRecall: 0.8) }
-    // Высокая точность: меньше вариантов, но они надёжнее.
+    // High precision: fewer candidates, but more reliable ones.
     // .filter { $0.hasMinimumRecall(0.01, forPrecision: 0.9) }
 ```
 
-Пояснение из той же статьи Apple: «A high-recall filter provides a much broader range of observations, but can result in more false positive results... If an app can't tolerate false positive results, the hasMinimumRecall method allows for a high-precision filter... Increasing precision decreases recall, and increasing recall decreases precision. Testing can help determine the balance point.»
+Explanation from the same Apple article: "A high-recall filter provides a much broader range of observations, but can result in more false positive results... If an app can't tolerate false positive results, the hasMinimumRecall method allows for a high-precision filter... Increasing precision decreases recall, and increasing recall decreases precision. Testing can help determine the balance point."
 
-Иными словами, Apple прямо советует не полагаться на один универсальный порог `confidence > X`, а выбирать между двумя методами исходя из того, что дороже — пропустить верный вариант или принять неверный, — и подбирать конкретные числа тестированием на своих данных. Для задачи «определить окрас кота» это не критично само по себе, поскольку категорий окраса в таксономии нет (см. раздел 1) — но метод пригодится, если решите распознавать хотя бы факт «это кошка» через `cat` / `feline` / `kitten` и не путать его с шумом.
+In other words, Apple explicitly advises against relying on a single universal `confidence > X` threshold, and instead recommends choosing between the two methods based on which is more costly — missing a correct candidate or accepting an incorrect one — and tuning the specific numbers by testing on your own data. For the task of "determining a cat's coat" this isn't critical by itself, since there are no coat categories in the taxonomy (see section 1) — but the method will be useful if you decide to recognize at least the fact "this is a cat" via `cat` / `feline` / `kitten` and avoid confusing it with noise.
 
-## 3. Точки тела животного: VNDetectAnimalBodyPoseRequest
+## 3. Animal body points: VNDetectAnimalBodyPoseRequest
 
-Официальная документация (страницы `VNDetectAnimalBodyPoseRequest` и нового `DetectAnimalBodyPoseRequest`, доступного с iOS 18) не указывает виды животных прямо в тексте страницы запроса. Но стенограмма доклада WWDC23, сессия 10045, которая посвящена именно этому запросу, говорит прямо:
+The official documentation (the `VNDetectAnimalBodyPoseRequest` page and the new `DetectAnimalBodyPoseRequest`, available from iOS 18) does not state the animal species directly in the request page's text. But the transcript of the WWDC23 talk, session 10045, which is specifically about this request, says directly:
 
 > «The request supports cats and dogs, and detects 25 animal body landmarks that includes the tail and the ears.»
 
-Число 25 сходится с официальным перечнем точек, который даёт страница `VNAnimalBodyPoseObservation.JointName` (получена через служебный JSON-адрес документации):
+The number 25 matches the official list of points given by the `VNAnimalBodyPoseObservation.JointName` page (retrieved via the documentation's internal JSON endpoint):
 
-- **Голова (10 точек):** `leftEarTop`, `leftEarMiddle`, `leftEarBottom`, `leftEye`, `neck`, `nose`, `rightEye`, `rightEarTop`, `rightEarMiddle`, `rightEarBottom`.
-- **Ноги (12 точек):** `leftBackElbow`, `leftFrontElbow`, `rightFrontElbow`, `rightBackElbow`, `leftBackKnee`, `leftFrontKnee`, `rightBackKnee`, `rightFrontKnee`, `leftBackPaw`, `leftFrontPaw`, `rightBackPaw`, `rightFrontPaw`.
-- **Хвост (3 точки):** `tailTop`, `tailMiddle`, `tailBottom`.
+- **Head (10 points):** `leftEarTop`, `leftEarMiddle`, `leftEarBottom`, `leftEye`, `neck`, `nose`, `rightEye`, `rightEarTop`, `rightEarMiddle`, `rightEarBottom`.
+- **Legs (12 points):** `leftBackElbow`, `leftFrontElbow`, `rightFrontElbow`, `rightBackElbow`, `leftBackKnee`, `leftFrontKnee`, `rightBackKnee`, `rightFrontKnee`, `leftBackPaw`, `leftFrontPaw`, `rightBackPaw`, `rightFrontPaw`.
+- **Tail (3 points):** `tailTop`, `tailMiddle`, `tailBottom`.
 
-10 + 12 + 3 = 25 — совпадает с числом из доклада, что подтверждает список независимо от стенограммы.
+10 + 12 + 3 = 25 — matches the number from the talk, which confirms the list independently of the transcript.
 
-Отдельно есть перечисление групп точек — `VNAnimalBodyPoseObservation.JointsGroupName`: `all`, `forelegs`, `head`, `hindlegs`, `tail`, `trunk`. Важное наблюдение: группа `trunk` («туловище») в перечислении есть, а отдельной именованной точки груди или боков — нет ни среди точек головы, ни среди точек ног или хвоста. То есть **прямой точки «грудь» Vision не даёт**.
+There's also a separate enumeration of point groups — `VNAnimalBodyPoseObservation.JointsGroupName`: `all`, `forelegs`, `head`, `hindlegs`, `tail`, `trunk`. An important observation: the `trunk` group is present in the enumeration, but there's no separately named chest or flank point among either the head points, the leg points, or the tail points. That is, **Vision does not give a direct "chest" point**.
 
-Практический вывод для белых отметин:
+Practical conclusion for white markings:
 
-- Лапы: точки `leftFrontPaw` / `rightFrontPaw` / `leftBackPaw` / `rightBackPaw` дают точные координаты, где на снимке находится лапа — можно вырезать небольшую область вокруг каждой точки и оценить, белая она или нет (см. раздел 4 про определение цвета).
-- Морда: точка `nose` плюс `leftEye`/`rightEye` дают достаточно, чтобы вырезать область морды.
-- Грудь: специальной точки нет. Ближайшее приближение — область между точкой `neck` и точками передних лап (`leftFrontElbow`/`rightFrontElbow`), то есть придётся достраивать область самостоятельно, а не брать готовую точку. Это менее надёжно, чем для лап и морды, и полагаться на такую эвристику как на точный сигнал не стоит.
+- Paws: the `leftFrontPaw` / `rightFrontPaw` / `leftBackPaw` / `rightBackPaw` points give exact coordinates for where the paw is in the photo — a small area around each point can be cropped and evaluated for whether it's white or not (see section 4 on color determination).
+- Muzzle: the `nose` point plus `leftEye`/`rightEye` are enough to crop the muzzle area.
+- Chest: there's no dedicated point. The closest approximation is the area between the `neck` point and the front leg points (`leftFrontElbow`/`rightFrontElbow`), meaning the area has to be constructed by hand rather than taken from a ready-made point. This is less reliable than for the paws and muzzle, and such a heuristic should not be relied on as a precise signal.
 
-Пример кода (актуальный Swift API, iOS 18+):
+Code example (current Swift API, iOS 18+):
 
 ```swift
 import Vision
@@ -140,20 +140,20 @@ let observations = try await request.perform(on: image)
 if let animal = observations.first {
     let points = try animal.recognizedPoints(.all)
     if let frontLeftPaw = points[.leftFrontPaw], frontLeftPaw.confidence > 0.3 {
-        let location = frontLeftPaw.location // нормализованные координаты (0...1)
-        // Дальше: перевести в пиксели снимка и вырезать область вокруг точки
-        // для оценки цвета (раздел 4).
+        let location = frontLeftPaw.location // normalized coordinates (0...1)
+        // Next: convert to photo pixels and crop an area around the point
+        // for color estimation (section 4).
     }
 }
 ```
 
-Для более старого, но по-прежнему поддерживаемого API (iOS 17+) — `VNDetectAnimalBodyPoseRequest` с `VNImageRequestHandler`, структура точек та же (`VNAnimalBodyPoseObservation.JointName`).
+For the older but still supported API (iOS 17+) — `VNDetectAnimalBodyPoseRequest` with `VNImageRequestHandler` — the point structure is the same (`VNAnimalBodyPoseObservation.JointName`).
 
-## 4. Определение основного цвета своими силами
+## 4. Determining the dominant color on your own
 
-### CIAreaAverage — самый простой способ
+### CIAreaAverage — the simplest method
 
-`CIAreaAverage` подтверждён как реальный протокол Core Image (наследник `CIAreaReductionFilter`, то есть в семье фильтров, сводящих область изображения к одному значению). Он возвращает изображение размером 1×1 пиксель со средним цветом заданной области — этого достаточно для грубой оценки основного цвета, если область вырезана заранее (например, по точкам туловища из раздела 3, за вычетом лап и морды, чтобы не портить результат белыми отметинами):
+`CIAreaAverage` is confirmed as a real Core Image protocol (a subclass of `CIAreaReductionFilter`, i.e. in the family of filters that reduce an image area to a single value). It returns a 1×1 pixel image with the average color of the given area — sufficient for a rough estimate of the dominant color if the area is cropped beforehand (for example, using the trunk points from section 3, minus the paws and muzzle, so as not to spoil the result with white markings):
 
 ```swift
 import CoreImage
@@ -176,11 +176,11 @@ func averageColor(of image: CIImage, in extent: CGRect) -> (r: UInt8, g: UInt8, 
 }
 ```
 
-Недостаток простого среднего: если в области попали и шерсть, и фон, и тень, результат «размажется» в грязно-серый цвет. Для более честного результата стоит сперва обрезать снимок по контуру животного (Vision даёт `VNGeneratePersonSegmentationRequest` для людей, но для животных сегментации от Apple нет — придётся либо использовать `boundingBox` из `VNRecognizeAnimalsRequest`/`VNDetectAnimalBodyPoseRequest` как грубое приближение, либо писать собственную сегментацию).
+Drawback of the simple average: if the area includes fur, background, and shadow all together, the result will "smear" into a dirty gray. For a more honest result, the photo should first be cropped to the animal's contour (Vision provides `VNGeneratePersonSegmentationRequest` for people, but there's no Apple-provided segmentation for animals — you'd have to either use the `boundingBox` from `VNRecognizeAnimalsRequest`/`VNDetectAnimalBodyPoseRequest` as a rough approximation, or write your own segmentation).
 
-### CIKMeans — выделение нескольких доминирующих цветов
+### CIKMeans — extracting several dominant colors
 
-`CIKMeans` — тоже подтверждённый реальный протокол Core Image, со свойствами `count: Int` (сколько кластеров/цветов искать), `passes: Float` (число итераций), `perceptual: Bool` (считать в перцептивном цветовом пространстве) и `inputMeans: CIImage?` (начальные центры кластеров). Он делает ровно k-средних по цвету области и возвращает изображение с рядом пикселей-кластеров:
+`CIKMeans` is also a confirmed real Core Image protocol, with the properties `count: Int` (how many clusters/colors to find), `passes: Float` (number of iterations), `perceptual: Bool` (whether to compute in a perceptual color space), and `inputMeans: CIImage?` (initial cluster centers). It performs exactly k-means over the color of an area and returns an image with a row of cluster pixels:
 
 ```swift
 import CoreImage
@@ -211,13 +211,13 @@ func dominantColors(of image: CIImage, in extent: CGRect, count: Int = 3) -> [CI
 }
 ```
 
-k-средних выгоднее среднего тем, что при двухцветной шерсти (например, biколор) он вернёт отдельно «основной» и «отметины», а не их смесь. Ключевые имена свойств (`count`, `inputMeans`, `passes`, `perceptual`) подтверждены по официальной документации; конкретные строковые ключи для `setValue(forKey:)` (`inputCount`, `inputPasses`, `inputPerceptual`) соответствуют общему соглашению именования Core Image (`input` + название свойства с заглавной буквы) и не были сверены по официальному перечню ключей фильтра — перед использованием в продакшене стоит вывести `filter.inputKeys` на реальном устройстве и свериться.
+k-means is more useful than a plain average because with two-colored fur (bicolor, for example) it will return the "base" and the "markings" separately rather than a blend of the two. The key property names (`count`, `inputMeans`, `passes`, `perceptual`) are confirmed against the official documentation; the specific string keys for `setValue(forKey:)` (`inputCount`, `inputPasses`, `inputPerceptual`) follow the general Core Image naming convention (`input` + the property name capitalized) and were not cross-checked against an official list of filter keys — before using this in production it's worth printing `filter.inputKeys` on a real device and verifying.
 
-`vImage` (Accelerate) тоже умеет гистограммы и статистику по пикселям, но точную сигнатуру нужной функции для этой задачи в рамках этого разбора подтвердить не удалось — при выборе между Core Image и vImage для дебютной реализации разумнее взять Core Image: он проще в связке с уже используемым Vision/CIImage конвейером.
+`vImage` (Accelerate) can also do histograms and pixel statistics, but the exact signature of the function needed for this task could not be confirmed within this analysis — when choosing between Core Image and vImage for a first implementation, it's more sensible to take Core Image: it's simpler to combine with the Vision/CIImage pipeline already in use.
 
-### Сопоставление цвета с палитрой из шести окрасов
+### Mapping color to a six-coat palette
 
-Простой и практичный способ — перевести полученный RGB-цвет в HSV/HSB и сравнивать по оттенку (Hue) и яркости (Value), а не по «сырому» RGB, потому что HSV устойчивее к изменению освещения:
+A simple and practical approach is to convert the resulting RGB color to HSV/HSB and compare by hue and brightness (Value) rather than by "raw" RGB, because HSV is more robust to changes in lighting:
 
 ```swift
 enum CoatColor: String, CaseIterable {
@@ -241,18 +241,18 @@ func classifyCoatColor(r: CGFloat, g: CGFloat, b: CGFloat) -> CoatColor {
 }
 ```
 
-Границы (`0.85`, `0.25`, `30°` и так далее) в этом примере — отправная точка, а не проверенные константы: их придётся подбирать на реальных фотографиях кошек нужных окрасов, потому что «рыжий» и «кремовый», «серый» и «коричневый» перекрываются в пространстве HSV сильнее, чем кажется на глаз.
+The thresholds (`0.85`, `0.25`, `30°`, and so on) in this example are a starting point, not verified constants: they will have to be tuned on real photos of cats with the target coats, because "ginger" and "cream", "grey" and "brown" overlap in HSV space more than they seem to the eye.
 
-## 5. Определение узора (полосатый / однотонный) своими силами
+## 5. Determining pattern (striped / solid) on your own
 
-Здесь у Apple нет готового API — вопрос целиком сводится к общей теории анализа текстур, взятой не из документации Vision, а из общепринятой практики обработки изображений. Ниже — признаки, которые действительно применяются для различения текстур в целом (не именно кошачьей шерсти — специализированных публикаций по различению tabby/solid на iOS найти не удалось):
+Apple has no ready-made API here — the question comes down entirely to the general theory of texture analysis, drawn not from Vision documentation but from common image-processing practice. Below are features that are genuinely used for distinguishing textures in general (not specifically cat fur — no specialized publications on distinguishing tabby/solid on iOS could be found):
 
-- **Разброс (дисперсия) яркости по области.** Самый дешёвый признак: у однотонной шерсти локальная дисперсия яркости низкая, у полосатой — выше из-за чередования светлых и тёмных полос. Считается через `CIAreaHistogram` (подтверждённый реальный протокол Core Image, тоже наследник `CIAreaReductionFilter`) — гистограмма яркости по области, из которой легко получить дисперсию.
-- **Спектр Фурье.** Полосы — это периодическая структура, и в частотной области она даёт выраженный пик на частоте, соответствующей ширине полосы. У однотонной заливки энергия сосредоточена почти целиком на нулевой частоте. Vision/Core Image не имеют собственного FFT, но `vDSP` (Accelerate) даёт функции быстрого преобразования Фурье, применимые к массиву яркостей пикселей.
-- **Локальные бинарные шаблоны (LBP).** Классический признак текстуры в компьютерном зрении: для каждого пикселя сравнивают его яркость с яркостью соседей и кодируют результат в бинарное число, затем строят гистограмму таких чисел по области. Полосатая и однотонная текстуры дают статистически разные гистограммы. Готовой реализации LBP в Vision/Core Image нет — пришлось бы писать вручную поверх сырого буфера пикселей (`CVPixelBuffer` / `vImage_Buffer`).
-- **Оценка контраста через матрицу совместной встречаемости (GLCM) и признаки Харалика.** Более тяжёлый, но более информативный классический метод текстурного анализа — тоже требует ручной реализации, ничего готового в системных фреймворках iOS нет.
+- **Spread (variance) of brightness over an area.** The cheapest feature: for solid fur, local brightness variance is low; for striped fur it's higher, due to the alternation of light and dark stripes. Computed via `CIAreaHistogram` (a confirmed real Core Image protocol, also a subclass of `CIAreaReductionFilter`) — a brightness histogram over the area, from which variance is easy to derive.
+- **Fourier spectrum.** Stripes are a periodic structure, and in the frequency domain they produce a pronounced peak at the frequency corresponding to the stripe width. For a solid fill, energy is concentrated almost entirely at zero frequency. Vision/Core Image have no FFT of their own, but `vDSP` (Accelerate) provides fast Fourier transform functions applicable to an array of pixel brightness values.
+- **Local Binary Patterns (LBP).** A classic texture feature in computer vision: for each pixel, its brightness is compared to that of its neighbors and the result is encoded as a binary number, then a histogram of such numbers is built over the area. Striped and solid textures produce statistically different histograms. There's no ready-made LBP implementation in Vision/Core Image — it would have to be written by hand on top of a raw pixel buffer (`CVPixelBuffer` / `vImage_Buffer`).
+- **Contrast estimation via the gray-level co-occurrence matrix (GLCM) and Haralick features.** A heavier but more informative classic texture-analysis method — also requires a hand-rolled implementation; nothing ready-made exists in iOS system frameworks.
 
-Пример работающего, но грубого признака на основе дисперсии яркости (не требует ничего, кроме Core Image):
+Example of a working but crude feature based on brightness variance (requires nothing beyond Core Image):
 
 ```swift
 import CoreImage
@@ -261,7 +261,7 @@ func brightnessVariance(of image: CIImage, in extent: CGRect) -> CGFloat? {
     guard let filter = CIFilter(name: "CIAreaHistogram") else { return nil }
     filter.setValue(image, forKey: kCIInputImageKey)
     filter.setValue(CIVector(cgRect: extent), forKey: kCIInputExtentKey)
-    filter.setValue(64, forKey: "inputCount")   // число корзин гистограммы
+    filter.setValue(64, forKey: "inputCount")   // number of histogram bins
     filter.setValue(1.0, forKey: "inputScale")
     guard let outputImage = filter.outputImage else { return nil }
 
@@ -274,8 +274,8 @@ func brightnessVariance(of image: CIImage, in extent: CGRect) -> CGFloat? {
                     format: .RGBA8,
                     colorSpace: nil)
 
-    // Берём канал яркости (например, R после предварительного перевода в градации серого)
-    // и считаем дисперсию распределения по 64 корзинам — дальше сравнение с порогом.
+    // Take the brightness channel (e.g. R after a prior conversion to grayscale)
+    // and compute the variance of the distribution across the 64 bins — then compare to a threshold.
     let values = stride(from: 0, to: bins.count, by: 4).map { Double(bins[$0]) }
     let mean = values.reduce(0, +) / Double(values.count)
     let variance = values.map { ($0 - mean) * ($0 - mean) }.reduce(0, +) / Double(values.count)
@@ -283,101 +283,101 @@ func brightnessVariance(of image: CIImage, in extent: CGRect) -> CGFloat? {
 }
 ```
 
-### Честная оценка осуществимости
+### Honest feasibility assessment
 
-Разброс яркости в принципе способен отличить явно полосатого кота от явно однотонного чёрного или белого — это правдоподобно как первое приближение. Но у этого подхода серьёзные слабые места, которые нельзя игнорировать:
+Brightness spread can, in principle, distinguish an obviously striped cat from an obviously solid black or white one — this is plausible as a first approximation. But this approach has serious weaknesses that can't be ignored:
 
-- Тень, складки шерсти, блики от вспышки и просто неровное освещение создают точно такой же разброс яркости, что и полосы — признак путает узор с условиями съёмки.
-- Биколорный и калико-окрас (два-три сплошных пятна разного цвета) тоже дают высокую дисперсию яркости, но это не «полосатость» в смысле tabby — один и тот же признак не различает разные типы узора между собой, только «есть разброс / нет разброса».
-- Ни один из перечисленных признаков не был протестирован здесь на реальном наборе фотографий кошек — это общая теория текстурного анализа, а не проверенное на кошачьей шерсти решение. Заявлять конкретную точность (высокую или низкую) было бы выдумкой.
+- Shadow, fur folds, flash glare, and simply uneven lighting create exactly the same kind of brightness spread as stripes do — the feature confuses pattern with shooting conditions.
+- Bicolor and calico coats (two or three solid patches of different color) also produce high brightness variance, but that's not "stripedness" in the tabby sense — the same feature doesn't distinguish between different types of pattern, only "there is spread / there isn't."
+- None of the listed features was tested here on a real set of cat photos — this is general texture-analysis theory, not a solution verified on cat fur. Claiming a specific accuracy figure (high or low) would be fabrication.
 
-Итог по этому пункту: технически реализуемо как грубая эвристика, требующая доработки напильником и ручной калибровки порогов на собственном наборе фотографий; готового надёжного решения «из коробки» нет, и получить его на устройстве без сбора и разметки собственных данных, скорее всего, не получится.
+Bottom line on this point: technically implementable as a crude heuristic requiring hand-tuning and manual threshold calibration on your own photo set; there is no ready-made, reliable out-of-the-box solution, and getting one on-device without collecting and labeling your own data is unlikely to work.
 
-## 6. Core ML и готовые модели
+## 6. Core ML and ready-made models
 
-### Официальная страница Apple ML models
+### The official Apple ML models page
 
-Проверена страница `developer.apple.com/machine-learning/models/`. Там перечислены только общего назначения модели изображений: FastViT, MobileNetV2, ResNet-50, MNIST и им подобные (обучены на ImageNet или подобных общих наборах). **Ни одной модели для пород, окраса или узора животных на официальной странице нет.**
+The page `developer.apple.com/machine-learning/models/` was checked. It only lists general-purpose image models: FastViT, MobileNetV2, ResNet-50, MNIST, and similar (trained on ImageNet or comparable general datasets). **There is not a single model for animal breed, coat, or pattern on the official page.**
 
-### Кураторский список Awesome-CoreML-Models
+### The Awesome-CoreML-Models curated list
 
-Проверен `likedan.github.io/Awesome-CoreML-Models` — крупный, давно ведущийся список готовых моделей Core ML со всего интернета. Специализированной модели окраса, узора или породы кошки в нём не найдено.
+`likedan.github.io/Awesome-CoreML-Models` was checked — a large, long-running list of ready-made Core ML models from across the internet. No specialized model for cat coat, pattern, or breed was found in it.
 
-### Что нашлось на GitHub
+### What was found on GitHub
 
-- **`GitMAM/Breeds_core_ml`** — модель на 37 классов пород (по числу классов похоже на классический Oxford-IIIT Pet Dataset — 12 пород кошек и 25 пород собак, но сам репозиторий явно не называет источник данных, поэтому это предположение, а не подтверждённый факт). Обучена на PyTorch/fast.ai поверх ResNet-50. Файл `model_breeds.mlmodel` весит **102 794 417 байт, то есть около 98 МБ** (проверено напрямую через API GitHub, `contents`-эндпоинт). В README заявлена «accuracy 99.95%» при указанном `error_rate 0.055480` — эти два числа друг другу противоречат (0,05548 ошибки соответствует точности около 94,5%, а не 99,95%), это внутренняя нестыковка самого README, а не проверенный независимо результат. **Лицензии нет** — ни файла `LICENSE`, ни упоминания лицензии в репозитории (проверено через `api.github.com/repos/.../license`, ответ «Not Found»). Без явной лицензии текст и код репозитория по умолчанию защищены авторским правом целиком — использовать в коммерческом продукте без прямого разрешения автора юридически небезопасно.
-- Важно: даже если бы эта модель была свободна к использованию, она классифицирует **породу**, а не окрас — «British Shorthair» или «Persian» не говорит, рыжий кот или серый, полосатый или однотонный. Задача игры («ginger, grey, black...» и так далее) — это классификация окраса и узора, а не породы; готовой породной модели мало для нужд игры даже при наличии лицензии.
-- **`AranFononi/Animal-Classifier-Pet-Recognition-CoreML-Model`** — классификатор вида животного (собака/кошка/кролик), а не породы и не окраса. Модель крошечная (файл `PetImageClassifier.mlmodel` — около 13 КБ), лицензии тоже нет (тот же метод проверки, тот же результат «Not Found»). Для целей игры бесполезна — вид животного уже известен (это кошка игрока).
-- **SigLIP ViT-B/16, конвертированная в Core ML** (репозиторий `john-rocky/CoreML-Models`) — модель zero-shot классификации по образцу CLIP: на вход подаётся изображение и произвольный список текстовых меток («ginger tabby cat», «solid black cat» и так далее), на выходе — оценка сходства с каждой меткой. Лицензия — **Apache-2.0** (подтверждено прямой ссылкой в таблице репозитория на `apache.org/licenses/LICENSE-2.0`, оригинальная модель — `google/siglip-base-patch16-224` на Hugging Face). Размер — **около 386 МБ суммарно на два файла** (кодировщик изображения плюс кодировщик текста, формат FP16). Это единственная найденная модель, которая теоретически годится под задачу игры (можно просто вписать шесть окрасов и шесть узоров текстом), но: во-первых, размер в 386 МБ — это очень много для мобильной игры (сравнимо с объёмом самого приложения); во-вторых, никакой проверки точности именно на тонких различиях окраса кошек (рыжий против кремового, тэбби против калико) не проводилось — CLIP-подобные модели известны тем, что хорошо различают крупные объекты и сюжеты, но заметно хуже — тонкие визуальные атрибуты вроде оттенка или частоты полос.
+- **`GitMAM/Breeds_core_ml`** — a model with 37 breed classes (judging by the class count, this resembles the classic Oxford-IIIT Pet Dataset — 12 cat breeds and 25 dog breeds, but the repository itself doesn't explicitly name the data source, so this is an assumption, not a confirmed fact). Trained with PyTorch/fast.ai on top of ResNet-50. The `model_breeds.mlmodel` file weighs **102,794,417 bytes, i.e. about 98 MB** (confirmed directly via the GitHub API, `contents` endpoint). The README claims "accuracy 99.95%" while also stating `error_rate 0.055480` — these two numbers contradict each other (an error rate of 0.05548 corresponds to an accuracy of about 94.5%, not 99.95%); this is an internal inconsistency in the README itself, not an independently verified result. **There is no license** — no `LICENSE` file, no mention of a license in the repository (confirmed via `api.github.com/repos/.../license`, response "Not Found"). Without an explicit license, a repository's text and code are by default fully protected by copyright — using it in a commercial product without the author's direct permission is legally unsafe.
+- Important: even if this model were free to use, it classifies **breed**, not coat — "British Shorthair" or "Persian" doesn't tell you whether the cat is ginger or grey, striped or solid. The game's task ("ginger, grey, black..." and so on) is coat and pattern classification, not breed classification; a ready-made breed model isn't enough for the game's needs even with a license.
+- **`AranFononi/Animal-Classifier-Pet-Recognition-CoreML-Model`** — a classifier of animal species (dog/cat/rabbit), not breed and not coat. The model is tiny (the `PetImageClassifier.mlmodel` file is about 13 KB), and it also has no license (same verification method, same "Not Found" result). Useless for the game's purposes — the animal species is already known (it's the player's cat).
+- **SigLIP ViT-B/16, converted to Core ML** (repository `john-rocky/CoreML-Models`) — a zero-shot classification model in the style of CLIP: it takes an image and an arbitrary list of text labels ("ginger tabby cat", "solid black cat", and so on) as input, and outputs a similarity score for each label. License — **Apache-2.0** (confirmed by a direct link in the repository's table to `apache.org/licenses/LICENSE-2.0`; the original model is `google/siglip-base-patch16-224` on Hugging Face). Size — **about 386 MB total across two files** (an image encoder plus a text encoder, FP16 format). This is the only model found that is theoretically suitable for the game's task (you can just plug in six coats and six patterns as text), but: first, a size of 386 MB is a lot for a mobile game (comparable to the size of the app itself); second, no accuracy testing was done specifically on fine distinctions of cat coats (ginger vs. cream, tabby vs. calico) — CLIP-like models are known to distinguish large objects and scenes well, but noticeably worse at fine visual attributes like shade or stripe frequency.
 
-### Итог по разделу
+### Section summary
 
-Открытой, лицензионно чистой и проверенной по точности модели Core ML под окрас или узор кошки не существует — ни у Apple, ни в сообществе. Есть один универсальный крупный вариант (SigLIP) с чистой лицензией, но непроверенной для этой конкретной задачи точностью и внушительным весом, и один узкоспециализированный вариант (породы) без лицензии и не решающий именно задачу окраса.
+There is no open, license-clean, accuracy-verified Core ML model for cat coat or pattern — not from Apple, and not in the community. There is one large general-purpose option (SigLIP) with a clean license but unverified accuracy for this specific task and a hefty size, and one narrowly specialized option (breeds) with no license that doesn't even solve the coat problem.
 
-## 7. Цвет глаз
+## 7. Eye color
 
-Отдельного запроса Vision для поиска глаз именно животных не существует. Проверка полного перечня возможностей платформы Vision (главная страница документации, раздел «Pose analysis» и раздел «Image classification and recognition») показывает, что для животных официально задокументированы только два запроса:
+There is no separate Vision request for finding animal eyes specifically. Checking the full range of Vision framework capabilities (the main documentation page, the "Pose analysis" section and the "Image classification and recognition" section) shows that only two requests are officially documented for animals:
 
-- `DetectAnimalBodyPoseRequest` / `VNDetectAnimalBodyPoseRequest` — поза тела (раздел 3 этого документа);
-- `RecognizeAnimalsRequest` / `VNRecognizeAnimalsRequest` — распознавание вида животного (кошка/собака, раздел 1).
+- `DetectAnimalBodyPoseRequest` / `VNDetectAnimalBodyPoseRequest` — body pose (section 3 of this document);
+- `RecognizeAnimalsRequest` / `VNRecognizeAnimalsRequest` — animal species recognition (cat/dog, section 1).
 
-Аналог `VNDetectFaceLandmarksRequest`, который у Apple даёт для человеческого лица точную геометрию глаз, зрачков и век, — существует **только для человека**. Отдельного «AnimalFaceLandmarks» или «AnimalEyeRequest» в Vision нет.
+The analogue of `VNDetectFaceLandmarksRequest`, which for the human face gives Apple's precise geometry of eyes, pupils and eyelids, exists **only for humans**. There is no separate "AnimalFaceLandmarks" or "AnimalEyeRequest" in Vision.
 
-Практически это означает, что единственная зацепка — это точки `leftEye` и `rightEye` из `VNAnimalBodyPoseObservation.JointName` (раздел 3). Но это **одна точка на глаз**, а не контур радужки или зрачка: Vision отмечает примерное положение центра глаза, а не его форму или границы. Чтобы определить цвет глаз, пришлось бы:
+In practice this means the only handle available is the `leftEye` and `rightEye` points from `VNAnimalBodyPoseObservation.JointName` (section 3). But this is **one point per eye**, not an outline of the iris or pupil: Vision marks the approximate location of the eye's center, not its shape or boundaries. To determine eye color, you'd have to:
 
-1. Взять координату `leftEye`/`rightEye`;
-2. Вырезать очень маленькую область вокруг неё (радиус в единицы-десятки пикселей, в зависимости от разрешения снимка);
-3. Усреднить цвет в этой области (методами из раздела 4);
-4. Отфильтровать белки, блики от вспышки и шерсть, случайно попавшую в вырезанную область — для этого готового решения нет, отделить радужку от прочего пришлось бы эвристикой по яркости и насыщенности, вручную подобранной и ненадёжной.
+1. Take the `leftEye`/`rightEye` coordinate;
+2. Crop a very small area around it (a radius of single to tens of pixels, depending on the photo's resolution);
+3. Average the color in that area (using the methods from section 4);
+4. Filter out the sclera, flash glare, and any fur that happened to fall into the cropped area — there's no ready-made solution for this; separating the iris from everything else would require a hand-tuned, unreliable heuristic based on brightness and saturation.
 
-Итог: цвет глаз в принципе можно попытаться получить, но это самая шаткая из всех пяти черт — при малом разрешении фото, неидеальном ракурсе или прищуренных глазах точка `leftEye`/`rightEye` либо отсутствует (низкая уверенность распознавания), либо накрывает не радужку, а веко или шерсть вокруг глаза. Никакого штатного, поддерживаемого Apple способа для этого нет — только самодельная эвристика поверх одной точки.
+Bottom line: eye color can in principle be attempted, but it's the shakiest of all five traits — at low photo resolution, an imperfect angle, or squinted eyes, the `leftEye`/`rightEye` point is either absent (low recognition confidence) or lands on the eyelid or the fur around the eye rather than the iris. There is no standard, Apple-supported way to do this — only a homemade heuristic built on top of a single point.
 
-## Приговор
+## Verdict
 
-По каждой из пяти черт — что реально получить на устройстве бесплатно, а что нет:
+For each of the five traits — what can actually be obtained on-device for free, and what can't:
 
-1. **Основной цвет (ginger, grey, black, white, cream, brown).** Реально получить приблизительно. `CIAreaAverage`/`CIKMeans` плюс перевод в HSV дают рабочую, бесплатную оценку. Надёжность зависит от освещения и от того, насколько чисто вырезана область шерсти (без фона и без лап/морды с их возможными белыми пятнами). Это единственная из пяти черт, где предлагаемый способ близок к «готовому решению», а не к сырой эвристике.
-2. **Узор (solid, tabby, bicolor, calico, tuxedo, pointed).** Готового способа нет ни в Vision, ни в виде свободной модели Core ML. Собственная эвристика на основе дисперсии яркости технически осуществима, но не различает между собой разные типы узора (полосы против пятен), путает узор с тенями и освещением, и ни разу не проверялась на реальных фотографиях кошек в рамках этого разбора. Прямым текстом: **узор без облака надёжно не получить** — то, что можно собрать самостоятельно, это в лучшем случае грубый переключатель «есть контраст / нет контраста», а не полноценная классификация по шести категориям.
-3. **Длина шерсти (short, long).** Не рассматривалась отдельно в требованиях задания как один из явно проверяемых пунктов документации Apple, но по совокупности изученного: ни один из проверенных API Vision (`ClassifyImageRequest`, `VNDetectAnimalBodyPoseRequest`, `VNRecognizeAnimalsRequest`) не даёт такой категории напрямую. В принципе, длину шерсти можно косвенно оценивать через силуэт (контур животного относительно `boundingBox`, размытость границ меха) — это отдельная задача сегментации и контурного анализа, для которой в Vision тоже нет готового животного-специфичного инструмента; своя эвристика возможна, но не проверялась.
-4. **Цвет глаз (green, amber, blue).** Получить можно только очень приблизительно, по одной точке `leftEye`/`rightEye` из позы тела, без выделения радужки. Это самая ненадёжная из всех черт: одна точка без учёта формы глаза, чувствительная к разрешению фото и ракурсу.
-5. **Белые отметины (грудь, лапы, морда).** Лапы и морда — реально определить приемлемо: `VNDetectAnimalBodyPoseRequest` даёт точные координаты лап и морды (через `nose`/`leftEye`/`rightEye`), вокруг них можно оценить цвет. Грудь — специальной точки нет, придётся достраивать область по точке `neck` и точкам передних лап, что заметно менее надёжно.
+1. **Dominant color (ginger, grey, black, white, cream, brown).** Can genuinely be obtained approximately. `CIAreaAverage`/`CIKMeans` plus conversion to HSV give a working, free estimate. Reliability depends on lighting and on how cleanly the fur area is cropped (without background and without paws/muzzle with their possible white patches). This is the only one of the five traits where the proposed method is close to a "ready-made solution" rather than a raw heuristic.
+2. **Pattern (solid, tabby, bicolor, calico, tuxedo, pointed).** There's no ready-made method either in Vision or as a free Core ML model. A custom heuristic based on brightness variance is technically feasible but doesn't distinguish between different types of pattern (stripes vs. patches), confuses pattern with shadows and lighting, and was never tested on real cat photos within this analysis. In plain terms: **pattern cannot be reliably obtained without the cloud** — what can be assembled on your own is, at best, a crude "there's contrast / there isn't" switch, not a full six-category classification.
+3. **Fur length (short, long).** Not treated separately in the task's requirements as one of the explicitly checked points of Apple's documentation, but based on everything examined: none of the checked Vision APIs (`ClassifyImageRequest`, `VNDetectAnimalBodyPoseRequest`, `VNRecognizeAnimalsRequest`) gives such a category directly. In principle, fur length could be estimated indirectly through the silhouette (the animal's contour relative to `boundingBox`, blurriness of the fur's edges) — this is a separate segmentation and contour-analysis task, for which Vision also has no ready-made animal-specific tool; a custom heuristic is possible but was not tested.
+4. **Eye color (green, amber, blue).** Can only be obtained very approximately, from a single `leftEye`/`rightEye` point from body pose, without isolating the iris. This is the least reliable of all the traits: a single point that doesn't account for eye shape, sensitive to photo resolution and angle.
+5. **White markings (chest, paws, muzzle).** Paws and muzzle — can genuinely be determined acceptably: `VNDetectAnimalBodyPoseRequest` gives precise coordinates for the paws and muzzle (via `nose`/`leftEye`/`rightEye`), and color can be estimated around them. Chest — there's no dedicated point; the area would have to be constructed from the `neck` point and the front leg points, which is noticeably less reliable.
 
-**Стоит ли ради этого отказываться от облачной модели.** Из пяти черт полноценно и бесплатно на устройстве получается только основной цвет, и с оговорками — отметины на лапах и морде. Узор — ключевая, отличительная черта кошки в игре — на устройстве без обучения собственной модели надёжно не определяется; готовой открытой модели под эту конкретную задачу не существует, а универсальная SigLIP (Apache-2.0, ~386 МБ) не проверена на пригодность и слишком тяжела для мобильной игры. Цвет глаз получается в лучшем случае приблизительно.
+**Is it worth giving up the cloud model for this.** Of the five traits, only the dominant color comes out fully and for free on-device, and with reservations — the paw and muzzle markings too. Pattern — the key, distinguishing trait of a cat in the game — cannot be reliably determined on-device without training a custom model; no ready-made open model exists for this specific task, and the general-purpose SigLIP (Apache-2.0, ~386 MB) is unverified for fitness and too heavy for a mobile game. Eye color comes out, at best, approximate.
 
-Если владелец готов принять узор и цвет глаз как «то, что даёт приблизительная эвристика, могут быть заметные ошибки, и это ляжет на плечи геймдизайна — как обрабатывать сомнительные случаи», тогда узел-посредник действительно можно убрать, а часть логики (основной цвет, часть отметин) перенести на устройство. Но это не эквивалентная замена облачной модели зрения по качеству результата — это осознанное снижение точности ради экономии на облаке. Если для игры принципиально важно, чтобы узор кошки в игре совпадал с реальным окрасом кота игрока (то есть если это заявленная механика, а не «примерно похожий котёнок»), отказ от облачной модели в пользу голой связки Vision + Core Image + собственных эвристик — это реальный риск получить массовые нарекания игроков на неверно определённый узор, а не просто мелкую техническую недоработку. Экономия на службе-посреднике (четыре задачи и целая служба) реальна и достижима только частично — полностью её всё равно не убрать, если для узора и цвета глаз решат оставить хоть какой-то внешний источник истины или ручную корректировку игроком.
+If the owner is willing to accept pattern and eye color as "whatever a rough heuristic produces, with possibly noticeable errors, and it will fall on game design to handle the ambiguous cases," then the intermediary node can indeed be removed, and part of the logic (dominant color, part of the markings) moved on-device. But this is not an equivalent replacement for the cloud vision model in terms of result quality — it's a deliberate reduction in accuracy to save on the cloud. If it's essential to the game that the cat's in-game pattern match the player's real cat's coat (i.e., if that's an advertised mechanic rather than "an approximately similar kitten"), abandoning the cloud model in favor of a bare Vision + Core Image + custom-heuristics stack is a real risk of widespread player complaints about a misidentified pattern, not just a minor technical shortfall. Savings on the intermediary service (four tasks and a whole service) are real and achievable only partially — it can't be fully removed either way if some external source of truth or manual player correction is kept for pattern and eye color.
 
-## Источники
+## Sources
 
-Официальная документация Apple (получена через служебный JSON-адрес `developer.apple.com/tutorials/data/documentation/...`, поскольку обычная загрузка страниц отдаёт только заголовок):
+Official Apple documentation (retrieved via the internal JSON endpoint `developer.apple.com/tutorials/data/documentation/...`, since ordinary page loading returns only the title):
 
-- `documentation/vision/vnclassifyimagerequest` — описание запроса и метод `knownClassifications(forRevision:)`.
-- `documentation/vision/vnclassifyimagerequest/knownclassifications(forrevision:)` — точная сигнатура метода.
-- `documentation/vision/classifyimagerequest` и `documentation/vision/classifyimagerequest/supportedidentifiers` — новый Swift API и его свойство.
-- `documentation/vision/classifying-images-for-categorization-and-search` — официальная статья-пример с рабочим кодом на `hasMinimumPrecision`/`hasMinimumRecall`.
-- `documentation/vision/vnclassificationobservation`, `.../hasminimumprecision(_:forrecall:)`, `.../hasminimumrecall(_:forprecision:)`, `.../hasprecisionrecallcurve` — методы фильтрации по точности/полноте.
-- `documentation/vision/vndetectanimalbodyposerequest`, `documentation/vision/detectanimalbodyposerequest` — старый и новый запросы позы животного, включая проверку платформ и минимальных версий ОС (iOS 17 / iOS 18 соответственно).
-- `documentation/vision/vnanimalbodyposeobservation/jointname`, `.../jointsgroupname` — полный перечень из 25 именованных точек тела и шести групп.
-- `documentation/vision/vnrecognizeanimalsrequest` — запрос распознавания вида животного.
-- `documentation/vision` — общая карта фреймворка, разделы «Pose analysis» и «Image classification and recognition», по которой проверен полный перечень животных-специфичных запросов.
-- `documentation/coreimage/ciareaaverage`, `.../cikmeans`, `.../ciareahistogram`, `.../cikmeans/count`, `.../cikmeans/inputmeans`, `.../cikmeans/passes`, `.../cikmeans/perceptual`, `.../ciareareductionfilter/extent` — подтверждение реальности фильтров Core Image и их свойств.
+- `documentation/vision/vnclassifyimagerequest` — the request's description and the `knownClassifications(forRevision:)` method.
+- `documentation/vision/vnclassifyimagerequest/knownclassifications(forrevision:)` — the method's exact signature.
+- `documentation/vision/classifyimagerequest` and `documentation/vision/classifyimagerequest/supportedidentifiers` — the new Swift API and its property.
+- `documentation/vision/classifying-images-for-categorization-and-search` — the official example article with working code for `hasMinimumPrecision`/`hasMinimumRecall`.
+- `documentation/vision/vnclassificationobservation`, `.../hasminimumprecision(_:forrecall:)`, `.../hasminimumrecall(_:forprecision:)`, `.../hasprecisionrecallcurve` — the precision/recall filtering methods.
+- `documentation/vision/vndetectanimalbodyposerequest`, `documentation/vision/detectanimalbodyposerequest` — the old and new animal pose requests, including checking platform and minimum OS version support (iOS 17 / iOS 18 respectively).
+- `documentation/vision/vnanimalbodyposeobservation/jointname`, `.../jointsgroupname` — the full list of 25 named body points and six groups.
+- `documentation/vision/vnrecognizeanimalsrequest` — the animal species recognition request.
+- `documentation/vision` — the framework's overall map, "Pose analysis" and "Image classification and recognition" sections, used to check the complete list of animal-specific requests.
+- `documentation/coreimage/ciareaaverage`, `.../cikmeans`, `.../ciareahistogram`, `.../cikmeans/count`, `.../cikmeans/inputmeans`, `.../cikmeans/passes`, `.../cikmeans/perceptual`, `.../ciareareductionfilter/extent` — confirmation that the Core Image filters and their properties are real.
 
-Стенограмма официального доклада Apple:
+Transcript of an official Apple talk:
 
-- WWDC23, сессия 10045 (Vision framework, животная поза) — цитата про поддержку кошек и собак и про 25 точек тела.
+- WWDC23, session 10045 (Vision framework, animal pose) — the quote on cat and dog support and on the 25 body points.
 
-Независимые публикации с выгрузкой полного списка категорий классификатора (использованы как источник самого списка, при этом факт совпадения числа категорий и совпадения содержимого проверен вручную по всем трём файлам):
+Independent publications with a dump of the classifier's full category list (used as the source of the list itself, with the matching category count and matching contents manually verified across all three files):
 
-- Гист `ktustanowski/56c0d7541813868fed4aceb60ab5d149` — «VNClassifyImageRequest.Supportedidentifiers.txt», 1303 категории.
-- Гист `ozgurshn/0e19568b3f930c58491ddbbe7dbb9170` — тот же список в формате JSON-массива.
-- Гист `mikeparisstuff/94a31c29e2bc1e84faea39429bb3879f` — «VNClassifyImageRequest_supportedIdentifiers_dec_26_2023.csv».
-- Статья Kamil Tustanowski, Medium, «Animals detection using the Vision framework» — подтверждение, что `VNRecognizeAnimalsRequest` (revision 1) распознаёт ровно `["Cat", "Dog"]`.
+- Gist `ktustanowski/56c0d7541813868fed4aceb60ab5d149` — "VNClassifyImageRequest.Supportedidentifiers.txt", 1303 categories.
+- Gist `ozgurshn/0e19568b3f930c58491ddbbe7dbb9170` — the same list as a JSON array.
+- Gist `mikeparisstuff/94a31c29e2bc1e84faea39429bb3879f` — "VNClassifyImageRequest_supportedIdentifiers_dec_26_2023.csv".
+- Article by Kamil Tustanowski, Medium, "Animals detection using the Vision framework" — confirmation that `VNRecognizeAnimalsRequest` (revision 1) recognizes exactly `["Cat", "Dog"]`.
 
-Проверка готовых моделей Core ML:
+Verification of ready-made Core ML models:
 
-- `developer.apple.com/machine-learning/models/` — официальный список моделей Apple (проверено отсутствие моделей окраса/породы животных).
-- `likedan.github.io/Awesome-CoreML-Models` — кураторский список сообщества (проверено отсутствие профильных моделей).
-- `github.com/GitMAM/Breeds_core_ml` — модель пород на 37 классов, размер файла и отсутствие лицензии подтверждены через `api.github.com/repos/GitMAM/Breeds_core_ml/contents/` и `.../license`.
-- `github.com/AranFononi/Animal-Classifier-Pet-Recognition-CoreML-Model` — классификатор вида животного, размер и отсутствие лицензии подтверждены тем же способом.
-- `github.com/john-rocky/CoreML-Models` (файл README.md, раздел «Zero-Shot Image Classification») — модель SigLIP ViT-B/16, лицензия Apache-2.0, размер ~386 МБ, оригинал — `google/siglip-base-patch16-224` на Hugging Face.
-- `robots.ox.ac.uk/~vgg/data/pets/` — официальная страница Oxford-IIIT Pet Dataset, 37 категорий (12 пород кошек, 25 пород собак), использована только для сопоставления числа классов с моделью `Breeds_core_ml` — прямой связи между датасетом и конкретным репозиторием не подтверждено.
+- `developer.apple.com/machine-learning/models/` — Apple's official model list (confirmed the absence of animal coat/breed models).
+- `likedan.github.io/Awesome-CoreML-Models` — the community's curated list (confirmed the absence of specialized models).
+- `github.com/GitMAM/Breeds_core_ml` — the 37-class breed model; file size and absence of a license confirmed via `api.github.com/repos/GitMAM/Breeds_core_ml/contents/` and `.../license`.
+- `github.com/AranFononi/Animal-Classifier-Pet-Recognition-CoreML-Model` — the animal species classifier; size and absence of a license confirmed the same way.
+- `github.com/john-rocky/CoreML-Models` (README.md file, "Zero-Shot Image Classification" section) — the SigLIP ViT-B/16 model, Apache-2.0 license, ~386 MB size, original is `google/siglip-base-patch16-224` on Hugging Face.
+- `robots.ox.ac.uk/~vgg/data/pets/` — the official Oxford-IIIT Pet Dataset page, 37 categories (12 cat breeds, 25 dog breeds), used only to compare the class count with the `Breeds_core_ml` model — no direct connection between the dataset and that specific repository is confirmed.
 

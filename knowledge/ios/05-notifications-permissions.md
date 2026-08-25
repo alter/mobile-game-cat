@@ -1,34 +1,34 @@
-# Локальные уведомления и разрешения на iOS (Unity)
+# Local notifications and permissions on iOS (Unity)
 
-Дата сбора: 2026-08-24. Стек: Unity 6.3 LTS, пакет `com.unity.mobile.notifications`, iOS `UNUserNotificationCenter`, `AppTrackingTransparency`.
+Date collected: 2026-08-24. Stack: Unity 6.3 LTS, `com.unity.mobile.notifications` package, iOS `UNUserNotificationCenter`, `AppTrackingTransparency`.
 
-## Кратко
+## Summary
 
-- Локальные уведомления на iOS планируются через `UNUserNotificationCenter.current().add(_:)` с `UNNotificationRequest`, который может содержать триггер, например `UNCalendarNotificationTrigger`. [Apple — UNUserNotificationCenter.add(_:withCompletionHandler:)](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:))
-- Жёсткий лимит — не более 64 одновременно запланированных (pending) локальных уведомлений на приложение; это подтверждено инженером Apple на официальном форуме разработчиков, а не в публичной документации напрямую. [Apple Developer Forums — Does UNNotificationRequest have a 64-notification scheduling limit?](https://developer.apple.com/forums/thread/811171)
-- В Unity 6.x для локальных уведомлений на iOS используется пакет `com.unity.mobile.notifications`; актуальная (на момент сбора данных) ветка — 2.4.x, версия 2.4.3 идёт в комплекте с редактором 6000.5. [Unity — Mobile Notifications changelog 2.4](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/changelog/CHANGELOG.html)
-- Запрос разрешения на уведомления в Unity выполняется через `AuthorizationRequest` (корутина), а планирование — через `iOSNotificationCenter.ScheduleNotification(iOSNotification)` с `iOSNotificationCalendarTrigger` для «одно уведомление в заданное время суток». [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
-- Provisional authorization (`UNAuthorizationOptions.provisional`) позволяет отправлять уведомления без диалога запроса — они тихо попадают в Центр уведомлений, и пользователь решает, оставить ли их, уже по факту увиденного контента. [Apple — UNAuthorizationOptions.provisional](https://developer.apple.com/documentation/usernotifications/unauthorizationoptions/provisional)
-- Надёжных, поддающихся проверке количественных данных о влиянии момента запроса разрешения на процент согласий (конкретно для push/локальных уведомлений на iOS) в рамках этого исследования найти не удалось — маркетинговые источники приводят цифры, но при проверке первоисточника цифры не подтверждаются. Подробности — в разделе 4.
-- Для ATT (App Tracking Transparency) в Unity есть официальный пакет `com.unity.ads.ios-support`, предоставляющий класс `ATTrackingStatusBinding` с методами `RequestAuthorizationTracking()` и `GetAuthorizationTrackingStatus()`. [GitHub — Unity-Technologies/com.unity.ads.ios-support](https://github.com/Unity-Technologies/com.unity.ads.ios-support)
-- `NSUserTrackingUsageDescription` в Info.plist обязателен для работы `ATTrackingManager.requestTrackingAuthorization(completionHandler:)` — без этого ключа запрос авторизации не работает как положено. [Apple — ATTrackingManager.requestTrackingAuthorization(completionHandler:)](https://developer.apple.com/documentation/apptrackingtransparency/attrackingmanager/requesttrackingauthorization(completionhandler:))
+- Local notifications on iOS are scheduled via `UNUserNotificationCenter.current().add(_:)` with a `UNNotificationRequest`, which can contain a trigger, e.g. `UNCalendarNotificationTrigger`. [Apple — UNUserNotificationCenter.add(_:withCompletionHandler:)](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:))
+- Hard limit — no more than 64 simultaneously scheduled (pending) local notifications per app; this is confirmed by an Apple engineer on the official developer forum, not directly in public documentation. [Apple Developer Forums — Does UNNotificationRequest have a 64-notification scheduling limit?](https://developer.apple.com/forums/thread/811171)
+- In Unity 6.x, local notifications on iOS use the `com.unity.mobile.notifications` package; the current branch (as of data collection) is 2.4.x, with version 2.4.3 bundled with editor 6000.5. [Unity — Mobile Notifications changelog 2.4](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/changelog/CHANGELOG.html)
+- Requesting notification permission in Unity is done via `AuthorizationRequest` (a coroutine), and scheduling — via `iOSNotificationCenter.ScheduleNotification(iOSNotification)` with `iOSNotificationCalendarTrigger` for "one notification at a given time of day." [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
+- Provisional authorization (`UNAuthorizationOptions.provisional`) allows sending notifications without a request dialog — they arrive quietly in the Notification Center, and the user decides whether to keep them after seeing the actual content. [Apple — UNAuthorizationOptions.provisional](https://developer.apple.com/documentation/usernotifications/unauthorizationoptions/provisional)
+- No reliable, verifiable quantitative data on how the timing of the permission request affects opt-in rate (specifically for push/local notifications on iOS) could be found within this research — marketing sources cite figures, but the figures don't hold up when the primary source is checked. Details in section 4.
+- For ATT (App Tracking Transparency), Unity has an official package, `com.unity.ads.ios-support`, providing the `ATTrackingStatusBinding` class with the methods `RequestAuthorizationTracking()` and `GetAuthorizationTrackingStatus()`. [GitHub — Unity-Technologies/com.unity.ads.ios-support](https://github.com/Unity-Technologies/com.unity.ads.ios-support)
+- `NSUserTrackingUsageDescription` in Info.plist is mandatory for `ATTrackingManager.requestTrackingAuthorization(completionHandler:)` to work — without this key the authorization request doesn't work properly. [Apple — ATTrackingManager.requestTrackingAuthorization(completionHandler:)](https://developer.apple.com/documentation/apptrackingtransparency/attrackingmanager/requesttrackingauthorization(completionhandler:))
 
-## 1. `UNUserNotificationCenter`: разрешение, планирование, лимит
+## 1. `UNUserNotificationCenter`: permission, scheduling, limit
 
-### 1.1. Запрос разрешения и планирование (нативный Swift API)
+### 1.1. Requesting permission and scheduling (native Swift API)
 
-Метод для планирования локального уведомления:
+Method for scheduling a local notification:
 
 ```swift
 func add(_ request: UNNotificationRequest, withCompletionHandler completionHandler: (@Sendable ((any Error)?) -> Void)? = nil)
 
-// вариант с async/await
+// async/await variant
 func add(_ request: UNNotificationRequest) async throws
 ```
 
-Официальное описание: «Schedules the delivery of a local notification… This method schedules local notifications only; you cannot use it to schedule the delivery of remote notifications… If the request does not contain a `UNNotificationTrigger` object, the notification is delivered right away.» Метод можно вызывать из любого потока приложения. [Apple — UNUserNotificationCenter.add(_:withCompletionHandler:)](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:))
+Official description: «Schedules the delivery of a local notification… This method schedules local notifications only; you cannot use it to schedule the delivery of remote notifications… If the request does not contain a `UNNotificationTrigger` object, the notification is delivered right away.» The method can be called from any thread in the app. [Apple — UNUserNotificationCenter.add(_:withCompletionHandler:)](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:))
 
-Пример из документации Apple:
+Example from Apple's documentation:
 
 ```swift
 let center = UNUserNotificationCenter.current()
@@ -45,32 +45,32 @@ do {
 
 [Apple — UNUserNotificationCenter.add(_:withCompletionHandler:)](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:))
 
-### 1.2. Планирование одного уведомления в сутки на вечер: `UNCalendarNotificationTrigger`
+### 1.2. Scheduling one notification per day in the evening: `UNCalendarNotificationTrigger`
 
-Для «одно уведомление в сутки в заданное время» нужен именно календарный триггер, который задаётся через `DateComponents` — если указать только `hour`/`minute` (без `day`/`month`/`year`), система сама находит следующее подходящее время и, при `repeats: true`, повторяет уведомление каждый день в это время. Конкретные примеры кода для `UNCalendarNotificationTrigger` именно из документации Apple в рамках этого исследования не открывались — приведённый выше пример показывает только базовый `add(_:)` без триггера; для планового ежедневного вечернего уведомления в нативном Swift-коде используется класс `UNCalendarNotificationTrigger(dateMatching:repeats:)`, где `dateMatching` — `DateComponents` с заданным `hour`/`minute`. Эта конструкция не подтверждена отдельной цитатой Apple в рамках данного исследования — «не проверено» в части точной сигнатуры инициализатора.
+For "one notification per day at a given time," a calendar trigger is needed, set via `DateComponents` — if only `hour`/`minute` are specified (without `day`/`month`/`year`), the system finds the next matching time on its own, and with `repeats: true`, repeats the notification every day at that time. Concrete code examples for `UNCalendarNotificationTrigger` specifically from Apple's documentation were not accessed within this research — the example above shows only the base `add(_:)` call without a trigger; for a scheduled daily evening notification in native Swift code, the `UNCalendarNotificationTrigger(dateMatching:repeats:)` class is used, where `dateMatching` is `DateComponents` with `hour`/`minute` set. This construct is not confirmed by a separate Apple citation within this research — "not verified" regarding the exact initializer signature.
 
-### 1.3. Лимит в 64 запланированных уведомления
+### 1.3. The 64-scheduled-notification limit
 
-Апple не описывает этот лимит явно в публичной документации класса `UNUserNotificationCenter`, но инженер Apple подтвердил его напрямую на официальном форуме разработчиков: «Yes, there is a limit of 64 for how many simultaneous notification requests can be active/pending at one time per app. This is a system limit and there is no way around it.» [Apple Developer Forums — Does UNNotificationRequest have a 64-notification scheduling limit?](https://developer.apple.com/forums/thread/811171)
+Apple does not describe this limit explicitly in the public documentation of the `UNUserNotificationCenter` class, but an Apple engineer confirmed it directly on the official developer forum: «Yes, there is a limit of 64 for how many simultaneous notification requests can be active/pending at one time per app. This is a system limit and there is no way around it.» [Apple Developer Forums — Does UNNotificationRequest have a 64-notification scheduling limit?](https://developer.apple.com/forums/thread/811171)
 
-Практические следствия, которые сообщество выводит из этого лимита:
-- Система удерживает 64 ближайших по времени срабатывания уведомления и отбрасывает остальные (при попытке запланировать больше).
-- Рекомендуемый паттерн — держать в очереди только ближайшие ~64 срабатывания и пересчитывать/перепланировать их при каждом запуске приложения, вызывая `removeAllPendingNotificationRequests()` перед повторным планированием.
-- Официального механизма увеличения лимита или исключения для конкретных приложений не существует.
+Practical consequences the community draws from this limit:
+- The system holds the 64 nearest-to-fire notifications and drops the rest (when attempting to schedule more).
+- The recommended pattern is to keep only the nearest ~64 firings queued and recompute/reschedule them on every app launch, calling `removeAllPendingNotificationRequests()` before rescheduling.
+- No official mechanism exists to raise the limit or grant an exception for specific apps.
 
 [Apple Developer Forums — Does UNNotificationRequest have a 64-notification scheduling limit?](https://developer.apple.com/forums/thread/811171)
 
 ## 2. Unity Mobile Notifications (`com.unity.mobile.notifications`)
 
-### 2.1. Версия для Unity 6.x
+### 2.1. Version for Unity 6.x
 
-Пакет добавляет поддержку планирования локальных одноразовых или повторяющихся уведомлений на Android и iOS, с поддержкой push-уведомлений на iOS. На момент сбора данных (2026-08-24) актуальная ветка — 2.4.x, конкретно версия 2.4.3, поставляемая с редактором Unity 6000.5. Из изменений этой ветки, значимых для iOS: добавлен новый API `QueryLastRespondedNotification` — для получения деталей уведомления, по которому было выполнено касание при запуске приложения. [Unity — Mobile Notifications changelog 2.4](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/changelog/CHANGELOG.html)
+The package adds support for scheduling one-time or repeating local notifications on Android and iOS, with push notification support on iOS. As of data collection (2026-08-24), the current branch is 2.4.x, specifically version 2.4.3, shipped with Unity editor 6000.5. From this branch's changes relevant to iOS: a new API, `QueryLastRespondedNotification`, was added — for getting details of the notification that was tapped to launch the app. [Unity — Mobile Notifications changelog 2.4](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/changelog/CHANGELOG.html)
 
-Минимальная поддерживаемая версия Unity для пакета в целом — «Compatible with Unity 2021.3 or above»; пакет также поддерживает Push-уведомления через APNs, группировку уведомлений в треды (iOS 12+), вложения и кастомные действия. [Unity — Mobile Notifications manual (overview)](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/index.html)
+The minimum supported Unity version for the package overall is "Compatible with Unity 2021.3 or above"; the package also supports push notifications via APNs, grouping notifications into threads (iOS 12+), attachments, and custom actions. [Unity — Mobile Notifications manual (overview)](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/index.html)
 
-### 2.2. Запрос разрешения
+### 2.2. Requesting permission
 
-Официальный пример Unity (корутина `RequestAuthorization`):
+Official Unity example (the `RequestAuthorization` coroutine):
 
 ```csharp
 IEnumerator RequestAuthorization()
@@ -95,11 +95,11 @@ IEnumerator RequestAuthorization()
 
 [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
 
-### 2.3. Планирование через `iOSNotificationCalendarTrigger`
+### 2.3. Scheduling via `iOSNotificationCalendarTrigger`
 
-`iOSNotificationCalendarTrigger` — структура в пространстве имён `Unity.Notifications.iOS`, реализующая `iOSNotificationTrigger`; используется, «когда нужно запланировать доставку локального уведомления в указанные дату и время». Не обязательно задавать все поля — если оставить `Year`/`Month`/`Day` незаполненными, система сама подбирает ближайшее подходящее время по оставшимся полям (`Hour`/`Minute`). [Unity — iOSNotificationCalendarTrigger API (2.1)](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.1/api/Unity.Notifications.iOS.iOSNotificationCalendarTrigger.html)
+`iOSNotificationCalendarTrigger` is a struct in the `Unity.Notifications.iOS` namespace implementing `iOSNotificationTrigger`; it is used "when you need to schedule the delivery of a local notification at a specified date and time." Not all fields need to be set — if `Year`/`Month`/`Day` are left unfilled, the system picks the nearest matching time based on the remaining fields (`Hour`/`Minute`). [Unity — iOSNotificationCalendarTrigger API (2.1)](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.1/api/Unity.Notifications.iOS.iOSNotificationCalendarTrigger.html)
 
-Официальный пример из руководства (уведомление на 12:00 дня, без повтора в примере):
+Official example from the manual (a notification at 12:00 noon, no repeat in the example):
 
 ```csharp
 var calendarTrigger = new iOSNotificationCalendarTrigger()
@@ -116,7 +116,7 @@ var calendarTrigger = new iOSNotificationCalendarTrigger()
 
 [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
 
-Для нашей задачи (одно уведомление в сутки на вечер, например 20:00, с повтором каждый день) конструкция будет такой (составлена нами по задокументированным полям структуры, аналогично примеру выше):
+For our task (one notification per day in the evening, e.g. 20:00, repeating daily) the construct would be as follows (composed by us from the structure's documented fields, similar to the example above):
 
 ```csharp
 var eveningTrigger = new iOSNotificationCalendarTrigger()
@@ -129,8 +129,8 @@ var eveningTrigger = new iOSNotificationCalendarTrigger()
 var notification = new iOSNotification()
 {
     Identifier = "daily_evening_reminder",
-    Title = "Ваш кот заждался!",
-    Body = "Зайдите в игру и сделайте новое фото.",
+    Title = "Your cat is waiting!",
+    Body = "Come back to the game and take a new photo.",
     ShowInForeground = true,
     ForegroundPresentationOption = (PresentationOption.Alert | PresentationOption.Sound),
     CategoryIdentifier = "daily_reminder",
@@ -141,9 +141,9 @@ var notification = new iOSNotification()
 iOSNotificationCenter.ScheduleNotification(notification);
 ```
 
-Метод планирования и поля `iOSNotification` (`Identifier`, `Title`, `Body`, `Subtitle`, `ShowInForeground`, `ForegroundPresentationOption`, `CategoryIdentifier`, `ThreadIdentifier`, `Trigger`) — из официального руководства Unity; конкретно сборка «на 20:00, каждый день» с этими значениями — наша компоновка по задокументированному API, а не дословная цитата единого примера. [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
+The scheduling method and the fields of `iOSNotification` (`Identifier`, `Title`, `Body`, `Subtitle`, `ShowInForeground`, `ForegroundPresentationOption`, `CategoryIdentifier`, `ThreadIdentifier`, `Trigger`) come from Unity's official manual; specifically, the "at 20:00, every day" assembly with these values is our own composition from the documented API, not a verbatim citation of a single example. [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
 
-Метод отмены незапустившегося уведомления:
+Method for cancelling a notification that hasn't fired yet:
 
 ```csharp
 iOSNotificationCenter.RemoveScheduledNotification(notification.Identifier);
@@ -151,54 +151,54 @@ iOSNotificationCenter.RemoveScheduledNotification(notification.Identifier);
 
 [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
 
-### 2.4. Отложенный запрос разрешения (не при первом запуске)
+### 2.4. Deferred permission request (not on first launch)
 
-В самом пакете `com.unity.mobile.notifications` нет отдельного встроенного «мастера отложенного запроса» — управление моментом запроса реализуется вручную в игровом коде: разработчик сам решает, когда вызвать `AuthorizationRequest` (например, после первого успешного фото кота, а не сразу на titlescreen). Документация пакета отмечает лишь техническую деталь: «If the user has already granted or denied authorization, the permissions request dialog doesn't display again» — то есть повторный вызов `AuthorizationRequest` безопасен и не покажет системный диалог дважды. [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
+The `com.unity.mobile.notifications` package itself has no separate built-in "deferred request wizard" — control over the timing of the request is implemented manually in game code: the developer decides when to call `AuthorizationRequest` (for example, after the first successful cat photo, rather than immediately on the title screen). The package documentation notes only a technical detail: «If the user has already granted or denied authorization, the permissions request dialog doesn't display again» — meaning a repeated call to `AuthorizationRequest` is safe and won't show the system dialog twice. [Unity — iOS notifications manual](https://docs.unity3d.com/Packages/com.unity.mobile.notifications@2.4/manual/iOS.html)
 
 ## 3. Provisional authorization
 
-`UNAuthorizationOptions` — перечисление опций, определяющих разрешённые возможности локальных и удалённых уведомлений; один из вариантов — `.provisional`. Официальное описание: `.provisional` предоставляет «the ability to post noninterrupting notifications provisionally to the Notification Center», а соответствующий статус `UNAuthorizationStatus.provisional` означает, что приложению временно разрешено отправлять неперебивающие уведомления пользователю. [Apple — UNAuthorizationOptions](https://developer.apple.com/documentation/usernotifications/unauthorizationoptions), [Apple — UNAuthorizationOptions.provisional](https://developer.apple.com/documentation/usernotifications/unauthorizationoptions/provisional)
+`UNAuthorizationOptions` is an enumeration of options defining the allowed capabilities of local and remote notifications; one of the values is `.provisional`. Official description: `.provisional` provides «the ability to post noninterrupting notifications provisionally to the Notification Center», and the corresponding status `UNAuthorizationStatus.provisional` means the app is temporarily allowed to send non-interrupting notifications to the user. [Apple — UNAuthorizationOptions](https://developer.apple.com/documentation/usernotifications/unauthorizationoptions), [Apple — UNAuthorizationOptions.provisional](https://developer.apple.com/documentation/usernotifications/unauthorizationoptions/provisional)
 
-Как это работает на практике (по независимым разборам темы, не из первичной документации Apple): при запросе с опцией `.provisional` система **не показывает диалог** запроса разрешения — уведомления сразу тихо доставляются в Центр уведомлений, где у пользователя есть возможность либо оставить их, либо полностью отключить. Это способ дать пользователю «пробный период» с уведомлениями конкретного приложения без явного разрешительного диалога. Функция доступна с iOS 12. [Use Your Loaf — Provisional Authorization of User Notificatons](https://useyourloaf.com/blog/provisional-authorization-of-user-notificatons/)
+How this works in practice (from independent write-ups on the topic, not from Apple's primary documentation): when requesting with the `.provisional` option, the system **does not show a request dialog** — notifications are immediately delivered quietly to the Notification Center, where the user has the option to either keep them or turn them off entirely. This is a way to give the user a "trial period" with a specific app's notifications without an explicit permission dialog. The feature is available from iOS 12. [Use Your Loaf — Provisional Authorization of User Notificatons](https://useyourloaf.com/blog/provisional-authorization-of-user-notificatons/)
 
-**Стоит ли брать provisional authorization для нашей игры:** это компромисс. Плюс — не тратится «лимитированная попытка» показа системного диалога и не пугает пользователя лишним запросом; минус — уведомление приходит без звука и баннера (только в Центр уведомлений), то есть менее заметно, а значит хуже подходит, если цель — именно вернуть игрока в приложение звуковым/визуальным напоминанием. Прямых сравнительных данных (какой вариант эффективнее по возврату пользователей) не найдено — «надёжных источников не найдено».
+**Is provisional authorization worth using for our game:** it's a trade-off. The upside — it doesn't spend the "limited attempt" at showing the system dialog and doesn't scare the user with an extra request; the downside — the notification arrives without sound or a banner (only into the Notification Center), i.e. it's less noticeable, which makes it worse suited if the goal is specifically to bring the player back with a sound/visual reminder. No direct comparative data (which option is more effective for user return) was found — "no reliable source found."
 
-## 4. Влияние момента запроса разрешения на долю согласий
+## 4. Effect of permission-request timing on opt-in rate
 
-По задаче отдельно указано: приводить числа только если найден источник с цифрами, иначе — «данных нет». В рамках этого исследования цепочка проверки такова:
+The task specifically states: cite numbers only if a source with figures is found, otherwise "no data." Within this research, the verification chain is as follows:
 
-- Блог vmobify.com утверждает: «apps that show a soft-ask modal at the moment of first value (rather than on first launch) achieve 55–70% opt-in versus 30–40% for apps that trigger the prompt immediately», ссылаясь на «Pushwoosh's opt-in rate research» с цифрой «30–50% higher acceptance rates». [vmobify — Push Notification Strategy 2026](https://vmobify.com/blog/push-notification-strategy)
-- При открытии первоисточника (блог Pushwoosh, на который ссылается vmobify) эти конкретные цифры **не подтвердились** — статья Pushwoosh содержит только общую рекомендацию по выбору «момента высокого намерения» для показа запроса, без цифр по конверсии, без описания контролируемого эксперимента или опроса. [Pushwoosh — How to Increase Your Push Notification Opt-In Rate](https://www.pushwoosh.com/blog/increase-push-notifications-opt-in/)
-- Другой источник (semnexus.com) содержит похожее качественное утверждение («apps that trigger the native prompt within the first 30 seconds of first launch typically see lower opt-in rates than apps that delay the ask»), но также без числовых данных и без указания проверяемого источника. [SEM Nexus — Push Notification Timing: What the Data Says About Opt-In Rates](https://semnexus.com/push-notification-timing-data-opt-in-rates)
+- The vmobify.com blog claims: «apps that show a soft-ask modal at the moment of first value (rather than on first launch) achieve 55–70% opt-in versus 30–40% for apps that trigger the prompt immediately», citing "Pushwoosh's opt-in rate research" with the figure «30–50% higher acceptance rates». [vmobify — Push Notification Strategy 2026](https://vmobify.com/blog/push-notification-strategy)
+- When the primary source was opened (the Pushwoosh blog that vmobify cites), these specific figures **were not confirmed** — the Pushwoosh article contains only a general recommendation to pick a "moment of high intent" for showing the request, with no conversion figures, no description of a controlled experiment or survey. [Pushwoosh — How to Increase Your Push Notification Opt-In Rate](https://www.pushwoosh.com/blog/increase-push-notifications-opt-in/)
+- Another source (semnexus.com) contains a similar qualitative claim («apps that trigger the native prompt within the first 30 seconds of first launch typically see lower opt-in rates than apps that delay the ask»), but likewise with no numerical data and no verifiable source cited. [SEM Nexus — Push Notification Timing: What the Data Says About Opt-In Rates](https://semnexus.com/push-notification-timing-data-opt-in-rates)
 
-**Вывод:** конкретные проценты («55–70% против 30–40%», «на 25–50% выше») по этой теме встречаются только в маркетинговых блогах, а при проверке по цепочке цитирования до первоисточника числа не подтверждаются документально проверяемым исследованием. Формально источник с цифрами найден (vmobify.com), но он недостоверен — ссылается на источник, который эти цифры не содержит. Поэтому для практических решений в проекте эти цифры использовать не стоит; корректная формулировка — «данных нет» (в смысле «нет источника, которому можно доверять»). Общая, качественная рекомендация (не привязывать запрос разрешения к первому запуску, показывать его после демонстрации ценности функции) в источниках повторяется многократно, но без поддающейся проверке количественной оценки эффекта.
+**Conclusion:** specific percentages ("55–70% versus 30–40%", "25–50% higher") on this topic appear only in marketing blogs, and when traced through the citation chain to the primary source, the numbers are not backed by documentably verifiable research. Formally, a source with figures was found (vmobify.com), but it is unreliable — it cites a source that does not contain those figures. Therefore these figures should not be used for practical decisions in the project; the correct statement is "no data" (in the sense of "no trustworthy source"). The general, qualitative recommendation (don't tie the permission request to first launch, show it after demonstrating the feature's value) recurs repeatedly across sources, but without a verifiable quantitative estimate of the effect.
 
-## 5. ATT и `NSUserTrackingUsageDescription` в связке с Unity
+## 5. ATT and `NSUserTrackingUsageDescription` in combination with Unity
 
-### 5.1. Нативный API Apple
+### 5.1. Apple's native API
 
 ```swift
 class func requestTrackingAuthorization(completionHandler completion: @escaping @Sendable (ATTrackingManager.AuthorizationStatus) -> Void)
 
-// вариант с async/await
+// async/await variant
 class func requestTrackingAuthorization() async -> ATTrackingManager.AuthorizationStatus
 ```
 
-Ключевые правила использования, согласно документации Apple:
-- Запрос одноразовый на установку приложения — система запоминает выбор пользователя и не спрашивает повторно, если приложение не было удалено и переустановлено.
-- Перед повторным вызовом стоит проверять `trackingAuthorizationStatus` на `.notDetermined`.
-- Диалог показывается только когда состояние приложения — `UIApplicationStateActive`.
-- Диалог не появится, если уже есть другой ожидающий запрос разрешения (конкурентные запросы не сохраняются системой).
-- Вызов из расширения приложения (app extension) не показывает диалог.
-- **`NSUserTrackingUsageDescription` в Info.plist обязателен** — без этого ключа запрос авторизации не будет работать корректно.
+Key usage rules, per Apple's documentation:
+- The request is one-time per app install — the system remembers the user's choice and won't ask again unless the app was deleted and reinstalled.
+- Before calling again, check `trackingAuthorizationStatus` for `.notDetermined`.
+- The dialog is shown only when the app state is `UIApplicationStateActive`.
+- The dialog won't appear if there is already another pending permission request (concurrent requests are not retained by the system).
+- A call from an app extension does not show the dialog.
+- **`NSUserTrackingUsageDescription` in Info.plist is mandatory** — without this key the authorization request won't work correctly.
 
 [Apple — ATTrackingManager.requestTrackingAuthorization(completionHandler:)](https://developer.apple.com/documentation/apptrackingtransparency/attrackingmanager/requesttrackingauthorization(completionhandler:))
 
-### 5.2. Пакет Unity `com.unity.ads.ios-support`
+### 5.2. The Unity package `com.unity.ads.ios-support`
 
-Официальное описание: пакет «provides support for App Tracking Transparency and SkAdNetwork API newly introduced in Apple iOS 14», включая пример настраиваемого экрана-«прогрева» перед запросом разрешения на трекинг. [GitHub — Unity-Technologies/com.unity.ads.ios-support](https://github.com/Unity-Technologies/com.unity.ads.ios-support)
+Official description: the package «provides support for App Tracking Transparency and SkAdNetwork API newly introduced in Apple iOS 14», including an example of a customizable "warm-up" screen before the tracking permission request. [GitHub — Unity-Technologies/com.unity.ads.ios-support](https://github.com/Unity-Technologies/com.unity.ads.ios-support)
 
-Методы, доступные через `ATTrackingStatusBinding` (пространство имён `Unity.Advertisement.IosSupport`):
+Methods available via `ATTrackingStatusBinding` (namespace `Unity.Advertisement.IosSupport`):
 
 ```csharp
 public static void RequestAuthorizationTracking()
@@ -208,7 +208,7 @@ public static void SkAdNetworkUpdateConversionValue(int conversionValue)
 
 [GitHub — Unity-Technologies/com.unity.ads.ios-support](https://github.com/Unity-Technologies/com.unity.ads.ios-support)
 
-Официальный пример использования из документации Unity (docs.unity.com):
+Official usage example from Unity's documentation (docs.unity.com):
 
 ```csharp
 using UnityEngine;
@@ -232,7 +232,7 @@ public class AttPermissionRequest : MonoBehaviour {
 
 [Unity — ATT Compliance guide](https://docs.unity.com/grow/en-us/ads/ios-sdk/ios14/att-compliance)
 
-Автоматическая прописка `NSUserTrackingUsageDescription` в Info.plist через `PostProcessBuild` (официальный пример Unity):
+Automatically writing `NSUserTrackingUsageDescription` into Info.plist via `PostProcessBuild` (official Unity example):
 
 ```csharp
 #if UNITY_IOS
@@ -265,13 +265,13 @@ public class PostBuildStep {
 
 [Unity — ATT Compliance guide](https://docs.unity.com/grow/en-us/ads/ios-sdk/ios14/att-compliance)
 
-### 5.3. Порядок запроса
+### 5.3. Request order
 
-Официальная рекомендация Unity: ATT-запрос должен запускаться **до** инициализации любых SDK, которым нужен доступ к IDFA, поскольку Apple разрешает показывать этот диалог лишь один раз за установку, а пользователь в любой момент может изменить решение вручную в Настройках. Рекомендуемый порядок: 1) настроить `NSUserTrackingUsageDescription` в Info.plist (обязательно); 2) по желанию показать собственный экран-объяснение перед системным диалогом («ATT context screen»); 3) проверить `GetAuthorizationTrackingStatus()`, и если статус `NOT_DETERMINED` — показать системный запрос через `RequestAuthorizationTracking()`. [Unity — ATT Compliance guide](https://docs.unity.com/grow/en-us/ads/ios-sdk/ios14/att-compliance)
+Unity's official recommendation: the ATT request should run **before** initializing any SDKs that need IDFA access, since Apple allows this dialog to be shown only once per install, and the user can change the decision manually in Settings at any time. Recommended order: 1) set `NSUserTrackingUsageDescription` in Info.plist (mandatory); 2) optionally show a custom explanation screen before the system dialog ("ATT context screen"); 3) check `GetAuthorizationTrackingStatus()`, and if the status is `NOT_DETERMINED`, show the system request via `RequestAuthorizationTracking()`. [Unity — ATT Compliance guide](https://docs.unity.com/grow/en-us/ads/ios-sdk/ios14/att-compliance)
 
-Для нашей игры (нет своей рекламы/SDK, требующих IDFA, если это так) ATT может быть вообще не нужен — запрашивать `NSUserTrackingUsageDescription`/`requestTrackingAuthorization` имеет смысл только если приложение реально трекает пользователя между приложениями/сайтами (например, через рекламный SDK с IDFA). Это общий вывод из документации Apple/Unity, а не отдельная явная цитата.
+For our game (assuming it has no ads/SDKs of its own requiring IDFA), ATT may not be needed at all — requesting `NSUserTrackingUsageDescription`/`requestTrackingAuthorization` only makes sense if the app actually tracks the user across apps/sites (for example, via an ad SDK with IDFA). This is a general conclusion drawn from Apple/Unity documentation, not a separate explicit quote.
 
-## Источники
+## Sources
 
 - [Apple — UNUserNotificationCenter.add(_:withCompletionHandler:)](https://developer.apple.com/documentation/usernotifications/unusernotificationcenter/add(_:withcompletionhandler:))
 - [Apple Developer Forums — Does UNNotificationRequest have a 64-notification scheduling limit?](https://developer.apple.com/forums/thread/811171)

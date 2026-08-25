@@ -1,25 +1,25 @@
-# Свой сбор событий: Unity 6.3 LTS (iOS) → HTTP → Python
+# Own event collection: Unity 6.3 LTS (iOS) → HTTP → Python
 
-Дата сбора: 2026-08-24
+Date collected: 2026-08-24
 
-Контекст: девять событий (`app_open`, `photo_screen_shown`, `photo_uploaded`, `photo_rejected`, `level_start`, `level_win`, `level_fail`, `moves_button_tap`, `notification_allowed`), приёмник — собственный узел на Python, без сторонних SDK (ни Firebase, ни GameAnalytics).
+Context: nine events (`app_open`, `photo_screen_shown`, `photo_uploaded`, `photo_rejected`, `level_start`, `level_win`, `level_fail`, `moves_button_tap`, `notification_allowed`), the receiver is a custom Python node, with no third-party SDKs (neither Firebase nor GameAnalytics).
 
-## Кратко
+## In brief
 
-- Для сети из Unity на iOS используется `UnityWebRequest`, а не `System.Net.Http.HttpClient` — он интегрирован с циклом Unity (корутины, `async`/`await` через `SendWebRequest()`), не требует ручного управления потоками и не имеет известных проблем с IL2CPP/AOT на iOS, которые время от времени всплывают у `HttpClient` в связке с определёнными версиями `System.Net.Http` на iOS-бэкенде.
-- События нельзя отправлять по одному: каждый HTTP-запрос на iOS в мобильной сети — это заметная задержка и расход батареи. Практики пакетируют события (10–50 штук) и шлют пачками по таймеру или при накоплении.
-- `OnApplicationPause`/`OnApplicationFocus` — не гарантия отправки последних событий: iOS не обязана вызывать какой-либо код после сворачивания приложения, а время в фоне ограничено (штатно около 30 секунд, что подтверждено документацией Apple о фоновых задачах). Единственный надёжный способ не терять события — хранить очередь на диске и досылать её при следующем запуске.
-- `SystemInfo.deviceUniqueIdentifier` на iOS в Unity — это обёртка над `UIDevice.identifierForVendor` (подтверждено документацией Unity). Значение общее для всех приложений одного разработчика (vendor) на устройстве и сбрасывается, если пользователь удалит все приложения этого разработчика. IDFA для склейки сессий не годится без согласия ATT (App Tracking Transparency) — а согласие на 500 тестовых установках получат далеко не все пользователи.
-- Минимальная схема события должна включать: имя события, метку времени в UTC, идентификатор устройства, номер сессии, порядковый номер события (monotonic sequence), версию сборки. Порядковый номер — единственный дешёвый способ на приёмнике понять, что часть событий потеряна или продублирована.
-- Для 500 установок и девяти типов событий объём данных настолько мал, что PostgreSQL — избыточное усложнение на старте; SQLite или файлы JSON Lines справляются полностью, а миграция на PostgreSQL при росте — вопрос одного дня работы.
-- Идемпотентность на приёме реализуется как ограничение уникальности по паре (идентификатор устройства, порядковый номер события) — тогда повторная отправка одного и того же пакета не создаёт дублей.
-- Все метки времени должны храниться в UTC; ошибка почти всегда одна и та же — использование локального времени устройства без сохранения смещения часового пояса, из-за чего пересчёт «дня» для retention съезжает на границах суток.
+- For networking from Unity on iOS, `UnityWebRequest` is used rather than `System.Net.Http.HttpClient` — it is integrated with Unity's loop (coroutines, `async`/`await` via `SendWebRequest()`), requires no manual thread management, and has none of the known IL2CPP/AOT issues on iOS that occasionally surface with `HttpClient` combined with certain versions of `System.Net.Http` on the iOS backend.
+- Events should not be sent one at a time: every HTTP request on iOS over a mobile network is a noticeable delay and battery drain. Practitioners batch events (10–50 at a time) and send them in bulk on a timer or once enough have accumulated.
+- `OnApplicationPause`/`OnApplicationFocus` are not a guarantee that the last events will be sent: iOS is not obligated to run any code after the app is backgrounded, and background time is limited (roughly 30 seconds under normal conditions, as confirmed by Apple's background tasks documentation). The only reliable way not to lose events is to keep a queue on disk and resend it on the next launch.
+- `SystemInfo.deviceUniqueIdentifier` on iOS in Unity is a wrapper around `UIDevice.identifierForVendor` (confirmed by Unity's documentation). The value is shared across all apps from the same developer (vendor) on a device and is reset if the user deletes all of that developer's apps. IDFA is not suitable for stitching sessions together without ATT (App Tracking Transparency) consent — and across 500 test installs, far from every user will grant consent.
+- The minimum event schema must include: event name, timestamp in UTC, device identifier, session number, event sequence number (monotonic sequence), and build version. The sequence number is the only cheap way for the receiver to tell that some events were lost or duplicated.
+- For 500 installs and nine event types, the data volume is so small that PostgreSQL is excessive complexity at the outset; SQLite or JSON Lines files handle it fully, and migrating to PostgreSQL later, if it grows, is a day's work.
+- Idempotency on ingest is implemented as a uniqueness constraint on the pair (device identifier, event sequence number) — so re-sending the same batch does not create duplicates.
+- All timestamps must be stored in UTC; the mistake is almost always the same one — using the device's local time without preserving the time zone offset, which causes the "day" recalculation for retention to drift at day boundaries.
 
-## 1. Отправка событий из Unity: UnityWebRequest против HttpClient
+## 1. Sending events from Unity: UnityWebRequest vs. HttpClient
 
-В Unity 6.3 LTS доступны оба способа сходить в сеть: встроенный `UnityWebRequest` (пространство имён `UnityEngine.Networking`) и стандартный `System.Net.Http.HttpClient` из .NET. Документация Unity описывает `UnityWebRequest` как асинхронный API, интегрированный с корутинами через `SendWebRequest()` — запрос не блокирует основной поток, а его состояние проверяется через `isDone` или ожидается через `yield return` [Unity Manual — UnityWebRequest](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Networking.UnityWebRequest.html).
+Unity 6.3 LTS offers both ways to talk to the network: the built-in `UnityWebRequest` (namespace `UnityEngine.Networking`) and the standard .NET `System.Net.Http.HttpClient`. Unity's documentation describes `UnityWebRequest` as an asynchronous API integrated with coroutines via `SendWebRequest()` — the request does not block the main thread, and its state is checked via `isDone` or awaited via `yield return` [Unity Manual — UnityWebRequest](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Networking.UnityWebRequest.html).
 
-Практическая причина выбрать `UnityWebRequest` для отправки аналитики на iOS с IL2CPP-сборкой — он собственный код движка, который тестируется Unity на всех целевых платформах вместе с релизами, тогда как `HttpClient` зависит от реализации `System.Net.Http` в используемом .NET-бэкенде (Mono/IL2CPP) и исторически был источником трудноуловимых проблем именно на iOS-сборках (зависания при обрыве сети, поведение с `HttpClientHandler` под AOT-компиляцией). Для простого JSON-пейлоада на собственный сервер разница в возможностях не играет роли — `UnityWebRequest` полностью справляется с POST JSON и заголовками.
+The practical reason to choose `UnityWebRequest` for sending analytics on iOS with an IL2CPP build is that it is the engine's own code, tested by Unity across all target platforms alongside each release, whereas `HttpClient` depends on the `System.Net.Http` implementation of whichever .NET backend is in use (Mono/IL2CPP) and has historically been a source of hard-to-track issues specifically on iOS builds (hangs on connection loss, behavior of `HttpClientHandler` under AOT compilation). For a simple JSON payload to your own server, the difference in capabilities does not matter — `UnityWebRequest` handles POST JSON and headers just fine.
 
 ```csharp
 using System.Collections;
@@ -45,25 +45,25 @@ IEnumerator SendBatch(string json, string endpoint)
         }
         else
         {
-            // Оставляем пакет в очереди на диске — повторная попытка на следующем тике/запуске
+            // Leave the batch in the on-disk queue — retry on the next tick/launch
             Debug.Log($"Analytics send failed: {request.error}");
         }
     }
 }
 ```
 
-Асинхронность важна и в другом смысле: отправка не должна идти в кадре, где происходит игровое событие (например, `level_win`) — вызов должен просто положить событие в очередь синхронно и мгновенно, а сетевой ввод-вывод выполняться отдельной корутиной по расписанию. Это стандартный совет практиков, пишущих собственные обёртки аналитики поверх Unity: класть событие в буфер немедленно и не привязывать бизнес-логику к результату сети.
+Asynchrony matters in another sense too: sending should not happen in the frame where the game event occurs (e.g., `level_win`) — the call should simply place the event in the queue synchronously and instantly, while network I/O runs on a separate scheduled coroutine. This is standard advice from practitioners who write their own analytics wrappers on top of Unity: put the event into the buffer immediately and never tie game logic to the outcome of a network call.
 
-### Что делать при отсутствии сети: очередь на устройстве
+### What to do with no network: an on-device queue
 
-Единственная устойчивая модель — «запись на диск сначала, отправка потом» (write-ahead queue). Событие добавляется в локальное хранилище (файл или `PlayerPrefs` для маленьких объёмов, SQLite через `Mono.Data.Sqlite`/сторонний плагин для больших) до любой попытки сети. Фоновый процесс периодически пытается отправить накопленное и удаляет из очереди только то, что сервер подтвердил (HTTP 200 с телом, где перечислены принятые порядковые номера).
+The only durable model is "write to disk first, send later" (a write-ahead queue). The event is added to local storage (a file or `PlayerPrefs` for small volumes, SQLite via `Mono.Data.Sqlite`/a third-party plugin for larger volumes) before any network attempt. A background process periodically tries to send what has accumulated and removes from the queue only what the server has confirmed (HTTP 200 with a body listing the accepted sequence numbers).
 
 ```csharp
-// Псевдокод жизненного цикла очереди
+// Pseudocode for the queue lifecycle
 void OnEvent(string name, Dictionary<string, object> props)
 {
     var evt = EventFactory.Build(name, props, sequenceNumber: LocalStore.NextSeq());
-    LocalStore.Append(evt);           // синхронная запись на диск, не ждёт сеть
+    LocalStore.Append(evt);           // synchronous write to disk, does not wait on the network
 }
 
 IEnumerator FlushLoop()
@@ -78,66 +78,66 @@ IEnumerator FlushLoop()
 }
 ```
 
-Повторная отправка (retry) должна использовать экспоненциальную задержку (например, 5с → 30с → 2мин → 10мин, с потолком) и не должна размножать пакеты — сервер обязан быть идемпотентным (раздел 6 ниже), потому что при плохой сети клиент не всегда может достоверно узнать, был ли пакет обработан до обрыва соединения.
+Retries should use exponential backoff (e.g., 5s → 30s → 2min → 10min, with a ceiling) and must not duplicate batches — the server must be idempotent (section 6 below), because on a bad network the client cannot always reliably tell whether a batch was processed before the connection dropped.
 
-Очередь обязана переживать перезапуск приложения — то есть не жить только в оперативной памяти. На практике для 9 типов событий и низкого трафика годится файл в `Application.persistentDataPath` (JSON Lines, дописывается построчно, читается построчно) — он проще encoding-безопасной SQLite-базы на клиенте и достаточно надёжен, если запись атомарна (дописывание в конец файла, без перезаписи целиком).
+The queue must survive an app restart — that is, it cannot live only in memory. In practice, for 9 event types and low traffic, a file under `Application.persistentDataPath` works fine (JSON Lines, appended line by line, read line by line) — it is simpler than an encoding-safe SQLite database on the client and reliable enough as long as writes are atomic (appending to the end of the file, never rewriting the whole thing).
 
-## 2. Пакетирование событий и ненадёжность отправки при закрытии приложения
+## 2. Batching events and unreliable delivery on app close
 
-Отправка по одному событию — плохая практика по двум причинам: во-первых, каждый TCP/TLS-хендшейк на мобильной сети стоит заметного времени (сотни миллисекунд — секунды на плохом канале) и заряда батареи; во-вторых, при девяти нечастых событиях за сессию отдельные запросы почти всегда будут мелкими и создадут несоразмерную нагрузку на сервер относительно полезной нагрузки. Стандартная практика — копить события в буфере и отправлять пачкой (batch) по одному из двух триггеров: накопился достаточный размер пакета (обычно от 10 до 50–100 событий у крупных SDK) либо истёк таймер (от 10–30 секунд до нескольких минут). При девяти редких игровых событиях разумный ориентир — отправка каждые 15–30 секунд или сразу, если накопилось больше ~20 событий, чтобы буфер не рос бесконтрольно при долгой сессии без сети.
+Sending events one at a time is bad practice for two reasons: first, every TCP/TLS handshake on a mobile network costs noticeable time (hundreds of milliseconds to seconds on a poor connection) and battery charge; second, with nine infrequent events per session, individual requests will almost always be tiny and will create disproportionate load on the server relative to the payload's usefulness. Standard practice is to accumulate events in a buffer and send them in a batch, triggered by one of two conditions: enough events have accumulated (typically 10 to 50–100 events for large SDKs) or a timer has elapsed (10–30 seconds up to a few minutes). With nine rare game events, a reasonable target is to send every 15–30 seconds, or immediately if more than ~20 events have accumulated, so the buffer does not grow unbounded during a long session with no network.
 
-### OnApplicationPause/OnApplicationFocus и что происходит при закрытии на iOS
+### OnApplicationPause/OnApplicationFocus and what happens on close on iOS
 
-Документация Unity по `OnApplicationPause` описывает вызов колбэка при потере/получении фокуса приложением, но не документирует поведение при принудительном завершении процесса операционной системой — это прямо видно из текста руководства, где поведение расписано для сценариев потери фокуса и сворачивания, но не для kill процесса [Unity Manual — MonoBehaviour.OnApplicationPause](https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnApplicationPause.html). Это не случайный пробел: у iOS вообще нет гарантированного колбэка «приложение сейчас будет убито» — переход в фон (`OnApplicationPause(true)`) даёт приложению ограниченное время на завершение работы, а дальнейшая судьба процесса (заморозка в памяти или полное закрытие) решается системой без уведомления приложения.
+Unity's documentation for `OnApplicationPause` describes the callback firing when the application loses/regains focus, but does not document behavior when the operating system forcibly terminates the process — this is directly visible in the text of the manual, where behavior is spelled out for focus-loss and backgrounding scenarios, but not for a process kill [Unity Manual — MonoBehaviour.OnApplicationPause](https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnApplicationPause.html). This is not an accidental gap: iOS simply has no guaranteed "the app is about to be killed" callback — moving to the background (`OnApplicationPause(true)`) gives the app a limited amount of time to wrap things up, and the process's further fate (frozen in memory or fully closed) is decided by the system without notifying the app.
 
-Официальная документация Apple по фоновым задачам описывает следующий механизм: при уходе в фон система выделяет приложению короткое стандартное время на завершение критичных операций (в источнике указано ориентировочно 30 секунд), после чего процесс замораживается (suspended); чтобы получить больше времени на досылку сети, нужно явно запросить его через `beginBackgroundTask`, и даже в этом случае система не гарантирует довести операцию до конца — по истечении выделенного времени вызывается обработчик истечения, и оставшаяся работа должна быть прервана корректно [Apple Developer Documentation — Background Tasks](https://developer.apple.com/documentation/backgroundtasks). Из замороженного состояния iOS может в любой момент полностью завершить процесс без вызова какого-либо кода приложения — то есть рассчитывать, что `OnApplicationPause`/`OnApplicationFocus` успеют «долить» сеть перед закрытием, нельзя в принципе, а не просто «иногда не получается».
+Apple's official background tasks documentation describes the following mechanism: on entering the background, the system grants the app a short standard amount of time to finish critical operations (the source states roughly 30 seconds), after which the process is suspended; to get more time to finish sending network data, you must explicitly request it via `beginBackgroundTask`, and even then the system does not guarantee the operation will complete — once the allotted time expires, the expiration handler is called and remaining work must be cut off cleanly [Apple Developer Documentation — Background Tasks](https://developer.apple.com/documentation/backgroundtasks). From a suspended state, iOS can fully terminate the process at any moment without calling any app code — meaning you cannot count on `OnApplicationPause`/`OnApplicationFocus` managing to "top off" the network send before closing, not just "sometimes it doesn't work out."
 
-Практический вывод, к которому приходят все, кто писал собственную телеметрию под iOS: событие должно быть на диске (записано синхронно в момент возникновения) ещё до того, как встанет вопрос об отправке. `OnApplicationPause(true)` используется только как повод попробовать внеочередной flush очереди (лучше, чем ничего, и в мягком сворачивании через свайп-домой обычно успевает), но не как единственный механизм доставки. Если flush не успел — очередь на диске сама досылается при следующем запуске приложения, и никакие события не потеряны, а только отложены.
+The practical conclusion reached by everyone who has written their own telemetry for iOS: the event must be on disk (written synchronously at the moment it occurs) well before the question of sending it even arises. `OnApplicationPause(true)` is used only as a trigger to attempt an out-of-cycle flush of the queue (better than nothing, and it usually succeeds during a soft backgrounding via a swipe-to-home), not as the sole delivery mechanism. If the flush does not finish in time, the on-disk queue resends itself on the next app launch, and no events are lost — only delayed.
 
 ```csharp
 void OnApplicationPause(bool pauseStatus)
 {
     if (pauseStatus)
     {
-        // Лучшая попытка добить очередь, но не единственная линия обороны
+        // Best-effort attempt to finish the queue, not the only line of defense
         StartCoroutine(FlushOnce());
     }
 }
 ```
 
-## 3. Устойчивый признак устройства на iOS
+## 3. A stable device identifier on iOS
 
-Документация Unity по `SystemInfo.deviceUniqueIdentifier` прямо указывает: на iOS это значение получается через `UIDevice.identifierForVendor` [Unity Manual — SystemInfo.deviceUniqueIdentifier](https://docs.unity3d.com/ScriptReference/SystemInfo-deviceUniqueIdentifier.html). Это значит, что все ограничения `identifierForVendor` из документации Apple переходят на `SystemInfo.deviceUniqueIdentifier` без изменений [Apple Developer Documentation — identifierForVendor](https://developer.apple.com/documentation/uikit/uidevice/identifierforvendor):
+Unity's documentation for `SystemInfo.deviceUniqueIdentifier` states directly that on iOS this value comes from `UIDevice.identifierForVendor` [Unity Manual — SystemInfo.deviceUniqueIdentifier](https://docs.unity3d.com/ScriptReference/SystemInfo-deviceUniqueIdentifier.html). This means every constraint on `identifierForVendor` from Apple's documentation carries over unchanged to `SystemInfo.deviceUniqueIdentifier` [Apple Developer Documentation — identifierForVendor](https://developer.apple.com/documentation/uikit/uidevice/identifierforvendor):
 
-- значение общее для всех приложений одного и того же разработчика (vendor) на одном устройстве — не привязано конкретно к одному приложению;
-- значение остаётся стабильным между запусками и обновлениями приложения, пока на устройстве установлено хотя бы одно приложение этого разработчика;
-- значение **сбрасывается**, если пользователь удаляет с устройства все приложения данного разработчика, а затем ставит любое из них заново — новый `identifierForVendor` будет отличаться от старого;
-- получение этого идентификатора не требует запроса ATT (App Tracking Transparency) и не считается межсайтовым/межпродуктовым отслеживанием, поскольку он не общий между разными разработчиками.
+- the value is shared across all apps from the same developer (vendor) on a single device — it is not tied to one specific app;
+- the value stays stable across launches and app updates, as long as at least one app from that developer remains installed on the device;
+- the value **resets** if the user deletes all of that developer's apps from the device and then installs any of them again — the new `identifierForVendor` will differ from the old one;
+- obtaining this identifier does not require an ATT (App Tracking Transparency) prompt and is not considered cross-site/cross-app tracking, since it is not shared across different developers.
 
-IDFA (`identifierForAdvertisers`) для склейки сессий одного игрока не подходит по двум причинам. Во-первых, с введением ATT в iOS 14.5 доступ к IDFA требует явного согласия пользователя на всплывающем системном диалоге («Разрешить приложению отслеживать вашу активность»), и без согласия значение IDFA — это строка из одних нулей; на выборке из 500 тестовых установок нельзя рассчитывать, что все дадут согласие. Во-вторых, само назначение IDFA — межприложенческая атрибуция рекламы, а не идентификация игрока внутри одной игры, и использование его не по назначению (для внутренней аналитики при отсутствии ATT-разрешения) прямо нарушает политику Apple по использованию IDFA.
+IDFA (`identifierForAdvertisers`) is not suitable for stitching together a single player's sessions, for two reasons. First, with the introduction of ATT in iOS 14.5, access to IDFA requires the user's explicit consent via a system pop-up dialog ("Allow the app to track your activity"), and without consent the IDFA value is a string of all zeros; across a sample of 500 test installs, you cannot count on everyone granting consent. Second, the very purpose of IDFA is cross-app ad attribution, not identifying a player within a single game, and using it for something else (internal analytics without ATT permission) directly violates Apple's IDFA usage policy.
 
-Поэтому для склейки сессий одного игрока внутри собственной телеметрии верно использовать именно `SystemInfo.deviceUniqueIdentifier` (то есть `identifierForVendor`) — он не требует ATT, не считается рекламным идентификатором и достаточно стабилен для целей «сколько сессий у этого устройства» и «вернулось ли оно на следующий день». Единственная оговорка, которую нужно учитывать при расчёте retention: если тестовый пользователь удалит игру и поставит заново, `identifierForVendor` может замениться (если на устройстве не осталось других приложений того же разработчика), и такой пользователь в данных будет выглядеть как новый — это стандартное и общеизвестное ограничение всех аналитических систем на iOS, не только собственных.
+So for stitching together a single player's sessions within your own telemetry, the right choice is `SystemInfo.deviceUniqueIdentifier` (i.e., `identifierForVendor`) — it does not require ATT, is not considered an advertising identifier, and is stable enough for purposes like "how many sessions has this device had" and "did it come back the next day." The one caveat to keep in mind when calculating retention: if a test user deletes the game and reinstalls it, `identifierForVendor` may change (if no other app from the same developer remains on the device), and such a user will appear as new in the data — this is a standard, well-known limitation of every analytics system on iOS, not just custom ones.
 
-Для дополнительной устойчивости имеет смысл генерировать собственный UUID при первом запуске и сохранять его в `Keychain` (переживает переустановку приложения, но не привязан к перепрошивке/сбросу устройства) — это распространённая практика, но она добавляет сложность и для 500 установок MVP, скорее всего, избыточна; `SystemInfo.deviceUniqueIdentifier` как основной идентификатор устройства — разумный компромисс на этом масштабе.
+For extra durability, it can make sense to generate your own UUID on first launch and store it in the `Keychain` (it survives app reinstallation, but not a device wipe/reset) — this is common practice, but it adds complexity, and for a 500-install MVP it is probably overkill; `SystemInfo.deviceUniqueIdentifier` as the primary device identifier is a reasonable compromise at this scale.
 
-## 4. Схема события
+## 4. Event schema
 
-Минимальный набор полей, без которого расчёт даже простых мер (доля дошедших до экрана, retention day 1) становится ненадёжным:
+The minimum set of fields, without which calculating even simple measures (share reaching a screen, day 1 retention) becomes unreliable:
 
-| Поле | Назначение |
+| Field | Purpose |
 |---|---|
-| `event_name` | одно из девяти зафиксированных имён событий |
-| `event_time_utc` | метка времени события в UTC, выставленная на устройстве в момент возникновения |
-| `device_id` | `SystemInfo.deviceUniqueIdentifier` (см. раздел 3) |
-| `session_id` | идентификатор игровой сессии (генерируется при `app_open` после холодного старта) |
-| `seq` | монотонно возрастающий порядковый номер события **на устройстве** (не сбрасывается между сессиями) |
-| `build_version` | версия сборки игры (например, `CFBundleShortVersionString` + номер сборки) |
+| `event_name` | one of the nine fixed event names |
+| `event_time_utc` | the event's timestamp in UTC, set on the device at the moment it occurs |
+| `device_id` | `SystemInfo.deviceUniqueIdentifier` (see section 3) |
+| `session_id` | game session identifier (generated on `app_open` after a cold start) |
+| `seq` | monotonically increasing event sequence number **on the device** (not reset between sessions) |
+| `build_version` | the game build's version (e.g., `CFBundleShortVersionString` plus a build number) |
 
-Порядковый номер (`seq`) нужен по одной простой причине: приёмник получает события пачками, пачки могут теряться целиком (обрыв сети до подтверждения), приходить не по порядку (повторная отправка старой пачки после того, как новая уже доставлена) или дублироваться (клиент не получил подтверждение и переслал то, что сервер уже принял). Без сквозного порядкового номера сервер не может отличить «это устройство ещё не отправляло событие 42» от «это устройство отправило события 1–41, а 42 потерялось» — он видит только то, что реально пришло. Монотонный `seq` на паре с `device_id` даёт возможность:
+The sequence number (`seq`) is needed for one simple reason: the receiver gets events in batches, batches can be lost entirely (connection dropped before confirmation), can arrive out of order (a retry of an old batch after a newer one has already been delivered), or can be duplicated (the client did not get confirmation and resent what the server had already accepted). Without an end-to-end sequence number, the server cannot tell "this device has not yet sent event 42" apart from "this device sent events 1–41, and 42 was lost" — it only sees what actually arrived. A monotonic `seq` paired with `device_id` makes it possible to:
 
-- обнаружить пропуски: если у устройства есть `seq = 40` и `seq = 43`, но нет `41` и `42`, это видно прямым запросом;
-- отбрасывать повторы дёшево (раздел 6);
-- восстановить порядок событий даже если сетевые пакеты пришли не по порядку.
+- detect gaps: if a device has `seq = 40` and `seq = 43` but is missing `41` and `42`, this is visible with a direct query;
+- cheaply discard duplicates (section 6);
+- reconstruct event order even if network packets arrived out of sequence.
 
 ```json
 {
@@ -151,7 +151,7 @@ IDFA (`identifierForAdvertisers`) для склейки сессий одног�
 }
 ```
 
-Пакет, отправляемый на сервер — просто массив таких объектов плюс небольшой заголовок пакета (не обязателен, но удобен для диагностики):
+The batch sent to the server is simply an array of such objects plus a small batch header (not required, but useful for diagnostics):
 
 ```json
 {
@@ -161,9 +161,9 @@ IDFA (`identifierForAdvertisers`) для склейки сессий одног�
 }
 ```
 
-## 5. Приёмная сторона на Python
+## 5. The receiving side in Python
 
-Обработчик приёма пакета — намеренно простой HTTP-эндпоинт: принять JSON, проверить базовую валидность, вставить строки с игнорированием дублей (раздел 6), ответить списком принятых `seq`, чтобы клиент знал, что можно удалить их из локальной очереди.
+The batch-ingest handler is deliberately simple as an HTTP endpoint: accept JSON, check basic validity, insert rows while ignoring duplicates (section 6), and respond with the list of accepted `seq` values so the client knows it can remove them from the local queue.
 
 ```python
 from flask import Flask, request, jsonify
@@ -175,7 +175,7 @@ DB_PATH = "events.db"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA journal_mode=WAL")  # снижает блокировки при параллельных вставках
+    conn.execute("PRAGMA journal_mode=WAL")  # reduces locking under concurrent inserts
     return conn
 
 @app.post("/v1/events")
@@ -201,7 +201,7 @@ def ingest():
                     datetime.datetime.utcnow().isoformat() + "Z",
                 ),
             )
-            accepted_seq.append(e["seq"])  # даже "уже был" — можно удалять из очереди клиента
+            accepted_seq.append(e["seq"])  # even an "already existed" one can be dropped from the client queue
 
     return jsonify({"accepted_seq": accepted_seq}), 200
 ```
@@ -221,40 +221,40 @@ CREATE TABLE IF NOT EXISTS events (
 );
 ```
 
-### SQLite против JSON Lines против PostgreSQL для 500 установок
+### SQLite vs. JSON Lines vs. PostgreSQL for 500 installs
 
-Честное сравнение для заявленного масштаба (500 установок, девять типов событий, без внешних читателей, кроме собственных SQL-запросов для четырёх мер):
+An honest comparison for the stated scale (500 installs, nine event types, no external readers besides your own SQL queries for four measures):
 
-| | SQLite | Файлы JSON Lines | PostgreSQL |
+| | SQLite | JSON Lines files | PostgreSQL |
 |---|---|---|---|
-| Объём данных на 500 установок | тривиален (десятки–сотни тысяч строк, единицы–десятки МБ) — не проблема ни для одного варианта | | |
-| Простота развёртывания | файл на диске, ничего ставить не нужно | ничего ставить не нужно, проще всего | нужен отдельный процесс/сервис, настройка доступа, бэкапы |
-| SQL-запросы для четырёх мер (retention, доли и т.д.) | да, из коробки | нет — нужно грузить в pandas/DuckDB или писать вручную | да, из коробки |
-| Параллельная запись при приёме пакетов | ограничена (один писатель за раз даже в WAL-режиме), но на 500 установках это не узкое место | проблема дозаписи в один файл из нескольких процессов | нормально масштабируется |
-| Идемпотентность через `UNIQUE`/`ON CONFLICT` | да | нужно реализовывать вручную (дедупликация при чтении) | да |
-| Путь роста при масштабировании | миграция на PostgreSQL — экспорт таблиц, минимальные правки SQL (диалект близкий) | миграция сложнее — нужно с нуля проектировать схему | уже конечная точка |
-| Что выбрать при 500 установках | **Да** — оптимальный баланс простоты и возможности сразу писать SQL для аналитики | Годится как **сырой лог для отладки/аудита** параллельно с БД, но не как основное хранилище | Избыточно на старте: лишний сервис для объёма, который бесплатно тянет один файл SQLite |
+| Data volume at 500 installs | trivial (tens–hundreds of thousands of rows, single-digit–tens of MB) — not a problem for any option | | |
+| Deployment simplicity | a file on disk, nothing to install | nothing to install, the simplest option | needs a separate process/service, access setup, backups |
+| SQL queries for the four measures (retention, shares, etc.) | yes, out of the box | no — needs loading into pandas/DuckDB or writing by hand | yes, out of the box |
+| Concurrent writes on batch ingest | limited (one writer at a time even in WAL mode), but at 500 installs this is not a bottleneck | a problem when multiple processes append to one file | scales fine |
+| Idempotency via `UNIQUE`/`ON CONFLICT` | yes | must be implemented by hand (deduplication on read) | yes |
+| Growth path when scaling | migration to PostgreSQL — export tables, minor SQL edits (the dialect is close) | migration is harder — the schema needs to be designed from scratch | already the endpoint |
+| What to pick at 500 installs | **Yes** — the best balance of simplicity and being able to write SQL for analytics right away | Works as a **raw log for debugging/audit** alongside the database, but not as the primary store | Excessive at the outset: an extra service for a volume that one SQLite file handles for free |
 
-Вывод: для 500 установок разумно взять SQLite как основное хранилище (даёт SQL сразу, не требует отдельного сервиса) и, при желании подстраховаться, параллельно писать сырые JSON-строки в append-only лог-файл (дешёвая защита от порчи БД — можно пересобрать таблицу из лога). PostgreSQL стоит вводить, когда появляется больше одного читателя данных одновременно (например, дашборд, к которому обращаются несколько человек), нужны конкурентные записи от нескольких процессов приёма, либо объём вырастает на порядки — ничего из этого не характерно для проверки MVP на 500 установках.
+Conclusion: for 500 installs it makes sense to use SQLite as the primary store (gives you SQL immediately, no separate service required) and, if you want extra safety, to also write raw JSON lines in parallel to an append-only log file (cheap protection against database corruption — you can rebuild the table from the log). PostgreSQL is worth introducing once there is more than one reader of the data at a time (e.g., a dashboard accessed by several people), once concurrent writes from multiple ingest processes are needed, or once the volume grows by orders of magnitude — none of which is characteristic of validating an MVP with 500 installs.
 
-## 6. Идемпотентность: отбрасывание повторов
+## 6. Idempotency: discarding duplicates
 
-Повторная отправка одного и того же пакета — нормальная ситуация при плохой сети (клиент не получил подтверждение и на всякий случай досылает то же самое). Правильное место для защиты от дублей — уникальный ключ на паре (`device_id`, `seq`), объявленный в самой базе данных, а не проверка на уровне кода приложения (код можно забыть вызвать в одном из путей, ограничение в БД — нельзя обойти).
+Re-sending the same batch is a normal occurrence on a bad network (the client did not get confirmation and, to be safe, resends the same thing). The right place to guard against duplicates is a unique key on the pair (`device_id`, `seq`), declared in the database itself, rather than a check at the application code level (code can be forgotten in one of the code paths; a database constraint cannot be bypassed).
 
 ```sql
--- SQLite / PostgreSQL: одинаковая идея, синтаксис отличается в деталях
+-- SQLite / PostgreSQL: same idea, syntax differs in details
 UNIQUE(device_id, seq)
 ```
 
-При вставке используется `INSERT ... ON CONFLICT (device_id, seq) DO NOTHING` (SQLite и PostgreSQL поддерживают этот синтаксис одинаково) — повторная вставка того же события просто игнорируется, а не превращается в ошибку, которую нужно ловить и разбирать в коде обработчика. Ответ сервера клиенту в любом случае содержит `seq` как «принято», даже если строка на самом деле уже была — с точки зрения клиента результат один и тот же: событие можно удалить из локальной очереди.
+On insert, `INSERT ... ON CONFLICT (device_id, seq) DO NOTHING` is used (SQLite and PostgreSQL support this syntax identically) — re-inserting the same event is simply ignored, rather than turning into an error that needs to be caught and handled in the handler's code. The server's response to the client contains `seq` as "accepted" regardless, even if the row already existed — from the client's point of view the outcome is the same either way: the event can be removed from the local queue.
 
-## 7. Расчёт четырёх мер из потока событий
+## 7. Calculating the four measures from the event stream
 
-Все четыре меры — это по сути отношение количества устройств, дошедших до события Б, к количеству устройств, дошедших до события А, в подходящем окне времени.
+All four measures are essentially a ratio of the number of devices that reached event B to the number of devices that reached event A, within a suitable time window.
 
-### Доля дошедших до экрана съёмки
+### Share reaching the photo screen
 
-Отношение количества уникальных устройств с событием `photo_screen_shown` к количеству уникальных устройств с событием `app_open` (обычно — за первую сессию/первый день, чтобы не путать «дошёл при первом визите» с «дошёл через месяц»).
+The ratio of unique devices with a `photo_screen_shown` event to unique devices with an `app_open` event (usually — within the first session/first day, so as not to confuse "reached it on the first visit" with "reached it a month later").
 
 ```sql
 WITH first_open AS (
@@ -276,9 +276,9 @@ FROM first_open fo
 LEFT JOIN reached_screen rs ON rs.device_id = fo.device_id;
 ```
 
-### Доля загрузивших снимок
+### Share who uploaded a photo
 
-Аналогично, но относительно тех, кто дошёл до экрана съёмки (воронка), либо относительно всех установок (доля от общего числа) — в проекте нужно явно зафиксировать, от какого знаменателя считается мера (это часто путают). Ниже — вариант «доля от всех установок», как сформулировано в задаче:
+Similar, but relative to those who reached the photo screen (funnel), or relative to all installs (share of the total) — the project needs to explicitly fix which denominator the measure is computed against (this is often mixed up). Below is the "share of all installs" variant, as stated in the task:
 
 ```sql
 WITH first_open AS (
@@ -293,9 +293,9 @@ FROM first_open fo
 LEFT JOIN uploaded u ON u.device_id = fo.device_id;
 ```
 
-### Возврат на первый день (Day 1 retention)
+### Day 1 retention
 
-Общепринятое в мобильной индустрии определение D1 retention — «классическое» (classic/calendar-day) retention: доля пользователей, установивших приложение в календарный день D, которые открыли приложение снова в календарный день D+1 (ровно на следующие календарные сутки, а не «в любой момент в течение 24–48 часов после установки» — это отдельное, «rolling», определение, которое даёт другие, обычно более высокие, числа). Именно классическое определение использует, например, отчёт GameAnalytics: «Retention measures the percentage of players who return to your game after their initial play session, typically tracked on key milestones like Day 1 (D1), Day 7 (D7), and Day 28 (D28)», а сам отчёт прямо указывает, что использует классическое (calendar-day), а не накопительное (rolling) retention [GameAnalytics — 2025 Mobile Gaming Benchmarks](https://www.gameanalytics.com/reports/2025-mobile-gaming-benchmarks). Практическая рекомендация: день считается по UTC (или по единому выбранному часовому поясу для всего проекта — важно не мешать локальное время устройства и UTC, см. раздел 8), а «вернулся» — это наличие **любого** события (не обязательно `app_open`, но чаще всего именно оно берётся как маркер визита) в календарные сутки D+1 относительно суток первого `app_open` этого устройства.
+The definition of D1 retention accepted across the mobile industry is the "classic" (classic/calendar-day) retention: the share of users who installed the app on calendar day D who opened the app again on calendar day D+1 (exactly the next calendar day, not "at any point within 24–48 hours after install" — that is a separate, "rolling," definition, which yields different, typically higher, numbers). This classic definition is the one used, for example, by the GameAnalytics report: "Retention measures the percentage of players who return to your game after their initial play session, typically tracked on key milestones like Day 1 (D1), Day 7 (D7), and Day 28 (D28)," and the report itself states explicitly that it uses classic (calendar-day) rather than cumulative (rolling) retention [GameAnalytics — 2025 Mobile Gaming Benchmarks](https://www.gameanalytics.com/reports/2025-mobile-gaming-benchmarks). Practical recommendation: the day is counted in UTC (or in a single chosen time zone for the whole project — it matters not to mix a device's local time with UTC, see section 8), and "returned" means the presence of **any** event (not necessarily `app_open`, but that is most often the one taken as the visit marker) on calendar day D+1 relative to the day of that device's first `app_open`.
 
 ```sql
 WITH cohort AS (
@@ -321,11 +321,11 @@ FROM cohort c
 LEFT JOIN day1_return d ON d.device_id = c.device_id;
 ```
 
-(Синтаксис `DATE(..., '+1 day')` — диалект SQLite; в PostgreSQL эквивалент — `(install_date + INTERVAL '1 day')::date`.)
+(The `DATE(..., '+1 day')` syntax is SQLite's dialect; the PostgreSQL equivalent is `(install_date + INTERVAL '1 day')::date`.)
 
-### Доля нажавших «+5 ходов»
+### Share who tapped "+5 moves"
 
-Считается как доля уникальных устройств с событием `moves_button_tap` от числа устройств, дошедших до соответствующего состояния игры (обычно — от всех, у кого был хотя бы один `level_fail`, поскольку кнопка предположительно предлагается именно в этот момент):
+Computed as the share of unique devices with a `moves_button_tap` event out of the number of devices that reached the corresponding game state (usually — out of everyone who had at least one `level_fail`, since the button is presumably offered at exactly that moment):
 
 ```sql
 WITH failed AS (
@@ -340,11 +340,11 @@ FROM failed f
 LEFT JOIN tapped t ON t.device_id = f.device_id;
 ```
 
-## 8. Часовые пояса и метки времени
+## 8. Time zones and timestamps
 
-Правило одно: хранить `event_time_utc` в UTC и только в UTC, независимо от того, в каком часовом поясе физически находится устройство. Частая ошибка — брать `DateTime.Now` на устройстве (локальное время) вместо `DateTime.UtcNow` и писать его в поле, которое затем в отчётах трактуется как UTC; на границах суток (полночь по местному времени) это сдвигает событие в «неправильный» календарный день при расчёте retention и меняет когорту пользователя. Вторая частая ошибка — смешивать часовой пояс сервера (где физически крутится Python-процесс) и часовой пояс, в котором считается «календарный день» для retention: если сервер один, а пользователи — по всему миру, «календарный день» всё равно должен фиксироваться в UTC, а не в часовом поясе сервера или каждого пользователя отдельно, иначе разные когорты пользователей будут получать разные фактические окна дня и сравнение между регионами станет некорректным. Если в будущем понадобится показывать даты пользователю или разработчику в локальном времени — это делается только на этапе отображения (в интерфейсе отчёта), а не в хранимых данных.
+There is one rule: store `event_time_utc` in UTC, and only in UTC, regardless of the physical time zone the device is in. A common mistake is taking `DateTime.Now` on the device (local time) instead of `DateTime.UtcNow` and writing it into a field that reports then treat as UTC; at day boundaries (local midnight) this shifts the event into the "wrong" calendar day when calculating retention and changes the user's cohort. A second common mistake is mixing up the server's time zone (wherever the Python process physically runs) with the time zone in which the "calendar day" is computed for retention: even with a single server, if users are spread across the world, the "calendar day" must still be fixed in UTC, not in the server's time zone or in each user's individual time zone — otherwise different user cohorts get different actual day windows and comparison across regions becomes invalid. If it becomes necessary in the future to show dates to a user or developer in local time, that should be done only at the display stage (in the report's interface), not in the stored data.
 
-## Источники
+## Sources
 
 - [Unity Manual — UnityWebRequest (6000.0)](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Networking.UnityWebRequest.html)
 - [Unity Manual — MonoBehaviour.OnApplicationPause](https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnApplicationPause.html)
@@ -353,9 +353,3 @@ LEFT JOIN tapped t ON t.device_id = f.device_id;
 - [Apple Developer Documentation — identifierForVendor](https://developer.apple.com/documentation/uikit/uidevice/identifierforvendor)
 - [Apple Developer Documentation — Background Tasks](https://developer.apple.com/documentation/backgroundtasks)
 - [GameAnalytics — 2025 Mobile Gaming Benchmarks (report page)](https://www.gameanalytics.com/reports/2025-mobile-gaming-benchmarks)
-
-
-
-
-
-

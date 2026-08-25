@@ -1,274 +1,289 @@
-# Наказ агенту на разработку: «Спасённый котёнок»
+# Development brief for the agent: "Rescued Kitten"
 
-Ты ведёшь разработку мобильной 2D-головоломки под iOS. Это не продукт, а
-трёхнедельная проверка замысла: узнать, покупается ли установка дёшево и
-возвращаются ли игроки, прежде чем строить экономику.
+You are leading development of a mobile 2D puzzle game for iOS. This is not a
+product, but a three-week test of the concept: find out whether an install can
+be bought cheaply and whether players come back, before building the economy.
 
-## Где правда
+## Where the truth is
 
-Репозиторий: `git@github.com:alter/mobile-game-cat.git`
+Repository: `git@github.com:alter/mobile-game-cat.git`
 
-Прочитай в этом порядке, до первой строки кода:
+Read in this order, before the first line of code:
 
-1. `knowledge/README.md` — указатель по базе знаний и находки, меняющие решения
-2. `knowledge/00-versions.md` — проверенные версии всего набора средств
-3. `cat-shelter-tasks.md` — задачи, приёмка, роли, ворота
-4. `cat-shelter-tech.md` — устройство и обоснования
-5. `cat-shelter-mvp.md` — замысел и ради чего всё
+1. `knowledge/README.md` — index of the knowledge base and findings that change decisions
+2. `knowledge/00-versions.md` — verified versions of the entire toolset
+3. `cat-shelter-tasks.md` — tasks, acceptance, roles, gates
+4. `cat-shelter-tech.md` — architecture and rationale
+5. `cat-shelter-mvp.md` — the concept and what it's all for
 
-Каталог `knowledge/` — это выдержки из первоисточников под конкретные версии, у
-каждого факта ссылка. Он собран ровно затем, чтобы ты не восстанавливал вызовы
-по памяти.
+The `knowledge/` directory holds excerpts from primary sources for specific
+versions, with a link for every fact. It exists exactly so you don't
+reconstruct calls from memory.
 
-## Правило номер один
+## Rule number one
 
-**Не помнишь — не пиши.** Перед тем как применить незнакомый вызов, параметр,
-ключ командной строки или имя пакета, найди его в `knowledge/`. Нет там — открой
-первоисточник, проверь, допиши в `knowledge/` со ссылкой. Выдуманный вызов стоит
-часов отладки, проверка — минуту.
+**If you don't remember it, don't write it.** Before applying an unfamiliar
+call, parameter, command-line flag, or package name, find it in `knowledge/`.
+If it isn't there, open the primary source, verify it, add it to `knowledge/`
+with a link. A made-up call costs hours of debugging; verification costs a
+minute.
 
-Любое число — версия, предел, цена, доля — приводится со ссылкой либо не
-приводится вовсе. «Примерно 95%» без источника хуже, чем «точных данных нет».
+Any number — version, limit, price, share — is given with a link or not given
+at all. "About 95%" without a source is worse than "no exact data."
 
-## Набор средств, менять только с обоснованием
+## Toolset, change only with justification
 
-| Слой | Решение |
+| Layer | Decision |
 |---|---|
-| Движок | Unity 6.3 LTS, **6000.3.22f1** — ставить из [архива](https://unity.com/releases/editor/archive); по умолчанию Unity предлагает 6.5, она Update release и не подходит |
-| Язык | C#, .NET Standard 2.1 |
-| Показ | URP 2D Renderer |
-| Интерфейс | UI Toolkit, вёрстка в UXML/USS |
-| Сохранение | `JsonUtility` |
-| Чтение уровней | `com.unity.nuget.newtonsoft-json` |
-| Тесты | Unity Test Framework, NUnit |
-| Решатель уровней | Python 3, вне проекта Unity, каталог `/tools` |
-| Узел-посредник | Cloudflare Workers, TypeScript, каталог `/worker` |
-| Замеры | GameAnalytics + аналитика App Store Connect |
-| Сборка | Xcode 26+, iOS 26 SDK, headless из командной строки |
+| Engine | Unity 6.3 LTS, **6000.3.22f1** — install from the [archive](https://unity.com/releases/editor/archive); by default Unity offers 6.5, which is an Update release and doesn't fit |
+| Language | C#, .NET Standard 2.1 |
+| Rendering | URP 2D Renderer |
+| Interface | UI Toolkit, layout in UXML/USS |
+| Save | `JsonUtility` |
+| Level loading | `com.unity.nuget.newtonsoft-json` |
+| Tests | Unity Test Framework, NUnit |
+| Level solver | Python 3, outside the Unity project, `/tools` directory |
+| Intermediary node | Cloudflare Workers, TypeScript, `/worker` directory |
+| Measurement | GameAnalytics + App Store Connect analytics |
+| Build | Xcode 26+, iOS 26 SDK, headless from the command line |
 
-## Чего не делать никогда
+## What never to do
 
-- `System.Text.Json` — под IL2CPP упирается в `Reflection.Emit`, на iOS не работает
-- `using UnityEngine` где-либо под `/Assets/Core` — это условие, а не пожелание,
-  и проверяется grep-шагом в сборке
-- DOTween, Zenject, Odin, готовые наборы механик
-- платные службы, привязка банковской карты, GCP и подобное — бюджета нет
-- писать своё там, где готовое бесплатно: замеры не самописные, удержание
-  считает App Store Connect
-- вызывать `RequestTrackingAuthorization` — диалог ATT нам не нужен и стоит
-  установок
+- `System.Text.Json` — under IL2CPP it hits `Reflection.Emit`, doesn't work on iOS
+- `using UnityEngine` anywhere under `/Assets/Core` — this is a condition, not
+  a wish, and is checked by a grep step in the build
+- DOTween, Zenject, Odin, off-the-shelf mechanics kits
+- paid services, bank card binding, GCP and the like — there is no budget
+- writing your own where a free ready-made solution exists: measurement is not
+  homegrown, App Store Connect counts retention
+- calling `RequestTrackingAuthorization` — we don't need the ATT dialog and it
+  costs installs
 
-## С чего начинать прямо сейчас
+## Where to start right now
 
-Ворота 0.7 — проверка роликов рекламой — работа человека, ты её не делаешь.
-**До «да» на этих воротах не строй оболочку, рисунки, экран съёмки кота и работу
-с магазином.**
+Gate 0.7 — testing ad creatives — is human work, you don't do it. **Don't
+build the shell, artwork, the cat-photographing screen, or store integration
+before a "yes" on this gate.**
 
-Что делать можно и нужно: **M2 и M3** — ядро правил и решатель уровней. Они не
-зависят от темы игры и переживают смену замысла, поэтому их постройка до ворот
-риска не несёт. Это и есть тот «станок», ради которого затеяно разделение слоёв.
+What can and should be done: **M2 and M3** — the rules core and the level
+solver. They don't depend on the game's theme and survive a change of concept,
+so building them before the gate carries no risk. This is exactly the
+"machine tool" for whose sake the layer split was undertaken.
 
-Порядок: 2.1 → 2.6, затем 3.1 → 3.8.
+Order: 2.1 → 2.6, then 3.1 → 3.8.
 
-Первое действие: прочитать перечисленное выше, создать проект Unity нужной
-версии с деревом каталогов из раздела 6 `cat-shelter-tech.md`, настроить
-assembly definition так, чтобы `Core` собирался без ссылки на движок, поставить
-grep-проверку в сборку. Показать план на M2 до того, как писать код.
+First action: read what's listed above, create a Unity project of the
+required version with the directory tree from section 6 of
+`cat-shelter-tech.md`, set up the assembly definition so `Core` builds without
+referencing the engine, put the grep check into the build. Show the plan for
+M2 before writing code.
 
-## Что значит «готово»
+## What "done" means
 
-Приёмка каждой задачи написана в `cat-shelter-tasks.md` **до** начала работы. Не
-подгоняй её под полученный результат.
+Acceptance for every task is written in `cat-shelter-tasks.md` **before** work
+begins. Don't tailor it to the result you got.
 
-Зелёные тесты — не движение к цели. В списке около 65 задач, а цель проверяют
-трое ворот: 0.7 (продаётся ли обещание), 3.7 (стоит ли это строить), 8.0 и M8
-(возвращаются ли и платят ли). Всё остальное — леса. Не докладывай «закрыто
-двенадцать задач» как достижение: это ровно та ловушка, ради которой в документе
-написан раздел про throughput.
+Green tests are not progress toward the goal. There are about 65 tasks on the
+list, and the goal is checked by three gates: 0.7 (does the promise sell), 3.7
+(is it worth building), 8.0 and M8 (do they come back and pay). Everything
+else is scaffolding. Don't report "twelve tasks closed" as an achievement:
+that is exactly the trap the throughput section of this document was written
+for.
 
-Задачи с пометкой HUMAN ты не выполняешь и не имитируешь. Особенно 3.7 — пять
-посторонних людей играют в отладочную сборку. Заменить их своим суждением
-нельзя: агент почти всегда сообщает, что получилось хорошо.
+Tasks marked HUMAN you don't perform and don't simulate. Especially 3.7 — five
+outside people play the debug build. They cannot be replaced by your own
+judgment: an agent almost always reports that things turned out well.
 
-## Как работать
+## How to work
 
-- **код** — ветка на задачу, не коммитить прямо в `main`
-- **документы — только в `main`.** `cat-shelter-mvp.md`, `cat-shelter-tech.md`,
-  `cat-shelter-tasks.md`, `AGENT-BRIEF.md`, `knowledge/`, `reviews/` правятся
-  отдельным коммитом в `main`, а не внутри ветки с задачей. Это единственная
-  общая точка правды: документ, лежащий в ветке, для всех остальных не
-  существует, и следующий исполнитель прочитает устаревшее.
-- ветку с задачей перед работой обновляй от `main`, чтобы подхватить документы
-- ядро правил покрывается тестами, тесты гоняются на каждое изменение
-- данные держи в JSON и ScriptableObject, интерфейс в UXML/USS, сцены собирай
-  кодом — так агент ломает меньше
-- `.meta`-файлы не терять, GUID не переписывать
-- длинные файлы пиши частями, а не одним куском
-- перед тем как объявить работу сделанной, покажи вывод команд, а не пересказ
+- **code** — a branch per task, don't commit straight to `main`
+- **documents — only in `main`.** `cat-shelter-mvp.md`, `cat-shelter-tech.md`,
+  `cat-shelter-tasks.md`, `AGENT-BRIEF.md`, `knowledge/`, `reviews/` are edited
+  in a separate commit to `main`, not inside a task branch. This is the only
+  shared point of truth: a document sitting in a branch doesn't exist for
+  anyone else, and the next person to pick up work will read a stale version.
+- update the task branch from `main` before working, to pick up documents
+- the rules core is covered by tests, tests run on every change
+- keep data in JSON and ScriptableObject, interface in UXML/USS, assemble
+  scenes with code — this way the agent breaks less
+- don't lose `.meta` files, don't rewrite GUIDs
+- write long files in parts, not in one piece
+- before declaring work done, show the output of commands, not a retelling
+- all documentation, task files, code comments, and commit messages are in
+  English; the reason is that agents are measurably more accurate in English,
+  and this repository is read mostly by agents; the sole exception is a
+  verbatim quote from a Russian-language source, which stays in the original,
+  because translating a quote stops it being a quote
 
-## Среда: проверено 25 августа 2026, всё готово
+## Environment: verified 25 August 2026, everything ready
 
-Ничего доустанавливать не надо. Проверено запуском, а не по наличию значков.
+Nothing needs to be installed further. Verified by running it, not by the
+presence of icons.
 
-| Что | Состояние |
+| What | State |
 |---|---|
-| Unity | `6000.3.22f1`, двоичный файл: `/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/MacOS/Unity` |
-| Модули Unity | iOSSupport, AndroidPlayer, WebGLSupport |
-| Лицензия Unity | Unity Personal, действует; права включают `com.unity.editor.headless` и `com.unity.editor.platforms.ios` — см. команду ниже |
-| Xcode | 26.3, сборка 17C529 |
-| `xcode-select` | указывает на `/Applications/Xcode.app/Contents/Developer` |
-| iOS SDK | 26.2 и симулятор 26.2 — требование магазина от 28 апреля 2026 выполнено |
-| .NET SDK | 10.x, для тестов ядра вне Unity |
+| Unity | `6000.3.22f1`, binary: `/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/MacOS/Unity` |
+| Unity modules | iOSSupport, AndroidPlayer, WebGLSupport |
+| Unity license | Unity Personal, active; entitlements include `com.unity.editor.headless` and `com.unity.editor.platforms.ios` — see command below |
+| Xcode | 26.3, build 17C529 |
+| `xcode-select` | points to `/Applications/Xcode.app/Contents/Developer` |
+| iOS SDK | 26.2 and simulator 26.2 — the store requirement from 28 April 2026 is met |
+| .NET SDK | 10.x, for core tests outside Unity |
 
-Раз пакетный режим разрешён лицензией — сборку и прогон тестов запускай сам, не
-проси человека нажимать в редакторе.
+Since batch mode is permitted by the license, run the build and tests
+yourself, don't ask a human to click in the editor.
 
-### Как проверить лицензию правильно
+### How to check the license correctly
 
-Не искать файл и не запускать пробную сборку. У Unity есть клиент лицензирования
-со своей командой:
+Don't search for a file and don't run a trial build. Unity has a licensing
+client with its own command:
 
 ```bash
 "/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Helpers/\
 UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client" --showEntitlements
 ```
 
-Выдаёт название лицензии, сроки и **перечень прав**. Смотреть надо на две
-строки:
+It outputs the license name, terms, and **the list of entitlements**. Two
+lines matter:
 
-- `com.unity.editor.headless` — работа без графики разрешена. Без неё вся
-  агентская разработка упирается в человека у редактора;
-- `com.unity.editor.platforms.ios` — сборка под iOS входит в лицензию.
+- `com.unity.editor.headless` — running without graphics is allowed. Without
+  it, all agent-driven development runs into a human at the editor;
+- `com.unity.editor.platforms.ios` — building for iOS is included in the
+  license.
 
-Соседние команды: `--showAllEntitlements` (всё, что известно машине),
-`--showContext` (под какой учётной записью).
+Related commands: `--showAllEntitlements` (everything the machine knows),
+`--showContext` (which account).
 
-**Две ошибки, которые здесь уже были сделаны, не повторяй.** Файл лицензии лежит
-в `/Library/Application Support/Unity/Unity_lic.ulf` — общесистемно, а **не** в
-`~/Library/...`; проверка домашнего каталога даёт ложный ответ «лицензии нет».
-И «Unity запустился в пакетном режиме» — доказательство косвенное: оно говорит,
-что права есть *сейчас и на это действие*, но не показывает, какие именно и до
-какого срока.
+**Two mistakes that have already been made here — don't repeat them.** The
+license file sits at `/Library/Application Support/Unity/Unity_lic.ulf` —
+system-wide, **not** in `~/Library/...`; checking the home directory gives a
+false "no license" answer. And "Unity launched in batch mode" is indirect
+proof: it shows that entitlements exist *now and for this action*, but not
+which ones exactly and until when.
 
-Прочие места, если понадобится копать: `~/Library/Unity/licenses/UnityEntitlementLicense.xml`
-(лицензия, назначенная учётной записи), `~/Library/Application Support/UnityHub/`
-(состояние Hub), `~/Library/Logs/Unity/` (журналы со строками `[Licensing::…]`).
+Other places to dig if needed: `~/Library/Unity/licenses/UnityEntitlementLicense.xml`
+(the license assigned to the account), `~/Library/Application Support/UnityHub/`
+(Hub state), `~/Library/Logs/Unity/` (logs with `[Licensing::…]` lines).
 
-## Как ты управляешь Unity: сейчас командная строка, MCP — после 1.4
+## How you control Unity: command line now, MCP after 1.4
 
-**Сейчас и по умолчанию — два способа, оба без MCP.**
+**Right now, and by default — two methods, neither uses MCP.**
 
-Правка файлов напрямую: код на C#, описания уровней в JSON, интерфейс в UXML и
-USS — всё это обычный текст. И Unity из командной строки:
+Direct file editing: C# code, level descriptions in JSON, interface in UXML
+and USS — all of this is plain text. And Unity from the command line:
 
 ```bash
 UNITY="/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/MacOS/Unity"
 
-# сборка
+# build
 "$UNITY" -batchmode -nographics -quit -projectPath game \
          -executeMethod BuildScript.BuildIOS -logFile build.log
 
-# тесты
+# tests
 "$UNITY" -batchmode -nographics -projectPath game \
          -runTests -testPlatform EditMode -testResults results.xml -logFile tests.log
 ```
 
-Это не обходной путь, а замысел: данные в JSON и ScriptableObject, интерфейс в
-UXML/USS, сцены собираются кодом — **именно чтобы не зависеть от MCP.** Сцены
-Unity это машинный YAML с опознавателями, агент их ломает, и архитектура
-выстроена так, чтобы к ним почти не прикасаться. Не разрушай это, получив MCP.
+This isn't a workaround, it's the design: data in JSON and ScriptableObject,
+interface in UXML/USS, scenes assembled by code — **precisely so as not to
+depend on MCP.** Unity scenes are machine-generated YAML with identifiers, the
+agent breaks them, and the architecture is built to barely touch them. Don't
+destroy this by getting MCP.
 
-**Цена итерации померена на этой машине:** создание пустого проекта 6 секунд,
-повторное открытие 2–3. Довод «пакетный режим слишком медленный» не
-подтвердился. Замер на пустом проекте — с уровнями и пакетами будет дольше;
-померь заново, когда проект появится, и запиши сюда.
+**Iteration cost measured on this machine:** creating an empty project takes
+6 seconds, reopening 2–3. The argument "batch mode is too slow" wasn't
+confirmed. The measurement is on an empty project — with levels and packages
+it will be slower; measure again once the project exists, and record it here.
 
-**MCP: `CoplayDev/unity-mcp`, подключать после задачи 1.4.**
+**MCP: `CoplayDev/unity-mcp`, connect after task 1.4.**
 
-Официальный (`com.unity.ai.assistant`) отпадает — требует Unity Cloud и платной
-подписки, а у нас правило не платить. Из сторонних выбран CoplayDev: MIT,
-13 643 звезды, живой (проверено 25.08.2026). Запасной — `IvanMurzak/Unity-MCP`.
+The official one (`com.unity.ai.assistant`) is out — it requires Unity Cloud
+and a paid subscription, and our rule is not to pay. Among third-party
+options, CoplayDev was chosen: MIT, 13,643 stars, active (checked 25.08.2026).
+Fallback — `IvanMurzak/Unity-MCP`.
 
-Польза от него **не в скорости**, а в чтении консоли Unity: ошибки компиляции и
-выполнения приходят разбираемыми, вместо выуживания из `Editor.log`. Плюс сцены
-и режим игры.
+Its benefit is **not speed**, but reading the Unity console: compile and
+runtime errors arrive parsed, instead of being fished out of `Editor.log`.
+Plus scenes and play mode.
 
-Ограничение: MCP живёт внутри **открытого редактора с окном**, то есть требует,
-чтобы кто-то держал Unity запущенным. Сборка и CI остаются на пакетном режиме —
-подменять одно другим не надо.
+Limitation: MCP lives inside an **open editor with a window**, meaning it
+requires someone to keep Unity running. Build and CI stay on batch mode —
+don't substitute one for the other.
 
-Раньше 1.4 подключать бессмысленно: проекта нет, разговаривать не с чем.
+Connecting it before 1.4 is pointless: there's no project, nothing to talk to.
 
-## Задача 1.4: проекта Unity ещё нет, и есть коллизия
+## Task 1.4: there's no Unity project yet, and there's a collision
 
-В `game/` лежат `Assets/` и `Tests/`, но нет ни `ProjectSettings/`, ни
-`Packages/manifest.json` — Unity этот каталог проектом не считает. Ядро правил и
-решатель до сих пор жили как обычный проект .NET, и это было верно, но дальше
-так нельзя.
+`game/` contains `Assets/` and `Tests/`, but neither `ProjectSettings/` nor
+`Packages/manifest.json` — Unity doesn't consider this directory a project.
+The rules core and the solver have lived as an ordinary .NET project until
+now, and that was correct, but it can't continue that way.
 
-**Коллизия, на которую наступишь.** Файл `game/Assets/Core/CatShelter.Core.csproj`
-окажется **внутри** папки Assets, когда Unity откроет `game/` как проект. На него
-ссылается `game/Tests/Core/CatShelter.Core.Tests.csproj` строкой
+**Collision you'll run into.** The file
+`game/Assets/Core/CatShelter.Core.csproj` will end up **inside** the Assets
+folder once Unity opens `game/` as a project. It's referenced by
+`game/Tests/Core/CatShelter.Core.Tests.csproj` via the line
 `<ProjectReference Include="../../Assets/Core/CatShelter.Core.csproj" />`.
-То есть над одними и теми же исходниками окажутся две системы сборки: Unity со
-своими сгенерированными `.csproj` и наш `dotnet test`.
+That means two build systems will sit over the same source: Unity with its
+generated `.csproj` files, and our `dotnet test`.
 
-Само по себе это не ломается — Unity просто пометит чужой `.csproj` как
-неизвестный ресурс и заведёт ему `.meta`. Но путаница будет, и её надо снять
-осознанно. Два пути:
+This doesn't break by itself — Unity will just mark the foreign `.csproj` as
+an unknown asset and create a `.meta` for it. But there will be confusion, and
+it needs to be resolved deliberately. Two paths:
 
-1. **Вынести чистый C# из Assets.** Ядро живёт в `core/` рядом с `game/`, а в
-   Unity попадает как собранная библиотека либо через ссылку на исходники. Чище,
-   но добавляет шаг сборки.
-2. **Оставить как есть, убрав только `.csproj` из Assets.** Ядро остаётся
-   исходниками в `Assets/Core`, внутри Unity собирается через `.asmdef`, а для
-   `dotnet test` заводится отдельный проект **вне** Assets, подтягивающий те же
-   файлы через `<Compile Include="../../game/Assets/Core/**/*.cs" />`.
+1. **Move plain C# out of Assets.** The core lives in `core/` next to `game/`,
+   and enters Unity as a compiled library or via a source reference. Cleaner,
+   but adds a build step.
+2. **Leave it as is, only removing the `.csproj` from Assets.** The core
+   remains as source in `Assets/Core`, built inside Unity via `.asmdef`, and
+   for `dotnet test` a separate project is set up **outside** Assets, pulling
+   in the same files via `<Compile Include="../../game/Assets/Core/**/*.cs" />`.
 
-Второй путь короче и сохраняет нынешний прогон тестов. Выбор за тобой, но
-**выбери явно и напиши почему** — молча оставить два `.csproj` над одним кодом
-нельзя.
+The second path is shorter and preserves the current test run. The choice is
+yours, but **choose explicitly and write down why** — silently leaving two
+`.csproj` files over the same code is not acceptable.
 
-Про `.meta`: при первом открытии Unity заведёт их на всё содержимое `Assets`, в
-том числе на 37 описаний уровней. Их надо зафиксировать в git вместе с проектом,
-иначе ссылки поедут у всех остальных.
+On `.meta`: on first opening, Unity will create them for everything under
+`Assets`, including 37 level descriptions. They need to be committed to git
+together with the project, or references will shift for everyone else.
 
-## Известные ловушки этого проекта
+## Known traps in this project
 
-- **7.0**: у GameAnalytics в privacy manifest объявлен домен трекинга, а Apple
-  такие домены перекрывает без разрешения ATT. Проверить на живом устройстве, что
-  события доходят без диалога, **до** того как разводить сбор замеров. Ошибка
-  тихая: событий просто не будет.
-- **4.4**: шесть силуэтов кота — единственная задача, которую агент может
-  провалить начисто. Приёмка отдана постороннему человеку намеренно. Две попытки,
-  дальше нанимать художника.
-- Пороги в M8 ещё не зафиксированы окончательно: записанный «возврат на первый
-  день > 35%» примерно вдвое выше медианы жанра. Решение принимает человек в
-  задаче 8.0, до траты денег.
+- **7.0**: GameAnalytics declares a tracking domain in its privacy manifest,
+  and Apple blocks such domains without ATT permission. Verify on a real
+  device that events arrive without the dialog, **before** wiring up
+  measurement collection. The failure is silent: events simply won't happen.
+- **4.4**: six cat silhouettes is the one task the agent can fail completely.
+  Acceptance is deliberately handed to an outside person. Two attempts, then
+  hire an artist.
+- Thresholds in M8 aren't finalized yet: the recorded "day-1 return > 35%" is
+  roughly twice the genre median. The decision is made by a human in task 8.0,
+  before spending money.
 
-## Когда останавливаться и говорить
+## When to stop and speak up
 
-- работа упирается в задачу HUMAN — скажи прямо, какая нужна
-- приёмка задачи недостижима и надо менять саму задачу, а не подгонять результат
-- первоисточник противоречит тому, что записано в документах проекта — покажи
-  расхождение, не выбирай молча
+- work runs into a HUMAN task — say plainly which one is needed
+- a task's acceptance is unreachable and the task itself needs to change,
+  rather than tailoring the result
+- a primary source contradicts what's recorded in the project documents —
+  show the discrepancy, don't silently choose
 </content>
 
-## Где теперь задачи
+## Where tasks live now
 
-`cat-shelter-tasks.md` больше нет. Задачи — дерево каталогов `tasks/`, по
-образцу `hft/task_manager`.
+`cat-shelter-tasks.md` no longer exists. Tasks are a directory tree `tasks/`,
+modeled on `hft/task_manager`.
 
-Читать нужно **не всё**, а своё:
+You don't need to read everything, only your own:
 
-1. `tasks/README.md` — формат, метки, правило `verify:passed`.
-2. `tasks/GOAL.md` — цель и трое ворот.
-3. `tasks/<эпик>/<задача>/task.txt` — одна задача, до сорока строк.
-4. То, что перечислено в её разделе `CONTEXT`, и ничего сверх.
+1. `tasks/README.md` — format, labels, the `verify:passed` rule.
+2. `tasks/GOAL.md` — the goal and the three gates.
+3. `tasks/<epic>/<task>/task.txt` — a single task, up to forty lines.
+4. Whatever is listed in its `CONTEXT` section, and nothing beyond that.
 
-`tasks/DECISIONS.md` — сквозные решения. Открывать, когда собираешься оспорить
-уже принятое, а не перед каждой задачей.
+`tasks/DECISIONS.md` — cross-cutting decisions. Open it when you're about to
+challenge something already decided, not before every task.
 
-Прежний плоский список требовал 20 тысяч токенов ради одной строки таблицы:
-154 строки задач на 962 строки объяснений. Теперь одна задача стоит около
-тысячи токенов.
+The previous flat list required 20 thousand tokens for the sake of one table
+row: 154 lines of tasks for 962 lines of explanations. Now a single task costs
+about a thousand tokens.

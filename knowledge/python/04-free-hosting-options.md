@@ -1,191 +1,191 @@
-# Где бесплатно разместить узел-посредник для мобильной игры (проверка по официальным страницам, 2026-08-24)
+# Where to host the proxy/worker for a mobile game for free (checked against official pages, 2026-08-24)
 
-Дата проверки: 2026-08-24. Все цифры ниже взяты с официальных страниц цен/документации через прямой запрос к сайту (WebFetch/curl), с цитатами. Там, где официальную страницу не удалось получить или число не указано прямо, написано «данных не найдено» — вместо предположения.
+Verification date: 2026-08-24. All figures below are taken from official pricing/documentation pages via a direct request to the site (WebFetch/curl), with quotes. Where the official page could not be retrieved or a figure isn't stated directly, "no data found" is written — instead of a guess.
 
-Контекст задачи: один обработчик HTTP POST, принимает снимок кота в base64 (до 512×512, до 200 КБ), вызывает Anthropic Claude со зрением (ключ должен жить на узле, не на устройстве), возвращает ~100 байт JSON, ничего не хранит. Нагрузка — несколько сотен обращений за весь период проверки, пик — десятки в сутки. Возможен второй такой же обработчик для приёма игровых событий с записью в простое хранилище. Бюджет — ноль, GCP исключён.
+Task context: one HTTP POST handler, accepts a cat snapshot in base64 (up to 512×512, up to 200 KB), calls Anthropic Claude with vision (the key must live on the proxy/worker, not the device), returns ~100 bytes of JSON, stores nothing. Load — a few hundred calls over the entire verification period, peak — tens per day. A second, similar handler is possible for receiving game events with a write to simple storage. Budget — zero, GCP excluded.
 
-## Кратко
+## Summary
 
-1. **Cloudflare Workers** — самый подходящий вариант: 100 000 запросов в сутки бесплатно, карта не нужна, воркер не «засыпает» (это не контейнер, а изолят V8, поднимается за миллисекунды), исходящие HTTPS-запросы к api.anthropic.com разрешены штатно через `fetch()`.
-2. Но **Python Workers у Cloudflare — открытая бета** (`python_workers` — флаг совместимости), готовность к промышленной эксплуатации официально не заявлена. Для надёжности сам обработчик лучше писать на JavaScript/TypeScript, даже если остальной проект на Python.
-3. У Cloudflare есть бесплатное хранилище: **KV** (100 000 чтений/сутки, 1 000 записей/сутки, 1 ГБ) и **D1** (5 млн строк чтения/сутки, 100 000 строк записи/сутки, 5 ГБ) — годится под второй обработчик для игровых событий.
-4. **Fly.io лишился свободного уровня** — карта обязательна для любой организации, минимальная работающая машина стоит ~$2/мес.
-5. **Render** бесплатен без карты, но веб-сервис засыпает через 15 минут простоя и «просыпается» около минуты — для игрока, ждущего результат на экране съёмки, это плохо при первом обращении после паузы. Бесплатная база Postgres на Render истекает через 30 дней.
-6. **Railway** — это не постоянно бесплатный план, а 30-дневный пробный период с $5 кредита (карта не нужна); дальше — платно.
-7. **Hugging Face Spaces**: бесплатное оборудование (CPU Basic) есть, но с 2026 года создание Docker/Gradio Space для личного аккаунта требует платного плана PRO ($9/мес) — бесплатно только статические сайты и до 2 Gradio-приложений на ZeroGPU (заточен под GPU-инференс, а не проксирование к внешнему API).
-8. **Oracle Cloud Always Free** даёт по-настоящему бессрочно 2 ARM OCPU + 12 ГБ ОЗУ + 200 ГБ диска, но требует карту для верификации личности при регистрации, и аккаунты, простаивающие 30+ дней, официально могут быть признаны заброшенными и приостановлены.
-9. **PythonAnywhere**: бесплатный (Beginner) аккаунт не «спит», в его белом списке разрешённых внешних адресов уже есть `api.anthropic.com` — то есть обращение к Anthropic возможно. Лимит — 100 секунд CPU-времени в сутки; для наших объёмов (десятки лёгких запросов в сутки) этого может хватить, но фоновые/always-on задачи в бесплатном плане недоступны.
-10. Для сравнения: самый дешёвый «обычный» VPS — Netcup VPS 500 G12 за **€5,91/мес** (4 ГБ ОЗУ, 128 ГБ NVMe); у Hetzner дешёвая линейка «Cost-Optimized» сейчас недоступна для заказа, актуальный минимум — CPX12 от **€11,49/мес** (1 vCPU, по данным из открытого прайс-JSON hetzner.com).
+1. **Cloudflare Workers** — the best-fitting option: 100,000 requests/day for free, no card required, the worker doesn't "go to sleep" (it's not a container but a V8 isolate, starts up within milliseconds), outbound HTTPS requests to api.anthropic.com are allowed out of the box via `fetch()`.
+2. But **Cloudflare's Python Workers are an open beta** (`python_workers` — a compatibility flag), production readiness is not officially claimed. For reliability, the handler itself is better written in JavaScript/TypeScript, even if the rest of the project is in Python.
+3. Cloudflare has free storage: **KV** (100,000 reads/day, 1,000 writes/day, 1 GB) and **D1** (5M rows read/day, 100,000 rows written/day, 5 GB) — suits a second handler for game events.
+4. **Fly.io has lost its free tier** — a card is mandatory for any organization, the smallest working machine costs ~$2/month.
+5. **Render** is free without a card, but the web service goes to sleep after 15 minutes of idleness and "wakes up" in about a minute — for a player waiting for a result on the photo screen, this is bad on the first call after a pause. Render's free Postgres database expires after 30 days.
+6. **Railway** — not a permanently free plan but a 30-day trial with $5 of credit (no card needed); after that — paid.
+7. **Hugging Face Spaces**: free hardware (CPU Basic) exists, but since 2026 creating a Docker/Gradio Space for a personal account requires the paid PRO plan ($9/month) — only static sites and up to 2 Gradio apps on ZeroGPU are free (aimed at GPU inference, not proxying to an external API).
+8. **Oracle Cloud Always Free** truly gives 2 ARM OCPUs + 12 GB RAM + 200 GB disk forever, but requires a card for identity verification at signup, and accounts idle for 30+ days may officially be deemed abandoned and suspended.
+9. **PythonAnywhere**: the free (Beginner) account doesn't "sleep," and `api.anthropic.com` is already on its whitelist of allowed external addresses — meaning calling Anthropic is possible. The limit is 100 seconds of CPU time per day; for our volumes (tens of light requests per day) this may be enough, but background/always-on tasks are unavailable on the free plan.
+10. For comparison: the cheapest "regular" VPS — Netcup VPS 500 G12 at **€5.91/month** (4 GB RAM, 128 GB NVMe); Hetzner's cheap "Cost-Optimized" line is currently unavailable to order, the current minimum is CPX12 from **€11.49/month** (1 vCPU, per data from Hetzner's public pricing JSON).
 
-## Сводная таблица
+## Summary table
 
-| Служба | Бесплатный предел | Карта нужна | Засыпает | Годится нам |
+| Service | Free limit | Card required | Sleeps | Fits us |
 |---|---|---|---|---|
-| Cloudflare Workers | 100 000 запросов/сутки, 10 мс CPU/запрос | Нет | Нет (edge-изолят) | Да — основной кандидат (писать на JS/TS) |
-| Cloudflare KV / D1 | KV: 100k чтений + 1k записей/сутки, 1 ГБ; D1: 5 млн чтений + 100k записей/сутки, 5 ГБ | Нет | — | Да, для второго обработчика (события) |
-| Deno Deploy | 1 млн запросов/мес, 15 ч CPU/мес, 20 ГБ трафика/мес, 1 ГиБ KV | Данных не найдено | Данных не найдено (вероятно нет, это edge-функции) | Возможен как запасной вариант (только JS/TS) |
-| Fly.io | Свободного уровня нет | Да, обязательна | Не сервис "спит", а машину нужно явно останавливать | Нет — не бесплатно с первого часа |
-| Render | 750 инстанс-часов/мес | Нет (без карты — просто отключение при перерасходе) | Да, через 15 мин простоя, пробуждение ~1 мин | Частично — плохо для «холодного» первого запроса игрока |
-| Railway | $5 кредита на 30 дней (пробный период) | Нет | Данных не найдено | Нет — не постоянно бесплатно |
-| Koyeb | По документации есть free instance 512 МБ/0.1 vCPU/2 ГБ SSD | Данных не найдено | Данных не найдено | Под вопросом — противоречивые данные на сайте |
-| Vercel (Hobby) | 1 млн вызовов функций/мес, 1 млн edge-запросов/мес | Данных не найдено | Функции serverless, не контейнер — «сна» как у Render нет | Нет — план прямо ограничен некоммерческим личным использованием |
-| Hugging Face Spaces | CPU Basic бесплатно, но Docker/Gradio Space требует PRO $9/мес для личного аккаунта | Данных не найдено | Да, «засыпает» при простое (точное время не указано) | Нет для простого FastAPI-обработчика без платного плана |
-| Oracle Cloud Always Free | 2 OCPU + 12 ГБ (ARM Ampere), 200 ГБ диска — бессрочно | Да, для верификации личности | Нет, но аккаунт может быть признан заброшенным при простое 30+ дней | Да, но тяжеловесно для такой простой задачи (свой VPS, свой веб-сервер) |
-| PythonAnywhere | 100 сек CPU/сутки, доступ к внешним сайтам только по белому списку (api.anthropic.com в списке) | Данных не найдено | Нет (это не контейнер, веб-приложение всегда «есть», но лимит CPU-секунд в сутки) | Да, как вариант на чистом Python |
-| Hetzner Cloud (для сравнения, не бесплатно) | — | — | — | От €11,49/мес (CPX12, 1 vCPU) |
-| Netcup (для сравнения, не бесплатно) | — | — | — | От €5,91/мес (VPS 500 G12, 4 ГБ ОЗУ, 128 ГБ NVMe) |
+| Cloudflare Workers | 100,000 requests/day, 10ms CPU/request | No | No (edge isolate) | Yes — main candidate (write in JS/TS) |
+| Cloudflare KV / D1 | KV: 100k reads + 1k writes/day, 1 GB; D1: 5M reads + 100k writes/day, 5 GB | No | — | Yes, for the second handler (events) |
+| Deno Deploy | 1M requests/month, 15h CPU/month, 20 GB traffic/month, 1 GiB KV | No data found | No data found (probably not, these are edge functions) | Possible as a backup option (JS/TS only) |
+| Fly.io | No free tier | Yes, mandatory | Not a "sleeping" service — a machine must be explicitly stopped | No — not free from the first hour |
+| Render | 750 instance-hours/month | No (without a card — simply disabled on overage) | Yes, after 15 min idle, wake-up ~1 min | Partially — bad for a player's "cold" first request |
+| Railway | $5 credit for 30 days (trial) | No | No data found | No — not permanently free |
+| Koyeb | Documentation states a free instance of 512 MB/0.1 vCPU/2 GB SSD | No data found | No data found | Uncertain — conflicting data on the site |
+| Vercel (Hobby) | 1M function invocations/month, 1M edge requests/month | No data found | Serverless functions, not a container — no "sleep" like Render | No — the plan is explicitly restricted to non-commercial personal use |
+| Hugging Face Spaces | CPU Basic is free, but a Docker/Gradio Space requires PRO $9/month for a personal account | No data found | Yes, "goes to sleep" when idle (exact time not stated) | No for a plain FastAPI handler without a paid plan |
+| Oracle Cloud Always Free | 2 OCPU + 12 GB (ARM Ampere), 200 GB disk — forever | Yes, for identity verification | No, but the account may be deemed abandoned after 30+ days idle | Yes, but heavyweight for such a simple task (your own VPS, your own web server) |
+| PythonAnywhere | 100 sec CPU/day, access to external sites only via whitelist (api.anthropic.com is on it) | No data found | No (not a container, the web app is always "there," but there's a daily CPU-second limit) | Yes, as a pure-Python option |
+| Hetzner Cloud (for comparison, not free) | — | — | — | From €11.49/month (CPX12, 1 vCPU) |
+| Netcup (for comparison, not free) | — | — | — | From €5.91/month (VPS 500 G12, 4 GB RAM, 128 GB NVMe) |
 
 ## 1. Cloudflare Workers
 
-Источник: `developers.cloudflare.com/workers/platform/pricing/`, `.../workers/platform/limits/`, `.../workers/languages/python/`, `.../workers/runtime-apis/fetch/`, `.../kv/platform/limits/`, `.../d1/platform/limits/`, `.../d1/platform/pricing/`, `cloudflare.com/plans/`.
+Source: `developers.cloudflare.com/workers/platform/pricing/`, `.../workers/platform/limits/`, `.../workers/languages/python/`, `.../workers/runtime-apis/fetch/`, `.../kv/platform/limits/`, `.../d1/platform/limits/`, `.../d1/platform/pricing/`, `cloudflare.com/plans/`.
 
-- **Запросы**: «100,000 per day» на бесплатном плане.
-- **CPU-время**: «10 milliseconds of CPU time per invocation».
-- **Превышение лимита**: «If you exceed any one of these limits, further operations of that type will fail with an error» — запрос просто отклоняется с ошибкой, автосписаний на бесплатном плане это не влечёт.
-- **Карта**: маркетинговая страница cloudflare.com/plans прямо говорит: «Start building for free — no credit card required».
-- **Python Workers**: страница документации прямо пишет «Python Workers are in beta», требуется флаг совместимости `python_workers`. Явного подтверждения промышленной готовности в документации нет — это открытая бета, а не GA. Заявлена поддержка FastAPI, Pydantic и доступ к KV/D1/R2/Workers AI через биндинги, но для критичного по надёжности прод-обработчика безопаснее взять JavaScript/TypeScript Worker (там ограничений по зрелости нет).
-- **Размер тела запроса**: до 100 МБ (зависит от плана аккаунта, не от плана Workers) — для 200 КБ base64-снимка кота с огромным запасом.
-- **Размер самого воркера**: 3 МБ после gzip, 64 МБ до сжатия.
-- **Подзапросы**: 50 исходящих `fetch()`-вызовов на один запрос — для одного вызова Anthropic более чем достаточно.
-- **Память**: 128 МБ на изолят.
-- **Исходящие HTTPS-запросы к стороннему API**: подтверждено — `fetch()` в Workers Runtime API прямо предназначен для «asynchronously fetching resources via HTTP requests inside of a Worker», ограничений именно на домен назначения в документации нет.
-- **KV** (бесплатный уровень): 100 000 чтений/сутки, 1 000 записей/сутки на разные ключи (на один и тот же ключ — не чаще раза в секунду), хранилище 1 ГБ на аккаунт и на namespace, размер значения до 25 МиБ.
-- **D1** (бесплатный уровень): 5 млн прочитанных строк в сутки, 100 000 записанных строк в сутки, до 10 баз на аккаунт, до 500 МБ на одну базу, 5 ГБ хранилища всего, 50 запросов на один вызов Worker, история Time Travel 7 дней. Лимиты сбрасываются в полночь по UTC.
+- **Requests**: "100,000 per day" on the free plan.
+- **CPU time**: "10 milliseconds of CPU time per invocation".
+- **Exceeding the limit**: "If you exceed any one of these limits, further operations of that type will fail with an error" — the request is simply rejected with an error, no auto-charges result on the free plan.
+- **Card**: the cloudflare.com/plans marketing page states directly: "Start building for free — no credit card required".
+- **Python Workers**: the documentation page states directly "Python Workers are in beta", requiring the `python_workers` compatibility flag. There is no explicit confirmation of production readiness in the documentation — this is an open beta, not GA. Support for FastAPI, Pydantic, and access to KV/D1/R2/Workers AI via bindings is claimed, but for a reliability-critical production handler it's safer to take a JavaScript/TypeScript Worker (no maturity limitations there).
+- **Request body size**: up to 100 MB (depends on the account's plan, not the Workers plan) — a huge margin for a 200 KB base64 cat snapshot.
+- **Worker size itself**: 3 MB after gzip, 64 MB uncompressed.
+- **Subrequests**: 50 outbound `fetch()` calls per request — more than enough for a single call to Anthropic.
+- **Memory**: 128 MB per isolate.
+- **Outbound HTTPS requests to a third-party API**: confirmed — `fetch()` in the Workers Runtime API is explicitly intended for "asynchronously fetching resources via HTTP requests inside of a Worker", there is no restriction specifically on the destination domain in the documentation.
+- **KV** (free tier): 100,000 reads/day, 1,000 writes/day to different keys (the same key — no more than once per second), 1 GB storage per account and per namespace, value size up to 25 MiB.
+- **D1** (free tier): 5M rows read per day, 100,000 rows written per day, up to 10 databases per account, up to 500 MB per database, 5 GB total storage, 50 subrequests per Worker invocation, 7-day Time Travel history. Limits reset at midnight UTC.
 
-Итог: лучший бесплатный вариант для лёгкого прокси-обработчика — при условии, что код пишется на JS/TS, а не на Python (тот пока в бете).
+Bottom line: the best free option for a lightweight proxy handler — provided the code is written in JS/TS, not Python (which is still in beta).
 
 ## 2. Deno Deploy
 
-Источник: `deno.com/deploy/pricing`.
+Source: `deno.com/deploy/pricing`.
 
-- Бесплатный план: «1M» запросов в месяц, «15h» CPU-времени в месяц, «20GB» исходящего трафика в месяц, «1GiB» хранилища KV.
-- Требование карты на регистрацию — данных не найдено на странице цен.
-- Поведение при простое (холодный старт/«сон») — на проверенных страницах (`deploy/pricing`, `deploy/manual/regions`) явного описания не найдено; это серверлесс-платформа на edge, что обычно означает отсутствие «спящего контейнера» в духе Render, но официального подтверждения задержки первого запроса не найдено.
-- Работает только с JavaScript/TypeScript — под наш Python-проект годится лишь как отдельно написанный тонкий прокси не на Python.
+- Free plan: "1M" requests per month, "15h" of CPU time per month, "20GB" of outbound traffic per month, "1GiB" of KV storage.
+- Card requirement at signup — no data found on the pricing page.
+- Idle behavior (cold start/"sleep") — no explicit description found on the pages checked (`deploy/pricing`, `deploy/manual/regions`); this is a serverless edge platform, which usually means there's no "sleeping container" the way Render has one, but no official confirmation of first-request latency was found.
+- Only works with JavaScript/TypeScript — for our Python project it only fits as a separately written thin proxy, not in Python.
 
 ## 3. Fly.io
 
-Источник: `fly.io/docs/about/pricing/`.
+Source: `fly.io/docs/about/pricing/`.
 
-- Бесплатного уровня в 2026 году нет: «All organizations (except for Linked Organizations) require a credit card on file».
-- Минимальная работающая машина — shared-cpu-1x с 256 МБ ОЗУ: «$0.0028/час» (около $2,02/мес в Ashburn; по другим регионам от $1,94 до $3,14).
-- Остановленная (не работающая) машина продолжает тарифицироваться только за хранилище: «$0.15/GB per month of provisioned capacity» для volumes.
-- Реально бесплатные позиции на странице цен — только первые 10 SSL-сертификатов на один хост и первые 10 ГБ снимков томов в месяц; вычисления и трафик бесплатными не бывают.
-- Итог: не подходит при нулевом бюджете — деньги нужны с первого часа, и обязательна карта.
+- No free tier in 2026: "All organizations (except for Linked Organizations) require a credit card on file".
+- The smallest working machine — shared-cpu-1x with 256 MB RAM: "$0.0028/hour" (about $2.02/month in Ashburn; from $1.94 to $3.14 in other regions).
+- A stopped (non-running) machine is still billed, just for storage: "$0.15/GB per month of provisioned capacity" for volumes.
+- The genuinely free items on the pricing page are only the first 10 SSL certificates per host and the first 10 GB of volume snapshots per month; compute and traffic are never free.
+- Bottom line: doesn't fit at zero budget — money is needed from the first hour, and a card is mandatory.
 
 ## 4. Render
 
-Источник: `render.com/docs/free`.
+Source: `render.com/docs/free`.
 
-- Веб-сервис засыпает при простое: «Render spins down a Free web service that goes 15 minutes without receiving any inbound traffic».
-- Задержка «пробуждения»: «This process takes about one minute. Render displays a loading page to connecting browsers while a service is spinning up» — то есть игрок, сделавший фото после паузы больше 15 минут, будет ждать до минуты, и в это время увидит страницу загрузки Render, а не JSON от нашего API. Это критично для сценария «игрок ждёт ответа на экране съёмки».
-- Бесплатные часы: «Render grants 750 Free instance hours to each workspace per calendar month».
-- Карта: явного требования карты для регистрации на странице нет. При перерасходе трафика/минут сборки без привязанной карты — «Render instead suspends all of your Free services for the remainder of the month» (просто отключение, автосписаний без карты быть не может).
-- Файловая система эфемерна — «ephemeral filesystem», локальные изменения теряются при перезапуске/повторном деплое.
-- Бесплатная база Postgres: «Free Render Postgres databases expire 30 days after creation» — то есть для долговременного хранения игровых событий бесплатный Postgres на Render не подходит без апгрейда.
+- The web service goes to sleep when idle: "Render spins down a Free web service that goes 15 minutes without receiving any inbound traffic".
+- Wake-up delay: "This process takes about one minute. Render displays a loading page to connecting browsers while a service is spinning up" — meaning a player who takes a photo after a pause of more than 15 minutes will wait up to a minute, and during that time will see Render's loading page instead of JSON from our API. This is critical for the "player waits for a response on the photo screen" scenario.
+- Free hours: "Render grants 750 Free instance hours to each workspace per calendar month".
+- Card: there's no explicit card requirement for signup stated on the page. On overage of traffic/build minutes without a card attached — "Render instead suspends all of your Free services for the remainder of the month" (simply disabled, there can be no auto-charges without a card).
+- The filesystem is ephemeral — "ephemeral filesystem", local changes are lost on restart/redeploy.
+- Free Postgres database: "Free Render Postgres databases expire 30 days after creation" — meaning Render's free Postgres doesn't fit long-term storage of game events without an upgrade.
 
 ## 5. Railway
 
-Источник: `railway.com/pricing`, `docs.railway.com/reference/pricing`.
+Source: `railway.com/pricing`, `docs.railway.com/reference/pricing`.
 
-- Это не бессрочный бесплатный план, а пробный период: «Free Trial — $5 in credits for 30 days to try Railway».
-- Карта: «No credit card required» для пробного периода.
-- Что после триала — на проверенных страницах явно не описано; по общей структуре тарифов дальше идёт платный план Hobby. Для задачи с ограниченным периодом проверки может хватить, но это не «бесплатно навсегда».
-- Поведение «сна» — данных не найдено.
+- This is not a permanently free plan but a trial period: "Free Trial — $5 in credits for 30 days to try Railway".
+- Card: "No credit card required" for the trial period.
+- What happens after the trial — not explicitly described on the pages checked; based on the general pricing structure, the paid Hobby plan follows. For a task with a limited verification period this may be enough, but it's not "free forever".
+- "Sleep" behavior — no data found.
 
 ## 6. Koyeb
 
-Источник: `koyeb.com/pricing`, `koyeb.com/docs`.
+Source: `koyeb.com/pricing`, `koyeb.com/docs`.
 
-- Публичная страница цен (`/pricing`) показывает только платные планы Pro ($29/мес), Scale ($299/мес), Enterprise, и упоминает лишь «Free 5h» для Postgres (0.25 vCPU, 1 ГБ).
-- При этом страница документации (`/docs`, раздел про деплой приложений) содержит фразу: «Start with a `free` Instance: 512MB of RAM, 0.1 vCPU, and 2GB of SSD» — то есть где-то в продукте бесплатный постоянный инстанс для сервисов, видимо, есть.
-- Это противоречие не удалось разрешить в рамках проверки: отдельные страницы про лимиты и условия free-инстанса (`/docs/reference/free-instances`, `/docs/reference/plans`, `/docs/pricing-details`) возвращают 404.
-- Требование карты и поведение «сна» (scale-to-zero) для free-инстанса — данных не найдено на доступных официальных страницах.
-- Итог: Koyeb нельзя ни уверенно рекомендовать, ни уверенно исключить — нужна отдельная проверка через реальную регистрацию, если рассматривать всерьёз.
+- The public pricing page (`/pricing`) shows only the paid plans Pro ($29/month), Scale ($299/month), Enterprise, and mentions only a "Free 5h" for Postgres (0.25 vCPU, 1 GB).
+- At the same time, the documentation page (`/docs`, the app deployment section) contains the phrase: "Start with a `free` Instance: 512MB of RAM, 0.1 vCPU, and 2GB of SSD" — meaning somewhere in the product there apparently is a free permanent instance for services.
+- This contradiction could not be resolved within this check: the individual pages about free-instance limits and terms (`/docs/reference/free-instances`, `/docs/reference/plans`, `/docs/pricing-details`) return 404.
+- Card requirement and "sleep" behavior (scale-to-zero) for the free instance — no data found on the available official pages.
+- Bottom line: Koyeb can be neither confidently recommended nor confidently ruled out — it needs a separate check via an actual signup if taken seriously.
 
 ## 7. Vercel
 
-Источник: `vercel.com/pricing`, `vercel.com/docs/plans/hobby`.
+Source: `vercel.com/pricing`, `vercel.com/docs/plans/hobby`.
 
-- План Hobby (бесплатный): 1 000 000 вызовов функций/месяц, 4 CPU-часа активного вычисления/месяц, 360 ГБ-часов памяти/месяц, до 1 000 000 edge-запросов/месяц, 10 ГБ трафика/месяц, максимальная длительность функции — 300 секунд.
-- Требование карты — данных не найдено на проверенных страницах.
-- Ключевое ограничение: «the Hobby plan restricts users to non-commercial, personal use only» (согласно fair use guidelines). Мобильная игра, даже на этапе проверки, обычно не подпадает под «личное некоммерческое использование» — это делает Vercel Hobby юридически рискованным выбором для этой задачи, а не только технически ограниченным.
-- При превышении лимитов Hobby: «in most cases, if you exceed your usage limits on the Hobby plan, you will have to wait until 30 days have passed before you can use the feature again» — то есть просто пауза функции, а не счёт.
+- Hobby plan (free): 1,000,000 function invocations/month, 4 CPU-hours of active compute/month, 360 GB-hours of memory/month, up to 1,000,000 edge requests/month, 10 GB traffic/month, maximum function duration — 300 seconds.
+- Card requirement — no data found on the pages checked.
+- Key restriction: "the Hobby plan restricts users to non-commercial, personal use only" (per the fair use guidelines). A mobile game, even at the testing stage, usually doesn't fall under "personal non-commercial use" — this makes Vercel Hobby a legally risky choice for this task, not just a technically limited one.
+- On exceeding Hobby limits: "in most cases, if you exceed your usage limits on the Hobby plan, you will have to wait until 30 days have passed before you can use the feature again" — meaning just a pause on the feature, not a bill.
 
 ## 8. Hugging Face Spaces
 
-Источник: `huggingface.co/docs/hub/spaces-overview`, `huggingface.co/pricing`.
+Source: `huggingface.co/docs/hub/spaces-overview`, `huggingface.co/pricing`.
 
-- Оборудование CPU Basic (2 vCPU, 16 ГБ ОЗУ, 50 ГБ не постоянного диска) формально бесплатно, но с важной оговоркой прямо в документации: «Static Spaces are free for everyone. Gradio and Docker Spaces run on compute and require a paid plan to create: PRO for personal accounts, Team or Enterprise for organizations. Free personal accounts in good standing can still host up to 2 Gradio Spaces running on ZeroGPU».
-- То есть **обычный Docker-контейнер с FastAPI на бесплатном личном аккаунте создать нельзя** — для этого нужен план PRO за «$9 /month». Бесплатно доступны только статические Spaces и (в ограниченном количестве) Gradio-приложения на ZeroGPU — а ZeroGPU заточен под инференс на GPU по очереди, а не под простой прокси к внешнему HTTP API.
-- «Lifecycle management»: «On free hardware, your Space will "go to sleep" and stop executing after a period of time if unused» — засыпание подтверждено, но точное время простоя до сна в документации не указано.
-- Требование карты — данных не найдено.
-- Итог: для задачи не подходит без платы $9/мес, если делать это через Docker/FastAPI Space, как и планировалось.
+- CPU Basic hardware (2 vCPU, 16 GB RAM, 50 GB non-persistent disk) is formally free, but with an important caveat right in the documentation: "Static Spaces are free for everyone. Gradio and Docker Spaces run on compute and require a paid plan to create: PRO for personal accounts, Team or Enterprise for organizations. Free personal accounts in good standing can still host up to 2 Gradio Spaces running on ZeroGPU".
+- In other words, **a regular Docker container with FastAPI cannot be created on a free personal account** — that requires the PRO plan at "$9 /month". Only static Spaces and (in a limited quantity) Gradio apps on ZeroGPU are available for free — and ZeroGPU is built for queued GPU inference, not a simple proxy to an external HTTP API.
+- "Lifecycle management": "On free hardware, your Space will "go to sleep" and stop executing after a period of time if unused" — going to sleep is confirmed, but the exact idle time before sleep isn't stated in the documentation.
+- Card requirement — no data found.
+- Bottom line: doesn't fit the task without paying $9/month, if done via a Docker/FastAPI Space, as originally planned.
 
 ## 9. Oracle Cloud Always Free
 
-Источник: `docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm`, `oracle.com/cloud/free/`.
+Source: `docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm`, `oracle.com/cloud/free/`.
 
-- Вычисления: «All tenancies get the first 1,500 OCPU hours and 9,000 GB hours per month for free for VM instances using the VM.Standard.A1.Flex shape... For Always Free tenancies, this is equivalent to 2 OCPUs and 12 GB of memory» — можно поднять один инстанс 2 OCPU/12 ГБ либо два по 1 OCPU/6 ГБ, и это бессрочно, а не пробный период.
-- Хранилище: «All tenancies receive a total of 200 GB of Block Volume storage, and five volume backups included in the Always Free resources».
-- Карта обязательна, и это явно объясняется в FAQ: «Why do I need to provide credit or debit card information when I sign up for Oracle Cloud Free Tier? ... we need to ensure that you are who you say you are. We use your contact information and credit/debit card information for account setup and identity verification. Oracle may periodically check the validity of your card, resulting in a temporary "authorization" hold... [it does] not result in actual charges to your account».
-- Риск для простаивающего аккаунта — тоже прямо описан: «Accounts left idle for 30 days or more may be deemed abandoned and become eligible for suspension or termination».
-- Надёжность по отзывам пользователей проверить в рамках этой сессии не удалось (лимит поисковых запросов исчерпан) — оценивать можно только по официально задокументированной политике выше, без ссылки на форумы.
-- Итог: единственный вариант из списка с бессрочно бесплатным полноценным сервером (2 vCPU, 12 ГБ ОЗУ) — но это уже настоящий VPS, на котором самому придётся поднимать веб-сервер, TLS, systemd/докер и следить за простоями аккаунта. Для одного HTTP-обработчика на несколько сотен запросов — избыточно тяжеловесно, но пригодится, если проект перерастёт «игрушечный» объём.
+- Compute: "All tenancies get the first 1,500 OCPU hours and 9,000 GB hours per month for free for VM instances using the VM.Standard.A1.Flex shape... For Always Free tenancies, this is equivalent to 2 OCPUs and 12 GB of memory" — you can run one instance with 2 OCPU/12 GB or two with 1 OCPU/6 GB each, and this is forever, not a trial period.
+- Storage: "All tenancies receive a total of 200 GB of Block Volume storage, and five volume backups included in the Always Free resources".
+- A card is mandatory, and this is explicitly explained in the FAQ: "Why do I need to provide credit or debit card information when I sign up for Oracle Cloud Free Tier? ... we need to ensure that you are who you say you are. We use your contact information and credit/debit card information for account setup and identity verification. Oracle may periodically check the validity of your card, resulting in a temporary "authorization" hold... [it does] not result in actual charges to your account".
+- The risk for an idle account is also explicitly described: "Accounts left idle for 30 days or more may be deemed abandoned and become eligible for suspension or termination".
+- Reliability based on user reviews could not be checked within this session (the search query limit was exhausted) — it can only be assessed from the officially documented policy above, without referencing forums.
+- Bottom line: the only option on the list with a permanently free full-fledged server (2 vCPU, 12 GB RAM) — but this is already a genuine VPS, on which you'll have to stand up your own web server, TLS, systemd/docker, and watch for account idleness yourself. For a single HTTP handler serving a few hundred requests — excessively heavyweight, but useful if the project outgrows a "toy" volume.
 
 ## 10. PythonAnywhere
 
-Источник: `pythonanywhere.com/pricing/`, `pythonanywhere.com/whitelist/`.
+Source: `pythonanywhere.com/pricing/`, `pythonanywhere.com/whitelist/`.
 
-- Бесплатный (Beginner) план: «100 seconds» CPU-времени в сутки, 512 МБ диска, 1 веб-приложение на `<имя>.pythonanywhere.com`, до 2 консолей, без SSH, без MySQL, без запланированных задач (scheduled tasks) и без «always-on tasks» (в таблице тарифов стоит крест).
-- Исходящие сетевые запросы на бесплатном плане ограничены белым списком доменов: «Specific sites via HTTP(S) only». Проверка списка (`pythonanywhere.com/whitelist/`) показала, что **`api.anthropic.com` в этом списке присутствует** — то есть вызывать Anthropic с бесплатного аккаунта можно.
-- Требование карты для регистрации — данных не найдено на проверенных страницах.
-- Веб-приложение на бесплатном плане не «спит» так, как Render (это не поднимаемый по требованию контейнер, а постоянно смонтированное WSGI-приложение за прокси PythonAnywhere), но лимит в 100 секунд CPU-времени в сутки — это именно процессорное время, а не время ожидания сети, поэтому ожидание ответа от Anthropic по HTTP, скорее всего, не расходует эту квоту так быстро, как вычисления. Точных данных о том, засчитывается ли сетевое ожидание в CPU-секунды на PythonAnywhere, официально найти не удалось.
-- Итог: единственный из проверенных сервисов, который одновременно (а) написан явно под Python/Flask/Django, (б) не имеет проблемы с «пробуждением», (в) официально разрешает обращение к `api.anthropic.com` с бесплатного аккаунта. Главный риск — уложиться в 100 секунд CPU-времени в сутки при десятках запросов пиковой нагрузки.
+- Free (Beginner) plan: "100 seconds" of CPU time per day, 512 MB disk, 1 web app at `<name>.pythonanywhere.com`, up to 2 consoles, no SSH, no MySQL, no scheduled tasks, and no "always-on tasks" (marked with an X in the plans table).
+- Outbound network requests on the free plan are restricted to a domain whitelist: "Specific sites via HTTP(S) only". Checking the list (`pythonanywhere.com/whitelist/`) showed that **`api.anthropic.com` is present on this list** — meaning calling Anthropic from a free account is possible.
+- Card requirement for signup — no data found on the pages checked.
+- The web app on the free plan doesn't "sleep" the way Render does (it's not an on-demand container but a permanently mounted WSGI app behind PythonAnywhere's proxy), but the 100-second daily CPU-time limit is specifically processor time, not network wait time, so waiting for Anthropic's HTTP response most likely doesn't burn through this quota as fast as computation would. Exact data on whether network wait counts toward CPU-seconds on PythonAnywhere could not be officially found.
+- Bottom line: the only checked service that simultaneously (a) is explicitly written for Python/Flask/Django, (b) has no "wake-up" problem, (c) officially allows calling `api.anthropic.com` from a free account. The main risk is staying within 100 seconds of CPU time per day under tens of peak-load requests.
 
-## Самый дешёвый обычный VPS (точка отсчёта)
+## The cheapest regular VPS (a baseline)
 
-Источник: `hetzner.com/cloud/` (данные добыты из открытого JSON-файла тарифов `www.hetzner.com/_resources/app/data/bench/cloud_data.json`, который использует сама страница), `netcup.com/en/server/vps`.
+Source: `hetzner.com/cloud/` (data obtained from the public pricing JSON file `www.hetzner.com/_resources/app/data/bench/cloud_data.json`, which the page itself uses), `netcup.com/en/server/vps`.
 
-- **Hetzner Cloud**: строка «Cost-Optimized» (исторически самая дешёвая линейка) на странице явно помечена как «currently unavailable» — сейчас недоступна для заказа. Актуальный минимум среди линейки «Shared - Regular Performance» — тариф **CPX12** (1 виртуальное ядро AMD) по цене **€11,49/мес** в европейских дата-центрах (Нюрнберг/Фалькенштайн/Хельсинки), согласно официальному прайсовому JSON, который сама страница hetzner.com подгружает для отрисовки таблицы цен. Данных по объёму ОЗУ/диска для этого тарифа с официальной страницы получить не удалось (таблица с характеристиками отрисовывается через JavaScript, в статическом JSON есть только цена и число ядер).
-- **Netcup**: самый дешёвый VPS — **VPS 500 G12** за **€5,91/мес** (с НДС 19%), 4 ГБ ОЗУ DDR5 (ECC), 128 ГБ NVMe.
-- Итог: «не выкручиваться» стоит от **€5,91/мес** (Netcup) — это и есть цена вопроса, если решить не тратить время на подгонку под чей-то бесплатный лимит.
+- **Hetzner Cloud**: the "Cost-Optimized" line (historically the cheapest) is explicitly marked on the page as "currently unavailable" — not orderable right now. The current minimum within the "Shared - Regular Performance" line is the **CPX12** plan (1 virtual AMD core) at **€11.49/month** in European data centers (Nuremberg/Falkenstein/Helsinki), according to the official pricing JSON that the hetzner.com page itself loads to render its pricing table. RAM/disk figures for this plan could not be obtained from the official page (the specs table is rendered via JavaScript, the static JSON only has price and core count).
+- **Netcup**: the cheapest VPS — **VPS 500 G12** at **€5.91/month** (VAT 19% included), 4 GB DDR5 RAM (ECC), 128 GB NVMe.
+- Bottom line: "not cutting corners" costs from **€5.91/month** (Netcup) — that's the price of the question, if you decide not to spend time fitting into someone else's free limit.
 
-## Можно ли обойтись вообще без своего узла
+## Can you do without your own node entirely
 
-Источник: `developers.cloudflare.com/ai-gateway/`, `developers.cloudflare.com/ai-gateway/configuration/authentication/`.
+Source: `developers.cloudflare.com/ai-gateway/`, `developers.cloudflare.com/ai-gateway/configuration/authentication/`.
 
-Единственный проверенный по официальной документации способ не писать собственный обработчик — это **Cloudflare AI Gateway**.
+The only way verified against official documentation to avoid writing your own handler is **Cloudflare AI Gateway**.
 
-- Что это: «Observe and control your AI applications with analytics, caching, rate limiting, and model fallback through AI Gateway» — прокси-слой перед провайдерами ИИ.
-- Поддержка Anthropic подтверждена: документация перечисляет поддерживаемых провайдеров, включая «OpenAI, Anthropic, Google, and more».
-- Механизм скрытия ключа называется **BYOK (Bring Your Own Keys)**: реальный ключ Anthropic сохраняется на стороне Cloudflare («configured with stored provider keys through Bring Your Own Keys (BYOK)»), а устройство обращается к Gateway уже с отдельным токеном Cloudflare, а не с ключом Anthropic. Это действительно означает, что не нужно писать и разворачивать собственный код-обработчик — только настроить Gateway через панель/API.
-- Важная оговорка из той же документации по безопасности: «Any token with AI Gateway Run can send requests through every gateway in the account, including any configured with stored provider keys through BYOK, consuming those credentials» — то есть токен, который придётся так или иначе зашить в приложение (или получать динамически), при утечке позволяет расходовать привязанный ключ Anthropic через любой Gateway в аккаунте. Риск того же класса, что и утечка ключа с самодельного узла — просто на один уровень косвенности дальше. Для безопасного использования всё равно обычно нужен свой минимальный код, который аутентифицирует именно ваше мобильное устройство/сессию перед тем как отдать ей Gateway-токен, а не встраивает статический токен в APK/IPA.
-- Стоимость и лимиты AI Gateway: документация отвечает лишь «Available on all plans» — то есть доступен и на бесплатном плане Cloudflare, но точные количественные лимиты (запросов в сутки и т.п.) на проверенных страницах не приведены — данных не найдено.
-- Другие «посредники поставщиков» (сторонние агрегаторы вроде OpenRouter и т.п.) в рамках этой проверки не удалось изучить по официальным страницам — лимит поисковых запросов в сессии был исчерпан до того, как до них дошла очередь. Утверждать что-либо про их бесплатные лимиты или безопасность было бы домыслом, поэтому здесь эта тема сознательно не раскрыта.
+- What it is: "Observe and control your AI applications with analytics, caching, rate limiting, and model fallback through AI Gateway" — a proxy layer in front of AI providers.
+- Anthropic support is confirmed: the documentation lists supported providers, including "OpenAI, Anthropic, Google, and more".
+- The key-hiding mechanism is called **BYOK (Bring Your Own Keys)**: the actual Anthropic key is stored on Cloudflare's side ("configured with stored provider keys through Bring Your Own Keys (BYOK)"), and the device calls the Gateway with a separate Cloudflare token instead of the Anthropic key. This does genuinely mean you don't need to write and deploy your own handler code — just configure the Gateway via the dashboard/API.
+- An important caveat from the same security documentation: "Any token with AI Gateway Run can send requests through every gateway in the account, including any configured with stored provider keys through BYOK, consuming those credentials" — meaning the token that will have to be baked into the app somehow (or obtained dynamically) allows, if leaked, spending the attached Anthropic key through any Gateway in the account. A risk of the same class as leaking a key from a homemade node — just one level of indirection further out. Safe use still generally requires your own minimal code that authenticates specifically your mobile device/session before handing it the Gateway token, rather than embedding a static token in the APK/IPA.
+- AI Gateway cost and limits: the documentation only answers "Available on all plans" — meaning it's available on Cloudflare's free plan too, but exact quantitative limits (requests per day, etc.) aren't given on the pages checked — no data found.
+- Other "provider intermediaries" (third-party aggregators like OpenRouter, etc.) could not be examined against official pages within this check — the session's search query limit was exhausted before reaching them. Claiming anything about their free limits or security would be speculation, so this topic is deliberately left unaddressed here.
 
-Вывод по разделу: полностью без какого-либо серверного посредника (пусть даже готового, чужого) обойтись нельзя — Anthropic не выдаёт клиентских ограниченных/одноразовых ключей для мобильных приложений, поэтому по факту либо пишете свой тонкий Worker, либо настраиваете чужой (Cloudflare AI Gateway с BYOK) и всё равно добавляете свою аутентификацию поверх него. С учётом того, что писать свой Worker на Cloudflare — это буквально десяток строк кода и тот же самый бесплатный лимит, отдельно настраивать AI Gateway ради «экономии кода» смысла немного: разница не в том, нужен ли посредник, а в том, кто содержит его логику маршрутизации.
+Section conclusion: you cannot do entirely without some server-side intermediary (even a ready-made, third-party one) — Anthropic doesn't issue limited/one-time client keys for mobile apps, so in practice you either write your own thin Worker or configure someone else's (Cloudflare AI Gateway with BYOK) and still add your own authentication on top of it. Given that writing your own Worker on Cloudflare is literally a dozen lines of code and uses the same free limit, separately configuring AI Gateway to "save on code" makes little sense: the difference isn't whether an intermediary is needed, but who hosts its routing logic.
 
-## Что выбрать при нулевом бюджете
+## What to choose at zero budget
 
-**Прямая рекомендация: Cloudflare Workers, обработчик на JavaScript/TypeScript (не Python — тот в бете), плюс Cloudflare D1 или KV для второго обработчика с игровыми событиями.**
+**Direct recommendation: Cloudflare Workers, a handler in JavaScript/TypeScript (not Python — that's still in beta), plus Cloudflare D1 or KV for the second handler with game events.**
 
-Почему именно так:
-- 100 000 запросов в сутки бесплатно с огромным запасом покрывают заявленную нагрузку (несколько сотен обращений за весь период проверки, пики — десятки в сутки).
-- Карта не нужна ни для регистрации, ни для работы в пределах лимита.
-- Нет проблемы «пробуждения» — в отличие от Render, Koyeb (предположительно) и Hugging Face Spaces, воркер Cloudflare не контейнер, который засыпает: он поднимается на edge за миллисечунды, что критично для сценария «игрок ждёт ответа на экране съёмки».
-- `fetch()` к `api.anthropic.com` работает без ограничений сверх общего лимита в 50 подзапросов на вызов — для одного обращения к Anthropic этого более чем достаточно.
-- Для второго обработчика (игровые события) не нужно поднимать отдельную базу — хватает D1 (5 млн строк чтения и 100 000 строк записи в сутки бесплатно) или, если хранить совсем просто, KV.
+Why exactly this:
+- 100,000 free requests/day covers the stated load (a few hundred calls over the entire verification period, peaks of tens per day) with a huge margin.
+- No card needed either for signup or for operating within the limit.
+- No "wake-up" problem — unlike Render, Koyeb (presumably), and Hugging Face Spaces, Cloudflare's worker isn't a container that sleeps: it starts up on the edge within milliseconds, which is critical for the "player waits for a response on the photo screen" scenario.
+- `fetch()` to `api.anthropic.com` works with no restriction beyond the general limit of 50 subrequests per invocation — more than enough for a single call to Anthropic.
+- The second handler (game events) doesn't need a separate database standing up — D1 (5M rows read and 100,000 rows written per day for free) is enough, or, for very simple storage, KV.
 
-Единственная реальная плата за это решение — писать обработчик не на Python, а на JS/TS, раз Python Workers остаётся открытой бетой без заявленной готовности к продакшену.
+The only real cost of this decision is writing the handler not in Python but in JS/TS, since Python Workers remains an open beta with no stated production readiness.
 
-**Если писать обязательно на Python** — второй по пригодности вариант это **PythonAnywhere**: бесплатный Beginner-план не «спит», как Render, и в белом списке разрешённых внешних адресов уже официально числится `api.anthropic.com`. Ограничение — 100 секунд CPU-времени в сутки; при лёгкой нагрузке (десятки коротких запросов в сутки, основное время которых уходит на ожидание ответа Anthropic по сети, а не на процессор) шансы уложиться высоки, но точных данных о том, засчитывается ли сетевое ожидание против этой квоты, найти не удалось — стоит проверить эмпирически перед тем, как полагаться на этот вариант.
+**If it must be written in Python** — the second-best fit is **PythonAnywhere**: the free Beginner plan doesn't "sleep" like Render, and `api.anthropic.com` is already officially listed on the whitelist of allowed external addresses. The restriction is 100 seconds of CPU time per day; under light load (tens of short requests per day, most of whose time goes to waiting for Anthropic's network response rather than processor work), the odds of staying within it are good, but exact data on whether network waiting counts against this quota could not be found — it's worth checking empirically before relying on this option.
 
-**Если проект перерастёт объём «нескольких сотен обращений» и потребуется полноценный контролируемый сервер** — следующая ступень это **Oracle Cloud Always Free** (2 vCPU/12 ГБ ОЗУ бессрочно, но требует карту для верификации и своего администрирования), а если и это не подойдёт — обычный VPS от **€5,91/мес** (Netcup VPS 500 G12) как чистая точка отсчёта «сколько стоит не выкручиваться».
+**If the project outgrows a volume of "a few hundred calls" and needs a full, controllable server** — the next step up is **Oracle Cloud Always Free** (2 vCPU/12 GB RAM forever, but requires a card for verification and your own administration), and if even that doesn't fit — a regular VPS from **€5.91/month** (Netcup VPS 500 G12) as a plain baseline for "the cost of not cutting corners".
 
-**Не подходят вовсе для этой задачи**: Fly.io (нет бесплатного уровня, карта обязательна с первого часа), Railway (не бессрочный план, только 30-дневный триал), Vercel Hobby (прямой запрет на коммерческое использование), Hugging Face Spaces (Docker/FastAPI Space недоступен бесплатно с 2026 года без плана PRO за $9/мес).
+**Not suitable at all for this task**: Fly.io (no free tier, card mandatory from the first hour), Railway (not a permanent plan, only a 30-day trial), Vercel Hobby (explicit ban on commercial use), Hugging Face Spaces (Docker/FastAPI Space unavailable for free since 2026 without the $9/month PRO plan).
 
-## Источники
+## Sources
 
 - Cloudflare Workers pricing — https://developers.cloudflare.com/workers/platform/pricing/
 - Cloudflare Workers limits — https://developers.cloudflare.com/workers/platform/limits/
@@ -194,7 +194,7 @@
 - Cloudflare Workers KV limits — https://developers.cloudflare.com/kv/platform/limits/
 - Cloudflare D1 limits — https://developers.cloudflare.com/d1/platform/limits/
 - Cloudflare D1 pricing — https://developers.cloudflare.com/d1/platform/pricing/
-- Cloudflare plans (карта не нужна) — https://www.cloudflare.com/plans/
+- Cloudflare plans (no card needed) — https://www.cloudflare.com/plans/
 - Cloudflare AI Gateway — https://developers.cloudflare.com/ai-gateway/
 - Cloudflare AI Gateway authentication (BYOK) — https://developers.cloudflare.com/ai-gateway/configuration/authentication/
 - Deno Deploy pricing — https://deno.com/deploy/pricing
@@ -209,9 +209,10 @@
 - Hugging Face Spaces overview — https://huggingface.co/docs/hub/spaces-overview
 - Hugging Face pricing — https://huggingface.co/pricing
 - Oracle Cloud Always Free resources — https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
-- Oracle Cloud Free Tier (FAQ о карте, простое аккаунта) — https://www.oracle.com/cloud/free/
+- Oracle Cloud Free Tier (FAQ on card, account idleness) — https://www.oracle.com/cloud/free/
 - PythonAnywhere pricing — https://www.pythonanywhere.com/pricing/
 - PythonAnywhere whitelist — https://www.pythonanywhere.com/whitelist/
-- Hetzner Cloud — https://www.hetzner.com/cloud/ (цены сверены по открытому JSON https://www.hetzner.com/_resources/app/data/bench/cloud_data.json, который подгружает сама эта страница)
+- Hetzner Cloud — https://www.hetzner.com/cloud/ (prices checked against the public JSON https://www.hetzner.com/_resources/app/data/bench/cloud_data.json, which this page itself loads)
 - Netcup VPS — https://www.netcup.com/en/server/vps
+
 

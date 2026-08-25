@@ -1,47 +1,47 @@
-# Модель со зрением: черты окраса строгим JSON
+# Vision model: coat traits as strict JSON
 
-Дата сбора: 2026-08-24
-Отношение к проекту: ступень 2 разбора снимка (`cat-shelter-tech.md`, раздел 3),
-узел-посредник `POST /traits` (`/tools/traits`).
-
----
-
-## Кратко
-
-1. Стоимость разбора одного снимка 512×512 посчитана по действующим ценам:
-   **около 0,10 цента на Claude Haiku 4.5** и **около 0,20 цента на Claude Sonnet 5**.
-   Оценка «0,1–0,3 цента» из `cat-shelter-tech.md` подтверждается. Расчёт ниже,
-   с формулой из документации.
-2. Просить модель «отвечать только JSON» словами — устаревший приём. Есть
-   **structured outputs**: параметр `output_config.format` с JSON Schema, ответ
-   гарантированно соответствует схеме. Beta-заголовок больше не нужен.
-3. Перечислимые значения задаются ключевым словом `enum` прямо в схеме — это
-   именно то, что нужно для `base_color`, `pattern`, `fur_length`, `eye_color`.
-   Значения вне перечня стать ответом не могут.
-4. `additionalProperties: false` для каждого объекта — **обязательное**
-   требование схемы, не пожелание.
-5. Стоимость изображения считается по числу лоскутов 28×28 пикселей:
-   `⌈width / 28⌉ × ⌈height / 28⌉`. Для 512×512 это 361 токен.
-6. Изображение следует ставить **перед** текстом в содержимом сообщения —
-   прямая рекомендация документации.
-7. Снимки не хранятся на стороне Anthropic: «Image uploads are ephemeral and not
-   stored beyond the duration of the API request.» Это подкрепляет обещание «снимок
-   не сохраняется нигде».
-8. Модель не обрабатывает непристойные изображения, нарушающие правила
-   допустимого применения. Это дополнительный, но **не основной** заслон —
-   основной остаётся Apple Vision на устройстве.
-9. Модель не называет людей на снимках и отказывается это делать. Для нашей
-   задачи это безразлично, но важно знать при разборе снимка с человеком в кадре.
-10. Для перечислимой выборки из шести значений разумный выбор — **Claude Haiku 4.5**:
-    он поддерживает structured outputs и стоит вчетверо дешевле Sonnet 5.
+Date collected: 2026-08-24
+Relation to the project: stage 2 of photo analysis (`cat-shelter-tech.md`, section 3),
+intermediary node `POST /traits` (`/tools/traits`).
 
 ---
 
-## 1. Стоимость: расчёт, а не догадка
+## In brief
 
-### Формула
+1. The cost of analyzing one 512×512 snapshot has been calculated at current prices:
+   **about 0.10 cents on Claude Haiku 4.5** and **about 0.20 cents on Claude Sonnet 5**.
+   The "0.1–0.3 cents" estimate from `cat-shelter-tech.md` is confirmed. The calculation is below,
+   with the formula from the documentation.
+2. Asking the model in words to "respond with JSON only" is an outdated technique. There is
+   **structured outputs**: the `output_config.format` parameter with a JSON Schema, and the response
+   is guaranteed to match the schema. A beta header is no longer needed.
+3. Enumerable values are set with the `enum` keyword directly in the schema — this is
+   exactly what's needed for `base_color`, `pattern`, `fur_length`, `eye_color`.
+   Values outside the list cannot become the answer.
+4. `additionalProperties: false` for every object is a **mandatory**
+   schema requirement, not a suggestion.
+5. Image cost is calculated by the number of 28×28-pixel patches:
+   `⌈width / 28⌉ × ⌈height / 28⌉`. For 512×512 that is 361 tokens.
+6. The image should be placed **before** the text in the message content —
+   a direct recommendation of the documentation.
+7. Snapshots are not stored on Anthropic's side: "Image uploads are ephemeral and not
+   stored beyond the duration of the API request." This backs up the promise that "the snapshot
+   isn't stored anywhere."
+8. The model does not process indecent images that violate the acceptable-use
+   policy. This is an additional, but **not the primary**, safeguard —
+   the primary one remains on-device Apple Vision.
+9. The model does not name people in photographs and refuses to do so. For our
+   task this doesn't matter, but it's worth knowing when analyzing a snapshot with a person in frame.
+10. For an enumerated pick among six values, the reasonable choice is **Claude Haiku 4.5**:
+    it supports structured outputs and costs a quarter of Sonnet 5.
 
-Документация задаёт её дословно:
+---
+
+## 1. Cost: a calculation, not a guess
+
+### The formula
+
+The documentation states it verbatim:
 
 > Claude views images in patches instead of pixels. Each patch is a 28×28-pixel
 > block of the image, referred to as a visual token. An image, therefore, costs
@@ -49,13 +49,13 @@
 
 ([Vision](https://platform.claude.com/docs/en/build-with-claude/vision))
 
-Для нашего снимка 512×512: `⌈512 / 28⌉ = ⌈18,29⌉ = 19`, значит `19 × 19 = 361`
-визуальный токен. Уменьшения не происходит: предел по длинной стороне —
-1568 px для обычного разряда и 2576 px для повышенного, 512 меньше обоих.
+For our 512×512 snapshot: `⌈512 / 28⌉ = ⌈18.29⌉ = 19`, so `19 × 19 = 361`
+visual tokens. There is no reduction here: the long-side limit is
+1568 px for the standard tier and 2576 px for the elevated tier, and 512 is below both.
 
-### Цены на 2026-08-24
+### Prices as of 2026-08-24
 
-| Модель | Вход, $/1M | Выход, $/1M |
+| Model | Input, $/1M | Output, $/1M |
 |---|---|---|
 | Claude Haiku 4.5 | 1 | 5 |
 | Claude Sonnet 5 | 2 | 10 |
@@ -63,48 +63,48 @@
 
 ([Pricing](https://platform.claude.com/docs/en/about-claude/pricing))
 
-Отдельно стоит знать: объявленная при выпуске Sonnet 5 льготная цена 2/10
-**стала постоянной**, повышения до 3/15 первого сентября 2026 не будет —
-это сказано на странице цен прямо.
+Worth knowing separately: the promotional price of 2/10 announced when Sonnet 5 launched
+**has become permanent**; there will be no increase to 3/15 on September 1, 2026 —
+this is stated plainly on the pricing page.
 
-### Стоимость одного разбора
+### Cost of a single analysis
 
-Допущения: снимок 512×512 = 361 токен, наказ со схемой ≈ 250 токенов входа,
-ответ ≈ 80 токенов. Итого 611 токенов входа.
+Assumptions: a 512×512 snapshot = 361 tokens, a prompt with the schema ≈ 250 input tokens,
+a response ≈ 80 tokens. Total 611 input tokens.
 
-| Модель | Вход | Выход | Всего | В центах |
+| Model | Input | Output | Total | In cents |
 |---|---|---|---|---|
-| Haiku 4.5 | 611 × $1/1M = $0,00061 | 80 × $5/1M = $0,00040 | $0,00101 | **0,10** |
-| Sonnet 5 | 611 × $2/1M = $0,00122 | 80 × $10/1M = $0,00080 | $0,00202 | **0,20** |
-| Opus 5 | 611 × $5/1M = $0,00306 | 80 × $25/1M = $0,00200 | $0,00506 | **0,51** |
+| Haiku 4.5 | 611 × $1/1M = $0.00061 | 80 × $5/1M = $0.00040 | $0.00101 | **0.10** |
+| Sonnet 5 | 611 × $2/1M = $0.00122 | 80 × $10/1M = $0.00080 | $0.00202 | **0.20** |
+| Opus 5 | 611 × $5/1M = $0.00306 | 80 × $25/1M = $0.00200 | $0.00506 | **0.51** |
 
-При 500 проверочных установках и доле загрузивших 40% это 200 разборов:
-**20 центов на Haiku, 40 центов на Sonnet** за весь MVP. Статья расходов,
-которой можно пренебречь: она в тысячу раз меньше 400 долларов на проверку
-удержания.
+At 500 verification installs and a 40% download rate, that's 200 analyses:
+**20 cents on Haiku, 40 cents on Sonnet** for the whole MVP. A line item
+negligible enough to ignore: it is a thousand times smaller than the $400 for the retention
+check.
 
-Вывод для проекта: спор «дорого ли обходится облако» закрыт. Выбирать модель
-надо по качеству разбора окраса, а не по цене.
+Conclusion for the project: the "is the cloud call expensive" debate is closed. The model
+should be chosen for coat-analysis quality, not for price.
 
-### Чего расчёт не покрывает
+### What the calculation doesn't cover
 
-Prompt caching здесь не поможет: наименьший кэшируемый отрезок — около 1024
-токенов, а наш наказ короче. Правильный вывод — **не пытаться** прикручивать
-кэш к этому вызову.
+Prompt caching won't help here: the smallest cacheable segment is around 1024
+tokens, and our prompt is shorter. The right conclusion is **don't try**
+to bolt caching onto this call.
 
 ---
 
-## 2. Structured outputs вместо «отвечай только JSON»
+## 2. Structured outputs instead of "respond with JSON only"
 
-### Почему не наказом
+### Why not a prompt
 
-Наказ «верни строго JSON» даёт ответ, который **обычно** разбирается. Пункт 5.2
-в `cat-shelter-tasks.md` требует 100% разбора на эталонном наборе из 40 снимков.
-Наказом эта планка не берётся надёжно — берётся схемой.
+The instruction "return strict JSON" gives an answer that **usually** parses. Item 5.2
+in `cat-shelter-tasks.md` requires 100% parse success on a reference set of 40 snapshots.
+A prompt doesn't reliably clear that bar — a schema does.
 
-### Форма запроса
+### Request shape
 
-Дословно из документации:
+Verbatim from the documentation:
 
 ```json
 "output_config": {
@@ -125,7 +125,7 @@ Prompt caching здесь не поможет: наименьший кэширу
 
 ([Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs))
 
-### Beta-заголовок больше не нужен
+### The beta header is no longer needed
 
 > The `output_format` parameter has moved to `output_config.format`, and beta
 > headers are no longer required. The API continues to accept the old beta header
@@ -134,21 +134,21 @@ Prompt caching здесь не поможет: наименьший кэширу
 > `output_format={...}` on `client.beta.messages.create()` or `count_tokens()`
 > and raises a `TypeError`; use `output_config` instead.
 
-Это важно: если агент напишет `output_format=...` по памяти, на Python SDK 1.x
-он получит `TypeError`. Правильно — `output_config`.
+This matters: if an agent writes `output_format=...` from memory, on Python SDK 1.x
+it will get a `TypeError`. The correct one is `output_config`.
 
-### Какие модели поддерживают
+### Which models support it
 
 > Supported models: `claude-fable-5`, `claude-mythos-5`, `claude-mythos-preview`,
 > `claude-opus-5`, `claude-opus-4-8`, `claude-opus-4-7`, `claude-opus-4-6`,
 > `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-sonnet-4-5-20250929`,
 > `claude-opus-4-5-20251101`, `claude-haiku-4-5-20251001`
 
-Haiku 4.5 в списке — значит самый дешёвый путь нам открыт.
+Haiku 4.5 is on the list — meaning the cheapest path is open to us.
 
-### Что схема умеет и чего не умеет
+### What the schema can and can't do
 
-Поддерживается (дословно):
+Supported (verbatim):
 
 > * All basic types: object, array, string, integer, number, boolean, null
 > * `enum` (strings, numbers, bools, or nulls only - no complex types)
@@ -160,7 +160,7 @@ Haiku 4.5 в списке — значит самый дешёвый путь н
 > * String formats: `date-time`, `time`, `date`, `duration`, `email`, `hostname`, `uri`, `ipv4`, `ipv6`, `uuid`
 > * Array `minItems` (only values 0 and 1 supported)
 
-Не поддерживается (дословно):
+Not supported (verbatim):
 
 > * Recursive schemas
 > * Complex types within enums
@@ -168,18 +168,18 @@ Haiku 4.5 в списке — значит самый дешёвый путь н
 > * Numerical constraints (such as `minimum`, `maximum`, `multipleOf`)
 > * String constraints (`minLength`, `maxLength`)
 
-**Что из этого задевает нас.** Ограничение длины массива сверху задать нельзя:
-`maxItems` в списке поддерживаемых нет. Значит поле `white_markings` схемой
-ограничивается только перечнем допустимых значений, а не длиной списка. Отсекать
-слишком длинный список придётся уже своим кодом на стороне узла-посредника.
+**What in there affects us.** An upper bound on array length can't be set:
+`maxItems` is not in the supported list. So the `white_markings` field is
+restricted by the schema only to the list of allowed values, not by list length. Cutting off
+an overly long list will have to be done by our own code on the intermediary-node side.
 
 ---
 
-## 3. Схема под наш набор черт
+## 3. Schema for our trait set
 
-Ниже — схема, прямо соответствующая разделу 3 `cat-shelter-tech.md`. Каждое поле
-перечислимое, `additionalProperties: false` на объекте — как требует
-документация.
+Below is a schema matching directly to section 3 of `cat-shelter-tech.md`. Every field is
+an enum, `additionalProperties: false` on the object — as the
+documentation requires.
 
 ```json
 {
@@ -214,21 +214,21 @@ Haiku 4.5 в списке — значит самый дешёвый путь н
 }
 ```
 
-Поле `is_cat` в схему **не включено намеренно**: проверка «на снимке кот» —
-это ступень 1 на устройстве через Apple Vision, а не работа облачной модели.
-Если облако всё же должно уметь отказать, поле добавляется отдельным
-логическим значением, но тогда придётся обрабатывать случай «Vision сказал кот,
-модель сказала не кот» — лишняя развилка на ровном месте.
+The `is_cat` field is **deliberately not included** in the schema: checking "is this
+a cat in the photo" is stage 1, on-device via Apple Vision, not the cloud model's job.
+If the cloud does need to be able to refuse, the field is added as a separate
+boolean, but then the case "Vision said cat, model said not cat" has to be
+handled — an unnecessary branch for no reason.
 
 ---
 
-## 4. Рабочий вызов на Python
+## 4. A working call in Python
 
-Соответствует `Python 3.12 + FastAPI` из раздела 4 `cat-shelter-tech.md`.
+Matches `Python 3.12 + FastAPI` from section 4 of `cat-shelter-tech.md`.
 
-### Через Pydantic — предпочтительный путь
+### Via Pydantic — the preferred path
 
-`client.messages.parse()` проверяет ответ по схеме и возвращает готовый объект:
+`client.messages.parse()` validates the response against the schema and returns a ready-made object:
 
 ```python
 from enum import Enum
@@ -314,21 +314,21 @@ def read_traits(image_b64: str, media_type: str = "image/jpeg") -> CatTraits:
     return response.parsed_output
 ```
 
-Порядок содержимого — изображение, затем текст — соответствует прямой
-рекомендации документации:
+The content order — image, then text — matches the documentation's direct
+recommendation:
 
 > Claude works best when images come before text. Images placed after text or
 > interpolated with text still perform well, but if your use case allows it,
 > prefer an image-then-text structure.
 
-Обратите внимание на несовпадение имён, которое легко упустить: у
-`client.messages.parse()` параметр называется `output_format` и принимает класс
-Pydantic, а у `client.messages.create()` — `output_config` с сырой схемой. Это
-разные вызовы, не разные написания одного.
+Note a naming mismatch that's easy to miss: for
+`client.messages.parse()` the parameter is called `output_format` and takes a
+Pydantic class, while for `client.messages.create()` it's `output_config` with a raw
+schema. These are different calls, not different spellings of the same one.
 
-### Через сырую схему
+### Via a raw schema
 
-Когда Pydantic не нужен:
+When Pydantic isn't needed:
 
 ```python
 response = client.messages.create(
@@ -352,84 +352,83 @@ text = next(b.text for b in response.content if b.type == "text")
 traits = json.loads(text)
 ```
 
-Документация отдельно оговаривает: `output_config.format` гарантирует, что
-первый блок содержимого — текст с правильным JSON.
+The documentation separately notes: `output_config.format` guarantees that
+the first content block is text with valid JSON.
 
 ---
 
-## 5. Ограничения по изображениям
+## 5. Image constraints
 
-Всё дословно со страницы Vision.
+All verbatim from the Vision page.
 
-| Что | Значение |
+| What | Value |
 |---|---|
-| Поддерживаемые форматы | JPEG, PNG, GIF, WebP (`image/jpeg`, `image/png`, `image/gif`, `image/webp`) |
-| Наибольший размер одного снимка | 10 MB в base64 при обращении напрямую к Claude API |
-| Наибольшие размеры в пикселях | 8000×8000 px |
-| Предел по длинной стороне, обычный разряд | 1568 px, до 1568 визуальных токенов |
-| Предел по длинной стороне, повышенный разряд (Claude 4.7 и новее) | 2576 px, до 4784 визуальных токенов |
-| Наибольшее число снимков в запросе | 100 при окне в 200k токенов, 600 у остальных |
-| Наибольший размер запроса | 32 MB для обычных обращений |
+| Supported formats | JPEG, PNG, GIF, WebP (`image/jpeg`, `image/png`, `image/gif`, `image/webp`) |
+| Largest size of a single snapshot | 10 MB in base64 when calling the Claude API directly |
+| Largest dimensions in pixels | 8000×8000 px |
+| Long-side limit, standard tier | 1568 px, up to 1568 visual tokens |
+| Long-side limit, elevated tier (Claude 4.7 and newer) | 2576 px, up to 4784 visual tokens |
+| Largest number of images per request | 100 with a 200k-token window, 600 for the rest |
+| Largest request size | 32 MB for regular requests |
 
-Наши 512×512 укладываются в любой из пределов с запасом. Ограничение
-«полезная нагрузка до 200 KB» из задачи 5.6 диктуется не Claude API, а нашим
-собственным узлом-посредником, и оно строже, чем требует облако.
+Our 512×512 fits comfortably within any of these limits. The
+"payload up to 200 KB" constraint from task 5.6 is dictated not by the Claude API but by our
+own intermediary node, and it's stricter than what the cloud requires.
 
-Существенное предупреждение о сжатии:
+A significant warning about compression:
 
 > Compressing images before sending them, using a lossy format such as JPEG or
 > WebP (lossy mode), can reduce latency by reducing the size of requests.
 > However, this can introduce artifacts that are detrimental to model
 > performance, especially when multiple compression passes are applied.
 
-Для нас это значит: снимок с камеры уже сжат в JPEG один раз, и наше уменьшение
-до 512 с повторным сжатием — второй проход. Качество JPEG при повторном
-сохранении стоит держать не ниже 85 и **проверить на эталонном наборе**, не
-портится ли разбор окраса. Это ровно та проверка, которую предписывает
-задача 5.2.
+For us this means: a snapshot from the camera is already JPEG-compressed once, and our downscaling
+to 512 with re-compression is a second pass. The JPEG quality on re-save should be kept
+at no lower than 85, and **checked against the reference set** to make sure it doesn't
+degrade the coat analysis. This is exactly the check that task 5.2 requires.
 
 ---
 
-## 6. Ограничения модели, задевающие нашу задачу
+## 6. Model limitations affecting our task
 
-Со страницы Vision, раздел Limitations:
+From the Vision page's Limitations section:
 
-- **Точность на мелких снимках.** «Claude might hallucinate or make mistakes when
-  interpreting low-quality, rotated, or very small images under 200 pixels.»
-  Наши 512 px безопасны, но обрезка по рамке Vision может дать меньший кусок,
-  если кот в кадре мелкий. Стоит задать нижнюю границу: если рамка после обрезки
-  меньше 200 px по стороне — не уменьшать, а брать более широкий кусок кадра.
-- **Повёрнутые снимки.** Названы наравне с мелкими как источник ошибок.
-  Ориентация должна быть выправлена на стороне Swift **до** отправки, а не
-  оставлена в метаданных EXIF.
-- **Метаданные не читаются.** «Claude does not parse or receive any metadata from
-  images passed to it.» Ориентацию из EXIF облако не увидит — ещё один довод
-  выправлять поворот на устройстве.
-- **Непристойное содержимое.** «Claude does not process inappropriate or explicit
-  images that violate the Acceptable Use Policy.» Полезно как второй рубеж, но
-  опираться на него нельзя: отказ придёт в виде ошибки или отказа модели, а не
-  предсказуемого признака в схеме.
-- **Люди на снимке.** Модель отказывается называть людей. Если в кадр попал
-  хозяин вместе с котом, задача «опиши окрас кота» этим не задевается, но
-  случай стоит включить в эталонный набор.
+- **Accuracy on small images.** "Claude might hallucinate or make mistakes when
+  interpreting low-quality, rotated, or very small images under 200 pixels."
+  Our 512 px is safe, but a Vision bounding-box crop could give a smaller
+  piece if the cat in frame is small. It's worth setting a lower bound: if the box after cropping
+  is smaller than 200 px on a side — don't downscale, take a wider crop of the frame instead.
+- **Rotated images.** Named alongside small ones as a source of errors.
+  Orientation must be corrected on the Swift side **before** sending, not
+  left to the EXIF metadata.
+- **Metadata is not read.** "Claude does not parse or receive any metadata from
+  images passed to it." The cloud won't see orientation from EXIF — one more reason
+  to correct rotation on-device.
+- **Indecent content.** "Claude does not process inappropriate or explicit
+  images that violate the Acceptable Use Policy." Useful as a second line of defense, but
+  it can't be relied on: the refusal arrives as an error or a model refusal, not a
+  predictable field in the schema.
+- **People in the photo.** The model refuses to name people. If the owner is
+  in frame along with the cat, the task "describe the cat's coat" is unaffected, but
+  the case is worth including in the reference set.
 
 ---
 
-## 7. Обработка отказа и ошибок
+## 7. Handling refusals and errors
 
-Ответ надо проверять на `stop_reason` до чтения содержимого. Значение `refusal`
-означает, что сработали защитные разборщики; тогда в `stop_details` лежит
-причина.
+The response must be checked for `stop_reason` before reading the content. The value `refusal`
+means the safety classifiers triggered; then the reason is in
+`stop_details`.
 
 ```python
 if response.stop_reason == "refusal" and response.stop_details:
-    # заменяем на кота по умолчанию, снимок не разбираем
+    # fall back to a default cat, don't analyze the snapshot
     log.warning("refusal: %s", response.stop_details.category)
     return DEFAULT_TRAITS
 ```
 
-Разбор ошибок обращения — цепочкой от частного к общему, а не одним широким
-перехватом:
+Errors from the call should be handled in a chain from specific to general, not one broad
+catch-all:
 
 ```python
 import anthropic
@@ -448,44 +447,42 @@ except anthropic.APIConnectionError:
     ...
 ```
 
-SDK сам повторяет обращения при ошибках соединения, 408, 409, 429 и 5xx с
-нарастающей задержкой, по умолчанию два повтора. Свой цикл повторов писать
-поверх этого не нужно — только задать `max_retries`.
+The SDK itself retries calls on connection errors, 408, 409, 429, and 5xx with
+increasing backoff, two retries by default. There's no need to write your own retry loop
+on top of this — just set `max_retries`.
 
-**Связь с запасным путём.** Раздел 3 `cat-shelter-tech.md` предусматривает работу
-без сети через k-средних по цветам. Все перечисленные случаи — отказ, превышение
-частоты, ошибка соединения — ведут в одну ветку: отдать `DEFAULT_TRAITS` либо
-результат местного разбора. Игрок не должен видеть ошибку; он должен увидеть
-кота.
+**Connection to the fallback path.** Section 3 of `cat-shelter-tech.md` provides for operation
+without a network, via k-means over colors. All the listed cases — refusal, rate
+limiting, connection error — lead into the same branch: return `DEFAULT_TRAITS` or
+the result of local analysis. The player must not see an error; they must see
+a cat.
 
 ---
 
-## 8. Выбор модели: довод
+## 8. Choosing the model: the argument
 
-| Довод | Haiku 4.5 | Sonnet 5 |
+| Argument | Haiku 4.5 | Sonnet 5 |
 |---|---|---|
-| Цена разбора | 0,10 цента | 0,20 цента |
-| Structured outputs | поддерживает | поддерживает |
-| Задача | выбор из 6 значений по картинке | то же |
+| Analysis cost | 0.10 cents | 0.20 cents |
+| Structured outputs | supported | supported |
+| Task | pick from 6 values based on an image | same |
 
-Разница в 10 центов на 200 разборов не значит ничего. Значит только качество
-разбора окраса, а его **нельзя узнать из документации** — только замером на
-эталонном наборе из 40 снимков. Правильный порядок: собрать набор, прогнать
-обе модели, сравнить руками, взять дешёвую, если разницы не видно.
+A 10-cent difference across 200 analyses means nothing. What matters is only the quality of the
+coat analysis, and it **cannot be known from the documentation** — only by measuring
+against the 40-snapshot reference set. The right order of operations: build the set, run
+both models, compare by eye, take the cheap one if there's no visible difference.
 
-Заметьте, что задача 5.2 в `cat-shelter-tasks.md` проверяет только разбираемость
-ответа, а не точность окраса: «A ginger cat classified as cream is not a defect».
-При таком условии приёмки обе модели пройдут одинаково, и выбор надо делать
-глазами, а не тестом.
+Note that task 5.2 in `cat-shelter-tasks.md` checks only that the response parses,
+not coat-color accuracy: "A ginger cat classified as cream is not a defect."
+Under that acceptance criterion, both models will pass equally, and the choice should be made
+by eye, not by test.
 
 ---
 
-## Источники
+## Sources
 
 - [Vision — platform.claude.com](https://platform.claude.com/docs/en/build-with-claude/vision)
 - [Structured outputs — platform.claude.com](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
 - [Pricing — platform.claude.com](https://platform.claude.com/docs/en/about-claude/pricing)
 - [Coordinates and bounding boxes](https://platform.claude.com/docs/en/build-with-claude/vision-coordinates)
 - [Messages API — create](https://platform.claude.com/docs/en/api/messages/create)
-</content>
-</invoke>

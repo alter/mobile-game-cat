@@ -1,203 +1,217 @@
-# Каталог знаний по технологическому набору
+# Technology stack knowledge catalog
 
-Собрано 2026-08-24 для проекта «Спасённый котёнок»
+Compiled 2026-08-24 for the "Rescued Kitten" project
 (`cat-shelter-mvp.md`, `cat-shelter-tech.md`, `cat-shelter-tasks.md`).
 
-Назначение: дать агенту, который будет писать код, точные сведения по тем самым
-версиям, что выбраны в замысле, — вместо того, чтобы он опирался на память об
-устаревших выпусках и выдумывал несуществующие вызовы. Это ровно то, о чём
-говорит раздел 0 `cat-shelter-tech.md`.
+Purpose: give the agent that will write the code precise information on the
+exact versions chosen in the concept — instead of it relying on memory of
+outdated releases and inventing calls that don't exist. This is exactly what
+section 0 of `cat-shelter-tech.md` talks about.
 
 ---
 
-## Правила этого каталога
+## Rules of this catalog
 
-1. **Каждый факт со ссылкой.** Утверждение без ссылки на открытую страницу —
-   ошибка, а не мелочь.
-2. **Где не нашлось — так и написано.** Пометки «надёжных источников не найдено»
-   и «не проверено» расставлены намеренно. Они полезнее правдоподобной выдумки.
-3. **Проза по-русски, код дословно.** Имена API, ключи командной строки,
-   параметры и куски кода приведены как в первоисточнике и не переводятся.
-4. **Это снимок на 24 августа 2026, а не вечная истина.** Прежде чем опереться
-   на номер версии или требование магазина, откройте указанную ссылку.
+1. **Every fact with a source.** A claim without a link to an open page is
+   an error, not a minor detail.
+2. **Where nothing was found, it says so.** The notes "no reliable source
+   found" and "not verified" are placed deliberately. They are more useful
+   than a plausible invention.
+3. **Prose in Russian, code verbatim.** API names, command-line keys,
+   parameters and code snippets are given as in the original source and are
+   not translated.
+4. **This is a snapshot as of August 24, 2026, not eternal truth.** Before
+   relying on a version number or a store requirement, open the linked
+   source.
 
 ---
 
-## Что вскрылось при сборе — прочесть до начала работ
+## What surfaced during collection — read before starting work
 
-Три находки задевают не код, а сами решения замысла.
+Three findings touch not the code, but the concept's decisions themselves.
 
-### 1. Порог «возврат на первый день > 35%» вдвое выше рынка
+### 1. The "day-1 retention > 35%" threshold is twice the market rate
 
-Проверено лично по первоисточнику: по данным
+Personally verified against the primary source: according to
 [GameAnalytics, 2025 Mobile Gaming Benchmarks](https://gameanalytics.com/reports/2025-mobile-gaming-benchmarks/)
-(11 600 игр, данные за 2024 год) медиана возврата на первый день у
-головоломок — **19,66–20,74%**. Общая медиана по всем играм — около 17–18,5%.
+(11,600 games, 2024 data), the median day-1 retention for puzzle games is
+**19.66–20.74%**. The overall median across all games is about 17–18.5%.
 
-В `cat-shelter-mvp.md` порог выставлен как «> 35%», и провал по нему толкуется
-как «нет повода вернуться». На деле 35% — это **не порог годности, а уровень
-заметно выше среднего по жанру**. Игра может быть вполне жизнеспособной при 25%
-и будет закрыта по этому правилу.
+In `cat-shelter-mvp.md` the threshold is set at "> 35%," and failing it is
+interpreted as "no reason to come back." In fact 35% is **not a viability
+threshold, but a level noticeably above the genre average**. A game could be
+perfectly viable at 25% and would be shut down under this rule.
 
-Отдельно: распространённая по блогам цифра «у головоломок D1 около 32%» при
-проверке первоисточника не подтвердилась. Подробности и остальные ориентиры —
-в [`analytics/02-benchmarks-and-attribution.md`](analytics/02-benchmarks-and-attribution.md).
+Separately: the figure "puzzle games have D1 around 32%," common on blogs,
+was not confirmed when checked against the primary source. Details and other
+benchmarks are in
+[`analytics/02-benchmarks-and-attribution.md`](analytics/02-benchmarks-and-attribution.md).
 
-Что с этим делать — решение ваше, но принимать его надо **до** траты 400
-долларов, а не после.
+What to do about this is your call, but the decision needs to be made
+**before** spending 400 dollars, not after.
 
-### 2. Требование Apple подтверждено, но дата точнее, чем в замысле
+### 2. Apple's requirement is confirmed, but the date is more precise than in the concept
 
-Проверено лично по
-[объявлению Apple](https://developer.apple.com/news/?id=ueeok6yw), дословно:
+Personally verified against
+[Apple's announcement](https://developer.apple.com/news/?id=ueeok6yw), verbatim:
 
 > Starting April 28, 2026, apps and games uploaded to App Store Connect need to
 > meet the following minimum requirements: iOS and iPadOS apps must be built with
 > the iOS 26 & iPadOS 26 SDK or later...
 
-Формулировка «с апреля 2026» верна, точная дата — **28 апреля 2026**. Важное
-уточнение: требование относится к средству сборки (фактически нужен Xcode 26
-или новее), а не к наименьшей версии iOS, на которой работает игра, — её
-разработчик задаёт отдельно. Это два разных числа, которые легко перепутать.
-Подробности — в [`ios/01-appstore-requirements-2026.md`](ios/01-appstore-requirements-2026.md).
+The wording "starting April 2026" is correct; the exact date is **April 28,
+2026**. Important clarification: the requirement concerns the build tool
+(in effect, Xcode 26 or newer is needed), not the minimum iOS version the
+game runs on — the developer sets that separately. These are two different
+numbers that are easy to confuse. Details are in
+[`ios/01-appstore-requirements-2026.md`](ios/01-appstore-requirements-2026.md).
 
-### 3. MCP-сервер Unity первой стороны существует, но не бесплатен по условиям
+### 3. A first-party Unity MCP server exists, but it isn't free under the terms
 
-Раздел 2 `cat-shelter-tech.md` перечисляет «Unity MCP, свой, первой стороны» как
-данность. Он действительно есть — в пакете `com.unity.ai.assistant`, в состоянии
-предварительного выпуска (2.0.0-pre.1), и Claude Code в списке поддерживаемых
-прямо назван. Но он требует проекта в Unity Cloud и действующей подписки на
-средства Unity AI. Стороннее решение
-[CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) (13 619 звёзд,
-проверено по GitHub API) таких условий не ставит. Разбор обоих — в
+Section 2 of `cat-shelter-tech.md` lists "Unity MCP, its own, first-party" as
+a given. It does indeed exist — in the `com.unity.ai.assistant` package, in
+pre-release state (2.0.0-pre.1), and Claude Code is explicitly named among
+supported clients. But it requires a Unity Cloud project and an active
+subscription to Unity AI tools. The third-party solution
+[CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) (13,619 stars,
+verified via the GitHub API) sets no such conditions. Both are examined in
 [`agents/01-unity-mcp.md`](agents/01-unity-mcp.md).
 
 ---
 
-### 4. Проверить на живом устройстве до того, как строить на этом замеры
+### 4. Verify on a real device before building measurements on this
 
-У пакета GameAnalytics в файле privacy manifest стоит `NSPrivacyTracking = true`
-и объявлен домен `tracking.gameanalytics.com`. Правило Apple таково, что домены
-из `NSPrivacyTrackingDomains` **перекрываются системой, если игрок не дал
-разрешение ATT**. План «не спрашивать ATT» держится на допущении, что события
-уходят на другой домен, а этот применяется только при включённом рекламном
-идентификаторе. Подтвердить это по открытым источникам не удалось.
+The GameAnalytics package's privacy manifest has `NSPrivacyTracking = true`
+and declares the domain `tracking.gameanalytics.com`. Apple's rule is that
+domains from `NSPrivacyTrackingDomains` **get blocked by the system if the
+player hasn't given ATT permission**. The plan to "not ask for ATT" rests on
+the assumption that events go to a different domain, and this one applies
+only when the advertising identifier is enabled. This could not be confirmed
+from open sources.
 
-Проверка стоит полчаса: собрать пробную сборку, не вызывать
-`RequestTrackingAuthorization`, отправить событие, убедиться, что оно дошло до
-веб-кабинета. Если не дойдёт — придётся либо показывать диалог ATT, либо брать
-другое средство. Ошибка здесь тихая: события просто не появятся, и обнаружится
-это после траты 400 долларов на рекламу.
+The check takes half an hour: build a test build, don't call
+`RequestTrackingAuthorization`, send an event, confirm it reaches the web
+dashboard. If it doesn't arrive, you'll have to either show the ATT dialog or
+take a different tool. The failure here is silent: events simply won't show
+up, and this will be discovered after spending 400 dollars on advertising.
 
 ---
 
-## Устройство каталога
+## Catalog structure
 
-### Основа
+### Foundation
 
-- [`00-versions.md`](00-versions.md) — сводка проверенных версий и то, что в
-  замысле уже устарело. **Начинать отсюда.**
-- [`00-vendor-lock-in.md`](00-vendor-lock-in.md) — **цена выхода из каждой
-  бесплатной службы**: можно ли забрать данные, сколько стоит выгрузка, признаки
-  условно-бесплатного, подтверждённые случаи урезания бесплатных уровней.
+- [`00-versions.md`](00-versions.md) — summary of verified versions and what
+  in the concept is already outdated. **Start here.**
+- [`00-vendor-lock-in.md`](00-vendor-lock-in.md) — **the exit cost of every
+  free service**: whether you can take your data with you, how much export
+  costs, signs of freemium bait-and-switch, confirmed cases of free-tier
+  cutbacks.
 
 ### Unity
 
-- [`unity/01-unity-6.3-lts.md`](unity/01-unity-6.3-lts.md) — выпуски и сроки
-  поддержки, что нового в 6.3, новое 2D-физическое API на Box2D v3, известные
-  регрессии.
-- [`unity/02-2d-urp-mobile.md`](unity/02-2d-urp-mobile.md) — настройка URP 2D под
-  мобильный, Sprite Atlas, сжатие текстур, порядок отрисовки, цена 2D-освещения.
-- [`unity/03-ui-toolkit-runtime.md`](unity/03-ui-toolkit-runtime.md) — UI Toolkit
-  во время игры: устройство, UXML/USS, перетаскивание, безопасная зона,
-  быстродействие, и честный разбор «брать ли его вообще».
-- [`unity/04-test-framework.md`](unity/04-test-framework.md) — тесты ядра правил,
-  assembly definition без `UnityEngine`, NUnit, покрытие.
-- [`unity/05-headless-build-ci.md`](unity/05-headless-build-ci.md) — сборка из
-  командной строки, BuildScript, лицензия в CI, разбор журнала.
+- [`unity/01-unity-6.3-lts.md`](unity/01-unity-6.3-lts.md) — releases and
+  support timelines, what's new in 6.3, the new 2D physics API on Box2D v3,
+  known regressions.
+- [`unity/02-2d-urp-mobile.md`](unity/02-2d-urp-mobile.md) — setting up URP
+  2D for mobile, Sprite Atlas, texture compression, draw order, the cost of
+  2D lighting.
+- [`unity/03-ui-toolkit-runtime.md`](unity/03-ui-toolkit-runtime.md) — UI
+  Toolkit at runtime: architecture, UXML/USS, drag-and-drop, safe area,
+  performance, and an honest assessment of "whether to take it at all."
+- [`unity/04-test-framework.md`](unity/04-test-framework.md) — tests for the
+  rules core, an assembly definition without `UnityEngine`, NUnit, coverage.
+- [`unity/05-headless-build-ci.md`](unity/05-headless-build-ci.md) — building
+  from the command line, BuildScript, licensing in CI, log analysis.
 
 ### iOS
 
 - [`ios/01-appstore-requirements-2026.md`](ios/01-appstore-requirements-2026.md) —
-  требования магазина, privacy manifest, возрастной ценз, ATT, TestFlight,
-  правила про случайную выдачу.
+  store requirements, privacy manifest, age rating, ATT, TestFlight, rules
+  on random reward drops.
 - [`ios/02-unity-ios-build-pipeline.md`](ios/02-unity-ios-build-pipeline.md) —
-  Unity → Xcode, подпись, PostProcessBuild, уменьшение размера сборки.
+  Unity → Xcode, signing, PostProcessBuild, reducing build size.
 - [`ios/03-vision-animal-recognition.md`](ios/03-vision-animal-recognition.md) —
-  распознавание кота на устройстве через Apple Vision.
+  on-device cat recognition via Apple Vision.
 - [`ios/04-unity-swift-native-plugin.md`](ios/04-unity-swift-native-plugin.md) —
-  связка C# ↔ Swift, доступ к камере, обрезка снимка.
+  C# ↔ Swift bridging, camera access, cropping a photo.
 - [`ios/05-notifications-permissions.md`](ios/05-notifications-permissions.md) —
-  местные уведомления, момент запроса разрешения, ATT.
+  local notifications, when to request permission, ATT.
 - [`ios/06-on-device-coat-traits.md`](ios/06-on-device-coat-traits.md) —
-  **можно ли определить окрас без облака и без сервера**. Ответ: узор — нельзя.
-  В таксономии классификатора Apple 1303 категории и всего пять кошачьих слов,
-  ни одной породы и ни одного окраса.
+  **whether coat pattern can be determined without the cloud and without a
+  server**. Answer: pattern — no. Apple's classifier taxonomy has 1303
+  categories and only five cat-related words, not a single breed or a single
+  coat color.
 
-### Облачная модель
+### Cloud model
 
 - [`vision-model/01-traits-strict-json.md`](vision-model/01-traits-strict-json.md) —
-  черты окраса строгим JSON: схема, structured outputs, **расчёт стоимости
-  разбора снимка** (около 0,10 цента), ограничения по изображениям.
+  coat traits as strict JSON: schema, structured outputs, **the cost
+  calculation for parsing a photo** (about 0.10 cents), image constraints.
 
-### Python и служебная часть
+### Python and backend
 
-- [`python/01-fastapi-service.md`](python/01-fastapi-service.md) — узел-посредник.
-- [`python/02-pytest-testing.md`](python/02-pytest-testing.md) — тесты службы и
-  прогон по эталонному набору снимков.
+- [`python/01-fastapi-service.md`](python/01-fastapi-service.md) — the
+  intermediary node.
+- [`python/02-pytest-testing.md`](python/02-pytest-testing.md) — tests for
+  the service and a run against a reference set of photos.
 - [`python/03-ratelimit-and-signing.md`](python/03-ratelimit-and-signing.md) —
-  ограничение частоты и подпись запроса.
+  rate limiting and request signing.
 - [`python/04-free-hosting-options.md`](python/04-free-hosting-options.md) —
-  **где разместить узел-посредник даром**: бесплатные уровни, нужна ли карта,
-  засыпает ли приложение.
+  **where to host the intermediary node for free**: free tiers, whether a
+  card is needed, whether the app sleeps.
 - [`python/05-cloudflare-worker-proxy.md`](python/05-cloudflare-worker-proxy.md) —
-  **как написать и выложить сам узел** на Cloudflare Workers: команды wrangler,
-  секреты, полный образец обработчика `/traits`, пределы, ограничение частоты.
+  **how to write and deploy the node itself** on Cloudflare Workers:
+  wrangler commands, secrets, a complete sample `/traits` handler, limits,
+  rate limiting.
 
-### Уровни
+### Levels
 
-- [`solver/01-tile-match-solver.md`](solver/01-tile-match-solver.md) — постановка
-  задачи, вычислительная сложность, алгоритмы поиска, порождение уровней
-  обратным ходом.
+- [`solver/01-tile-match-solver.md`](solver/01-tile-match-solver.md) —
+  problem statement, computational complexity, search algorithms, level
+  generation by working backward.
 - [`solver/02-level-format-and-property-tests.md`](solver/02-level-format-and-property-tests.md) —
-  описание уровня в JSON, property-based тесты, согласование правил между C# и Python.
+  level description in JSON, property-based tests, keeping rules consistent
+  between C# and Python.
 
-### Рисунки
+### Art
 
-- [`artgen/01-art-pipeline.md`](artgen/01-art-pipeline.md) — пакетное порождение,
-  удержание единого вида, удаление фона, сборка кота из слоёв.
+- [`artgen/01-art-pipeline.md`](artgen/01-art-pipeline.md) — batch
+  generation, keeping a consistent look, background removal, assembling a
+  cat from layers.
 
-### Замеры
+### Analytics
 
 - [`analytics/01-own-event-collection.md`](analytics/01-own-event-collection.md) —
-  свой сбор событий, очередь на устройстве, признак устройства, расчёт четырёх мер.
+  building your own event collection, on-device queue, device fingerprint,
+  computing the four metrics.
 - [`analytics/02-benchmarks-and-attribution.md`](analytics/02-benchmarks-and-attribution.md) —
-  отраслевые ориентиры удержания и стоимости установки, атрибуция на iOS.
+  industry benchmarks for retention and install cost, attribution on iOS.
 - [`analytics/03-free-analytics-options.md`](analytics/03-free-analytics-options.md) —
-  **готовые бесплатные средства сбора замеров**: что бесплатно без карты и какие
-  из четырёх мер закрываются без единой строки своего кода.
+  **ready-made free measurement tools**: what's free without a card and
+  which of the four metrics are covered without a single line of your own
+  code.
 - [`analytics/04-gameanalytics-unity-usage.md`](analytics/04-gameanalytics-unity-usage.md) —
-  **как пользоваться GameAnalytics**: установка, настройка, таблица «наше
-  событие → вызов» для всех девяти, ограничения на имена, privacy manifest,
-  как обойтись без диалога ATT.
+  **how to use GameAnalytics**: installation, configuration, an "our event →
+  call" table for all nine, naming restrictions, privacy manifest, how to
+  get by without the ATT dialog.
 
-### Работа агентами
+### Working with agents
 
-- [`agents/01-unity-mcp.md`](agents/01-unity-mcp.md) — MCP-серверы для Unity.
-- [`agents/02-unity-repo-hygiene.md`](agents/02-unity-repo-hygiene.md) — формат
-  файлов Unity и агенты, .meta и GUID, git, проверки в CI.
+- [`agents/01-unity-mcp.md`](agents/01-unity-mcp.md) — MCP servers for Unity.
+- [`agents/02-unity-repo-hygiene.md`](agents/02-unity-repo-hygiene.md) — Unity
+  file formats and agents, .meta and GUID, git, CI checks.
 
-### Запасной путь
+### Fallback path
 
-- [`godot/01-godot-4.6-fallback.md`](godot/01-godot-4.6-fallback.md) — Godot как
-  запасной путь при самостоятельном выпуске.
+- [`godot/01-godot-4.6-fallback.md`](godot/01-godot-4.6-fallback.md) — Godot
+  as a fallback path if self-publishing.
 
 ---
 
-## Осторожно
+## Caution
 
-В разборе сторонних MCP-серверов упомянут репозиторий, который в своей работе
-применяет ключ `--dangerously-skip-permissions`. Это отключает подтверждение
-действий агента. Брать такое в работу не следует; упомянуто, чтобы вы узнали его
-при встрече, а не чтобы применять.
-</content>
+The review of third-party MCP servers mentions a repository that, in its
+operation, uses the `--dangerously-skip-permissions` key. This disables
+confirmation of the agent's actions. It should not be adopted for work; it's
+mentioned so you'll recognize it if you encounter it, not so you'll use it.

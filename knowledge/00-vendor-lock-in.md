@@ -1,365 +1,383 @@
-# Цена выхода из бесплатных служб (2026-08-24)
+# The cost of exiting free services (2026-08-24)
 
-Задача: не «сколько это стоит», а «во что обойдётся уйти» — если бесплатная
-служба окажется условно-бесплатной ловушкой. По каждой службе: можно ли забрать
-свои данные, входит ли выгрузка в бесплатный уровень, насколько код и данные
-привязаны именно к этой службе, что известно об изменениях условий в прошлом.
+The task isn't "how much does this cost," but "what will it cost to leave" —
+if a free service turns out to be a freemium trap. For each service: can you
+take your own data with you, does export fall under the free tier, how tied
+are the code and data to this particular service, what is known about past
+changes to the terms.
 
-## Кратко
+## In brief
 
-1. **GameAnalytics**: дашборды и агрегированные отчёты — бесплатно и без карты,
-   но **сырые данные по игроку выгружаются только платно** (Data Export /
-   PipelineIQ, официально от $499/мес). Это и есть зависимость: показатели
-   видно, а свои же сырые события — нет.
-2. GameAnalytics хранит данные не бессрочно: полные фильтры — 1 месяц, дальше
-   деградация, после 12 месяцев данные обезличиваются или удаляются — вне
-   зависимости от тарифа.
-3. **Cloudflare Workers** — обработчик написан на стандартных Web-API (`fetch`,
-   `Request`, `Response`), это подтверждено самой Cloudflare как соответствие
-   WinterCG; переезд на Deno/Node/Bun — малая правка.
-4. Cloudflare **D1** выгружается официальной командой в SQL-дамп (не как файл
-   `.sqlite`); Cloudflare **KV** не имеет готовой команды полной выгрузки —
-   только связка `kv key list` + `kv bulk get` (запрос на функцию с 2021 года
-   не реализован).
-5. **App Store Connect**: и ручная выгрузка CSV, и Analytics Reports API —
-   бесплатны, никакого платного уровня для собственных данных нет.
-6. Критично для ~100 установок: у Apple есть официальный **порог приватности —
-   данные скрываются при менее чем 5 пользователях/устройствах** на срез, а
-   показанные значения содержат шум. Это не мешает общему счётчику установок,
-   но убивает любую сегментацию (по стране, устройству, кампании).
-7. **Anthropic API**: вызов — один POST-запрос обычным `fetch()`, вынесенный в
-   одну функцию Cloudflare Worker; переезд на другого поставщика — переписать
-   эту функцию, а не архитектуру.
-8. У Anthropic API есть официальный **жёсткий потолок расходов**, настраиваемый
-   в кабинете (Console → Billing → Spend limits): при достижении API отклоняет
-   запросы, а не списывает деньги молча.
-9. Подтверждённые случаи резкого урезания бесплатных условий у сервисов для
-   разработчиков есть и без выдумок: Heroku (2022), Twitter/X API (2023),
-   Unity Runtime Fee (2023, позже отменён под давлением).
+1. **GameAnalytics**: dashboards and aggregated reports — free and without a
+   card, but **raw per-player data can only be exported for a fee** (Data
+   Export / PipelineIQ, officially from $499/month). This is the lock-in
+   itself: the metrics are visible, but your own raw events are not.
+2. GameAnalytics doesn't store data indefinitely: full filters — 1 month,
+   degradation after that, after 12 months the data is anonymized or deleted
+   — regardless of plan.
+3. **Cloudflare Workers** — the handler is written on standard Web APIs
+   (`fetch`, `Request`, `Response`); this is confirmed by Cloudflare itself
+   as WinterCG compliance; moving to Deno/Node/Bun is a small edit.
+4. Cloudflare **D1** is exported by an official command as a SQL dump (not
+   as a `.sqlite` file); Cloudflare **KV** has no ready-made full-export
+   command — only the combination `kv key list` + `kv bulk get` (a feature
+   request from 2021 has not been implemented).
+5. **App Store Connect**: both manual CSV export and the Analytics Reports
+   API are free, with no paid tier for your own data.
+6. Critical at ~100 installs: Apple has an official **privacy threshold —
+   data is hidden below 5 users/devices** per slice, and displayed values
+   contain noise. This doesn't affect the overall install count, but it
+   kills any segmentation (by country, device, campaign).
+7. **Anthropic API**: the call is a single POST request via a plain
+   `fetch()`, contained in one Cloudflare Worker function; moving to a
+   different provider means rewriting this function, not the architecture.
+8. The Anthropic API has an official **hard spending ceiling**, configurable
+   in the console (Console → Billing → Spend limits): on reaching it, the
+   API rejects requests instead of silently charging money.
+9. Confirmed cases of a sharp cutback in free terms for developer services
+   exist without any need to invent them: Heroku (2022), Twitter/X API
+   (2023), Unity Runtime Fee (2023, later canceled under pressure).
 
-## Сводная таблица
+## Summary table
 
-| Служба | Забрать данные | Выгрузка бесплатна ли | Цена переезда | Приговор |
+| Service | Can you take your data | Is export free | Cost of moving | Verdict |
 |---|---|---|---|---|
-| GameAnalytics | Частично: агрегаты и отчёты — да; сырые события по игроку — нет | Нет: ручной CSV из отчётов — да, бесплатно; сырой экспорт (Data Export/PipelineIQ) — платная надстройка от $499/мес | Низкая для агрегатов; высокая для сырых данных (платить либо терять историю старше 12 мес) | Терпимо |
-| Cloudflare Workers (код + KV + D1) | Да, полностью | Да: D1 — командой `wrangler d1 export` в SQL; KV — вручную (`kv key list` + `kv bulk get`) | Низкая: код на стандартных `Request`/`Response`/`fetch`, специфичны только биндинги KV/D1 | Безопасно |
-| App Store Connect Analytics | Да | Да: ручной CSV и Analytics Reports API — бесплатно | Низкая, но с оговоркой на порог приватности (<5 пользователей/устройств на срез) | Безопасно (с оговоркой) |
-| Anthropic API (модель со зрением) | Да; снимки не хранятся на стороне поставщика — забирать нечего | Не применимо: нет накопленных данных на стороне поставщика | Низкая-средняя: один POST в одной функции; жёсткий потолок расходов настраивается | Терпимо |
+| GameAnalytics | Partially: aggregates and reports — yes; raw per-player events — no | No: manual CSV from reports — yes, free; raw export (Data Export/PipelineIQ) — paid add-on from $499/month | Low for aggregates; high for raw data (either pay or lose history older than 12 months) | Tolerable |
+| Cloudflare Workers (code + KV + D1) | Yes, fully | Yes: D1 — via `wrangler d1 export` command to SQL; KV — manually (`kv key list` + `kv bulk get`) | Low: code on standard `Request`/`Response`/`fetch`, only the KV/D1 bindings are specific | Safe |
+| App Store Connect Analytics | Yes | Yes: manual CSV and Analytics Reports API — free | Low, but with a caveat about the privacy threshold (<5 users/devices per slice) | Safe (with a caveat) |
+| Anthropic API (vision-capable model) | Yes; photos aren't stored on the provider's side — nothing to take | Not applicable: no accumulated data on the provider's side | Low-to-medium: one POST in one function; hard spending ceiling is configurable | Tolerable |
 
 ## 1. GameAnalytics
 
-### Можно ли забрать данные и в каком виде
+### Can the data be taken, and in what form
 
-Бесплатный уровень даёт доступ к дашбордам AnalyticsIQ, SegmentIQ, MarketIQ:
-готовые и настраиваемые панели, воронки, удержание, AI-агент (лимит — «3 per
-user / 6 per Org» сообщений в сутки). Ручная выгрузка отдельных таблиц в CSV
-предусмотрена инструментом **Explore** («Table Export: View results in a
-tabular format and download as CSV (comma, semicolon, colon, or
-tab–delimited)») и **Scheduled Reports** (CSV-вложения по расписанию) —
-документация не указывает признаков платности этой функции.
+The free tier gives access to the AnalyticsIQ, SegmentIQ, MarketIQ
+dashboards: ready-made and customizable panels, funnels, retention, an AI
+agent (limit — "3 per user / 6 per Org" messages per day). Manual export of
+individual tables to CSV is provided by the **Explore** tool ("Table Export:
+View results in a tabular format and download as CSV (comma, semicolon,
+colon, or tab–delimited)") and **Scheduled Reports** (scheduled CSV
+attachments) — the documentation shows no sign that this feature is paid.
 
-Иначе обстоит дело с **сырыми, player-level событиями**. Это отдельный продукт
-внутри пакета DataSuite — **Data Export** (он же Raw Export, PipelineIQ):
-«facilitates the automated export of your game event data», в форматах JSON и
-Parquet, обновление каждые 15 минут или чаще, доставка в собственный AWS/GCS.
-Именно этих данных бесплатный уровень не даёт.
+The situation is different with **raw, player-level events**. This is a
+separate product within the DataSuite package — **Data Export** (aka Raw
+Export, PipelineIQ): "facilitates the automated export of your game event
+data," in JSON and Parquet formats, updated every 15 minutes or more often,
+delivered to your own AWS/GCS. The free tier does not provide exactly this
+data.
 
-### Входит ли выгрузка в бесплатный уровень
+### Does export fall under the free tier
 
-Нет. Страница цен (gameanalytics.com/pricing) перечисляет Data Export и
-PipelineIQ как надстройку над платными тарифами: **PipelineIQ — от $499/мес**
-плюс отдельная оплата хранения данных ($6.25 за TiB). По свидетельству
-разработчика на Reddit (январь 2024, до текущей репрайсинговой модели) прямой
-экспорт сырых данных стоил около $100/мес — то есть минимальная цена доступа к
-собственным сырым данным за прошедшее время выросла (официального changelog с
-датой и причиной изменения не найдено — это сопоставление двух точек, а не
-подтверждённая история).
+No. The pricing page (gameanalytics.com/pricing) lists Data Export and
+PipelineIQ as an add-on on top of paid plans: **PipelineIQ — from
+$499/month** plus separate payment for data storage ($6.25 per TiB).
+According to a developer's testimony on Reddit (January 2024, before the
+current repricing model), direct export of raw data cost about $100/month —
+meaning the minimum price of accessing your own raw data has risen over time
+(no official changelog with a date and reason for the change was found —
+this is a comparison of two data points, not a confirmed history).
 
-### Насколько привязаны данные и код
+### How tied are the data and code
 
-Зависимости от кода нет — GameAnalytics используется через SDK, вызовы
-`addDesignEvent` и подобные не создают архитектурной привязки. Зависимость —
-в **данных**: без платной подписки на Data Export единственный канал наружу —
-ручной CSV из готовых отчётов, то есть **агрегированные**, а не сырые события
-по конкретному игроку.
+There is no code dependency — GameAnalytics is used via an SDK, and calls
+like `addDesignEvent` create no architectural lock-in. The lock-in is in the
+**data**: without a paid subscription to Data Export, the only channel out
+is manual CSV from ready-made reports, meaning **aggregated**, not raw,
+events for a specific player.
 
-Срок хранения (data-retention-and-deletion-policy, официальная страница):
-полные метрики и фильтры доступны **до 1 месяца**; 1–3 месяца — часть данных
-недоступна (например, стек-трейсы ошибок); 3–12 месяцев — фильтрация ощутимо
-ограничена; после **12 месяцев** данные обезличиваются или удаляются
-безвозвратно — «Retained for 12 months on a rolling basis, then permanently
-anonymized or deleted». Это правило не различает платный и бесплатный тариф
-для базовой аналитики (AnalyticsIQ); отдельно PipelineIQ Data Warehouse хранит
-не больше 30 дней и начинает наполняться только после покупки PipelineIQ.
+Retention period (data-retention-and-deletion-policy, official page): full
+metrics and filters are available for **up to 1 month**; 1–3 months — part
+of the data is unavailable (e.g., error stack traces); 3–12 months —
+filtering is noticeably restricted; after **12 months** the data is
+anonymized or deleted irreversibly — "Retained for 12 months on a rolling
+basis, then permanently anonymized or deleted." This rule does not
+distinguish between paid and free plans for basic analytics (AnalyticsIQ);
+separately, the PipelineIQ Data Warehouse retains no more than 30 days and
+only starts filling after PipelineIQ is purchased.
 
-Удаление учётной записи и данных: явной кнопки самообслуживания «удалить
-аккаунт» в документации не найдено. Developer Policy формулирует это как
-обязательство по запросу: «GameAnalytics will securely delete or return all
+Deletion of the account and data: no explicit self-service "delete account"
+button was found in the documentation. The Developer Policy phrases this as
+an obligation on request: "GameAnalytics will securely delete or return all
 personal data in its possession, unless retention is necessary for legal and
-regulatory compliance or technical constraints» — то есть удаление происходит
-по обращению (privacy@gameanalytics.com), а не одной кнопкой в кабинете.
-Неактивные аккаунты (без входа 12 месяцев) удаляются автоматически после
-30-дневного предупреждения по почте.
+regulatory compliance or technical constraints" — meaning deletion happens
+on request (privacy@gameanalytics.com), not with a single button in the
+console. Inactive accounts (no login for 12 months) are deleted automatically
+after a 30-day email warning.
 
-### Что известно об изменениях условий
+### What is known about changes to the terms
 
-GameAnalytics в 2013–2014 годах перешёл от платной модели к полностью
-бесплатной («GameAnalytics goes 100% free»). С тех пор направление обратное:
-появились платные AnalyticsIQ Pro ($49/мес), MarketIQ Pro ($499/мес),
-SegmentIQ (по договорной цене) и, что важнее всего для темы выхода, — именно
-доступ к сырым данным стал отдельной платной надстройкой (PipelineIQ/Data
-Export), которой изначально в этой форме не было. Это не разовый громкий
-случай, а постепенное, документированное смещение: то, что раньше можно было
-получить, находясь в бесплатном периметре, сегодня требует отдельной подписки.
+GameAnalytics switched from a paid model to fully free in 2013–2014
+("GameAnalytics goes 100% free"). Since then the direction has reversed:
+paid AnalyticsIQ Pro ($49/month), MarketIQ Pro ($499/month), SegmentIQ
+(custom pricing) have appeared, and — most important for the topic of
+exit — access to raw data specifically became a separate paid add-on
+(PipelineIQ/Data Export), which did not originally exist in this form. This
+is not a single loud incident, but a gradual, documented shift: what could
+once be obtained within the free perimeter now requires a separate
+subscription.
 ## 2. Cloudflare Workers
 
-### Насколько привязан код
+### How tied is the code
 
-Обработчик пишется как экспорт объекта с методом `fetch(request, env, ctx)`,
-где `request` — стандартный `Request` веб-платформы, а ответ строится обычным
-конструктором `Response`. Сама Cloudflare подтверждает это официально: в
-блоге «The road to a more standards-compliant Workers API» (14 ноября 2022)
-сказано, что среда выполнения Workers имеет «compliant or nearly compliant
-implementations of every one of the WinterCG Minimum Common API» — то есть
-Workers, Deno, Node (через адаптер) и Bun опираются на один и тот же
-стандартный набор веб-API (`fetch`, `Request`, `Response`, `Headers`,
-`ReadableStream` и т.д.).
+The handler is written as an export of an object with a `fetch(request, env,
+ctx)` method, where `request` is the web platform's standard `Request`, and
+the response is built with the ordinary `Response` constructor. Cloudflare
+itself officially confirms this: in the blog post "The road to a more
+standards-compliant Workers API" (November 14, 2022), it states that the
+Workers runtime has "compliant or nearly compliant implementations of every
+one of the WinterCG Minimum Common API" — meaning Workers, Deno, Node (via
+an adapter), and Bun rely on the same standard set of web APIs (`fetch`,
+`Request`, `Response`, `Headers`, `ReadableStream`, etc.).
 
-Практический вывод для проекта: если обработчик `/traits` не обращается к
-`env.KV`/`env.DB`/`ctx.waitUntil`, а только принимает `Request`, разбирает JSON
-и делает исходящий `fetch()` к Anthropic — такой код переносится на другую
-среду с минимальной правкой (замена точки входа и способа чтения секретов).
-Специфичны для Cloudflare именно обращения к `env` (секреты, KV-биндинги,
-D1-биндинги) и `ctx.waitUntil` — это единственные несущие стены.
+The practical conclusion for the project: if the `/traits` handler doesn't
+touch `env.KV`/`env.DB`/`ctx.waitUntil`, and only accepts a `Request`, parses
+JSON, and makes an outgoing `fetch()` to Anthropic — such code moves to
+another environment with a minimal edit (replacing the entry point and the
+way secrets are read). What's specific to Cloudflare is precisely the
+`env` accesses (secrets, KV bindings, D1 bindings) and `ctx.waitUntil` —
+these are the only load-bearing walls.
 
-### Хранилища: можно ли выгрузить целиком
+### Storage: can it be fully exported
 
-**D1 (SQLite-совместимая база).** Официальная выгрузка — команда
-`wrangler d1 export <database> --remote --output=./database.sql`, с флагами
-`--table`, `--no-data`, `--no-schema`. Результат — **файл SQL-инструкций**, не
-файл `.sqlite`: «You cannot download your SQLite database as is. All you can
-do is dump an SQL file» (подтверждено и обсуждением на Hacker News, и самой
-документацией Cloudflare — экспорт даёт `.sql`, который импортируется обратно
-командой `d1 execute --file`). Ограничения экспорта: несовместим с
-виртуальными таблицами (в том числе FTS5), блокирует другие обращения к базе
-во время выполнения, числа ограничены 52-битной точностью JavaScript. Это не
-потеря данных — SQL-дамп открывается в любой SQLite и переносится в Postgres
-с минимальной правкой синтаксиса — но и не «нажал кнопку — скачал файл».
+**D1 (SQLite-compatible database).** The official export is the command
+`wrangler d1 export <database> --remote --output=./database.sql`, with
+`--table`, `--no-data`, `--no-schema` flags. The result is **a file of SQL
+statements**, not a `.sqlite` file: "You cannot download your SQLite
+database as is. All you can do is dump an SQL file" (confirmed both by a
+Hacker News discussion and by Cloudflare's own documentation — the export
+produces a `.sql` file, which is imported back with the `d1 execute --file`
+command). Export limitations: incompatible with virtual tables (including
+FTS5), blocks other access to the database during execution, numbers are
+limited to JavaScript's 52-bit precision. This is not data loss — the SQL
+dump opens in any SQLite and transfers to Postgres with a minimal syntax
+edit — but it's also not "click a button, download a file."
 
-**Workers KV.** Готовой команды полной выгрузки нет. Официальные команды —
-только точечные и пакетные: `wrangler kv key list`, `wrangler kv bulk get`,
-`wrangler kv bulk put`. Открытый запрос на функцию полного экспорта висит в
-репозитории `cloudflare/wrangler` с 2021 года (issue #1957: «Currently, I have
+**Workers KV.** There is no ready-made command for a full export. The
+official commands are only for single-item and batch operations:
+`wrangler kv key list`, `wrangler kv bulk get`, `wrangler kv bulk put`. An
+open feature request for a full export function has been sitting in the
+`cloudflare/wrangler` repository since 2021 (issue #1957: "Currently, I have
 300k+ keys in a project and I see no way to get this data out of Workers
-again. Wrangler has a bulk set, but not a bulk read») и не реализован. На
-практике выгрузка возможна — получить список ключей, затем прогнать его через
-`bulk get` — но требует небольшого сценария, а не одной команды.
+again. Wrangler has a bulk set, but not a bulk read") and remains
+unimplemented. In practice, export is possible — get the list of keys, then
+run it through `bulk get` — but it requires a small script, not a single
+command.
 
-### Что известно об изменениях бесплатного уровня в прошлом
+### What is known about past changes to the free tier
 
-Прямого подтверждённого случая урезания **лимитов исполнения** Workers Free
-(запросы в сутки, CPU time, лимиты KV/D1) не найдено — доступные официальные
-источники, напротив, фиксируют расширение: бесплатный уровень Workers KV был
-введён 16 ноября 2020 года как открытие ранее платной функции («Workers KV -
-free to try, with increased limits!»). Текущие официальные пределы Free:
-100 000 запросов в сутки, 10 мс CPU на вызов, KV — 100 000 чтений и 1000
-записей в сутки, 1 ГБ хранилища; D1 — 5 млн строк на чтение и 100 000 строк на
-запись в сутки, 5 ГБ хранилища.
+No directly confirmed case was found of **execution limits** being cut back
+for Workers Free (requests per day, CPU time, KV/D1 limits) — the available
+official sources, on the contrary, record expansion: the free tier for
+Workers KV was introduced on November 16, 2020 as the opening up of a
+previously paid feature ("Workers KV - free to try, with increased
+limits!"). Current official Free limits: 100,000 requests per day, 10ms CPU
+per invocation, KV — 100,000 reads and 1,000 writes per day, 1GB storage;
+D1 — 5 million rows read and 100,000 rows written per day, 5GB storage.
 
-Найден один подтверждённый, но smежный случай урезания — не самих Workers, а
-DNS-зон: по данным стороннего блога (официального объявления причины не
-найдено), предел записей DNS для бесплатных зон снижен с 3000 до 1000 для зон,
-созданных после сентября 2024 года. Это не относится напрямую к выполнению
-Workers, но показывает, что Cloudflare точечно ужимает периметр бесплатного
-тарифа там, где видит злоупотребление.
+One confirmed but adjacent case of a cutback was found — not to Workers
+itself, but to DNS zones: according to a third-party blog (no official
+announcement of the reason was found), the DNS record limit for free zones
+was lowered from 3,000 to 1,000 for zones created after September 2024. This
+doesn't directly apply to Workers execution, but it shows that Cloudflare
+does selectively shrink the free tier's perimeter where it sees abuse.
 
-Для ожидаемой нагрузки проекта (снимок до 200 КБ, сотни обращений за всё
-время) все перечисленные пределы — с кратным запасом; проект не подойдёт
-вплотную ни к одному из них.
-## 3. Аналитика App Store Connect
+For the project's expected load (a photo up to 200KB, hundreds of requests
+total), all the listed limits have a multiple-fold margin; the project won't
+come close to any of them.
+## 3. App Store Connect Analytics
 
-### Можно ли выгрузить показатели
+### Can the metrics be exported
 
-Да, двумя путями, и оба бесплатны. Первый — ручная выгрузка CSV прямо из
-дашборда Analytics (кнопка выгрузки присутствует в интерфейсе — подтверждено
-официальным видео Apple «Measure and improve acquisition with App Analytics»
-и независимыми разборами интерфейса; отдельно легаси-раздел Sales and Trends
-имеет собственную страницу «Download and view reports» с пошаговым описанием
-скачивания CSV). Второй, более полный путь — **Analytics Reports API**:
-«The Analytics Reports API lets you export App Store Connect Analytics data in
-bulk, enabling you to perform offline analysis». Формат выгрузки — сжатые
-файлы со значениями, разделёнными табуляцией (`.txt.gz`). Для первого запроса
-нужна роль Admin в App Store Connect, для последующих скачиваний достаточно
-API-ключа с ролью Sales and Reports или Finance. Ни на одной из официальных
-страниц не найдено указания на платный тариф или ограничение по деньгам —
-выгрузка своих же данных бесплатна независимо от масштаба.
+Yes, in two ways, and both are free. The first — manual CSV export directly
+from the Analytics dashboard (the export button is present in the interface
+— confirmed by Apple's official video "Measure and improve acquisition with
+App Analytics" and by independent interface breakdowns; separately, the
+legacy Sales and Trends section has its own "Download and view reports"
+page with a step-by-step description of downloading CSV). The second, more
+complete path — the **Analytics Reports API**: "The Analytics Reports API
+lets you export App Store Connect Analytics data in bulk, enabling you to
+perform offline analysis." The export format is compressed
+tab-separated-value files (`.txt.gz`). The first request requires an Admin
+role in App Store Connect; subsequent downloads only need an API key with
+the Sales and Reports or Finance role. No official page mentions a paid
+tier or a monetary limit — exporting your own data is free regardless of
+scale.
 
-### Порог приватности — главный риск при ~100 установках
+### The privacy threshold — the main risk at ~100 installs
 
-Официальная страница Apple «Protecting user privacy in report data» прямо
-задаёт два механизма для отчётов, отмеченных как «Detailed»:
+Apple's official page "Protecting user privacy in report data" directly
+sets out two mechanisms for reports marked "Detailed":
 
 > Thresholding — Omits values with data from fewer than 5 users or 5 unique
 > devices.
 >
 > Noise — Adds a small random number to metrics.
 
-Для «detailed»-отчётов заявлена и точность шума: «approximately 68.2% of
-values are expected to be within +/- 2 of the true values», 95% — в пределах
-±4, 99.7% — в пределах ±6. Отдельно для отчётов по использованию приложения
-(App Usage) порог жёстче — весь отчёт целиком не формируется, если данных
-меньше 5 пользователей: «If fewer than five users contribute to a usage metric
-for a specific day, week, or month, then the relevant report does not
-generate». Для «detailed»-отчётов к тому же отдельная строка не заполняется,
-если по ней меньше 5 устройств.
+For "detailed" reports the noise precision is also stated: "approximately
+68.2% of values are expected to be within +/- 2 of the true values," 95% —
+within ±4, 99.7% — within ±6. Separately, for App Usage reports the
+threshold is stricter — the entire report simply isn't generated if there's
+data from fewer than 5 users: "If fewer than five users contribute to a
+usage metric for a specific day, week, or month, then the relevant report
+does not generate." For "detailed" reports, additionally, an individual row
+is not populated if it covers fewer than 5 devices.
 
-**Что это значит для ~100 установок.** Итоговый, неразбитый по срезам счётчик
-(«всего установок за период») в этот порог почти наверняка не упрётся — сотня
-установок больше пяти. Но **любая сегментация** — по стране, по модели
-устройства, по источнику перехода, по варианту страницы в A/B-тесте — легко
-даёт группы меньше 5 пользователей, и такие строки просто не появятся в
-отчёте, а не покажут «0» или «<5». Даже видимые значения несут случайный шум
-в единицы. Вывод: считать на этом объёме можно только грубые, неразбитые
-итоги; любое «по разбивке» на выборке в сотню установок — ненадёжно или вовсе
-не будет показано.
+**What this means for ~100 installs.** The final, non-segmented count
+("total installs for the period") will almost certainly not hit this
+threshold — a hundred installs is more than five. But **any segmentation**
+— by country, device model, referral source, A/B test page variant — easily
+produces groups smaller than 5 users, and such rows simply won't appear in
+the report, rather than showing "0" or "<5." Even the visible values carry
+random noise of a few units. Conclusion: at this volume you can only count
+on rough, non-segmented totals; any "broken down by" on a sample of a
+hundred installs is unreliable or simply won't be shown at all.
 
-### Что известно об изменениях в прошлом
+### What is known about past changes
 
-Официальная новость Apple от 25 марта 2026 года (подтверждено также
-macstories.net, daringfireball.net, macrumors.com в тот же день) объявляет
-масштабное обновление Analytics — более 100 новых показателей — и одновременно
-**вывод из обращения легаси-раздела Sales and Trends**: «Dashboards in Trends
-will be deprecated starting in mid-2026. App Store Connect will stop
-generating new Trends reports in 2027». Это не урезание бесплатного доступа —
-новая аналитика остаётся бесплатной и более полной — но требует миграции на
-новый дашборд/API, если разбор построен на старых отчётах Sales and Trends.
-## 4. Anthropic API как поставщик модели со зрением
+Apple's official news from March 25, 2026 (also confirmed by
+macstories.net, daringfireball.net, macrumors.com on the same day)
+announces a large-scale Analytics update — more than 100 new metrics — and
+at the same time **retires the legacy Sales and Trends section**:
+"Dashboards in Trends will be deprecated starting in mid-2026. App Store
+Connect will stop generating new Trends reports in 2027." This is not a cut
+to free access — the new analytics remains free and more comprehensive —
+but it requires migrating to the new dashboard/API if the analysis is built
+on old Sales and Trends reports.
+## 4. Anthropic API as the vision-model provider
 
-### Насколько привязан код
+### How tied is the code
 
-По собственной документации проекта (`python/05-cloudflare-worker-proxy.md`)
-обращение к Anthropic сделано без SDK — обычным `fetch()` внутри Cloudflare
-Worker: POST на `https://api.anthropic.com/v1/messages`, заголовки
-`x-api-key` и `anthropic-version`, тело — JSON с изображением (как содержимое
-сообщения) и `output_config.format` (JSON Schema, гарантирующая структуру
-ответа — `additionalProperties: false`, `enum` для перечислимых полей). Вся
-интеграция — одна функция внутри одного обработчика `/traits`, без агентного
-цикла, без Files API, без прямого использования Anthropic SDK.
+Per the project's own documentation (`python/05-cloudflare-worker-proxy.md`),
+the call to Anthropic is made without an SDK — a plain `fetch()` inside a
+Cloudflare Worker: POST to `https://api.anthropic.com/v1/messages`, headers
+`x-api-key` and `anthropic-version`, body — JSON with the image (as message
+content) and `output_config.format` (a JSON Schema guaranteeing the response
+structure — `additionalProperties: false`, `enum` for enumerable fields).
+The entire integration is one function inside one `/traits` handler, with no
+agent loop, no Files API, no direct use of the Anthropic SDK.
 
-Перенос на другого поставщика зрения потребует переписать именно эту функцию:
-адрес эндпоинта, форму заголовка авторизации, форму блока с изображением
-(у разных поставщиков различаются детали кодирования и вложенности, хотя все
-принимают изображение как base64 внутри JSON-запроса), и — главное — имя и
-форму параметра структурированного вывода: у Anthropic это
-`output_config.format.schema`, у альтернативных поставщиков структурированный
-вывод по JSON Schema устроен по-своему (иная вложенность параметров, свои
-ограничения на `enum`/`additionalProperties`). Сама **идея** — снимок плюс
-JSON Schema на выходе — переносима; переносить придётся не архитектуру, а
-одну функцию перевода запроса/ответа между форматами.
+Moving to a different vision provider would require rewriting exactly this
+function: the endpoint address, the form of the authorization header, the
+form of the image block (details of encoding and nesting differ between
+providers, though all accept the image as base64 inside a JSON request),
+and — most importantly — the name and shape of the structured-output
+parameter: for Anthropic this is `output_config.format.schema`; alternative
+providers implement JSON Schema structured output their own way (different
+parameter nesting, their own restrictions on `enum`/`additionalProperties`).
+The **idea** itself — a photo plus a JSON Schema on output — is portable;
+what would need porting is not the architecture but one function that
+translates the request/response between formats.
 
-### Есть ли способ ограничить траты сверху
+### Is there a way to cap spending
 
-Да, подтверждено официальной документацией (platform.claude.com, раздел
-Rate limits) — и это именно жёсткий потолок, а не просто уведомление:
+Yes, confirmed by official documentation (platform.claude.com, Rate limits
+section) — and it is indeed a hard ceiling, not just a notification:
 
 > Spend limits set a maximum monthly cost an organization can incur for API
 > usage.
 
-Работает в два слоя. Первый — тарифный потолок, который сама Anthropic
-включает по умолчанию: у стартового тарифа (Start) — **$500 в месяц**, у Build
-— $1000, у Scale — $200 000. При достижении потолка API прекращает отвечать
-на запросы (HTTP 429, `error_code: enforced_spend_limit_reached`) до 00:00 UTC
-первого числа следующего месяца. Второй — собственный, более низкий предел,
-который можно выставить самостоятельно: Console → Settings → Billing →
-Spend limits → «Adjust limit» (или «Set limit», если предел ещё не задан).
-При достижении собственного предела запросы отклоняются с HTTP 400
-(`invalid_request_error`), а не проходят и не тратят деньги молча.
+It works in two layers. The first is the plan-level ceiling that Anthropic
+itself enables by default: the starter plan (Start) has **$500/month**,
+Build — $1,000, Scale — $200,000. On hitting the ceiling, the API stops
+responding to requests (HTTP 429, `error_code: enforced_spend_limit_reached`)
+until 00:00 UTC on the first day of the next month. The second is your own,
+lower limit that you can set yourself: Console → Settings → Billing →
+Spend limits → "Adjust limit" (or "Set limit," if no limit has been set
+yet). On hitting your own limit, requests are rejected with HTTP 400
+(`invalid_request_error`) instead of going through and silently spending
+money.
 
-Для масштаба задачи (по расчёту из `vision-model/01-traits-strict-json.md` —
-0,10–0,20 цента за один разбор снимка на Haiku/Sonnet 5, порядка 20–40 центов
-на весь пробный запуск) даже минимальный тарифный потолок в $500 —
-избыточный запас; практический совет — выставить собственный предел в
-несколько долларов через тот же кабинет, чтобы ошибка в коде (например,
-бесконечный цикл повторных вызовов) не могла вылиться в неожиданный счёт.
-## Признаки ловушки
+For the scale of this task (per the calculation in
+`vision-model/01-traits-strict-json.md` — 0.10–0.20 cents per photo parse on
+Haiku/Sonnet 5, roughly 20–40 cents for the entire test run), even the
+minimal plan-level ceiling of $500 is an excessive margin; the practical
+advice is to set your own limit at a few dollars through the same console,
+so that a bug in the code (e.g., an infinite retry loop) can't turn into an
+unexpected bill.
+## Signs of a trap
 
-По разобранным выше службам и общей практике сервисов для разработчиков —
-устойчивый набор признаков, по которым условно-бесплатная служба узнаётся
-заранее, до того как понадобится уходить:
+From the services examined above and general practice among developer
+services — a stable set of signs by which a freemium trap can be recognized
+in advance, before you need to leave:
 
-1. **Выгрузка только на платном уровне** — показатели видно бесплатно, а
-   исходные, сырые данные забрать нельзя без подписки (пример разобран выше —
-   GameAnalytics Data Export/PipelineIQ от $499/мес).
-2. **Хранение ограничено сроком**, после которого данные обезличиваются или
-   удаляются безвозвратно, независимо от готовности платить задним числом
-   (GameAnalytics — деградация после 1 месяца, конец истории после 12).
-3. **Свои, нестандартные форматы** вместо общепринятых — усложняет перенос
-   даже там, где выгрузка формально есть (D1 отдаёт SQL-дамп, а не файл
-   `.sqlite`, — терпимый, но реальный пример такого трения).
-4. **Отсутствие готовой команды на полную выгрузку** там, где выгрузка
-   технически возможна по частям — Cloudflare KV: запрос на функцию с 2021
-   года (issue #1957) не реализован, хотя точечная выгрузка есть.
-5. **Обязательная привязка карты «просто для проверки личности»** даже на
-   бесплатном тарифе — типичный первый шаг к списанию при превышении лимита,
-   который легко не заметить. Ни у одной из четырёх разобранных служб такого
-   требования на бесплатном уровне не найдено.
-6. **Резкое, объявленное «задним числом» изменение условий.** Подтверждённый
-   и самый релевантный для игровой разработки случай — **Unity Runtime Fee**
-   (сентябрь 2023): плата до $0.20 за каждую установку сверх порога,
-   применённая в том числе к уже выпущенным играм («retroactive»), вызвавшая
-   массовый протест разработчиков и публичное извинение Unity (Axios, 22
-   сентября 2023: «Unity will no longer require game creators to pay
-   retroactive fees»); сама плата была отменена лишь спустя год, в сентябре
-   2024 года.
-7. **Полное закрытие бесплатного уровня с коротким сроком на эвакуацию** —
-   **Heroku**: объявлено в конце августа 2022 года, вступило в силу 28 ноября
-   2022 года — бесплатные Dynos, Postgres и Redis отключены, данные бесплатных
-   баз удалены («Removal of Heroku Free Product Plans», официальный FAQ
-   Heroku; devcenter.heroku.com/changelog-items/2461).
-8. **Урезание бесплатного уровня API до состояния, не решающего исходную
-   задачу**, при сохранении вывески «бесплатный тариф есть» — **Twitter/X
-   API** (объявлено 2 февраля 2023, вступило в силу 9 февраля 2023): бесплатный
-   уровень лишили доступа на чтение данных, оставив только публикацию твитов.
-9. **Точечное урезание отдельных пределов без широкого объявления** — по
-   данным стороннего источника (официального объявления причины не найдено),
-   у Cloudflare предел записей DNS для бесплатных зон снижен с 3000 до 1000
-   для зон, созданных после сентября 2024 года.
-## Приговор по каждой службе
+1. **Export only on the paid tier** — metrics are visible for free, but the
+   source, raw data cannot be taken without a subscription (example
+   examined above — GameAnalytics Data Export/PipelineIQ from $499/month).
+2. **Storage is limited by a time period**, after which data is anonymized
+   or deleted irreversibly, regardless of willingness to pay retroactively
+   (GameAnalytics — degradation after 1 month, end of history after 12).
+3. **Its own, nonstandard formats** instead of common ones — complicates
+   migration even where export formally exists (D1 gives back a SQL dump,
+   not a `.sqlite` file — a tolerable but real example of such friction).
+4. **No ready-made command for a full export** where export is technically
+   possible piecemeal — Cloudflare KV: a feature request from 2021
+   (issue #1957) remains unimplemented, even though piecemeal export exists.
+5. **Mandatory card binding "just for identity verification"** even on the
+   free plan — a typical first step toward being charged when a limit is
+   exceeded, which is easy to miss. None of the four services examined here
+   was found to have such a requirement on the free tier.
+6. **A sharp change of terms announced "retroactively."** The confirmed case
+   most relevant to game development is the **Unity Runtime Fee**
+   (September 2023): a fee of up to $0.20 per install above a threshold,
+   applied even to already-released games ("retroactive"), which triggered
+   mass protest from developers and a public apology from Unity (Axios,
+   September 22, 2023: "Unity will no longer require game creators to pay
+   retroactive fees"); the fee itself was canceled only a year later, in
+   September 2024.
+7. **Complete shutdown of the free tier with a short evacuation window** —
+   **Heroku**: announced in late August 2022, took effect November 28,
+   2022 — free Dynos, Postgres, and Redis were shut off, data from free
+   databases deleted ("Removal of Heroku Free Product Plans," official
+   Heroku FAQ; devcenter.heroku.com/changelog-items/2461).
+8. **Cutting a free API tier down to a state that no longer solves the
+   original task**, while keeping up the sign that says "there's still a
+   free plan" — **Twitter/X API** (announced February 2, 2023, took effect
+   February 9, 2023): the free tier lost read access to data, leaving only
+   the ability to post tweets.
+9. **A targeted cutback to specific limits without a broad announcement** —
+   per a third-party source (no official announcement of the reason was
+   found), Cloudflare lowered the DNS record limit for free zones from
+   3,000 to 1,000 for zones created after September 2024.
+## Verdict per service
 
-**GameAnalytics — терпимо.** Уйти без потерь можно, пока речь об
-агрегированных показателях и ручном CSV — это бесплатно и без карты. Но
-именно **сырые события по конкретному игроку**, то есть то, что обычно и
-называют «своими данными», забрать нельзя без платной подписки на Data
-Export/PipelineIQ (от $499/мес). Плюс данные всё равно деградируют и исчезают
-через 12 месяцев — платить не платить. Для разового теста на ~100 установок
-это не критично: объём для ручной выгрузки посилен, а сырые события можно
-получить и собственным логированием, не полагаясь на GameAnalytics.
+**GameAnalytics — tolerable.** You can leave without loss as long as it's
+about aggregated metrics and manual CSV — that's free and without a card.
+But precisely **raw events for a specific player**, that is, what's usually
+called "your own data," cannot be taken without a paid subscription to Data
+Export/PipelineIQ (from $499/month). Plus the data degrades and disappears
+after 12 months regardless of paying or not. For a one-off test at ~100
+installs this isn't critical: the volume is manageable for manual export,
+and raw events can also be obtained through your own logging, without
+relying on GameAnalytics.
 
-**Cloudflare Workers (код, KV, D1) — безопасно.** Код написан на стандартных
-`Request`/`Response`/`fetch`, привязка к среде минимальна и сосредоточена
-в паре мест (`env`-биндинги). D1 выгружается официальной командой в SQL-дамп
-без потери данных. KV не имеет готовой команды на полный экспорт, но выгрузка
-скриптом (list + bulk get) решает задачу без потерь — просто без кнопки.
-Пределы бесплатного тарифа для ожидаемой нагрузки — с огромным запасом.
+**Cloudflare Workers (code, KV, D1) — safe.** The code is written on
+standard `Request`/`Response`/`fetch`, environment lock-in is minimal and
+concentrated in a couple of places (`env` bindings). D1 is exported by an
+official command into a SQL dump without data loss. KV has no ready-made
+command for a full export, but a script-based export (list + bulk get)
+solves the problem without loss — just without a button. The free tier's
+limits for the expected load have an enormous margin.
 
-**Аналитика App Store Connect — безопасно, с одной оговоркой.** Выгрузка (и
-ручная, и через API) бесплатна без ограничений и без каких-либо признаков
-платного уровня. Оговорка — не про зависимость от Apple, а про пригодность
-данных на таком масштабе: порог приватности (менее 5 пользователей/устройств
-на срез) и шум в показателях означают, что при ~100 установках надёжны только
-грубые итоговые цифры, а любая сегментация может быть попросту не показана.
+**App Store Connect Analytics — safe, with one caveat.** Export (both
+manual and via API) is free with no restrictions and no signs of a paid
+tier. The caveat isn't about dependency on Apple, but about the usability of
+the data at this scale: the privacy threshold (fewer than 5 users/devices
+per slice) and noise in the metrics mean that at ~100 installs only rough
+totals are reliable, and any segmentation may simply not be shown at all.
 
-**Anthropic API — терпимо.** Интеграция — один POST-запрос обычным `fetch()`
-в одной функции; данные (снимки) на стороне Anthropic не хранятся — забирать
-нечего, и в этом смысле зависимости по данным вообще нет. Переезд на другого
-поставщика — это переписать одну функцию (эндпоинт, авторизация, форма
-JSON-схемы), а не архитектуру проекта. Жёсткий потолок расходов есть и
-настраивается в кабинете — обещание «не спишется незаметно много» подтверждено
-документацией, а не декларацией. Оценка «терпимо», а не «безопасно», — потому
-что при смене поставщика придётся заново подбирать промпт и точную форму
-структурированного вывода: это не архитектурная работа, но и не нулевая.
+**Anthropic API — tolerable.** The integration is a single POST request via
+plain `fetch()` in one function; data (photos) isn't stored on Anthropic's
+side — nothing to take, and in this sense there's no data lock-in at all.
+Moving to a different provider means rewriting one function (endpoint,
+authorization, the shape of the JSON schema), not the project's
+architecture. A hard spending ceiling exists and is configurable in the
+console — the promise "you won't be silently overcharged" is backed by
+documentation, not a declaration. The rating is "tolerable" rather than
+"safe" because switching providers would mean re-tuning the prompt and the
+exact shape of the structured output from scratch: this isn't architectural
+work, but it isn't zero either.
 
-## Источники
+## Sources
 
 - GameAnalytics: [Pricing](https://www.gameanalytics.com/pricing),
   [Data Export — Overview and Use Cases](https://docs.gameanalytics.com/products-and-features/pipeline-iq/data-export/overview-and-use-cases/),
@@ -369,22 +387,22 @@ JSON-схемы), а не архитектуру проекта. Жёсткий 
   [Developer Policy / Privacy FAQ](https://www.gameanalytics.com/trust/privacy-faq),
   [Explore](https://docs.gameanalytics.com/products-and-features/analytics-iq/explore/),
   [Scheduled Reports](https://docs.gameanalytics.com/products-and-features/analytics-iq/scheduled-reports/),
-  свидетельство о цене Raw Export ($100/мес, январь 2024) — [обсуждение на Reddit](https://www.reddit.com/r/gamedev/comments/192kozr/suggestions_for_free_or_cheap_analytics_raw_data/).
+  testimony on the price of Raw Export ($100/month, January 2024) — [discussion on Reddit](https://www.reddit.com/r/gamedev/comments/192kozr/suggestions_for_free_or_cheap_analytics_raw_data/).
 - Cloudflare Workers: [The road to a more standards-compliant Workers API](https://blog.cloudflare.com/standards-compliant-workers-api/),
   [Import and export data · D1](https://developers.cloudflare.com/d1/best-practices/import-export-data/),
   [Workers Pricing](https://developers.cloudflare.com/workers/platform/pricing/),
   [Workers KV — free to try, with increased limits!](https://blog.cloudflare.com/workers-kv-free-tier/),
-  проектный разбор [`python/05-cloudflare-worker-proxy.md`](python/05-cloudflare-worker-proxy.md),
-  запрос на полный экспорт KV — [issue #1957, cloudflare/wrangler](https://github.com/cloudflare/wrangler/issues/1957),
-  DNS-лимит бесплатных зон — [сторонний обзор](https://eastondev.com/blog/en/posts/dev/20260526-cloudflare-free-limits/).
+  project analysis [`python/05-cloudflare-worker-proxy.md`](python/05-cloudflare-worker-proxy.md),
+  full-export request for KV — [issue #1957, cloudflare/wrangler](https://github.com/cloudflare/wrangler/issues/1957),
+  DNS limit for free zones — [third-party review](https://eastondev.com/blog/en/posts/dev/20260526-cloudflare-free-limits/).
 - App Store Connect: [Protecting user privacy in report data](https://developer.apple.com/documentation/analytics-reports/privacy),
   [Analytics reports API — overview](https://developer.apple.com/help/app-store-connect-analytics/overview/analytics-reports-api/),
   [Analytics dashboard — overview](https://developer.apple.com/help/app-store-connect-analytics/overview/analytics-dashboard/),
-  анонс обновления и вывод Trends из обращения — [macstories.net](https://www.macstories.net/news/apple-overhauls-app-store-connect/), [daringfireball.net](https://daringfireball.net/linked/2026/03/25/improved-analytics-in-app-store-connect), [macrumors.com](https://www.macrumors.com/2026/03/25/app-store-connect-receives-new-metrics/).
+  announcement of the update and Trends retirement — [macstories.net](https://www.macstories.net/news/apple-overhauls-app-store-connect/), [daringfireball.net](https://daringfireball.net/linked/2026/03/25/improved-analytics-in-app-store-connect), [macrumors.com](https://www.macrumors.com/2026/03/25/app-store-connect-receives-new-metrics/).
 - Anthropic API: [Rate limits — Spend limits](https://platform.claude.com/docs/en/api/rate-limits),
   [Manage usage credits for paid Claude plans](https://support.claude.com/en/articles/12429409-manage-usage-credits-for-paid-claude-plans),
-  проектный разбор [`vision-model/01-traits-strict-json.md`](vision-model/01-traits-strict-json.md) и [`python/05-cloudflare-worker-proxy.md`](python/05-cloudflare-worker-proxy.md).
-- Известные случаи урезания условий: [Removal of Heroku Free Product Plans FAQ](https://help.heroku.com/RSBRUH58/removal-of-heroku-free-product-plans-faq),
+  project analysis [`vision-model/01-traits-strict-json.md`](vision-model/01-traits-strict-json.md) and [`python/05-cloudflare-worker-proxy.md`](python/05-cloudflare-worker-proxy.md).
+- Known cases of cutbacks: [Removal of Heroku Free Product Plans FAQ](https://help.heroku.com/RSBRUH58/removal-of-heroku-free-product-plans-faq),
   [Heroku changelog #2461](https://devcenter.heroku.com/changelog-items/2461),
   [Announcing new access tiers for the Twitter API](https://devcommunity.x.com/t/announcing-new-access-tiers-for-the-twitter-api/188728),
   [Unity is Canceling the Runtime Fee](https://unity.com/blog/unity-is-canceling-the-runtime-fee),

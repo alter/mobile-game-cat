@@ -1,50 +1,50 @@
-# Cloudflare Workers — узел-посредник для обращения к Anthropic (2026-08-24)
+# Cloudflare Workers — the proxy worker for calling Anthropic (2026-08-24)
 
-Рабочая база знаний по применению Cloudflare Workers для одного маленького обработчика: приём фотографии кота от игры на iOS, обращение к Anthropic Messages API, возврат короткого JSON. Источник — официальная документация developers.cloudflare.com/workers/ (проверено дословными цитатами), плюс обсуждения разработчиков и открытые issues на GitHub там, где документация не даёт прямого ответа.
+A working knowledge base on using Cloudflare Workers for one small handler: receiving a cat photo from an iOS game, calling the Anthropic Messages API, returning a short JSON. Source — the official documentation at developers.cloudflare.com/workers/ (verified with verbatim quotes), plus developer discussions and open GitHub issues where the documentation does not give a direct answer.
 
-## Кратко
+## In brief
 
-- Файл настроек — **`wrangler.jsonc`**: документация прямо называет его форматом «для новых проектов» и уточняет, что часть новых возможностей Wrangler будет доступна только в JSON-настройках. Текущая версия `wrangler` в npm на дату проверки — **4.125.0**.
-- Ключевой вывод по времени процессора: официальная документация Cloudflare прямо говорит, что **ожидание сетевого ответа (`fetch()`, чтение KV, запрос к базе) не засчитывается в лимит процессорного времени (CPU time)**. Значит бесплатный уровень с лимитом 10 мс CPU на запрос в принципе не мешает секундному ожиданию ответа модели зрения — считается только время, когда Worker реально занимает процессор (разбор JSON, декодирование base64 и т.п.).
-- Ключ Anthropic кладётся командой `wrangler secret put ANTHROPIC_API_KEY` — секрет не хранится в файле настроек и не попадает в репозиторий; в отличие от обычных `vars`, значение секрета скрыто даже в кабинете Cloudflare после создания.
-- Поддомен вида `имя.поддомен.workers.dev` выдаётся бесплатно сразу при первом развёртывании и годится для обращений из приложения технически, но Cloudflare прямо не советует его для «business-critical» нагрузки — для нескольких сотен обращений за всё время это не помеха.
-- Правила ограничения частоты в кабинете Cloudflare (WAF Rate limiting rules) работают на уровне зоны (собственного домена, подключённого к Cloudflare); программный способ ограничить частоту прямо в коде Worker — привязка (binding) Rate Limiting, настраивается в `wrangler.jsonc` без явного указания зависимости от тарифа.
-- D1 и Workers KV на бесплатном тарифе с большим запасом хватает под второй обработчик игровых событий при объёме «сотни обращений»: D1 — 5 ГБ на аккаунт и 50 подзапросов на вызов Worker; KV — 100 000 операций чтения и 1000 операций записи разных ключей в сутки.
-- `wrangler tail` даёт журнал в реальном времени бесплатно на любом тарифе; Workers Logs в кабинете на бесплатном тарифе хранит записи 3 дня и принимает до 200 000 событий в сутки.
-- Размер тела запроса ограничен в первую очередь планом самого аккаунта Cloudflare (100 МБ на Free), а не Workers — фотография до 200 КБ в base64 (около 270 КБ после кодирования) укладывается с огромным запасом.
-- Итог по применимости бесплатного уровня: для нашей задачи — годится. Единственный риск — не сетевое ожидание, а реальная процессорная работа (декодирование base64, сборка/разбор JSON) внутри лимита 10 мс; при сотнях запросов в принципе стоит один раз проверить фактический расход через `wrangler tail`, и при нехватке — перейти на платный тариф Workers ($5/мес, 30 секунд CPU по умолчанию) без изменения кода.
+- The configuration file — **`wrangler.jsonc`**: the documentation explicitly names it the format "for new projects" and notes that some new Wrangler features will only be available in JSON configuration. The current version of `wrangler` on npm as of the check date is **4.125.0**.
+- The key finding on CPU time: the official Cloudflare documentation states directly that **waiting for a network response (`fetch()`, a KV read, a database query) does not count toward the CPU-time limit**. This means the free tier with its 10 ms CPU-per-request limit does not, in principle, get in the way of a one-second wait for the vision model's response — only the time the Worker actually occupies the processor (parsing JSON, decoding base64, etc.) is counted.
+- The Anthropic key is set via the command `wrangler secret put ANTHROPIC_API_KEY` — the secret is not stored in the configuration file and does not end up in the repository; unlike ordinary `vars`, the secret's value is hidden even in the Cloudflare dashboard after it is created.
+- A subdomain of the form `name.subdomain.workers.dev` is issued for free immediately on the first deployment and is technically fine for calls from the app, but Cloudflare explicitly does not recommend it for "business-critical" workloads — for a few hundred calls total this is not an obstacle.
+- Rate limiting rules in the Cloudflare dashboard (WAF Rate limiting rules) work at the zone level (your own domain connected to Cloudflare); the programmatic way to limit rate directly in the Worker's code is the Rate Limiting binding, configured in `wrangler.jsonc` without an explicit dependency on the plan.
+- D1 and Workers KV on the free tier are more than enough for a second handler for game events at a volume of "hundreds of calls": D1 — 5 GB per account and 50 subrequests per Worker invocation; KV — 100,000 read operations and 1000 write operations on distinct keys per day.
+- `wrangler tail` gives a real-time log for free on any plan; Workers Logs in the dashboard on the free tier retains records for 3 days and accepts up to 200,000 events per day.
+- The request body size is limited primarily by the Cloudflare account's own plan (100 MB on Free), not by Workers — a photo up to 200 KB in base64 (about 270 KB after encoding) fits with a huge margin.
+- Bottom line on the applicability of the free tier: for our task — it works. The only risk is not network waiting but actual processor work (base64 decoding, assembling/parsing JSON) within the 10 ms limit; at hundreds of requests it is worth checking the actual usage once via `wrangler tail`, and if it falls short — switching to the paid Workers plan ($5/month, 30 seconds of CPU by default) without changing the code.
 
-## 1. С нуля до выложенного обработчика
+## 1. From zero to a deployed handler
 
-Источники: developers.cloudflare.com/workers/get-started/guide/, developers.cloudflare.com/workers/wrangler/configuration/, developers.cloudflare.com/workers/wrangler/commands/.
+Sources: developers.cloudflare.com/workers/get-started/guide/, developers.cloudflare.com/workers/wrangler/configuration/, developers.cloudflare.com/workers/wrangler/commands/.
 
-Точная последовательность команд:
+The exact sequence of commands:
 
 ```sh
-# 1. Создание проекта (устанавливает wrangler локально в проект через npm create)
+# 1. Create the project (installs wrangler locally into the project via npm create)
 npm create cloudflare@latest -- my-first-worker
 
-# 2. Переход в папку проекта
+# 2. Go into the project folder
 cd my-first-worker
 
-# 3. Локальная проверка (при первом запуске откроет браузер для входа в аккаунт Cloudflare)
+# 3. Local check (on first run this opens a browser to log into the Cloudflare account)
 npx wrangler dev
 
-# 4. Развёртывание в Cloudflare
+# 4. Deploy to Cloudflare
 npx wrangler deploy
 ```
 
-Отдельный явный вход в аккаунт (если нужен заранее, а не при первом `wrangler dev`):
+A separate explicit account login (if needed ahead of time, rather than during the first `wrangler dev`):
 
 ```sh
 wrangler login
 ```
 
-По документации: «Authorize Wrangler with your Cloudflare account using OAuth.» Есть также `wrangler logout` — «Remove Wrangler's authorization for accessing your account. This command will invalidate your current OAuth token and delete the stored credentials.» — и `wrangler whoami` для проверки текущего входа.
+Per the documentation: "Authorize Wrangler with your Cloudflare account using OAuth." There is also `wrangler logout` — "Remove Wrangler's authorization for accessing your account. This command will invalidate your current OAuth token and delete the stored credentials." — and `wrangler whoami` to check the current login.
 
-**Файл настроек.** После `npm create cloudflare@latest` генератор (C3) создаёт `wrangler.jsonc`: «C3 will have generated the following: `wrangler.jsonc`: Your Wrangler configuration file.» Документация по конфигурации прямо рекомендует именно этот формат: «Cloudflare recommends using `wrangler.jsonc` for new projects, and some newer Wrangler features will only be available to projects using a JSON config file.» Старый `wrangler.toml` при этом продолжает поддерживаться (начиная с Wrangler 3.91.0 оба формата работают параллельно), но для нового проекта нет причины брать TOML.
+**Configuration file.** After `npm create cloudflare@latest`, the generator (C3) creates `wrangler.jsonc`: "C3 will have generated the following: `wrangler.jsonc`: Your Wrangler configuration file." The configuration documentation directly recommends this exact format: "Cloudflare recommends using `wrangler.jsonc` for new projects, and some newer Wrangler features will only be available to projects using a JSON config file." The old `wrangler.toml` is still supported (starting with Wrangler 3.91.0 both formats work in parallel), but for a new project there is no reason to pick TOML.
 
-Минимальная конфигурация в `wrangler.jsonc`:
+Minimal configuration in `wrangler.jsonc`:
 
 ```jsonc
 {
@@ -54,34 +54,34 @@ wrangler login
 }
 ```
 
-Текущая версия `wrangler` в npm на момент проверки: `4.125.0` (тег `latest`).
-## 2. Устройство обработчика
+The current version of `wrangler` on npm as of the check: `4.125.0` (the `latest` tag).
+## 2. The anatomy of a handler
 
-Источники: developers.cloudflare.com/workers/runtime-apis/handlers/fetch/, developers.cloudflare.com/workers/runtime-apis/request/, developers.cloudflare.com/workers/runtime-apis/response/.
+Sources: developers.cloudflare.com/workers/runtime-apis/handlers/fetch/, developers.cloudflare.com/workers/runtime-apis/request/, developers.cloudflare.com/workers/runtime-apis/response/.
 
-Современный вид модуля Worker — экспорт объекта по умолчанию с методом `fetch`, принимающим три аргумента: запрос, привязки окружения (`env`) и контекст выполнения (`ctx`):
+The modern shape of a Worker module is a default export of an object with a `fetch` method taking three arguments: the request, the environment bindings (`env`), and the execution context (`ctx`):
 
 ```js
 export default {
 	async fetch(request, env, ctx) {
-		// request — стандартный объект Request Web-платформы
-		// env — доступ к секретам, переменным и привязкам (KV, D1, Rate Limiting и т.д.)
-		// ctx — например, ctx.waitUntil(promise) для фоновой работы после ответа
+		// request — the standard Web-platform Request object
+		// env — access to secrets, variables and bindings (KV, D1, Rate Limiting, etc.)
+		// ctx — e.g., ctx.waitUntil(promise) for background work after the response
 		return new Response("ok");
 	},
 };
 ```
 
-Разбор задачи под наш обработчик `/traits` укладывается в такую последовательность внутри `fetch`:
+Breaking down the task for our `/traits` handler fits into this sequence inside `fetch`:
 
-1. Проверить метод: `if (request.method !== "POST") return new Response(null, { status: 405 });`
-2. Проверить путь: `new URL(request.url).pathname === "/traits"`.
-3. Прочитать тело как JSON: `const body = await request.json();` — при ошибке разбора (не-JSON тело) `request.json()` выбрасывает исключение, которое нужно поймать и вернуть `400`.
-4. Проверить размер входа до передачи дальше (мы задаём собственный предел — 200 КБ по условию задачи, что заметно меньше системных лимитов, см. раздел 5) — так как `Content-Length` от клиента доверять нельзя, безопаснее проверять длину уже прочитанной строки base64.
-5. Обратиться к Anthropic через `fetch()` (раздел 4).
-6. Вернуть Worker'ом compact JSON нужной формы и правильный код состояния (`200` — успех, `400` — некорректный вход, `413` — превышен предельный размер, `502` — ошибка при обращении к Anthropic, `429` — сработало ограничение частоты).
+1. Check the method: `if (request.method !== "POST") return new Response(null, { status: 405 });`
+2. Check the path: `new URL(request.url).pathname === "/traits"`.
+3. Read the body as JSON: `const body = await request.json();` — on a parse error (a non-JSON body) `request.json()` throws an exception that must be caught and result in a `400` response.
+4. Check the input size before passing it further (we set our own limit — 200 KB per the task's terms, well below the system limits, see section 5) — since the client's `Content-Length` cannot be trusted, it's safer to check the length of the already-read base64 string.
+5. Call Anthropic via `fetch()` (section 4).
+6. Have the Worker return compact JSON of the required shape and the correct status code (`200` — success, `400` — invalid input, `413` — size limit exceeded, `502` — error calling Anthropic, `429` — rate limiting triggered).
 
-Ответ формируется через стандартный конструктор `Response`:
+The response is built via the standard `Response` constructor:
 
 ```js
 return new Response(JSON.stringify({ ok: true, traits }), {
@@ -90,18 +90,18 @@ return new Response(JSON.stringify({ ok: true, traits }), {
 });
 ```
 
-Полный рабочий образец под задачу — приём base64-снимка и обращение к Anthropic — приведён отдельным разделом ниже («Полный образец обработчика `/traits`»).
-## 3. Секреты
+A complete working sample for the task — receiving a base64 snapshot and calling Anthropic — is given as a separate section below ("Full sample of the `/traits` handler").
+## 3. Secrets
 
-Источник: developers.cloudflare.com/workers/configuration/secrets/.
+Source: developers.cloudflare.com/workers/configuration/secrets/.
 
-Команда для добавления секрета (создаёт новую версию Worker и разворачивает её немедленно):
+The command for adding a secret (creates a new version of the Worker and deploys it immediately):
 
 ```sh
 npx wrangler secret put ANTHROPIC_API_KEY
 ```
 
-Wrangler запросит значение интерактивно (значение не остаётся в истории оболочки). Доступ к секрету в коде — через параметр `env`:
+Wrangler will prompt for the value interactively (the value does not stay in shell history). Access to the secret in code is via the `env` parameter:
 
 ```js
 export default {
@@ -112,16 +112,16 @@ export default {
 };
 ```
 
-**Почему нельзя писать ключ в `vars` файла настроек.** Документация прямо предупреждает: «Do not use `vars` to store sensitive information in your Worker's Wrangler configuration file. Use secrets instead.» Обычные `vars` хранятся в открытом виде прямо в `wrangler.jsonc` — то есть при коммите этого файла ключ уйдёт в git. Разница между секретом и переменной зафиксирована документацией дословно: «The difference is secret values are not visible within Wrangler or Cloudflare dashboard after you define them» — то есть секрет не только не в файле настроек, но и не отображается обратно даже в кабинете после того, как его один раз ввели.
+**Why the key must not be written into the configuration file's `vars`.** The documentation warns directly: "Do not use `vars` to store sensitive information in your Worker's Wrangler configuration file. Use secrets instead." Ordinary `vars` are stored in plain text right in `wrangler.jsonc` — meaning if this file is committed, the key would go into git. The difference between a secret and a variable is stated verbatim in the documentation: "The difference is secret values are not visible within Wrangler or Cloudflare dashboard after you define them" — meaning the secret is not only absent from the configuration file, it is also not shown back even in the dashboard once it has been entered.
 
-Для локальной разработки (`wrangler dev`) секреты кладутся в файл `.dev.vars` (или `.env`) рядом с файлом настроек — но этот файл обязательно исключается из версионирования: «The `.dev.vars` and `.env` files should not be committed to git. Add `.dev.vars*` and `.env*` to your project's `.gitignore` file.»
+For local development (`wrangler dev`), secrets are placed in a `.dev.vars` file (or `.env`) next to the configuration file — but this file must always be excluded from version control: "The `.dev.vars` and `.env` files should not be committed to git. Add `.dev.vars*` and `.env*` to your project's `.gitignore` file."
 
-Итог: ключ Anthropic никогда не должен появляться ни в `wrangler.jsonc`, ни в самом коде Worker — только через `wrangler secret put` в проде и `.dev.vars` (в `.gitignore`) локально. При таком порядке ключ на устройство игрока не попадает вообще — он существует только на стороне Cloudflare.
-## 4. Обращение к стороннему API — ключевой вопрос про CPU time
+Bottom line: the Anthropic key must never appear in `wrangler.jsonc` or in the Worker's own code — only via `wrangler secret put` in production and `.dev.vars` (in `.gitignore`) locally. With this arrangement the key never reaches the player's device at all — it exists only on Cloudflare's side.
+## 4. Calling a third-party API — the key question about CPU time
 
-Источник: developers.cloudflare.com/workers/platform/limits/, developers.cloudflare.com/workers/runtime-apis/fetch/.
+Sources: developers.cloudflare.com/workers/platform/limits/, developers.cloudflare.com/workers/runtime-apis/fetch/.
 
-Вызов делается обычным `fetch()` из тела обработчика:
+The call is made with an ordinary `fetch()` from within the handler body:
 
 ```js
 const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
@@ -135,45 +135,45 @@ const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
 });
 ```
 
-**Ожидание сетевого ответа НЕ входит в лимит процессорного времени.** Документация Cloudflare даёт это прямым текстом: время ожидания ответа сети (в том числе вызовы `fetch()`, чтение из KV, запросы к базе данных) не засчитывается в CPU time — «Waiting on network requests (such as `fetch()` calls, KV reads, or database queries) does not count toward CPU time.» Это разделение двух разных величин:
+**Waiting for a network response does NOT count toward the CPU-time limit.** The Cloudflare documentation states this in plain text: time spent waiting for a network response (including `fetch()` calls, KV reads, database queries) does not count toward CPU time — "Waiting on network requests (such as `fetch()` calls, KV reads, or database queries) does not count toward CPU time." This is a distinction between two different quantities:
 
-- **CPU time (процессорное время)** — считается только активная работа процессора самим Worker'ом: разбор JSON, сериализация, декодирование base64, любые вычисления в JS. Именно на эту величину действует лимит 10 мс на бесплатном тарифе.
-- **Wall time (время „по часам“)** — полное время от начала до конца обработки запроса, включая ожидание сети, ввод-вывод и прочие асинхронные операции: «Wall time (also called wall-clock time) is the total elapsed time from the start to end of an invocation, including time spent waiting on network requests, I/O, and other asynchronous operations.» Для HTTP-обработчиков документация отдельно уточняет отсутствие жёсткого предела по wall time: «There is no hard limit on duration for HTTP-triggered Workers. As long as the client remains connected, the Worker can continue processing…»
+- **CPU time** — only the processor's active work done by the Worker itself is counted: parsing JSON, serialization, decoding base64, any computation in JS. This is exactly the quantity subject to the 10 ms limit on the free tier.
+- **Wall time (clock time)** — the total elapsed time from the start to the end of processing a request, including waiting on the network, I/O, and other asynchronous operations: "Wall time (also called wall-clock time) is the total elapsed time from the start to end of an invocation, including time spent waiting on network requests, I/O, and other asynchronous operations." For HTTP handlers, the documentation separately notes the absence of a hard limit on wall time: "There is no hard limit on duration for HTTP-triggered Workers. As long as the client remains connected, the Worker can continue processing…"
 
-Из этого прямо следует ответ на вопрос задачи: **секундное (и дольше) ожидание ответа модели зрения от Anthropic не расходует бюджет 10 мс процессорного времени бесплатного тарифа Workers Free.** Единственное, что расходует этот бюджет, — сама работа Worker'а до и после ожидания: чтение и разбор входящего JSON с base64-строкой (до ~270 КБ после кодирования), сборка тела запроса к Anthropic, разбор ответа и сборка ~100-байтного ответа игре. Это существенно меньше, чем, например, хеширование паролей (в реальных обсуждениях разработчиков именно вычислительно тяжёлые операции вроде scrypt/bcrypt регулярно упираются в лимит 10 мс на Free — см. раздел «Подводные камни»), но декодирование base64 объёмом в сотни килобайт — тоже не бесплатная операция, и после первого развёртывания стоит один раз посмотреть фактический расход CPU через `wrangler tail` (поле `cpuTime` в структурированном выводе).
+This directly answers the task's question: **a one-second (or longer) wait for the vision model's response from Anthropic does not consume the 10 ms CPU-time budget of the Workers Free tier.** The only thing that does consume this budget is the Worker's own work before and after the wait: reading and parsing the incoming JSON with the base64 string (up to ~270 KB after encoding), assembling the request body to Anthropic, parsing the response, and assembling the ~100-byte response to the game. This is substantially less than, say, password hashing (in real developer discussions it is precisely computationally heavy operations like scrypt/bcrypt that regularly hit the 10 ms limit on Free — see the "Pitfalls" section), but decoding hundreds of kilobytes of base64 is also not a free operation, and after the first deployment it is worth checking the actual CPU usage once via `wrangler tail` (the `cpuTime` field in the structured output).
 
-**Ограничения на исходящие обращения:**
+**Limits on outgoing calls:**
 
-- Одновременных открытых исходящих подключений — **6** (`developers.cloudflare.com/workers/platform/limits/`) — для нашей задачи это не помеха: на один входящий запрос требуется одно исходящее обращение к `api.anthropic.com`.
-- Подзапросов (subrequests) на один вызов Worker: **50 на Workers Free**, **до 10 000 на Workers Paid** (при отдельной настройке — до 10 000 000). Один `fetch()` к Anthropic — это один подзапрос, так что запас на Free-тарифе более чем достаточен.
-- Время запуска скрипта (startup time) — до **1 секунды** и на Free, и на Paid тарифе; это отдельный от CPU time лимит на инициализацию модуля (импорты, код верхнего уровня) — не на обработку запроса.
+- Simultaneous open outgoing connections — **6** (`developers.cloudflare.com/workers/platform/limits/`) — not an obstacle for our task: one incoming request requires one outgoing call to `api.anthropic.com`.
+- Subrequests per Worker invocation: **50 on Workers Free**, **up to 10,000 on Workers Paid** (up to 10,000,000 with a separate configuration). One `fetch()` to Anthropic is one subrequest, so the margin on the Free tier is more than sufficient.
+- Script startup time — up to **1 second** on both the Free and Paid tiers; this is a limit on module initialization (imports, top-level code) separate from CPU time — not on request processing.
 
-Таким образом, ответ на вопрос задачи прямой: **ожидание ответа сети НЕ входит в CPU time**, и это подтверждено официальной документацией дословно. Бесплатный уровень для описанного узла годится.
-## 5. Пределы
+Thus the direct answer to the task's question: **waiting for a network response does NOT count toward CPU time**, and this is confirmed verbatim by the official documentation. The free tier is sufficient for the described node.
+## 5. Limits
 
-Источник: developers.cloudflare.com/workers/platform/limits/.
+Source: developers.cloudflare.com/workers/platform/limits/.
 
-| Показатель | Workers Free | Workers Paid |
+| Metric | Workers Free | Workers Paid |
 |---|---|---|
-| Размер тела запроса (зависит от плана Cloudflare-аккаунта, не от плана Workers) | 100 МБ | 100 МБ (Pro), 200 МБ (Business), 500 МБ (Enterprise по умолчанию) |
-| Размер скрипта Worker, сжатый | 3 МБ | 10 МБ |
-| Размер скрипта Worker, несжатый | 64 МБ | 64 МБ |
-| CPU time на HTTP-запрос | 10 мс | 30 секунд по умолчанию, до 5 минут по настройке |
-| Wall time (длительность) на HTTP-запрос | нет жёсткого предела, пока клиент подключён | нет жёсткого предела, пока клиент подключён |
-| Время запуска скрипта (startup time) | 1 секунда | 1 секунда |
-| Одновременных открытых исходящих подключений | 6 | 6 |
-| Подзапросов (subrequests) на вызов | 50 | 10 000 (до 10 000 000 по настройке) |
-| Число Worker-скриптов на аккаунт | 100 | 500 |
-| Память на изолят | 128 МБ | 128 МБ |
-| Дневной лимит запросов к Worker | 100 000 в сутки | без ограничения |
+| Request body size (depends on the Cloudflare account plan, not the Workers plan) | 100 MB | 100 MB (Pro), 200 MB (Business), 500 MB (Enterprise by default) |
+| Worker script size, compressed | 3 MB | 10 MB |
+| Worker script size, uncompressed | 64 MB | 64 MB |
+| CPU time per HTTP request | 10 ms | 30 seconds by default, up to 5 minutes configurable |
+| Wall time (duration) per HTTP request | no hard limit while the client is connected | no hard limit while the client is connected |
+| Script startup time | 1 second | 1 second |
+| Simultaneous open outgoing connections | 6 | 6 |
+| Subrequests per invocation | 50 | 10,000 (up to 10,000,000 configurable) |
+| Number of Worker scripts per account | 100 | 500 |
+| Memory per isolate | 128 MB | 128 MB |
+| Daily request limit per Worker | 100,000 per day | unlimited |
 
-Для нашей задачи (снимок до 200 КБ в base64, ответ около 100 байт, сотни обращений за всё время) ни один из этих пределов не является узким местом — даже дневной лимит в 100 000 запросов на Free с большим запасом перекрывает ожидаемую нагрузку.
+For our task (a snapshot up to 200 KB in base64, a response of about 100 bytes, hundreds of calls total), none of these limits is a bottleneck — even the daily limit of 100,000 requests on Free comfortably exceeds the expected load.
 
-## 6. Ограничение частоты
+## 6. Rate limiting
 
-Источники: developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/, developers.cloudflare.com/waf/rate-limiting-rules/.
+Sources: developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/, developers.cloudflare.com/waf/rate-limiting-rules/.
 
-**Способ 1 — Rate Limiting binding (программно, внутри кода Worker).** Настраивается в `wrangler.jsonc`:
+**Method 1 — Rate Limiting binding (programmatic, inside the Worker's code).** Configured in `wrangler.jsonc`:
 
 ```jsonc
 {
@@ -193,7 +193,7 @@ const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
 }
 ```
 
-Использование в обработчике:
+Usage in the handler:
 
 ```js
 export default {
@@ -208,35 +208,35 @@ export default {
 };
 ```
 
-Требование по версии инструмента: «You must use version 4.36.0 or later of the Wrangler CLI.» Параметр `period` документация ограничивает жёстко: «Must be either 10 or 60» (только 10 или 60 секунд — не произвольный период). Документация не содержит явного указания на ограничение доступности этой привязки по тарифу — упоминаний слова «Free» или «Paid» применительно именно к самой возможности использования Rate Limiting binding на странице нет, поэтому по тарифной доступности здесь — данных не найдено, ограничение только по версии Wrangler.
+Tooling version requirement: "You must use version 4.36.0 or later of the Wrangler CLI." The documentation strictly constrains the `period` parameter: "Must be either 10 or 60" (only 10 or 60 seconds — not an arbitrary period). The documentation contains no explicit statement of a plan restriction on this binding itself — there is no mention of the word "Free" or "Paid" in connection with using the Rate Limiting binding as such on that page, so on plan availability here — no data found, only the Wrangler version restriction.
 
-Чтобы получить требуемое «не больше N обращений с устройства в сутки», ключом (`key` в `limit({ key })`) стоит взять устойчивый идентификатор устройства (например, значение, которое присылает игра в теле или заголовке запроса), а не IP — IP-адреса мобильных операторов часто общие на многих пользователей. Поскольку `period` жёстко ограничен 10 или 60 секундами, а не сутками, суточный лимит на одном этом механизме не собрать напрямую — постоянного окна в 86 400 секунд Rate Limiting binding не поддерживает; для суточного лимита нужен либо счётчик поверх KV/D1 с собственной логикой окна, либо смириться с ограничением на минуту (100 обращений в минуту с одного идентификатора практически исключает злоупотребление при ожидаемой нагрузке в сотни обращений за всё время).
+To get the required "no more than N calls per device per day," it's worth using a stable device identifier as the key (`key` in `limit({ key })`) — e.g., a value the game sends in the request body or header — rather than IP, since mobile carrier IP addresses are often shared across many users. Since `period` is strictly limited to 10 or 60 seconds rather than a day, a daily limit cannot be assembled directly on this mechanism alone — the Rate Limiting binding does not support a persistent 86,400-second window; a daily limit needs either a counter on top of KV/D1 with its own windowing logic, or accepting a per-minute limit instead (100 calls per minute from one identifier practically rules out abuse given the expected load of hundreds of calls total).
 
-**Способ 2 — правила в кабинете Cloudflare (WAF Rate limiting rules).** Документация описывает их как настройку «for a zone» — то есть правило создаётся для зоны, зарегистрированной в Cloudflare (собственного домена). На бесплатном тарифе Cloudflare (не Workers, а тариф самого аккаунта/зоны) доступно только 1 правило с узкими условиями: поле для подсчёта — только по IP-адресу, период подсчёта фиксирован — 10 секунд, период блокировки — до 10 секунд, условие выражения — только по пути (Path) или «Verified Bot». Подсчёт по заголовкам, произвольным выражениям и более длинные периоды требуют платных тарифов Cloudflare (Business и выше). Поскольку эти правила настраиваются на уровне зоны, для обращений на голый `*.workers.dev` (без собственного домена, подключённого к Cloudflare как зона) их применимость документацией прямо не подтверждена — данных не найдено; для нашей задачи с малым объёмом обращений практичнее использовать Rate Limiting binding прямо в коде.
-## 7. Хранилище для второго обработчика
+**Method 2 — rules in the Cloudflare dashboard (WAF Rate limiting rules).** The documentation describes them as a setting "for a zone" — that is, the rule is created for a zone registered with Cloudflare (your own domain). On Cloudflare's free tier (not the Workers plan, but the account/zone plan itself), only 1 rule is available with narrow conditions: the counting field — only by IP address, the counting period is fixed at 10 seconds, the block period is up to 10 seconds, the expression condition — only by Path or "Verified Bot." Counting by headers, arbitrary expressions, and longer periods require paid Cloudflare plans (Business and above). Since these rules are configured at the zone level, their applicability to calls against a bare `*.workers.dev` (without your own domain connected to Cloudflare as a zone) is not directly confirmed by the documentation — no data found; for our task with a small call volume, it is more practical to use the Rate Limiting binding directly in the code.
+## 7. Storage for a second handler
 
-Источники: developers.cloudflare.com/d1/, developers.cloudflare.com/d1/platform/limits/, developers.cloudflare.com/d1/best-practices/import-export-data/, developers.cloudflare.com/kv/, developers.cloudflare.com/kv/platform/limits/, developers.cloudflare.com/kv/reference/kv-commands/.
+Sources: developers.cloudflare.com/d1/, developers.cloudflare.com/d1/platform/limits/, developers.cloudflare.com/d1/best-practices/import-export-data/, developers.cloudflare.com/kv/, developers.cloudflare.com/kv/platform/limits/, developers.cloudflare.com/kv/reference/kv-commands/.
 
 ### Cloudflare D1 (SQLite)
 
-Создание базы и привязка:
+Creating the database and binding it:
 
 ```sh
 npx wrangler d1 create [NAME]
 ```
 
-Параметры: `[NAME]` (обязательный) — имя базы; `--location` — подсказка о географическом расположении (`weur`, `eeur`, `apac`, `oc`, `wnam`, `enam`); `--binding` — имя привязки в Worker.
+Parameters: `[NAME]` (required) — the database name; `--location` — a hint about geographic location (`weur`, `eeur`, `apac`, `oc`, `wnam`, `enam`); `--binding` — the binding name in the Worker.
 
-Выполнение SQL:
+Executing SQL:
 
 ```sh
 npx wrangler d1 execute [DATABASE] --command "INSERT INTO events (name) VALUES ('spawn')"
 npx wrangler d1 execute [DATABASE] --file ./schema.sql --remote
 ```
 
-Обязателен либо `--command`, либо `--file`; `--local` выполняет запрос против локальной копии, `--remote` — против настоящей удалённой базы D1.
+Either `--command` or `--file` is required; `--local` runs the query against the local copy, `--remote` — against the actual remote D1 database.
 
-Запись из кода Worker (после привязки `d1_databases` в `wrangler.jsonc`):
+Writing from the Worker's code (after the `d1_databases` binding is set up in `wrangler.jsonc`):
 
 ```js
 export default {
@@ -249,19 +249,19 @@ export default {
 };
 ```
 
-Пределы D1: Free — 10 баз данных, до 500 МБ на одну базу, 5 ГБ хранилища на аккаунт, 50 подзапросов на вызов Worker; Paid — 50 000 баз, до 10 ГБ на базу, 1 ТБ на аккаунт, 1000 подзапросов на вызов. Общие для обоих тарифов пределы: строка/BLOB — до 2 000 000 байт (2 МБ), один SQL-запрос — до 100 000 байт (100 КБ). Точных суточных лимитов на число запросов чтения/записи в документации по лимитам не приведено — данных не найдено.
+D1 limits: Free — 10 databases, up to 500 MB per database, 5 GB storage per account, 50 subrequests per Worker invocation; Paid — 50,000 databases, up to 10 GB per database, 1 TB per account, 1000 subrequests per invocation. Limits common to both tiers: a row/BLOB — up to 2,000,000 bytes (2 MB), a single SQL query — up to 100,000 bytes (100 KB). The limits documentation gives no exact daily limits on the number of read/write queries — no data found.
 
-Выгрузка данных — команда `d1 export`:
+Exporting data — the `d1 export` command:
 
 ```sh
 npx wrangler d1 export [NAME] --remote --output backup.sql
 ```
 
-Поддерживаются флаги `--table` (конкретные таблицы), `--no-data` (только схема), `--no-schema` (только данные).
+The flags `--table` (specific tables), `--no-data` (schema only), `--no-schema` (data only) are supported.
 
 ### Workers KV
 
-Создание пространства имён и привязка в `wrangler.jsonc`:
+Creating a namespace and binding it in `wrangler.jsonc`:
 
 ```sh
 npx wrangler kv namespace create [NAMESPACE]
@@ -273,7 +273,7 @@ npx wrangler kv namespace create [NAMESPACE]
 ]
 ```
 
-Запись и чтение из кода:
+Writing and reading from code:
 
 ```js
 await env.KV.put("KEY", "VALUE");
@@ -281,9 +281,9 @@ const value = await env.KV.get("KEY");
 await env.KV.delete("KEY");
 ```
 
-Пределы KV: Free — 100 000 операций чтения в сутки, 1000 операций записи разных ключей в сутки (запись одного и того же ключа — не чаще 1 раза в секунду на обоих тарифах), 1 ГБ хранилища на аккаунт и на пространство имён; Paid — операции чтения/записи без ограничения, хранилище без ограничения. Общие пределы: ключ — до 512 байт, значение — до 25 МиБ, метаданные ключа — до 1024 байт, до 1000 пространств имён на аккаунт, число ключей в пространстве имён — без ограничения.
+KV limits: Free — 100,000 read operations per day, 1000 write operations on distinct keys per day (writing the same key — no more than once per second on both tiers), 1 GB storage per account and per namespace; Paid — unlimited read/write operations, unlimited storage. Common limits: a key — up to 512 bytes, a value — up to 25 MiB, key metadata — up to 1024 bytes, up to 1000 namespaces per account, the number of keys in a namespace — unlimited.
 
-Выгрузка данных из KV встроенной командой полного экспорта не предусмотрена — есть только точечные операции и пакетные:
+There is no built-in command for a full export of KV data — only point operations and batch ones:
 
 ```sh
 npx wrangler kv key list --namespace-id=<ID>
@@ -291,46 +291,46 @@ npx wrangler kv bulk get [FILENAME]
 npx wrangler kv bulk put [FILENAME]
 ```
 
-`kv bulk get` читает список ключей из файла и возвращает пары ключ-значение; сплошного «экспортировать всё одним вызовом» в официальных командах нет — это подтверждается и открытым issue на GitHub (`cloudflare/wrangler`, #1957: «Currently, I have 300k+ keys in a project and I see no way to get this data out of Workers again. Wrangler has a bulk set, but not a bulk read» — по состоянию на дату issue). Для полной выгрузки на практике нужно сначала получить список ключей через `kv key list`, затем прогнать его через `kv bulk get`.
+`kv bulk get` reads a list of keys from a file and returns key-value pairs; there is no "export everything in one call" among the official commands — this is also confirmed by an open GitHub issue (`cloudflare/wrangler`, #1957: "Currently, I have 300k+ keys in a project and I see no way to get this data out of Workers again. Wrangler has a bulk set, but not a bulk read" — as of the issue's date). In practice, a full export requires first getting the list of keys via `kv key list`, then running it through `kv bulk get`.
 
-Для второго обработчика (приём игровых событий, некопящих чувствительных данных) любой из двух вариантов подходит: KV — если нужна простая пара ключ-значение и не важна мгновенная согласованность (у KV — распределённая, не строгая, консистентность), D1 — если нужны выборки, агрегаты и SQL по накопленным событиям.
-## 8. Журналы и наблюдение
+For the second handler (receiving game events, not accumulating sensitive data), either option works: KV — if a simple key-value pair is enough and instant consistency doesn't matter (KV has distributed, not strict, consistency), D1 — if queries, aggregates, and SQL over accumulated events are needed.
+## 8. Logs and observability
 
-Источники: developers.cloudflare.com/workers/observability/logs/workers-logs/, developers.cloudflare.com/workers/wrangler/commands/ (раздел Workers commands).
+Sources: developers.cloudflare.com/workers/observability/logs/workers-logs/, developers.cloudflare.com/workers/wrangler/commands/ (the Workers commands section).
 
-**`wrangler tail`** — журнал в реальном времени прямо в терминале:
+**`wrangler tail`** — a real-time log right in the terminal:
 
 ```sh
 npx wrangler tail [WORKER]
 ```
 
-Основные опции: `--format` (`json` или `pretty`), `--status` (`ok` | `error` | `canceled`), `--header`, `--method`, `--sampling-rate`, `--search`, `--ip`, `--version-id`. Это средство разработчика — доступно вне зависимости от тарифа, показывает поток запросов по мере их обработки (в том числе `console.log` и ошибки), но ничего не сохраняет — сессия обрывается при закрытии терминала.
+Main options: `--format` (`json` or `pretty`), `--status` (`ok` | `error` | `canceled`), `--header`, `--method`, `--sampling-rate`, `--search`, `--ip`, `--version-id`. This is a developer tool — available regardless of plan, showing the stream of requests as they are processed (including `console.log` and errors), but it saves nothing — the session ends when the terminal closes.
 
-**Workers Logs** в кабинете Cloudflare — постоянное хранилище журналов с фильтрами и анализом. Доступность на обоих тарифах: Free и Paid. Пределы Free-тарифа: **200 000 логических событий в сутки**, хранение записей — **3 дня**. Paid-тариф: включено 20 миллионов событий в месяц, хранение — 7 дней, сверх лимита — доплата $0.60 за миллион событий. При превышении общего предела в 5 миллиардов записей на аккаунт в сутки система переходит на 1%-ную выборочную запись до конца суток.
+**Workers Logs** in the Cloudflare dashboard — persistent log storage with filters and analysis. Available on both tiers: Free and Paid. Free-tier limits: **200,000 logical events per day**, record retention — **3 days**. Paid tier: 20 million events per month included, retention — 7 days, beyond the limit — an extra charge of $0.60 per million events. When the overall limit of 5 billion records per account per day is exceeded, the system switches to 1% sampled recording until the end of the day.
 
-Для нашей нагрузки (сотни обращений за всё время) оба инструмента с большим запасом достаточны: `wrangler tail` — для отладки в моменте (в том числе чтобы один раз замерить фактический расход CPU time, см. раздел 4), Workers Logs — чтобы посмотреть историю ошибок за последние 3 дня без дополнительной настройки.
+For our load (hundreds of calls total), both tools are more than sufficient with a large margin: `wrangler tail` — for in-the-moment debugging (including a one-time measurement of actual CPU-time usage, see section 4), Workers Logs — to review the error history over the last 3 days without extra setup.
 
-## 9. Своё имя или выданное
+## 9. Your own name or the assigned one
 
-Источник: developers.cloudflare.com/workers/configuration/routing/workers-dev/.
+Source: developers.cloudflare.com/workers/configuration/routing/workers-dev/.
 
-Поддомен вида `<имя_воркера>.<поддомен_аккаунта>.workers.dev` выдаётся **бесплатно** сразу при первом развёртывании (`wrangler deploy`), без какой-либо дополнительной настройки и без необходимости иметь собственный домен. Технически он полностью пригоден для обращений из мобильного приложения — это обычный HTTPS-адрес.
+A subdomain of the form `<worker_name>.<account_subdomain>.workers.dev` is issued **for free** immediately on the first deployment (`wrangler deploy`), without any extra configuration and without needing a custom domain. Technically it is fully suitable for calls from the mobile app — it's an ordinary HTTPS address.
 
-При этом документация прямо предупреждает про уместность такого адреса: «It's recommended to run production Workers on a Workers route or custom domain, rather than on your workers.dev subdomain» — и описывает сам workers.dev как предназначенный «for personal or hobby projects that aren't business-critical». Технические ограничения на само имя: до 63 символов, только буквы, цифры и дефис, не может начинаться или заканчиваться дефисом.
+At the same time, the documentation explicitly warns about the appropriateness of such an address: "It's recommended to run production Workers on a Workers route or custom domain, rather than on your workers.dev subdomain" — and describes workers.dev itself as intended "for personal or hobby projects that aren't business-critical." Technical restrictions on the name itself: up to 63 characters, letters, digits and hyphens only, cannot start or end with a hyphen.
 
-Для описанного узла (несколько сотен обращений за всё время, некритичный к простою вспомогательный сервис) начинать с бесплатного `workers.dev`-адреса — разумно и достаточно; переход на собственный домен имеет смысл только если проект вырастет до нагрузки, которую сам разработчик сочтёт «business-critical», либо если понадобится более тонкая настройка на уровне зоны (в частности, из раздела 6 — правила ограничения частоты в кабинете, которые привязаны именно к зоне/собственному домену).
-## 10. Подводные камни из обсуждений разработчиков и GitHub issues
+For the described node (a few hundred calls total, an auxiliary service not critical to downtime), starting with the free `workers.dev` address is reasonable and sufficient; moving to a custom domain makes sense only if the project grows to a load the developer themselves considers "business-critical," or if finer zone-level configuration is needed (in particular, from section 6 — rate limiting rules in the dashboard, which are tied specifically to the zone/custom domain).
+## 10. Pitfalls from developer discussions and GitHub issues
 
-- **«Exceeded CPU time limit» на Free-тарифе почти всегда возникает от вычислений, а не от ожидания сети.** Реальный пример — библиотека `better-auth`: «Cloudflare's CPU time isn't sufficient to hash and verify passwords, so email/password login doesn't work well in a worker environment» (issue `better-auth/better-auth#969`), и более поздний случай: «Sign-up fails intermittently with Worker exceeded CPU time limit. The pure JS scrypt from @noble/hashes is right on the edge of Workers' CPU [limit]» (issue `better-auth/better-auth#8860`). Для нашей задачи прямого хеширования нет, но вывод общий: перед тем как полагаться на бесплатный тариф, стоит один раз замерить фактический расход CPU на декодирование base64 и сборку/разбор JSON через `wrangler tail`, а не полагаться только на то, что «сеть не считается».
-- **Отдельный от request CPU time лимит — время запуска скрипта (startup time).** На StackOverflow и в issue `cloudflare/workers-sdk#2152` («BUG: Startup script exceeded CPU time limit», код ошибки `10021`) описана путаница: код верхнего уровня модуля (импорты тяжёлых библиотек, инициализация на этапе загрузки) тоже ограничен по CPU и это не то же самое, что лимит на обработку самого запроса. Для нашего маленького обработчика без тяжёлых зависимостей это не должно быть проблемой, но при добавлении крупных npm-пакетов (например, SDK) стоит держать в уме.
-- **Локальные счётчики Rate Limiting binding в `wrangler dev` ненадёжны.** Issue `cloudflare/workers-sdk#14962`: «In `wrangler dev`, hit your Worker, pause for ~15 seconds to look at something, hit it again, and your limit has silently reset» — локальные счётчики Rate Limiting binding в режиме разработки могут самопроизвольно сбрасываться. Проверять реальную работу ограничения частоты нужно уже на развёрнутом Worker'е, а не только локально.
-- **`wrangler dev --remote` может незаметно унаследовать чужие правила ограничения частоты.** Issue `cloudflare/workers-sdk#9880` описывает, что при удалённой разработке (`--remote`) Worker может неявно попасть под действие правил ограничения частоты, настроенных для зоны первым разработчиком — стоит проверять источник неожиданных `429` при отладке в команде.
-- **Секреты для `wrangler dev` нужно класть отдельно, файл настроек их не содержит.** Официальная страница подтверждает это явно (раздел 3), но в сообществе регулярно возникает путаница из-за старых статей, где секреты предлагали класть прямо в `wrangler.toml` (пример — обсуждение на Cloudflare Community «Confusing advice about secrets and Wrangler»); актуальный и единственно верный путь — `wrangler secret put` для продакшена и `.dev.vars` (обязательно в `.gitignore`) для местной разработки.
-- **Полной команды экспорта для Workers KV нет.** Как отмечено в разделе 7, issue `cloudflare/wrangler#1957` и последующее обсуждение на Cloudflare Community («Quick(ish) Reliable bulk export of all KV data from a namespace») фиксируют, что штатного способа выгрузить всё пространство имён одним вызовом не существует уже несколько лет — если для второго обработчика (события) в будущем понадобится массовая выгрузка, для этого изначально разумнее выбрать D1 (у него есть `d1 export` целиком в SQL) вместо KV.
-- **Правила ограничения частоты в кабинете зависят от зоны.** Как отмечено в разделе 6, документация описывает создание правила именно «for a zone» — для голого `*.workers.dev` без подключённого собственного домена применимость этих правил официально не подтверждена; для минимального узла безопаснее полагаться на встроенную привязку Rate Limiting в коде, а не на кабинетные правила.
-## Полный образец обработчика `/traits`
+- **"Exceeded CPU time limit" on the Free tier almost always comes from computation, not network waiting.** A real example — the `better-auth` library: "Cloudflare's CPU time isn't sufficient to hash and verify passwords, so email/password login doesn't work well in a worker environment" (issue `better-auth/better-auth#969`), and a later case: "Sign-up fails intermittently with Worker exceeded CPU time limit. The pure JS scrypt from @noble/hashes is right on the edge of Workers' CPU [limit]" (issue `better-auth/better-auth#8860`). Our task has no direct hashing, but the general conclusion holds: before relying on the free tier, it's worth measuring the actual CPU usage for base64 decoding and JSON assembly/parsing once via `wrangler tail`, rather than relying solely on "the network doesn't count."
+- **A limit separate from request CPU time — script startup time.** StackOverflow and issue `cloudflare/workers-sdk#2152` ("BUG: Startup script exceeded CPU time limit," error code `10021`) describe the confusion: top-level module code (imports of heavy libraries, load-time initialization) is also CPU-limited, and this is not the same as the limit on processing the request itself. For our small handler with no heavy dependencies this shouldn't be a problem, but it's worth keeping in mind when adding large npm packages (e.g., an SDK).
+- **Local Rate Limiting binding counters in `wrangler dev` are unreliable.** Issue `cloudflare/workers-sdk#14962`: "In `wrangler dev`, hit your Worker, pause for ~15 seconds to look at something, hit it again, and your limit has silently reset" — local Rate Limiting binding counters in development mode can reset spontaneously. Real rate-limiting behavior must be verified on the deployed Worker, not only locally.
+- **`wrangler dev --remote` can silently inherit someone else's rate-limiting rules.** Issue `cloudflare/workers-sdk#9880` describes how, during remote development (`--remote`), a Worker can implicitly fall under rate-limiting rules configured for the zone by a different developer — worth checking the source of unexpected `429`s when debugging as a team.
+- **Secrets for `wrangler dev` must be placed separately — the configuration file does not hold them.** The official page confirms this explicitly (section 3), but the community regularly sees confusion from old articles that suggested putting secrets directly in `wrangler.toml` (example — a discussion on Cloudflare Community, "Confusing advice about secrets and Wrangler"); the current and only correct path is `wrangler secret put` for production and `.dev.vars` (mandatorily in `.gitignore`) for local development.
+- **There is no full export command for Workers KV.** As noted in section 7, issue `cloudflare/wrangler#1957` and the subsequent discussion on Cloudflare Community ("Quick(ish) Reliable bulk export of all KV data from a namespace") confirm that no standard way to export an entire namespace in one call has existed for several years — if the second handler (events) later needs a bulk export, it is more sensible to choose D1 from the start (it has a full `d1 export` in SQL) instead of KV.
+- **Dashboard rate-limiting rules depend on the zone.** As noted in section 6, the documentation describes creating a rule specifically "for a zone" — for a bare `*.workers.dev` without a connected custom domain, the applicability of these rules is not officially confirmed; for a minimal node it is safer to rely on the built-in Rate Limiting binding in code rather than dashboard rules.
+## Full sample of the `/traits` handler
 
-Файл настроек `wrangler.jsonc` (ключ Anthropic сюда не попадает — он кладётся отдельно командой `wrangler secret put ANTHROPIC_API_KEY`, см. раздел 3; привязка ограничения частоты — необязательная часть, см. раздел 6):
+Configuration file `wrangler.jsonc` (the Anthropic key does not go in here — it is set separately via `wrangler secret put ANTHROPIC_API_KEY`, see section 3; the rate-limiting binding is an optional part, see section 6):
 
 ```jsonc
 {
@@ -347,11 +347,11 @@ npx wrangler tail [WORKER]
 }
 ```
 
-Код обработчика (`src/index.js`). Ограничения из условия задачи: снимок до 512×512, до 200 КБ до кодирования в base64 (примерно до 273 000 символов после кодирования — коэффициент base64 составляет 4/3), модель со зрением, ключ только на стороне Worker, ответ игре — компактный JSON:
+Handler code (`src/index.js`). Constraints from the task: a snapshot up to 512×512, up to 200 KB before base64 encoding (roughly up to 273,000 characters after encoding — the base64 factor is 4/3), a vision-capable model, the key only on the Worker side, the response to the game — compact JSON:
 
 ```js
-const MAX_BASE64_LENGTH = 280_000; // с запасом над 200 КБ * 4/3
-const ANTHROPIC_MODEL = "claude-haiku-4-5"; // недорогая модель с поддержкой зрения
+const MAX_BASE64_LENGTH = 280_000; // with margin over 200 KB * 4/3
+const ANTHROPIC_MODEL = "claude-haiku-4-5"; // an inexpensive model with vision support
 const ANTHROPIC_VERSION = "2023-06-01";
 
 export default {
@@ -365,8 +365,8 @@ export default {
 			return new Response(null, { status: 405 });
 		}
 
-		// необязательное ограничение частоты — ключ на идентификатор устройства
-		// из заголовка, который проставляет сама игра
+		// optional rate limiting — keyed on the device identifier
+		// from a header set by the game itself
 		if (env.TRAITS_RATE_LIMITER) {
 			const deviceId = request.headers.get("x-device-id") ?? "unknown";
 			const { success } = await env.TRAITS_RATE_LIMITER.limit({ key: deviceId });
@@ -408,8 +408,8 @@ export default {
 			model: ANTHROPIC_MODEL,
 			max_tokens: 300,
 			system:
-				"Ты определяешь черты окраса кота по фотографии. Ответь ТОЛЬКО json без пояснений, " +
-				"строго по схеме: {\"color\":string,\"pattern\":string,\"eyeColor\":string}.",
+				"You determine the cat's coloring traits from the photo. Respond with ONLY json, no explanations, " +
+				"strictly following the schema: {\"color\":string,\"pattern\":string,\"eyeColor\":string}.",
 			messages: [
 				{
 					role: "user",
@@ -418,7 +418,7 @@ export default {
 							type: "image",
 							source: { type: "base64", media_type: mediaType, data: imageBase64 },
 						},
-						{ type: "text", text: "Определи черты окраса кота на фото." },
+						{ type: "text", text: "Determine the cat's coloring traits from the photo." },
 					],
 				},
 			],
@@ -462,7 +462,7 @@ export default {
 			});
 		}
 
-		// ничего не сохраняем — сразу отдаём компактный ответ игре (около 100 байт)
+		// we save nothing — immediately return the compact response to the game (about 100 bytes)
 		return new Response(JSON.stringify(traits), {
 			status: 200,
 			headers: { "content-type": "application/json" },
@@ -471,8 +471,8 @@ export default {
 };
 ```
 
-Развёртывание: `npx wrangler secret put ANTHROPIC_API_KEY`, затем `npx wrangler deploy`. Проверка локально: `npx wrangler dev` и `curl -X POST http://localhost:8787/traits -H "content-type: application/json" -d '{"image_base64":"..."}'`.
-## Источники
+Deployment: `npx wrangler secret put ANTHROPIC_API_KEY`, then `npx wrangler deploy`. Local check: `npx wrangler dev` and `curl -X POST http://localhost:8787/traits -H "content-type: application/json" -d '{"image_base64":"..."}'`.
+## Sources
 
 - https://developers.cloudflare.com/workers/get-started/guide/
 - https://developers.cloudflare.com/workers/wrangler/configuration/
@@ -496,11 +496,11 @@ export default {
 - https://developers.cloudflare.com/kv/reference/kv-commands/
 - https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 - https://developers.cloudflare.com/workers/configuration/routing/workers-dev/
-- npm registry: `npm view wrangler version` (проверено 2026-08-24, `4.125.0`)
+- npm registry: `npm view wrangler version` (verified 2026-08-24, `4.125.0`)
 - GitHub issue `better-auth/better-auth#969` — https://github.com/better-auth/better-auth/issues/969
 - GitHub issue `better-auth/better-auth#8860` — https://github.com/better-auth/better-auth/issues/8860
 - GitHub issue `cloudflare/workers-sdk#2152` — https://github.com/cloudflare/workers-sdk/issues/2152
 - GitHub issue `cloudflare/workers-sdk#14962` — https://github.com/cloudflare/workers-sdk/issues/14962
 - GitHub issue `cloudflare/workers-sdk#9880` — https://github.com/cloudflare/workers-sdk/issues/9880
 - GitHub issue `cloudflare/wrangler#1957` — https://github.com/cloudflare/wrangler/issues/1957
-- Anthropic Messages API — структура запроса/заголовков подтверждена внутренним справочником `claude-api` (`curl/examples.md`, идентификаторы текущих моделей Anthropic, дата кеша 2026-06-24).
+- Anthropic Messages API — request/header structure confirmed by the internal `claude-api` reference (`curl/examples.md`, current Anthropic model identifiers, cache date 2026-06-24).

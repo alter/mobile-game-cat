@@ -1,23 +1,23 @@
-# Unity + нативный плагин на Swift для iOS
+# Unity + a native Swift plugin for iOS
 
-Дата сбора: 2026-08-24. Стек: Unity 6.3 LTS (генерирует Xcode-проект с таргетами `UnityFramework` и `Unity-iPhone`), Xcode, Swift.
+Data collected: 2026-08-24. Stack: Unity 6.3 LTS (generates an Xcode project with the `UnityFramework` and `Unity-iPhone` targets), Xcode, Swift.
 
-## Кратко
+## In brief
 
-- Файлы плагина (`.swift`, `.m`, `.mm`, `.c`, `.cpp`, `.h`, `.a`) кладутся в `Assets/Plugins/iOS` — Unity автоматически копирует их в сгенерированный Xcode-проект и ограничивает платформой iOS. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
-- Swift нельзя вызвать из C# напрямую через `[DllImport]`, потому что мы можем экспортировать только функции с C-совместимой сигнатурой; для этого в Swift есть атрибут `@_cdecl`, который экспортирует функцию с C linkage без мангла имени. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
-- Обратный вызов из нативного кода в C# — два способа: `UnitySendMessage("GameObjectName", "MethodName", "строка")` (просто, но асинхронно, с задержкой в один кадр, и только `void MethodName(string)`) или делегат, зарегистрированный через `[DllImport]` и статический метод с атрибутом `[MonoPInvokeCallback]`. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
-- Строки, возвращаемые из нативного кода в Unity, должны быть в UTF-8 и выделены в куче — Mono сам освобождает такую память; для передачи структур/массивов строк в обратном направлении нужна ручная работа с `Marshal.AllocHGlobal`/`Marshal.FreeHGlobal`. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
-- Настройки Xcode для Swift-плагина (`SWIFT_VERSION`, `SWIFT_OBJC_BRIDGING_HEADER`, `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES`) можно и нужно проставлять из `[PostProcessBuild]`-скрипта через `PBXProject`, отдельно для таргетов `UnityFramework` и главного таргета приложения. [Unity — Scripting API: PBXProject](https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.html)
-- `PHPickerViewController` — современная замена `UIImagePickerController` для выбора из галереи, работает вне процесса приложения и **не требует** `NSPhotoLibraryUsageDescription`, пока не запрашивается сам `PHAsset`. [Apple — PHPickerViewController](https://developer.apple.com/documentation/photosui/phpickerviewcontroller)
-- Для съёмки с камеры `NSCameraUsageDescription` обязателен всегда, если приложение обращается к камере. [Apple — NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription)
-- Известная проблема — «Always Embed Swift Standard Libraries» должен быть `NO` и на главном таргете, и на `UnityFramework`, иначе сборка либо не проходит валидацию App Store («disallowed file 'Frameworks'»), либо не собирается («'UnityFramework/UnityFramework.h' file not found»). [GitHub — yasirkula/UnityNativeGallery issue #234](https://github.com/yasirkula/UnityNativeGallery/issues/234)
+- Plugin files (`.swift`, `.m`, `.mm`, `.c`, `.cpp`, `.h`, `.a`) go into `Assets/Plugins/iOS` — Unity automatically copies them into the generated Xcode project and restricts them to the iOS platform. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
+- Swift cannot be called from C# directly through `[DllImport]`, because we can only export functions with a C-compatible signature; for this, Swift has the `@_cdecl` attribute, which exports a function with C linkage without name mangling. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
+- A callback from native code into C# — two ways: `UnitySendMessage("GameObjectName", "MethodName", "string")` (simple, but asynchronous, with a one-frame delay, and only `void MethodName(string)`) or a delegate registered via `[DllImport]` and a static method with the `[MonoPInvokeCallback]` attribute. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
+- Strings returned from native code into Unity must be UTF-8 and heap-allocated — Mono frees such memory itself; passing structs/arrays of strings in the reverse direction requires manual work with `Marshal.AllocHGlobal`/`Marshal.FreeHGlobal`. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
+- Xcode settings for a Swift plugin (`SWIFT_VERSION`, `SWIFT_OBJC_BRIDGING_HEADER`, `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES`) can and should be set from a `[PostProcessBuild]` script via `PBXProject`, separately for the `UnityFramework` target and the main application target. [Unity — Scripting API: PBXProject](https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.html)
+- `PHPickerViewController` — the modern replacement for `UIImagePickerController` for picking from the gallery, runs outside the app's process and **does not require** `NSPhotoLibraryUsageDescription`, as long as the `PHAsset` itself isn't requested. [Apple — PHPickerViewController](https://developer.apple.com/documentation/photosui/phpickerviewcontroller)
+- For capturing photos with the camera, `NSCameraUsageDescription` is always required if the app accesses the camera. [Apple — NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription)
+- Known issue — "Always Embed Swift Standard Libraries" must be `NO` on both the main target and `UnityFramework`, otherwise the build either fails App Store validation ("disallowed file 'Frameworks'") or fails to build ("'UnityFramework/UnityFramework.h' file not found"). [GitHub — yasirkula/UnityNativeGallery issue #234](https://github.com/yasirkula/UnityNativeGallery/issues/234)
 
-## 1. Где размещать код и почему нужен мост Objective-C/`@_cdecl`
+## 1. Where to place code and why an Objective-C/`@_cdecl` bridge is needed
 
-Unity поддерживает автоматическую интеграцию плагинов: файлы с расширениями `.a, .m, .mm, .c, .cpp, .h, .swift`, помещённые в `Assets/Plugins/iOS`, копируются в сгенерированный Xcode-проект, а Unity ограничивает их использование платформой iOS. Важная деталь — после копирования файлы **больше не связаны** с оригиналами в Unity-проекте: если поменять их прямо в Xcode, изменения нужно вручную переносить обратно в Unity, иначе следующая сборка их перезапишет. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
+Unity supports automated plugin integration: files with the extensions `.a, .m, .mm, .c, .cpp, .h, .swift`, placed in `Assets/Plugins/iOS`, are copied into the generated Xcode project, and Unity restricts their use to the iOS platform. An important detail — after copying, the files are **no longer linked** to the originals in the Unity project: if you change them directly in Xcode, the changes must be manually carried back into Unity, otherwise the next build will overwrite them. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
 
-Причина, по которой Swift нельзя дёрнуть из C# напрямую через `[DllImport("__Internal")]`, — компилятор Swift по умолчанию использует мангл имён (name mangling), а `DllImport` ищет символ по точному строковому имени с C linkage. Для функций на C++/Objective-C++ решение — обернуть объявление в `extern "C" { ... }`; функции на чистом C и Objective-C уже используют C linkage и обёртки не требуют. Для Swift Unity рекомендует атрибут `@_cdecl`:
+The reason Swift can't be pulled from C# directly through `[DllImport("__Internal")]` is that the Swift compiler uses name mangling by default, while `DllImport` looks up a symbol by its exact string name with C linkage. For C++/Objective-C++ functions, the solution is to wrap the declaration in `extern "C" { ... }`; functions in plain C and Objective-C already use C linkage and need no wrapper. For Swift, Unity recommends the `@_cdecl` attribute:
 
 ```swift
 @_cdecl("FooPluginFunction")
@@ -31,17 +31,17 @@ func AnythingFooPluginFunction() -> Float {
 private static extern float FooPluginFunction();
 ```
 
-`"__Internal"` используется для статически слинкованного кода (то есть для кода, который Unity встраивает прямо в `UnityFramework`); для отдельных `.dylib` вместо `"__Internal"` указывается имя библиотеки. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
+`"__Internal"` is used for statically linked code (that is, code that Unity embeds directly into `UnityFramework`); for a separate `.dylib`, the library name is given instead of `"__Internal"`. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
 
-На практике, если проекту нужен более сложный обмен данными (объекты, JSON, коллбэки), между Swift и Unity иногда всё равно ставят тонкую прослойку Objective-C(++), поскольку исторически именно так в первую очередь документированы взаимодействия с Unity (см. официальный пример Unity выше с `extern "C"` для C++/Objective-C++), а `@_cdecl` в Swift — более новый и минималистичный путь, который сама Unity явно поддерживает и рекомендует напрямую, без обязательной Objective-C-прослойки. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
+In practice, if a project needs more complex data exchange (objects, JSON, callbacks), a thin Objective-C(++) layer is sometimes still placed between Swift and Unity, since historically this is how interaction with Unity was first documented (see Unity's official example above with `extern "C"` for C++/Objective-C++), whereas `@_cdecl` in Swift is a newer, more minimal path that Unity itself explicitly supports and recommends directly, without a mandatory Objective-C layer. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
 
-Ещё одно официальное предупреждение Unity: управляемо-неуправляемые вызовы (managed↔unmanaged) на iOS довольно затратны по процессору, поэтому не стоит дёргать много нативных методов за кадр, и нативные методы стоит оборачивать дополнительным слоем на C#, который в редакторе возвращает заглушки (так как нативный плагин на iOS работает только на реальном устройстве, не в Editor). [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
+Another official Unity warning: managed-unmanaged calls (managed↔unmanaged) on iOS are fairly CPU-expensive, so many native method calls per frame should be avoided, and native methods should be wrapped with an additional C# layer that returns stubs in the editor (since the native plugin on iOS only works on a real device, not in the Editor). [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
 
-## 2. Полный сквозной пример: C# → Objective-C/`@_cdecl` → Swift, и обратно
+## 2. A full end-to-end example: C# → Objective-C/`@_cdecl` → Swift, and back
 
-### 2.1. Прямой вызов: C# → Swift через `@_cdecl`
+### 2.1. Direct call: C# → Swift via `@_cdecl`
 
-Swift-код с логикой (например, запуск нашего Vision-запроса из файла 03):
+Swift code with the logic (for example, running our Vision request from file 03):
 
 ```swift
 // AnimalDetector.swift, Assets/Plugins/iOS/AnimalDetector.swift
@@ -50,12 +50,12 @@ import Foundation
 @_cdecl("AnimalDetector_isPhotoCat")
 func AnimalDetector_isPhotoCat(_ jpegPathCString: UnsafePointer<CChar>) -> Bool {
     let path = String(cString: jpegPathCString)
-    // ... запуск VNRecognizeAnimalsRequest / RecognizeAnimalsRequest на изображении по path ...
-    return true // заглушка
+    // ... run VNRecognizeAnimalsRequest / RecognizeAnimalsRequest on the image at path ...
+    return true // stub
 }
 ```
 
-C#-обёртка:
+C# wrapper:
 
 ```csharp
 using System.Runtime.InteropServices;
@@ -72,32 +72,32 @@ public static class AnimalDetectorBridge
 #if UNITY_IOS && !UNITY_EDITOR
         return AnimalDetector_isPhotoCat(jpegPath);
 #else
-        return false; // заглушка для редактора и других платформ
+        return false; // stub for the editor and other platforms
 #endif
     }
 }
 ```
 
-Схема `@_cdecl` → `[DllImport("__Internal")]` подтверждена в официальной документации Unity как рекомендованный способ для Swift-плагинов. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
+The `@_cdecl` → `[DllImport("__Internal")]` scheme is confirmed in the official Unity documentation as the recommended approach for Swift plugins. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
 
-### 2.2. Обратный вызов, способ 1 — `UnitySendMessage`
+### 2.2. Callback, method 1 — `UnitySendMessage`
 
-Используется, когда обратный вызов нужен один раз/редко и не критична задержка в кадр — например, «фото обработано, вот результат». Официальное описание Unity:
+Used when the callback is needed once/rarely and a one-frame delay isn't critical — for example, "photo processed, here's the result." Official Unity description:
 
 ```
 UnitySendMessage("GameObjectName1", "MethodName1", "Message to send");
 ```
 
-«From native code, you can only call script methods that correspond to the following signature: `void MethodName(string message)`.» Ограничения: вызов асинхронный и выполняется с задержкой в один кадр; если несколько GameObject имеют одинаковое имя, возможны конфликты. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
+"From native code, you can only call script methods that correspond to the following signature: `void MethodName(string message)`." Limitations: the call is asynchronous and executes with a one-frame delay; if several GameObjects have the same name, conflicts are possible. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
 
-Официальная документация Unity показывает вызов `UnitySendMessage` только как C-функцию, вызываемую из «native code» (то есть однозначно поддерживается вызов из C/Objective-C, слинкованного с `UnityFramework`). Прямого официального примера вызова `UnitySendMessage` именно из Swift в открытых источниках не найдено — «надёжных источников не найдено». Ниже — конструкция, которую мы составили сами, опираясь на то, что `@_silgen_name` — реальный (но не задокументированный официально) атрибут Swift для привязки к существующему C-символу; на практике эту связку стоит проверять на реальном билде, а не считать гарантированно рабочей «из коробки»:
+The official Unity documentation shows the `UnitySendMessage` call only as a C function called from "native code" (that is, calling it from C/Objective-C linked into `UnityFramework` is unambiguously supported). No direct official example of calling `UnitySendMessage` specifically from Swift was found in open sources — "no reliable source found." Below is a construction we put together ourselves, based on the fact that `@_silgen_name` is a real (but not officially documented) Swift attribute for binding to an existing C symbol; in practice this combination should be verified on a real build rather than assumed to work "out of the box":
 
 ```swift
 import Foundation
 
-// UnityFramework экспортирует UnitySendMessage как C-функцию.
-// @_silgen_name — недокументированный атрибут Swift для привязки к существующему
-// символу; использовать с осторожностью и проверять на реальной сборке.
+// UnityFramework exports UnitySendMessage as a C function.
+// @_silgen_name is an undocumented Swift attribute for binding to an existing
+// symbol; use with caution and verify on a real build.
 @_silgen_name("UnitySendMessage")
 func UnitySendMessage(_ gameObject: UnsafePointer<CChar>, _ method: UnsafePointer<CChar>, _ message: UnsafePointer<CChar>)
 
@@ -112,16 +112,16 @@ func notifyUnity(isCat: Bool) {
 }
 ```
 
-Более безопасный с точки зрения документированности вариант — вызывать `UnitySendMessage` не из Swift, а из тонкой Objective-C(++)-прослойки (как показано в официальном C-примере Unity выше), а Swift-функцию оформить через `@_cdecl` и звать её именно из этой прослойки.
+A safer option in terms of documentation is to call `UnitySendMessage` not from Swift, but from a thin Objective-C(++) layer (as shown in Unity's official C example above), with the Swift function exposed via `@_cdecl` and called specifically from that layer.
 
-C#-приёмник:
+C# receiver:
 
 ```csharp
 using UnityEngine;
 
 public class AnimalDetectorReceiver : MonoBehaviour
 {
-    // Метод обязан быть public и принимать один параметр string.
+    // The method must be public and accept a single string parameter.
     public void OnAnimalDetected(string message)
     {
         bool isCat = bool.Parse(message);
@@ -130,11 +130,11 @@ public class AnimalDetectorReceiver : MonoBehaviour
 }
 ```
 
-Требование к сигнатуре метода-приёмника — из официальной документации Unity. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
+The requirement for the receiver method's signature is from the official Unity documentation. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
 
-### 2.3. Обратный вызов, способ 2 — делегат + `MonoPInvokeCallback`
+### 2.3. Callback, method 2 — delegate + `MonoPInvokeCallback`
 
-Используется, когда нужны частые/синхронные обратные вызовы без задержки в кадр (например, коллбэк во время обработки, а не в конце). Официальный пример Unity:
+Used when frequent/synchronous callbacks are needed without a one-frame delay (for example, a callback during processing, not at the end). Official Unity example:
 
 ```csharp
 delegate void MyFuncType();
@@ -152,14 +152,14 @@ typedef void (*MyFuncType)();
 void RegisterCallback(MyFuncType func) {}
 ```
 
-Метод, помеченный `[MonoPInvokeCallback]`, обязан быть **статическим** — это ключевое требование, а не просто рекомендация: если нативный код держит сырой указатель на функцию, а C#-делегат не статический (либо является замыканием), Mono/IL2CPP может собрать такой делегат сборщиком мусора, пока на него ещё ссылается нативная сторона («callbackOnCollectedDelegate»). [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
+A method marked with `[MonoPInvokeCallback]` must be **static** — this is a key requirement, not just a recommendation: if native code holds a raw pointer to a function and the C# delegate is not static (or is a closure), Mono/IL2CPP may garbage-collect that delegate while the native side still references it ("callbackOnCollectedDelegate"). [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
 
-Со стороны Swift такой C-совместимый указатель на функцию можно принять как `@convention(c)`-замыкание:
+On the Swift side, such a C-compatible function pointer can be accepted as an `@convention(c)` closure:
 
 ```swift
 @_cdecl("AnimalDetector_registerCallback")
 func AnimalDetector_registerCallback(_ callback: @escaping @convention(c) (Bool) -> Void) {
-    // сохраняем callback и вызываем его после завершения анализа Vision
+    // store the callback and call it after Vision analysis finishes
     savedCallback = callback
 }
 
@@ -191,41 +191,41 @@ public class AnimalDetectorBridge
 }
 ```
 
-**Когда какой способ использовать:** `UnitySendMessage` — проще в реализации, не требует совпадения сигнатур делегата между Swift/C#, но асинхронна (задержка в кадр) и требует уникальных имён GameObject; делегат + `MonoPInvokeCallback` — синхронный вызов «в моменте», подходит для частых или чувствительных к задержке обратных вызовов, но требует аккуратной работы с временем жизни делегата (обязательная статичность метода). Оба варианта — из официальной документации Unity. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
+**When to use which method:** `UnitySendMessage` is simpler to implement, doesn't require matching delegate signatures between Swift/C#, but is asynchronous (one-frame delay) and requires unique GameObject names; a delegate + `MonoPInvokeCallback` gives a synchronous "in the moment" call, suited for frequent or latency-sensitive callbacks, but requires careful handling of the delegate's lifetime (the method must be static). Both options are from the official Unity documentation. [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
 
-## 3. Передача данных: строки, byte[], изображения
+## 3. Passing data: strings, byte[], images
 
-### 3.1. Строки
+### 3.1. Strings
 
-Официальное правило Unity: «Ensure string values returned from a native method are UTF–8 encoded and allocated on the heap» — Mono/IL2CPP сам освобождает такую память при возврате строки из нативного метода в управляемый код. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
+Official Unity rule: "Ensure string values returned from a native method are UTF–8 encoded and allocated on the heap" — Mono/IL2CPP itself frees such memory when a string is returned from a native method into managed code. [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
 
-Типовая ошибка — вернуть строку не в UTF-8 (например, в кодировке по умолчанию для `NSString` без явного `.utf8`) или вернуть указатель на память в стеке/автоматически освобождаемую ARC-память вместо кучи — тогда к моменту чтения строки на стороне C# память уже может быть невалидна.
+A typical mistake is returning a string not in UTF-8 (for example, in `NSString`'s default encoding without an explicit `.utf8`) or returning a pointer to stack memory or automatically-freed ARC memory instead of the heap — by the time the string is read on the C# side, the memory may already be invalid.
 
-Направление C# → нативный код (передача строки как параметра `[DllImport]`) Unity обычно маршалит автоматически (P/Invoke сам создаёт временную C-строку на время вызова). Если же нужно вручную собрать структуру, содержащую строки, или массив строк, придётся использовать `Marshal.AllocHGlobal`/`Marshal.StringToHGlobalAnsi` и не забыть вызвать `Marshal.FreeHGlobal`, когда буфер больше не нужен — `AllocHGlobal` выделяет неуправляемую память, о которой сборщик мусора ничего не знает и которую сам никогда не освободит.
+In the C# → native code direction (passing a string as a `[DllImport]` parameter), Unity usually marshals it automatically (P/Invoke itself creates a temporary C string for the duration of the call). If you need to manually assemble a struct containing strings, or an array of strings, you'll have to use `Marshal.AllocHGlobal`/`Marshal.StringToHGlobalAnsi` and remember to call `Marshal.FreeHGlobal` once the buffer is no longer needed — `AllocHGlobal` allocates unmanaged memory that the garbage collector knows nothing about and will never free on its own.
 
 ### 3.2. `byte[]`
 
-Для передачи бинарных данных (например, JPEG уже обрезанного фото) в Unity типичный путь — передать нативный указатель (`IntPtr`) и длину буфера отдельным параметром, а на стороне C# скопировать данные через `Marshal.Copy` в управляемый `byte[]`. Официального единого API Unity именно под этот сценарий (аналога `UnitySendMessage` для бинарных данных) не найдено — этот паттерн общий для P/Invoke, а не специфичный для Unity API.
+For passing binary data (for example, JPEG of an already-cropped photo) into Unity, the typical approach is to pass a native pointer (`IntPtr`) and the buffer length as a separate parameter, then copy the data on the C# side via `Marshal.Copy` into a managed `byte[]`. No single official Unity API for this exact scenario (an analogue of `UnitySendMessage` for binary data) was found — this pattern is generic to P/Invoke, not specific to the Unity API.
 
-### 3.3. Изображения
+### 3.3. Images
 
-Прямая передача `UIImage`/`CGImage` в Unity невозможна — типы объектов Objective-C/Swift не пересекают границу C ABI. Стандартный путь — сериализовать изображение на нативной стороне (JPEG/PNG в `byte[]` или временный файл на диске) и передать в Unity либо путь к файлу (строка), либо буфер байт с длиной (см. 3.2), после чего в C# создать `Texture2D` через `LoadImage(byte[])` (`Texture2D` — тип Unity Engine API, не проверялся отдельно в рамках этого исследования).
+Passing a `UIImage`/`CGImage` directly into Unity is impossible — Objective-C/Swift object types don't cross the C ABI boundary. The standard approach is to serialize the image on the native side (JPEG/PNG into a `byte[]` or a temporary file on disk) and pass either a file path (a string) or a byte buffer with a length (see 3.2) into Unity, after which a `Texture2D` is created in C# via `LoadImage(byte[])` (`Texture2D` is a Unity Engine API type, not separately verified within the scope of this research).
 
-## 4. Настройки Xcode-проекта для Swift в Unity
+## 4. Xcode project settings for Swift in Unity
 
-Ключевые build settings, которые должны быть выставлены на сгенерированном Xcode-проекте, чтобы Swift-плагин собирался и проходил валидацию App Store:
+Key build settings that must be set on the generated Xcode project so that the Swift plugin builds and passes App Store validation:
 
-- `SWIFT_VERSION` — версия языка Swift для таргета.
-- `SWIFT_OBJC_BRIDGING_HEADER` — путь к bridging header, если нужен доступ к Objective-C-коду из Swift (актуально, если у плагина есть смешанный Objective-C/Swift код в `Assets/Plugins/iOS`).
-- `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` — должен быть **`YES` только на главном таргете приложения** и **`NO` на таргете `UnityFramework`**; в противном случае либо возникает ошибка сборки «`'UnityFramework/UnityFramework.h' file not found`», либо архив не проходит валидацию App Store с ошибкой о недопустимом файле `Frameworks`. [GitHub — yasirkula/UnityNativeGallery issue #234](https://github.com/yasirkula/UnityNativeGallery/issues/234)
+- `SWIFT_VERSION` — the Swift language version for the target.
+- `SWIFT_OBJC_BRIDGING_HEADER` — the path to the bridging header, if access to Objective-C code from Swift is needed (relevant if the plugin has mixed Objective-C/Swift code in `Assets/Plugins/iOS`).
+- `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` — must be **`YES` only on the main application target** and **`NO` on the `UnityFramework` target**; otherwise either a build error occurs ("`'UnityFramework/UnityFramework.h' file not found`"), or the archive fails App Store validation with an error about a disallowed `Frameworks` file. [GitHub — yasirkula/UnityNativeGallery issue #234](https://github.com/yasirkula/UnityNativeGallery/issues/234)
 
-Настроить это можно (и для командной/CI-сборки нужно) автоматически из `[PostProcessBuild]`-скрипта через `UnityEditor.iOS.Xcode.PBXProject`. Ключевые методы этого класса — с официальных страниц Unity Scripting API:
+This can (and, for a team/CI build, should) be configured automatically from a `[PostProcessBuild]` script via `UnityEditor.iOS.Xcode.PBXProject`. The key methods of this class — from the official Unity Scripting API pages:
 
 ```csharp
 public void SetBuildProperty(string targetGuid, string name, string value);
 public void SetBuildProperty(IEnumerable<string> targetGuids, string name, string value);
-public string GetUnityFrameworkTargetGuid(); // GUID таргета UnityFramework (код, плагины, линковка)
-public string GetUnityMainTargetGuid();      // GUID главного таргета приложения
+public string GetUnityFrameworkTargetGuid(); // GUID of the UnityFramework target (code, plugins, linking)
+public string GetUnityMainTargetGuid();      // GUID of the main application target
 public void ReadFromFile(string path);
 public void WriteToFile(string path);
 public static string GetPBXProjectPath(string buildPath);
@@ -233,7 +233,7 @@ public static string GetPBXProjectPath(string buildPath);
 
 [Unity — Scripting API: PBXProject](https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.html), [Unity — Scripting API: PBXProject.SetBuildProperty](https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.SetBuildProperty.html)
 
-Официальный пример Unity для `SetBuildProperty` (структура скрипта, значение свойства в примере — `ENABLE_BITCODE`, но паттерн идентичен для `SWIFT_VERSION`/`ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES`):
+Official Unity example for `SetBuildProperty` (script structure; the property value in the example is `ENABLE_BITCODE`, but the pattern is identical for `SWIFT_VERSION`/`ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES`):
 
 ```csharp
 using UnityEditor;
@@ -262,7 +262,7 @@ public class Sample_SetBuildProperty
 
 [Unity — Scripting API: PBXProject.SetBuildProperty](https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.SetBuildProperty.html)
 
-По аналогии для нашей задачи (Swift-версия и раздельная настройка `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` для двух таргетов):
+By analogy, for our task (Swift version and separate `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` settings for the two targets):
 
 ```csharp
 [PostProcessBuild]
@@ -285,39 +285,39 @@ public static void OnPostprocessBuild(BuildTarget buildTarget, string pathToBuil
 }
 ```
 
-Комбинация методов (`GetUnityFrameworkTargetGuid`/`GetUnityMainTargetGuid`/`SetBuildProperty`) подтверждена официальной документацией Unity по отдельности; сведение их в один скрипт под конкретные ключи (`SWIFT_VERSION`, `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES`) — наша компоновка по задокументированному паттерну, а не дословная цитата единого примера Apple/Unity.
+The combination of methods (`GetUnityFrameworkTargetGuid`/`GetUnityMainTargetGuid`/`SetBuildProperty`) is individually confirmed by the official Unity documentation; combining them into a single script for these specific keys (`SWIFT_VERSION`, `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES`) is our own composition following the documented pattern, not a verbatim quote of a single Apple/Unity example.
 
-## 5. Доступ к камере и фотоплёнке
+## 5. Camera and photo library access
 
-### 5.1. `PHPickerViewController` против `UIImagePickerController`
+### 5.1. `PHPickerViewController` vs. `UIImagePickerController`
 
-`UIImagePickerController` официально не деприкейчен и остаётся текущим API для **захвата фото с камеры** (source type `.camera`) — доступен с iOS 2.0. Для более гибкого управления камерой (собственный UI поверх превью) Apple рекомендует `AVFoundation`, а для «полного» выбора из галереи с расширенными возможностями — `PhotoKit`. [Apple — UIImagePickerController](https://developer.apple.com/documentation/uikit/uiimagepickercontroller)
+`UIImagePickerController` is not officially deprecated and remains the current API for **capturing photos with the camera** (source type `.camera`) — available since iOS 2.0. For more flexible camera control (a custom UI over the preview), Apple recommends `AVFoundation`, and for "full" gallery selection with extended capabilities, `PhotoKit`. [Apple — UIImagePickerController](https://developer.apple.com/documentation/uikit/uiimagepickercontroller)
 
-`PHPickerViewController` (фреймворк PhotosUI, с iOS 14.0) — современная замена `UIImagePickerController` именно для **выбора существующих фото/видео из галереи**. Ключевое отличие — картинка/видео выбирается пользователем в системном UI, который выполняется **вне процесса приложения** («out-of-process»), поэтому приложение получает только то, что выбрал пользователь, без доступа ко всей библиотеке. Официальная формулировка: «PHPickerViewController is an alternative to UIImagePickerController that improves stability and reliability», с поддержкой отложенной загрузки изображений, надёжной работой с RAW/панорамами, более строгой валидацией. [Apple — PHPickerViewController](https://developer.apple.com/documentation/photosui/phpickerviewcontroller)
+`PHPickerViewController` (the PhotosUI framework, since iOS 14.0) — the modern replacement for `UIImagePickerController` specifically for **picking existing photos/videos from the gallery**. The key difference is that the picture/video is selected by the user in a system UI that runs **outside the app's process** ("out-of-process"), so the app only receives what the user selected, without access to the entire library. Official wording: "PHPickerViewController is an alternative to UIImagePickerController that improves stability and reliability," with support for deferred image loading, reliable handling of RAW/panoramas, and stricter validation. [Apple — PHPickerViewController](https://developer.apple.com/documentation/photosui/phpickerviewcontroller)
 
-**Для нашей задачи** (игрок либо снимает кота на камеру, либо выбирает готовое фото из галереи) актуальны оба API на разных участках: `UIImagePickerController` с `sourceType = .camera` (или собственный AVFoundation-контроллер) — для съёмки, `PHPickerViewController` — если разрешён выбор уже существующего фото из галереи.
+**For our task** (the player either photographs a cat with the camera or picks an existing photo from the gallery), both APIs are relevant in different places: `UIImagePickerController` with `sourceType = .camera` (or a custom AVFoundation controller) — for capture, `PHPickerViewController` — if picking an existing photo from the gallery is allowed.
 
-### 5.2. Обязательные ключи Info.plist
+### 5.2. Required Info.plist keys
 
-- `NSCameraUsageDescription` — обязателен, если приложение использует API доступа к камере. Требуется на iOS 7.0+. [Apple — NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription)
-- `NSPhotoLibraryUsageDescription` — обязателен, если приложение читает или пишет в фотобиблиотеку через PhotoKit (`PHAsset` и т. п.). Требуется на iOS 6.0+. Если приложение **только добавляет** ассеты (не читает существующие), вместо этого достаточно `NSPhotoLibraryAddUsageDescription`. [Apple — NSPhotoLibraryUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsphotolibraryusagedescription)
+- `NSCameraUsageDescription` — required if the app uses camera access APIs. Required on iOS 7.0+. [Apple — NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription)
+- `NSPhotoLibraryUsageDescription` — required if the app reads or writes to the photo library via PhotoKit (`PHAsset`, etc.). Required on iOS 6.0+. If the app **only adds** assets (doesn't read existing ones), `NSPhotoLibraryAddUsageDescription` is sufficient instead. [Apple — NSPhotoLibraryUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nsphotolibraryusagedescription)
 
-### 5.3. Когда разрешение на фотоплёнку не требуется вовсе
+### 5.3. When photo library permission isn't required at all
 
-И `UIImagePickerController` (при выборе из галереи), и `PHPickerViewController` работают как отдельные, «песочные» пикеры, которые не запрашивают `NSPhotoLibraryUsageDescription`, пока приложение не пытается напрямую получить `PHAsset` через PhotoKit. Официальная документация `PHPickerViewController` это подтверждает явно: «Unlike UIImagePickerController, PHPickerViewController can provide `PHLivePhoto` objects without requiring photo library permissions» — то есть базовый сценарий «пользователь выбрал фото → приложение получило копию» не требует permission вообще, разрешение появляется только если код идёт дальше и запрашивает исходный `PHAsset` из библиотеки. [Apple — PHPickerViewController](https://developer.apple.com/documentation/photosui/phpickerviewcontroller)
+Both `UIImagePickerController` (when picking from the gallery) and `PHPickerViewController` work as separate, "sandboxed" pickers that don't request `NSPhotoLibraryUsageDescription` unless the app tries to directly obtain a `PHAsset` via PhotoKit. The official `PHPickerViewController` documentation confirms this explicitly: "Unlike UIImagePickerController, PHPickerViewController can provide `PHLivePhoto` objects without requiring photo library permissions" — meaning the basic scenario "user picked a photo → app got a copy" requires no permission at all; permission only comes into play if the code goes further and requests the original `PHAsset` from the library. [Apple — PHPickerViewController](https://developer.apple.com/documentation/photosui/phpickerviewcontroller)
 
-Для съёмки на камеру `NSCameraUsageDescription` нужен всегда — здесь исключений по типу «песочницы» нет, поскольку сама камера — это чувствительный сенсор, а не выбор уже существующего файла. [Apple — NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription)
+For capturing with the camera, `NSCameraUsageDescription` is always required — there are no "sandbox"-type exceptions here, since the camera itself is a sensitive sensor, not a selection of an already-existing file. [Apple — NSCameraUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription)
 
-## 6. Обрезка/уменьшение изображения до 512×512 и кодирование в JPEG/base64
+## 6. Cropping/resizing an image to 512×512 and encoding as JPEG/base64
 
-Пример на официальных API Apple (`UIGraphicsImageRenderer`, `UIImage.jpegData(compressionQuality:)`), собранный нами для конкретной задачи (уменьшение и центрированная обрезка до квадрата 512×512 перед отправкой на сервер):
+An example using official Apple APIs (`UIGraphicsImageRenderer`, `UIImage.jpegData(compressionQuality:)`), assembled by us for this specific task (resizing and center-cropping to a 512×512 square before sending to the server):
 
 ```swift
 import UIKit
 
 extension UIImage {
-    /// Уменьшает и обрезает изображение до квадрата targetSize x targetSize
-    /// (сначала aspect-fill уменьшение, затем центрированная обрезка).
+    /// Resizes and crops the image to a targetSize x targetSize square
+    /// (first an aspect-fill resize, then a centered crop).
     func resizedAndCroppedSquare(to targetSize: CGFloat) -> UIImage? {
         let originalSize = self.size
         let scale = max(targetSize / originalSize.width, targetSize / originalSize.height)
@@ -336,8 +336,8 @@ extension UIImage {
 
 func encodeForUpload(_ image: UIImage) -> String? {
     guard let squareImage = image.resizedAndCroppedSquare(to: 512),
-          // compressionQuality: 0.0 - максимальное сжатие (низкое качество),
-          // 1.0 - минимальное сжатие (лучшее качество).
+          // compressionQuality: 0.0 - maximum compression (low quality),
+          // 1.0 - minimum compression (best quality).
           let jpegData = squareImage.jpegData(compressionQuality: 0.8) else {
         return nil
     }
@@ -345,7 +345,7 @@ func encodeForUpload(_ image: UIImage) -> String? {
 }
 ```
 
-Сигнатуры, использованные в примере, — из документации Apple:
+The signatures used in the example are from Apple's documentation:
 
 ```swift
 init(size: CGSize) // UIGraphicsImageRenderer
@@ -355,20 +355,20 @@ func jpegData(compressionQuality: CGFloat) -> Data?
 
 [Apple — UIGraphicsImageRenderer](https://developer.apple.com/documentation/uikit/uigraphicsimagerenderer), [Apple — UIImage.jpegData(compressionQuality:)](https://developer.apple.com/documentation/uikit/uiimage/jpegdata(compressionquality:))
 
-**Про размер полезной нагрузки:** base64 увеличивает размер данных примерно на треть по сравнению с исходным бинарным буфером (кодирование 3 байт в 4 символа) — это общее свойство base64, а не специфика Apple/Unity; отдельного источника с точным процентом в рамках этого исследования не открывалось, но принцип «3 байта → 4 символа» (то есть рост ~33%) следует из самой природы base64. Если сервер может принимать `multipart/form-data` или сырое тело запроса, передача JPEG-байтов без base64-обёртки будет заметно компактнее, чем строка Base64.
+**On payload size:** base64 increases the data size by roughly a third compared to the original binary buffer (encoding 3 bytes into 4 characters) — this is a general property of base64, not something specific to Apple/Unity; no separate source with an exact percentage was found within the scope of this research, but the "3 bytes → 4 characters" principle (that is, a ~33% increase) follows from the very nature of base64. If the server can accept `multipart/form-data` or a raw request body, sending JPEG bytes without a base64 wrapper will be noticeably more compact than a base64 string.
 
-## 7. Подводные камни из отчётов разработчиков
+## 7. Pitfalls from developer reports
 
-- **`ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` на двух таргетах.** Если не выставить `NO` на `UnityFramework`, сборка падает с ошибкой `'UnityFramework/UnityFramework.h' file not found`; если оставить `YES` там же (или не согласовать с главным таргетом), архив не проходит валидацию App Store Connect с ошибкой о недопустимом файле `Frameworks`. Обсуждается как системная проблема, а не единичный баг конкретного плагина. [GitHub — yasirkula/UnityNativeGallery issue #234](https://github.com/yasirkula/UnityNativeGallery/issues/234)
-- **`GetUnityFrameworkTargetGuid` недоступен на старых Unity.** Зафиксированная ошибка компиляции: «'PBXProject' does not contain a definition for 'GetUnityFrameworkTargetGuid' and no accessible extension method 'GetUnityFrameworkTargetGuid' accepting a first argument of type 'PBXProject' could be found» — возникает, когда сторонний плагин вызывает этот метод, а установленная версия Unity его ещё не содержит (метод есть не во всех версиях редактора). [GitHub — gree/unity-webview issue #468](https://github.com/gree/unity-webview/issues/468)
-- **Изменения в файлах плагина в самом Xcode-проекте теряются.** Так как Unity копирует (не симлинкует, согласно текущей документации) `.swift`/`.m`/`.mm`/`.h`-файлы в сгенерированный Xcode-проект при каждой сборке, любые правки, сделанные прямо в Xcode, будут перезаписаны при следующей генерации проекта из Unity — исправления нужно переносить обратно в `Assets/Plugins/iOS`. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
-- **Managed↔unmanaged вызовы дороги на iOS.** Официальное предупреждение Unity — не дёргать много нативных методов за кадр из-за процессорной стоимости перехода между управляемым и неуправляемым кодом. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
-- **Нативный плагин не работает в Editor.** Код, вызываемый через `[DllImport("__Internal")]`, реально существует только в собранном iOS-приложении — вызовы такого рода нужно оборачивать `#if UNITY_IOS && !UNITY_EDITOR` и подставлять заглушки для редактора и других платформ (это отражено и в наших примерах в разделе 2).
-- **Обязательная статичность метода с `[MonoPInvokeCallback]`.** Технический разбор проблемы «callbackOnCollectedDelegate»: когда нативный код держит указатель на функцию, соответствующую управляемому делегату, этот делегат может быть собран сборщиком мусора, и нативный код обратится к уже невалидной памяти. `MonoPInvokeCallback` «tells Mono's AOT compiler to generate this stub statically» — то есть указывает AOT-компилятору Mono сгенерировать заглушку заранее и статически, так что она не будет собрана сборщиком мусора (в отличие от JIT-сценария, где заглушки создаются на лету и уничтожаются вместе с делегатом). Это особенно важно на iOS, где используется AOT-компиляция и динамическая генерация заглушек невозможна. [GitHub dotnet/runtime — Is there equivalent to MonoPInvokeCallback in dotnet?](https://github.com/dotnet/runtime/discussions/65296)
-- **Практические сложности с `[AOT.MonoPInvokeCallback]` в реальных проектах.** В отдельном обсуждении на форуме Unity разработчики отмечали, что атрибут нужно указывать с полным путём `[AOT.MonoPInvokeCallback(typeof(...))]` (а не просто `[MonoPInvokeCallback(...)]`, если нет соответствующего `using`), и что добавление `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]` поверх делегата в одном случае приводило к сбою кросс-компиляции — атрибут пришлось убрать. Прямых участников, подтвердивших работу этой связки на Android в этом обсуждении, не нашлось — вопрос остался открытым. [Unity Discussions — MonoPInvokeCallback in unity?](https://discussions.unity.com/t/monopinvokecallback-in-unity/473887)
-- **PHPicker/UIImagePickerController и `PHAsset`.** Если картинка выбрана через пикер, но код затем пытается получить `PHAsset` этой же фотографии напрямую (а не просто использовать полученную копию), это может внезапно потребовать полноценного разрешения на фотобиблиотеку — Apple в этом случае рекомендует по возможности не запрашивать доступ к библиотеке вовсе и оставаться на уровне того, что вернул сам пикер.
+- **`ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` on two targets.** If it's not set to `NO` on `UnityFramework`, the build fails with the error `'UnityFramework/UnityFramework.h' file not found`; if it's left `YES` there (or not reconciled with the main target), the archive fails App Store Connect validation with an error about a disallowed `Frameworks` file. This is discussed as a systemic issue, not a one-off bug in a specific plugin. [GitHub — yasirkula/UnityNativeGallery issue #234](https://github.com/yasirkula/UnityNativeGallery/issues/234)
+- **`GetUnityFrameworkTargetGuid` unavailable on older Unity versions.** A documented compile error: "'PBXProject' does not contain a definition for 'GetUnityFrameworkTargetGuid' and no accessible extension method 'GetUnityFrameworkTargetGuid' accepting a first argument of type 'PBXProject' could be found" — occurs when a third-party plugin calls this method but the installed Unity version doesn't yet contain it (the method isn't present in every editor version). [GitHub — gree/unity-webview issue #468](https://github.com/gree/unity-webview/issues/468)
+- **Changes to plugin files made directly in the Xcode project are lost.** Since Unity copies (not symlinks, per the current documentation) `.swift`/`.m`/`.mm`/`.h` files into the generated Xcode project on every build, any edits made directly in Xcode will be overwritten the next time the project is regenerated from Unity — fixes need to be carried back into `Assets/Plugins/iOS`. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
+- **Managed↔unmanaged calls are expensive on iOS.** Official Unity warning — avoid calling many native methods per frame due to the CPU cost of transitioning between managed and unmanaged code. [Unity — Automated plug-in integration](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-automated-integration.html)
+- **The native plugin doesn't work in the Editor.** Code called through `[DllImport("__Internal")]` only actually exists in the built iOS app — calls of this kind need to be wrapped in `#if UNITY_IOS && !UNITY_EDITOR` with stubs substituted for the editor and other platforms (this is also reflected in our examples in section 2).
+- **The mandatory static requirement for a method with `[MonoPInvokeCallback]`.** A technical breakdown of the "callbackOnCollectedDelegate" problem: when native code holds a function pointer corresponding to a managed delegate, that delegate can be garbage-collected, and the native code will then access already-invalid memory. `MonoPInvokeCallback` "tells Mono's AOT compiler to generate this stub statically" — that is, it tells Mono's AOT compiler to generate the stub ahead of time and statically, so it won't be garbage-collected (unlike a JIT scenario, where stubs are created on the fly and destroyed along with the delegate). This is especially important on iOS, where AOT compilation is used and dynamic stub generation is impossible. [GitHub dotnet/runtime — Is there equivalent to MonoPInvokeCallback in dotnet?](https://github.com/dotnet/runtime/discussions/65296)
+- **Practical difficulties with `[AOT.MonoPInvokeCallback]` in real projects.** In a separate discussion on the Unity forum, developers noted that the attribute needs to be specified with the full path `[AOT.MonoPInvokeCallback(typeof(...))]` (rather than just `[MonoPInvokeCallback(...)]`, if there's no corresponding `using`), and that adding `[UnmanagedFunctionPointer(CallingConvention.Cdecl)]` on top of the delegate caused cross-compilation to fail in one case — the attribute had to be removed. No direct participants confirming this combination works on Android were found in that discussion — the question remained open. [Unity Discussions — MonoPInvokeCallback in unity?](https://discussions.unity.com/t/monopinvokecallback-in-unity/473887)
+- **PHPicker/UIImagePickerController and `PHAsset`.** If an image is selected via a picker, but the code then tries to obtain the `PHAsset` for that same photo directly (rather than just using the copy it received), this may suddenly require full photo library permission — Apple recommends, in this case, avoiding requesting library access altogether where possible and staying at the level of what the picker itself returned.
 
-## Источники
+## Sources
 
 - [Unity — Create a native plug-in for iOS](https://docs.unity3d.com/Manual/ios-native-plugin-create.html)
 - [Unity — Create callbacks from native code](https://docs.unity3d.com/6000.3/Documentation/Manual/ios-native-plugin-call-back.html)
@@ -385,3 +385,7 @@ func jpegData(compressionQuality: CGFloat) -> Data?
 - [GitHub — gree/unity-webview, issue #468](https://github.com/gree/unity-webview/issues/468)
 - [Unity Discussions — MonoPInvokeCallback in unity?](https://discussions.unity.com/t/monopinvokecallback-in-unity/473887)
 - [GitHub dotnet/runtime — Is there equivalent to MonoPInvokeCallback in dotnet? (discussion #65296)](https://github.com/dotnet/runtime/discussions/65296)
+
+
+
+

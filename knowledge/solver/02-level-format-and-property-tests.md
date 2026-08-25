@@ -1,31 +1,31 @@
-# Формат уровня и property-based тестирование
+# Level format and property-based testing
 
-Дата сбора материала: 2026-08-24.
+Date material collected: 2026-08-24.
 
-## Кратко
+## In brief
 
-- Готовой, широко используемой открытой JSON-схемы именно под механику «слои + перекрытие + полка на N мест» найти не удалось; ближайшие открытые примеры — общие форматы тайловых уровней с полями `layer`/`tiles` (например, [вики game-map-editor](https://github.com/ppelikan/game-map-editor/wiki/Level-JSON-file-structure)) и общее описание слоёв/перекрытий из разбора клона 羊了个羊 у [阮一峰](https://www.ruanyifeng.com/blog/2022/10/sheep-n-sheep.html) — оба ниже разобраны и на их основе предложена рабочая схема с явным полем `blocked_by`.
-- Библиотека для property-based тестирования в Python — [Hypothesis](https://github.com/HypothesisWorks/hypothesis), актуальная версия на момент сбора — **6.165.10** (проверено на странице [PyPI](https://pypi.org/project/hypothesis/)), поддерживает Python 3.10–3.14.
-- Базовый приём — декоратор `@given` со стратегиями (`st.integers()`, `st.lists()` и т.д.); для составных структур с зависимостями между полями — декоратор `@st.composite`, как показано в официальном разделе документации [Custom strategies](https://hypothesis.readthedocs.io/en/latest/tutorial/custom-strategies.html).
-- Общая академическая рекомендация по процедурной генерации головоломок с обязательной решаемостью — конструировать данные так, чтобы решаемость была гарантирована самим способом генерации (сведено к DAG/обратному построению), а не проверять и отбрасывать невалидные образцы постфактум; это прямо соответствует официальной рекомендации Hypothesis «если вы обнаруживаете, что фильтруете большинство случаев — почти всегда лучше генерировать нужные данные напрямую» ([Custom strategies](https://hypothesis.readthedocs.io/en/latest/tutorial/custom-strategies.html)).
-- Для игрового движка на C# и решателя на Python синхронизация правил — открытая инженерная проблема без единственно верного решения; из реально задокументированных подходов: полный независимый порт правил (дорого, риск расхождения), общий набор проверочных случаев / контрактных тестов (дешевле, но не покрывает всё пространство состояний), и «golden master» — фиксация эталонных прогонов одной реализации и сверка с ними другой (техника хорошо задокументирована как приём характеризационного тестирования, например у [Coding is Like Cooking / Ro-che, «Introduction to golden testing»](https://ro-che.info/articles/2017-12-04-golden-tests) и в статье о «слепом golden master» на [DEV Community](https://dev.to/rnowif/the-blind-golden-master-67h)).
-- Golden-master подход снимает бремя доказывать корректность каждой реализации по отдельности, но сам по себе не доказывает, что правила реализованы верно в принципе — он только фиксирует, что два прогона совпали (явно отмечено в материалах про golden master, см. выше); отсюда практическая рекомендация комбинировать его с ручным набором «известных верных» контрактных примеров.
-- Смежная и хорошо документированная техника из мультиплеерных игр — детерминированный lockstep с посценарийной сверкой контрольных сумм состояния между независимыми реализациями симуляции; она не про C#/Python порт напрямую, но даёт готовый метод обнаружения момента расхождения (сверка чек-суммы состояния на каждом шаге, а не только в конце партии).
+- No ready-made, widely used open JSON schema specifically for the "layers + occlusion + N-slot shelf" mechanic could be found; the closest open examples are general tiled-level formats with `layer`/`tiles` fields (e.g. the [game-map-editor wiki](https://github.com/ppelikan/game-map-editor/wiki/Level-JSON-file-structure)) and the general layer/occlusion description from the 羊了个羊 clone write-up by [阮一峰](https://www.ruanyifeng.com/blog/2022/10/sheep-n-sheep.html) — both are examined below, and a working schema with an explicit `blocked_by` field is proposed based on them.
+- The property-based testing library for Python is [Hypothesis](https://github.com/HypothesisWorks/hypothesis), current version at the time of collection — **6.165.10** (verified on the [PyPI](https://pypi.org/project/hypothesis/) page), supporting Python 3.10–3.14.
+- The basic technique is the `@given` decorator with strategies (`st.integers()`, `st.lists()`, etc.); for composite structures with dependencies between fields — the `@st.composite` decorator, as shown in the official [Custom strategies](https://hypothesis.readthedocs.io/en/latest/tutorial/custom-strategies.html) documentation section.
+- The general academic recommendation for procedural puzzle generation with mandatory solvability is to construct the data so that solvability is guaranteed by the generation method itself (reduced to a DAG/reverse construction), rather than checking and discarding invalid samples after the fact; this directly matches Hypothesis's official recommendation: "if you find yourself filtering out most cases — it's almost always better to generate the data you want directly" ([Custom strategies](https://hypothesis.readthedocs.io/en/latest/tutorial/custom-strategies.html)).
+- For a game engine in C# and a solver in Python, keeping the rules in sync is an open engineering problem with no single correct solution; from the actually documented approaches: a full independent port of the rules (expensive, risk of divergence), a shared set of test cases / contract tests (cheaper, but doesn't cover the whole state space), and "golden master" — recording the reference runs of one implementation and checking the other against them (a well-documented characterization-testing technique, e.g. [Coding is Like Cooking / Ro-che, «Introduction to golden testing»](https://ro-che.info/articles/2017-12-04-golden-tests) and the article on the "blind golden master" at [DEV Community](https://dev.to/rnowif/the-blind-golden-master-67h)).
+- The golden-master approach lifts the burden of proving each implementation correct on its own, but it does not by itself prove the rules were implemented correctly in principle — it only records that two runs matched (explicitly noted in the golden-master material above); hence the practical recommendation to combine it with a manual set of "known-correct" contract examples.
+- A related, well-documented technique from multiplayer games — deterministic lockstep with per-step checksum verification of state between independent simulation implementations; it isn't a direct solution to "sync C# and Python," but it offers a ready method for detecting the moment of divergence (checking the state checksum at every step, not just at the end of a match).
 
-## 1. Формат описания уровня в JSON
+## 1. JSON level description format
 
-### 1.1 Что реально нашлось в открытых проектах
+### 1.1 What was actually found in open projects
 
-Прямого открытого JSON-формата для игр вида «Sheep a Sheep» / «Triple Match 3D» с типичными для такой механики полями (`layer`, `blocked_by`/`coverIds` и т.п.) в виде готового файла схемы найти не удалось — целевой поиск по этим именам полей на GitHub не дал совпадений на момент сбора. Нашлись два косвенных источника:
+No direct open JSON format for games of the "Sheep a Sheep" / "Triple Match 3D" type, with fields typical of that mechanic (`layer`, `blocked_by`/`coverIds`, etc.), was found as a ready-made schema file — a targeted search for these field names on GitHub returned no matches at the time of collection. Two indirect sources were found:
 
-1. Общий (не специфичный для триплет-матч игр) формат уровня с явным делением на слои — вики проекта [ppelikan/game-map-editor, «Level JSON file structure»](https://github.com/ppelikan/game-map-editor/wiki/Level-JSON-file-structure): уровень описывается полями вида `level-name`, размеры тайла (`tile-sizeX`/`tile-sizeY`), и один или несколько `layers`, каждый со своими `sizeX`/`sizeY` и вложенным двумерным массивом `tiles` (идентификаторы тайлов), плюс отдельный список `events` с именованными триггерами и координатами `level-positions`. Отрицательные значения в массиве `tiles` используются для обозначения специальных состояний/блокираторов. Это формат для тайловой карты общего назначения (не именно матч-3), но именно оттуда естественно берётся идея представлять глубину слоёв как отдельную ось, а не как атрибут тайла.
-2. Текстовое описание (не JSON-схема, а прозаический пересказ реализации) устройства уровня 羊了个羊 у [阮一峰](https://www.ruanyifeng.com/blog/2022/10/sheep-n-sheep.html): поле делится на несколько наложенных слоёв со случайными позициями и типами карт на каждом слое; кликабельны только карты слоя, не имеющие перекрытий сверху. Это подтверждает саму модель «слой + перекрытие», уже формализованную в разделе 1.1 файла `01-tile-match-solver.md` через `(i, j, k)`-координаты по работе [Hoogeboom, Kosters, van Rijn, Vis](https://arxiv.org/pdf/1604.05487), но без конкретного JSON-представления.
+1. A general (not specific to triple-match games) level format with an explicit layer split — the [ppelikan/game-map-editor, «Level JSON file structure»](https://github.com/ppelikan/game-map-editor/wiki/Level-JSON-file-structure) project wiki: a level is described with fields like `level-name`, tile dimensions (`tile-sizeX`/`tile-sizeY`), and one or more `layers`, each with its own `sizeX`/`sizeY` and a nested two-dimensional `tiles` array (tile identifiers), plus a separate `events` list with named triggers and `level-positions` coordinates. Negative values in the `tiles` array are used to denote special states/blockers. This is a general-purpose tile-map format (not specifically match-3), but it's precisely there that the idea of representing layer depth as a separate axis, rather than as a tile attribute, naturally comes from.
+2. A textual description (not a JSON schema, but a prose retelling of an implementation) of how a 羊了个羊 level is built, by [阮一峰](https://www.ruanyifeng.com/blog/2022/10/sheep-n-sheep.html): the field is divided into several overlapping layers with random positions and card types on each layer; only cards on a layer with no occlusion on top are clickable. This confirms the "layer + occlusion" model itself, already formalized in section 1.1 of the file `01-tile-match-solver.md` via `(i, j, k)` coordinates per [Hoogeboom, Kosters, van Rijn, Vis](https://arxiv.org/pdf/1604.05487), but without a concrete JSON representation.
 
-Поскольку готовой отраслевой схемы нет, ниже — самостоятельно составленная схема, обоснованная требованиями решателя (раздел 1 файла `01-tile-match-solver.md`: доступность через `blocked_by`, полка максимум на N мест, кратность 3 для каждого вида).
+Since there is no ready industry schema, below is an independently drafted schema, justified by the solver's requirements (section 1 of the file `01-tile-match-solver.md`: availability via `blocked_by`, a shelf capped at N slots, a multiple of 3 for each kind).
 
-### 1.2 Предлагаемая схема
+### 1.2 Proposed schema
 
-Ключевое решение: хранить перекрытие явным списком `blocked_by` на каждом предмете (список id предметов, которые нужно снять раньше), а не выводить его из геометрии на лету — это делает уровень самодостаточным и не привязывает решатель к конкретной системе координат (сетка, произвольные полигоны, 3D-сцена — неважно, откуда взялось перекрытие, решателю нужен только итоговый граф).
+Key decision: store occlusion as an explicit `blocked_by` list on each item (a list of ids of items that must be removed earlier), rather than deriving it from geometry on the fly — this makes the level self-contained and does not tie the solver to a specific coordinate system (a grid, arbitrary polygons, a 3D scene — it doesn't matter where the occlusion came from, the solver only needs the resulting graph).
 
 ```json
 {
@@ -60,18 +60,18 @@
 }
 ```
 
-Пояснение полей:
+Field explanations:
 
-- `level_id` — идентификатор уровня, для трассировки в логах/тестах.
-- `shelf_capacity` — вместимость полки (в задании — 9); вынесено в данные уровня, а не захардкожено в решатель, чтобы одним и тем же кодом проверять варианты сложности.
-- `match_size` — сколько одинаковых предметов исчезает за раз (в задании — 3); тоже параметр, не константа, ради переиспользования схемы и решателя для смежных механик (например, тестового режима «match 2» для отладки).
-- `kinds` — число видов предметов в уровне; используется валидатором кратности (раздел 7 файла `01-tile-match-solver.md`) и не обязано совпадать с `len(items)`, потому что позволяет проверить полноту набора.
-- `move_limit` — необязательный лимит ходов; `null`, если в конкретном варианте правил (как в оригинальной «Sheep a Sheep») лимита ходов нет, и есть только лимит полки.
-- `items[].id` — уникальный идентификатор предмета, используется как узел графа зависимостей.
-- `items[].kind` — вид предмета (что с чем матчится); значения `kind` не обязаны быть подряд идущими, схема допускает произвольную нумерацию.
-- `items[].layer` — глубина слоя, используется только для генерации/отладки/статистики сложности (раздел 8 файла `01-tile-match-solver.md`); решателю для проверки доступности эта величина не нужна, только `blocked_by`.
-- `items[].position` — координаты на экране/сцене, нужны только для рендеринга и генератора, решателем не используются.
-- `items[].blocked_by` — список `id` предметов, которые перекрывают данный предмет и должны быть убраны раньше; пустой список — предмет доступен изначально.
+- `level_id` — the level's identifier, for tracing in logs/tests.
+- `shelf_capacity` — the shelf's capacity (9 in the task); moved into the level's data rather than hardcoded into the solver, so the same code can check difficulty variants.
+- `match_size` — how many identical items vanish at once (3 in the task); also a parameter, not a constant, for reusing the schema and solver for related mechanics (e.g., a "match 2" test mode for debugging).
+- `kinds` — the number of item kinds in the level; used by the multiple-of-3 validator (section 7 of the file `01-tile-match-solver.md`) and need not equal `len(items)`, since it lets you check the completeness of the set.
+- `move_limit` — an optional move limit; `null` if the specific rules variant (as in the original "Sheep a Sheep") has no move limit, only a shelf limit.
+- `items[].id` — the item's unique identifier, used as a node of the dependency graph.
+- `items[].kind` — the item's kind (what matches with what); `kind` values need not be sequential, the schema allows arbitrary numbering.
+- `items[].layer` — layer depth, used only for generation/debugging/difficulty statistics (section 8 of the file `01-tile-match-solver.md`); the solver doesn't need this value to check availability, only `blocked_by`.
+- `items[].position` — screen/scene coordinates, needed only for rendering and the generator, not used by the solver.
+- `items[].blocked_by` — a list of `id`s of items that occlude this item and must be removed earlier; an empty list means the item is available from the start.
 
 ```python
 from dataclasses import dataclass
@@ -114,13 +114,13 @@ def load_level(raw: dict) -> Level:
         items=items,
     )
 ```
-## 2. Property-based тестирование порождения уровней
+## 2. Property-based testing of level generation
 
-### 2.1 Библиотека Hypothesis: версия и базовые приёмы
+### 2.1 The Hypothesis library: version and basic techniques
 
-[Hypothesis](https://github.com/HypothesisWorks/hypothesis) — основная библиотека property-based тестирования для Python. На странице [PyPI](https://pypi.org/project/hypothesis/) на момент сбора материала (2026-08-24) указана версия **6.165.10**, классификаторы пакета перечисляют поддержку Python 3.10, 3.11, 3.12, 3.13, 3.14 (CPython и PyPy). Официальная документация подтверждает тот же номер версии в заголовке страницы [Quickstart](https://hypothesis.readthedocs.io/en/latest/quickstart.html) («Hypothesis 6.165.10 documentation»).
+[Hypothesis](https://github.com/HypothesisWorks/hypothesis) is the main property-based testing library for Python. The [PyPI](https://pypi.org/project/hypothesis/) page, at the time of material collection (2026-08-24), lists version **6.165.10**, and the package classifiers list support for Python 3.10, 3.11, 3.12, 3.13, 3.14 (CPython and PyPy). The official documentation confirms the same version number in the [Quickstart](https://hypothesis.readthedocs.io/en/latest/quickstart.html) page title ("Hypothesis 6.165.10 documentation").
 
-Базовый пример из официального Quickstart — тест, который должен выполняться для любого значения из описанного пространства входов:
+A basic example from the official Quickstart — a test that must hold for any value from the described input space:
 
 ```python
 from hypothesis import given, strategies as st
@@ -135,11 +135,11 @@ def test_integers(n):
 test_integers()
 ```
 
-Декоратор `@given` принимает одну или несколько стратегий (`st.integers()`, `st.text()`, `st.lists(...)` и т.д.); по умолчанию Hypothesis генерирует и прогоняет 100 случайных примеров, а при обнаружении падающего примера автоматически «сжимает» (shrink) его до минимального воспроизводящего ошибку случая — это задокументированное поведение библиотеки (см. [Quickstart](https://hypothesis.readthedocs.io/en/latest/quickstart.html) и репозиторий [HypothesisWorks/hypothesis](https://github.com/hypothesisworks/hypothesis)).
+The `@given` decorator accepts one or more strategies (`st.integers()`, `st.text()`, `st.lists(...)`, etc.); by default Hypothesis generates and runs 100 random examples, and upon finding a failing example it automatically "shrinks" it to the minimal case that reproduces the error — this is documented library behavior (see [Quickstart](https://hypothesis.readthedocs.io/en/latest/quickstart.html) and the [HypothesisWorks/hypothesis](https://github.com/hypothesisworks/hypothesis) repository).
 
-### 2.2 Составные стратегии для уровня с зависимостями между полями
+### 2.2 Composite strategies for a level with dependencies between fields
 
-Для генерации структуры вроде нашего уровня (список предметов, где `blocked_by` должен ссылаться только на существующие `id`, количество каждого `kind` кратно 3, вместимость полки в разумных пределах) простых стратегий `st.lists`/`st.integers` недостаточно — нужны стратегии с зависимостями между сгенерированными значениями. Официальный раздел документации [Custom strategies](https://hypothesis.readthedocs.io/en/latest/tutorial/custom-strategies.html) для этого даёт декоратор `@st.composite`, показанный на примере генерации упорядоченной пары:
+For generating a structure like our level (a list of items, where `blocked_by` must only reference existing `id`s, the count of each `kind` is a multiple of 3, and the shelf capacity is within reasonable bounds), plain `st.lists`/`st.integers` strategies are not enough — strategies with dependencies between generated values are needed. The official [Custom strategies](https://hypothesis.readthedocs.io/en/latest/tutorial/custom-strategies.html) documentation section gives the `@st.composite` decorator for this, shown with an example that generates an ordered pair:
 
 ```python
 from hypothesis import given, strategies as st
@@ -158,11 +158,11 @@ def test_pairs_are_ordered(pair):
     assert n1 <= n2
 ```
 
-Официальная документация там же отмечает, что этот конкретный пример можно было бы записать короче через `st.tuples(st.integers(), st.integers()).map(sorted)`, но именованная функция с `@composite` даёт больше контроля и читаемость там, где зависимостей несколько — именно наш случай (нужно провязать `id`, `kind`, `blocked_by` и общее число предметов каждого вида одновременно).
+The official documentation notes in the same place that this specific example could be written more briefly via `st.tuples(st.integers(), st.integers()).map(sorted)`, but a named function with `@composite` gives more control and readability where there are several dependencies — exactly our case (we need to tie together `id`, `kind`, `blocked_by`, and the total count of each item kind at once).
 
-Ключевая рекомендация из той же документации, прямо применимая к порождению уровней: если для получения корректных данных приходится фильтровать (`.filter(...)`) большинство сгенерированных Hypothesis значений — почти всегда лучше генерировать нужные данные сразу правильными через `@st.composite`, а не генерировать вслепую и отбрасывать невалидные образцы. Это прямое обоснование того же принципа, что и «генерация уровня обратным ходом» из раздела 6 файла `01-tile-match-solver.md`: конструировать заведомо корректные (там — заведомо решаемые) объекты, а не генерировать-и-фильтровать.
+A key recommendation from the same documentation, directly applicable to level generation: if getting correct data requires filtering out (`.filter(...)`) most of the values Hypothesis generates — it's almost always better to generate the correct data directly via `@st.composite`, rather than generating blindly and discarding invalid samples. This is a direct justification of the same principle as "generating a level by reverse construction" from section 6 of the file `01-tile-match-solver.md`: constructing objects that are guaranteed correct (there — guaranteed solvable) rather than generate-and-filter.
 
-### 2.3 Стратегия генерации уровня, гарантированно проходящего инвариант кратности 3
+### 2.3 A strategy for generating a level that is guaranteed to satisfy the multiple-of-3 invariant
 
 ```python
 from hypothesis import given, strategies as st
@@ -201,11 +201,11 @@ def test_kind_counts_are_always_multiples_of_three(raw_level):
     assert all(n % 3 == 0 for n in counts.values())
 ```
 
-Здесь свойство `n % 3 == 0` тривиально истинно по построению — это намеренно: сама стратегия `level_with_valid_kind_counts` служит регрессионным тестом на то, что генератор уровней **в принципе не может** выпустить некорректные количества, потому что математически невозможно нарушить условие внутри цикла `for _ in range(copies)`. Полезность такого теста — не в поиске бага в этой конкретной стратегии, а в фиксации контракта: если позже кто-то отредактирует функцию генерации боевого (не тестового) уровня и случайно сломает кратность, аналогичный тест, применённый к боевому генератору, а не к тестовой заглушке, поймает регресс.
+Here the property `n % 3 == 0` is trivially true by construction — this is intentional: the `level_with_valid_kind_counts` strategy itself serves as a regression test that the level generator **cannot in principle** produce incorrect counts, because it is mathematically impossible to violate the condition inside the `for _ in range(copies)` loop. The usefulness of such a test lies not in finding a bug in this specific strategy, but in pinning down a contract: if someone later edits the function that generates production (not test-only) levels and accidentally breaks the multiple-of-3 property, an analogous test applied to the production generator, not to the test stub, will catch the regression.
 
-### 2.4 Свойство «любой порождённый уровень проходим»
+### 2.4 The property "any generated level is solvable"
 
-Для этого свойства стратегия должна порождать уровень **через обратное построение** (раздел 6 файла `01-tile-match-solver.md`), а сам тест — проверять, что решатель (DFS с разделов 3–4 того же файла) действительно находит решение. Это одновременно тест на генератор (не сломалась ли гарантия обратного построения) и на решатель (не потерял ли он какое-то валидное решение из-за ошибки в отсечениях):
+For this property the strategy must generate a level **via reverse construction** (section 6 of the file `01-tile-match-solver.md`), and the test itself must check that the solver (the DFS from sections 3–4 of the same file) actually finds a solution. This is simultaneously a test of the generator (has the reverse-construction guarantee broken) and of the solver (has it lost some valid solution due to a bug in the pruning):
 
 ```python
 import random
@@ -235,9 +235,9 @@ def test_reverse_built_levels_are_always_solvable(pile):
     assert solution is not None, "a reverse-built level must always have a solution"
 ```
 
-Параметр `settings(deadline=None)` — не произвольная деталь, а задокументированная необходимость: Hypothesis по умолчанию ограничивает время выполнения одного примера и считает превышение ошибкой, что при вызове потенциально небыстрого решателя (DFS может быть экспоненциальным в худшем случае даже с отсечениями) даёт ложные падения теста, не связанные с логической корректностью кода; отключение или увеличение `deadline` — стандартная рекомендация для тестов, вызывающих небыстрый код, применяемая на практике в блогах про Hypothesis, например в разборе [«How to Build Property-Based Testing with Hypothesis»](https://oneuptime.com/blog/post/2026-01-30-how-to-build-property-based-testing-with-hypothesis/view).
+The `settings(deadline=None)` parameter is not an arbitrary detail, but a documented necessity: by default Hypothesis limits how long a single example may run and treats exceeding it as an error, which, when calling a potentially slow solver (DFS can be exponential in the worst case even with pruning), produces false test failures unrelated to the code's logical correctness; disabling or increasing `deadline` is a standard recommendation for tests calling slow code, applied in practice in blog posts about Hypothesis, e.g. in the write-up [«How to Build Property-Based Testing with Hypothesis»](https://oneuptime.com/blog/post/2026-01-30-how-to-build-property-based-testing-with-hypothesis/view).
 
-### 2.5 Свойство «запас ходов в заданных границах»
+### 2.5 The property "move budget within given bounds"
 
 ```python
 from hypothesis import given, settings, strategies as st
@@ -269,24 +269,24 @@ def test_greedy_player_move_count_within_bounds(pile, rng):
     min_moves_expected = len(pile.items) // 3       # cannot finish faster than the number of triples
     assert min_moves_expected <= moves_made <= max_moves_allowed
 ```
-## 3. Как не разойтись правилами игры между C# и Python
+## 3. How not to let the game rules diverge between C# and Python
 
-Задача: решатель написан на Python (для порождения и проверки уровней), а сама игра — на C# (типично для Unity/Godot-C#). Оба должны согласованно понимать, что такое «доступный предмет», «ход», «тройка», «поражение». Ниже — честная оценка вариантов, без утверждения, что какой-то один является отраслевым стандартом именно для этого случая (специализированных источников про синхронизацию C#/Python для игровых правил не нашлось; ниже собраны задокументированные общеинженерные техники, которые непосредственно переносятся на эту задачу).
+The problem: the solver is written in Python (for generating and checking levels), while the game itself is in C# (typical for Unity/Godot-C#). Both must agree consistently on what an "available item," a "move," a "triple," and a "loss" mean. Below is an honest assessment of the options, without claiming that any one of them is the industry standard specifically for this case (no specialized sources on syncing C#/Python for game rules were found; below are documented general-engineering techniques that transfer directly to this problem).
 
-### 3.1 Полный независимый порт правил на оба языка
+### 3.1 A full independent port of the rules to both languages
 
-Правила игры (доступность, снятие троек, условие поражения) реализуются дважды — один раз на C# для игры, один раз на Python для решателя, — как два независимых, но по смыслу идентичных модуля.
+The game rules (availability, clearing triples, the loss condition) are implemented twice — once in C# for the game, once in Python for the solver — as two independent but semantically identical modules.
 
-- **Цена.** Двойная стоимость разработки и, что важнее, двойная стоимость сопровождения: любое изменение правил (например, добавление нового типа препятствия) нужно вносить в обоих местах и держать в голове оба представления одновременно.
-- **Надёжность.** Самая низкая из всех вариантов без дополнительных мер: ничто не мешает двум реализациям незаметно разойтись в редком краевом случае (например, порядок обработки одновременного заполнения полки и появления тройки), и это может не проявиться до тех пор, пока решатель не пометит уровень как проходимый, а игра не даст игроку застрять.
-- Единственный практичный способ снизить риск при этом подходе — обязательный набор общих контрактных тестов (раздел 3.2) или golden master (раздел 3.3) поверх обеих реализаций; сам по себе «просто оба порта» — самый ненадёжный вариант из перечисленных.
+- **Cost.** Double the development cost and, more importantly, double the maintenance cost: any rule change (e.g., adding a new obstacle type) must be made in both places and kept in mind for both representations at once.
+- **Reliability.** The lowest of all the options without extra measures: nothing stops the two implementations from silently diverging in a rare edge case (e.g., the order of processing a simultaneous shelf fill and a triple forming), and this may not surface until the solver marks a level as solvable while the game leaves the player stuck.
+- The only practical way to reduce risk with this approach is a mandatory shared set of contract tests (section 3.2) or a golden master (section 3.3) on top of both implementations; "just having both ports" by itself is the least reliable option of those listed.
 
-### 3.2 Общий формат проверочных случаев (контрактные тесты)
+### 3.2 A shared format of test cases (contract tests)
 
-Фиксируется язык-независимый набор пар «состояние + ход → новое состояние» (или «уровень → решаемость/число ходов») в нейтральном формате (JSON/YAML), и обе реализации — C# и Python — прогоняются против одного и того же набора в своих тестовых раннерах (xUnit/NUnit на стороне C#, pytest на стороне Python).
+A language-independent set of pairs "state + move → new state" (or "level → solvability/move count") is fixed in a neutral format (JSON/YAML), and both implementations — C# and Python — are run against the same set in their own test runners (xUnit/NUnit on the C# side, pytest on the Python side).
 
-- **Цена.** Умеренная: нужно один раз спроектировать нейтральный формат случая и написать по одному адаптеру на каждый язык («загрузить случай → прогнать через мои правила → сравнить с ожидаемым результатом»), дальше пополнение набора случаев дёшево.
-- **Надёжность.** Средняя и управляемая: сила метода прямо пропорциональна полноте набора случаев — руками написанные случаи покрывают предвидённые дизайнером ситуации (типичный ход, заполнение полки, тройка при последнем ходе, кратность 3), но по определению не покрывают то, что дизайнер не предусмотрел. Комбинация с property-based тестами (раздел 2) на стороне Python, чьи находки (минимальные «сжатые» контрпримеры) переносятся в контрактный набор, частично закрывает этот пробел — это стандартная практика: Hypothesis сохраняет найденный минимальный контрпример для детерминированного воспроизведения при последующих запусках (см. описание поведения shrink/replay в [Quickstart](https://hypothesis.readthedocs.io/en/latest/quickstart.html) и в обзоре [GitHub HypothesisWorks/hypothesis](https://github.com/hypothesisworks/hypothesis)), и такой контрпример буквально становится новым файлом контрактного случая для C#-реализации.
+- **Cost.** Moderate: you need to design the neutral case format once and write one adapter per language ("load the case → run it through my rules → compare with the expected result"), after which adding more cases is cheap.
+- **Reliability.** Medium and manageable: the method's strength is directly proportional to how complete the case set is — hand-written cases cover situations the designer anticipated (a typical move, filling the shelf, a triple on the last move, a multiple of 3), but by definition don't cover what the designer didn't foresee. Combining this with property-based tests (section 2) on the Python side, whose findings (minimal "shrunk" counterexamples) get carried over into the contract set, partly closes this gap — this is standard practice: Hypothesis saves the minimal counterexample found for deterministic reproduction on subsequent runs (see the description of shrink/replay behavior in [Quickstart](https://hypothesis.readthedocs.io/en/latest/quickstart.html) and the [GitHub HypothesisWorks/hypothesis](https://github.com/hypothesisworks/hypothesis) overview), and such a counterexample literally becomes a new contract-case file for the C# implementation.
 
 ```python
 import json
@@ -312,30 +312,30 @@ var actual = GameRules.ApplyMove(testCase.StateBefore, testCase.Move);
 Assert.Equal(testCase.StateAfterExpected, actual);
 ```
 
-### 3.3 Golden master (эталонные записи прогонов)
+### 3.3 Golden master (reference recordings of runs)
 
-Один прогон одной реализации (например, эталонного решателя на Python) на конкретном уровне сохраняется целиком — вся последовательность состояний или хотя бы вход и итоговый результат — как «эталон» (golden file); при последующих изменениях кода (в любой из реализаций) новый прогон сравнивается побайтово/по значению с сохранённым файлом.
+One run of one implementation (e.g., the reference solver in Python) on a specific level is saved in full — the whole sequence of states, or at least the input and the final result — as a "reference" (golden file); on subsequent code changes (in either implementation), a new run is compared byte-for-byte/value-for-value against the saved file.
 
-- Техника происходит из практики характеризационного тестирования легаси-кода, введённой Майклом Физерсом; общее описание и происхождение термина — [Blexin, «Golden Master Pattern: don't fear the legacy code!»](https://blexin.com/en/blog-en/golden-master-pattern-dont-fear-the-legacy-code/) и статья в Wikipedia про [Characterization test](https://en.wikipedia.org/wiki/Characterization_test).
-- Разновидность «слепой golden master» (blind golden master), где новая и старая реализация вызываются в рамках одного теста и их результаты сравниваются напрямую без промежуточного файла, задокументирована в статье [«The Blind Golden Master», DEV Community](https://dev.to/rnowif/the-blind-golden-master-67h); там же приводится пример практики: «GitHub ran both algorithms in production, comparing outputs and raising errors on mismatch until confidence was established, then switched to the new implementation» — то есть параллельный прогон двух реализаций в проде до полного доверия перед переключением, что напрямую переносится на пару «Python-решатель / C#-игра», если у обоих есть общий пайплайн CI.
-- **Цена.** Низкая для старта (написать «прогнать и сохранить файл» проще, чем спроектировать формат контрактных случаев), но накопление golden-файлов без присмотра создаёт свою проблему сопровождения: при намеренном изменении правил нужно осознанно перегенерировать эталоны, а автоматическая перегенерация «раз тест упал — обновим эталон» обесценивает тест (см. предупреждение там же, в [Ro-che, «Introduction to golden testing»](https://ro-che.info/articles/2017-12-04-golden-tests): golden master не доказывает корректность результата — он только защищает от непреднамеренного отклонения от уже зафиксированного поведения).
-- **Надёжность.** Хорошо обнаруживает **расхождение** между реализациями (в том числе неожиданное, не предусмотренное заранее — в отличие от контрактных тестов из раздела 3.2, которые проверяют только то, что явно записано), но не гарантирует, что зафиксированное поведение вообще было верным изначально: если первый прогон (тот, что стал эталоном) уже содержал ошибку, golden master её просто заморозит и будет требовать её же от второй реализации.
-- Дополнительное необходимое условие для применимости — детерминированность: недетерминированные значения (порядок обхода, `random`-состояния, время) должны быть либо зафиксированы общим seed, либо исключены из сравнения, иначе метод неприменим в принципе — это отдельно подчёркивается в материалах про golden master (см. выше, Ro-che).
+- The technique comes from characterization-testing practice for legacy code, introduced by Michael Feathers; a general description and the term's origin — [Blexin, «Golden Master Pattern: don't fear the legacy code!»](https://blexin.com/en/blog-en/golden-master-pattern-dont-fear-the-legacy-code/) and the Wikipedia article on [Characterization test](https://en.wikipedia.org/wiki/Characterization_test).
+- The "blind golden master" variant, where the new and old implementations are called within the same test and their results compared directly with no intermediate file, is documented in the article [«The Blind Golden Master», DEV Community](https://dev.to/rnowif/the-blind-golden-master-67h); it also gives a practice example: "GitHub ran both algorithms in production, comparing outputs and raising errors on mismatch until confidence was established, then switched to the new implementation" — that is, running two implementations in parallel in production until full confidence, before switching over, which transfers directly to the "Python solver / C# game" pair if both share a common CI pipeline.
+- **Cost.** Low to start (writing "run it and save a file" is simpler than designing a contract-case format), but accumulating golden files without oversight creates its own maintenance problem: when rules are intentionally changed, the references need to be regenerated deliberately, and automatically regenerating them "the test failed — let's just update the reference" defeats the purpose of the test (see the warning in the same place, [Ro-che, «Introduction to golden testing»](https://ro-che.info/articles/2017-12-04-golden-tests): a golden master doesn't prove the result is correct — it only guards against unintentional drift from behavior already recorded).
+- **Reliability.** Good at detecting **divergence** between implementations (including unexpected divergence not foreseen in advance — unlike the contract tests of section 3.2, which check only what was explicitly written down), but it does not guarantee that the recorded behavior was correct to begin with: if the first run (the one that became the reference) already contained a bug, the golden master will simply freeze it and demand the same bug from the second implementation.
+- An additional necessary condition for applicability is determinism: non-deterministic values (traversal order, `random` state, time) must either be pinned by a shared seed or excluded from the comparison, otherwise the method is inapplicable in principle — this is separately emphasized in the golden-master material (see above, Ro-che).
 
-### 3.4 Смежная техника: детерминированный lockstep с чек-суммами состояния
+### 3.4 A related technique: deterministic lockstep with state checksums
 
-Из области сетевого мультиплеера — при lockstep-архитектуре все копии симуляции обязаны давать битово идентичный результат по идентичным входам, и для отладки расхождений применяется чек-сумма состояния, которую каждая копия считает и сверяет на каждом шаге, а не только в конце партии — это позволяет локализовать первый момент расхождения, а не только факт его наличия. Этот метод не является прямым решением задачи «синхронизировать C# и Python», но даёт полезный практический приём для встраивания в любой из подходов 3.1–3.3: если результаты не совпали, сверять не только финальное состояние, а чек-сумму на каждом ходу, чтобы быстро найти конкретное правило, в котором разошлись реализации.
+From the field of multiplayer networking — in a lockstep architecture, all copies of the simulation must produce a bit-identical result given identical inputs, and to debug divergences a state checksum is used, computed and compared by each copy at every step, not only at the end of a match — this lets you localize the first moment of divergence, not just the fact that it occurred. This method is not a direct solution to "sync C# and Python," but it gives a useful practical technique to embed in any of approaches 3.1–3.3: if results don't match, compare not just the final state but the checksum at every move, to quickly find the specific rule where the implementations diverged.
 
-### 3.5 Итоговая рекомендация
+### 3.5 Final recommendation
 
-Ни один из трёх подходов не является безусловно «правильным» — они решают разные части проблемы и обычно комбинируются:
+None of the three approaches is unconditionally "correct" — they solve different parts of the problem and are usually combined:
 
-- Контрактные тесты (3.2) — для явно предвидённых, специально спроектированных дизайнером граничных случаев; дёшевы в сопровождении, но слепы к непредвиденному.
-- Golden master (3.3) — для быстрого обнаружения любого незапланированного расхождения между уже существующими реализациями; дёшев для старта, но требует дисциплины при обновлении эталонов и не проверяет исходную корректность.
-- Property-based тесты на Python-стороне (раздел 2) как поставщик новых контрактных случаев для C# — практический мост между «нашли баг один раз в Python» и «эта же проверка теперь навсегда защищает и C#-реализацию».
-- Полный дублирующий порт правил (3.1) неизбежен в том смысле, что правила так или иначе должны существовать в обоих языках — вопрос не «делать порт или нет», а «чем, кроме честного слова, подтверждать, что оба порта согласованы», и на этот вопрос отвечают именно 3.2–3.4, а не сам факт порта.
+- Contract tests (3.2) — for explicitly foreseen, deliberately designed edge cases; cheap to maintain, but blind to the unforeseen.
+- Golden master (3.3) — for quickly detecting any unplanned divergence between already-existing implementations; cheap to start, but requires discipline when updating references and doesn't verify original correctness.
+- Property-based tests on the Python side (section 2) as a supplier of new contract cases for C# — a practical bridge between "we found a bug once in Python" and "this same check now permanently protects the C# implementation too."
+- A full duplicate port of the rules (3.1) is unavoidable in the sense that the rules must exist in both languages one way or another — the question isn't "port or not," but "what, besides an honest promise, confirms that both ports agree," and it's exactly 3.2–3.4 that answer that question, not the mere fact of porting.
 
-## Источники
+## Sources
 
 - [Hypothesis — PyPI](https://pypi.org/project/hypothesis/)
 - [Hypothesis — Quickstart (readthedocs)](https://hypothesis.readthedocs.io/en/latest/quickstart.html)
@@ -349,4 +349,3 @@ Assert.Equal(testCase.StateAfterExpected, actual);
 - [Characterization test — Wikipedia](https://en.wikipedia.org/wiki/Characterization_test)
 - [«The Blind Golden Master», DEV Community](https://dev.to/rnowif/the-blind-golden-master-67h)
 - [Ro-che, «Introduction to golden testing»](https://ro-che.info/articles/2017-12-04-golden-tests)
-

@@ -1,43 +1,43 @@
-# Apple Vision: распознавание животных (кот/собака)
+# Apple Vision: animal recognition (cat/dog)
 
-Дата сбора: 2026-08-24. Стек: Unity 6.3 LTS, iOS (целевая версия для нового API — iOS 18+, эксплуатация — вплоть до iOS 26), Swift, Vision.framework.
+Collection date: 2026-08-24. Stack: Unity 6.3 LTS, iOS (target version for the new API — iOS 18+, deployment — up to iOS 26), Swift, Vision.framework.
 
-## Кратко
+## Summary
 
-- У Apple есть два параллельных API распознавания животных: старый Objective-C-совместимый `VNRecognizeAnimalsRequest` (с iOS 13) и новый Swift-only `RecognizeAnimalsRequest` (с iOS 18). Оба сейчас не помечены как deprecated. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest), [Apple — RecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/recognizeanimalsrequest)
-- Начиная с iOS 18.0 Vision предоставляет новый Swift-only API на структурах (`struct`) с `async/await`; старый `VN`-префиксный API вынесен Apple в раздел «Legacy API» документации фреймворка. [Apple — Vision framework](https://developer.apple.com/documentation/vision)
-- Распознаются только два вида: кот и собака — это подтверждено и в старом (`VNAnimalIdentifier.cat`, `.dog`), и в новом (`RecognizeAnimalsRequest.Animal.cat`, `.dog`) API. [Apple — VNAnimalIdentifier](https://developer.apple.com/documentation/vision/vnanimalidentifier), [Apple — RecognizeAnimalsRequest.Animal](https://developer.apple.com/documentation/vision/recognizeanimalsrequest/animal)
-- Результат — массив `VNRecognizedObjectObservation` (старый API) или `RecognizedObjectObservation` (новый API), у каждого — `boundingBox` и массив `labels` с identifier и confidence. [Apple — VNRecognizedObjectObservation](https://developer.apple.com/documentation/vision/vnrecognizedobjectobservation), [Apple — RecognizedObjectObservation](https://developer.apple.com/documentation/vision/recognizedobjectobservation)
-- `boundingBox` — в нормализованных координатах (0…1), начало координат — в левом нижнем углу изображения; для перевода в пиксели есть функция `VNImageRectForNormalizedRect`. [Apple — VNDetectedObjectObservation.boundingBox](https://developer.apple.com/documentation/vision/vndetectedobjectobservation/boundingbox), [Apple — VNImageRectForNormalizedRect](https://developer.apple.com/documentation/vision/vnimagerectfornormalizedrect(_:_:_:))
-- Vision не хранит ориентацию изображения сама — её обязательно передавать через `CGImagePropertyOrientation` при создании `VNImageRequestHandler`/при вызове `perform(on:orientation:)`; это типовая причина, почему распознавание «не работает». [Apple — VNImageRequestHandler](https://developer.apple.com/documentation/vision/vnimagerequesthandler), [Apple — CGImagePropertyOrientation](https://developer.apple.com/documentation/imageio/cgimagepropertyorientation)
-- Точных официальных цифр по порогу уверенности (confidence) для `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest` не найдено — Apple не публикует рекомендованное пороговое значение; сообщество подбирает порог эмпирически. Точных данных нет.
-- Надёжных источников о том, что Vision путает рисунки/фото на экране с живым котом, не найдено — «надёжных источников не найдено».
-- Официальных бенчмарков задержки именно для `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest` не найдено; общее устройство таково, что Vision и модели Core ML диспетчеризуются на Neural Engine автоматически, с откатом на GPU и затем CPU (по независимому источнику, не от Apple — см. раздел 8). [Blake Crosley — Apple Vision Framework: On-Device CV Most Devs Skip](https://blakecrosley.com/blog/vision-framework-built-in)
-- Для Android-версии в будущем есть аналог — ML Kit Object Detection & Tracking и ML Kit Image Labeling от Google, оба работают на устройстве. [Google — ML Kit Object Detection](https://developers.google.com/ml-kit/vision/object-detection), [Google — ML Kit Image Labeling](https://developers.google.com/ml-kit/vision/image-labeling)
+- Apple has two parallel animal-recognition APIs: the old Objective-C-compatible `VNRecognizeAnimalsRequest` (since iOS 13) and the new Swift-only `RecognizeAnimalsRequest` (since iOS 18). Neither is currently marked deprecated. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest), [Apple — RecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/recognizeanimalsrequest)
+- Starting with iOS 18.0, Vision provides a new Swift-only API built on structs (`struct`) with `async/await`; the old `VN`-prefixed API has been moved by Apple into the "Legacy API" section of the framework's documentation. [Apple — Vision framework](https://developer.apple.com/documentation/vision)
+- Only two species are recognized: cat and dog — confirmed in both the old (`VNAnimalIdentifier.cat`, `.dog`) and the new (`RecognizeAnimalsRequest.Animal.cat`, `.dog`) API. [Apple — VNAnimalIdentifier](https://developer.apple.com/documentation/vision/vnanimalidentifier), [Apple — RecognizeAnimalsRequest.Animal](https://developer.apple.com/documentation/vision/recognizeanimalsrequest/animal)
+- The result is an array of `VNRecognizedObjectObservation` (old API) or `RecognizedObjectObservation` (new API); each one has a `boundingBox` and a `labels` array with identifier and confidence. [Apple — VNRecognizedObjectObservation](https://developer.apple.com/documentation/vision/vnrecognizedobjectobservation), [Apple — RecognizedObjectObservation](https://developer.apple.com/documentation/vision/recognizedobjectobservation)
+- `boundingBox` — in normalized coordinates (0…1), with the origin at the image's lower-left corner; there is a function for converting to pixels, `VNImageRectForNormalizedRect`. [Apple — VNDetectedObjectObservation.boundingBox](https://developer.apple.com/documentation/vision/vndetectedobjectobservation/boundingbox), [Apple — VNImageRectForNormalizedRect](https://developer.apple.com/documentation/vision/vnimagerectfornormalizedrect(_:_:_:))
+- Vision does not store image orientation itself — it must be passed explicitly via `CGImagePropertyOrientation` when creating `VNImageRequestHandler`/calling `perform(on:orientation:)`; this is a typical reason why recognition "doesn't work." [Apple — VNImageRequestHandler](https://developer.apple.com/documentation/vision/vnimagerequesthandler), [Apple — CGImagePropertyOrientation](https://developer.apple.com/documentation/imageio/cgimagepropertyorientation)
+- No exact official figures on the confidence threshold for `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest` were found — Apple does not publish a recommended threshold value; the community picks a threshold empirically. No exact data.
+- No reliable source was found stating that Vision confuses on-screen drawings/photos with a live cat — "no reliable source found."
+- No official latency benchmarks specifically for `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest` were found; the general mechanism is that Vision and Core ML models dispatch to the Neural Engine automatically, falling back to the GPU and then the CPU (per an independent, non-Apple source — see section 8). [Blake Crosley — Apple Vision Framework: On-Device CV Most Devs Skip](https://blakecrosley.com/blog/vision-framework-built-in)
+- For a future Android version there is an analog — Google's ML Kit Object Detection & Tracking and ML Kit Image Labeling, both running on-device. [Google — ML Kit Object Detection](https://developers.google.com/ml-kit/vision/object-detection), [Google — ML Kit Image Labeling](https://developers.google.com/ml-kit/vision/image-labeling)
 
-## 1. Два API: старый `VNRecognizeAnimalsRequest` и новый `RecognizeAnimalsRequest`
+## 1. Two APIs: the old `VNRecognizeAnimalsRequest` and the new `RecognizeAnimalsRequest`
 
-### 1.1. Старый (Objective-C-совместимый) API
+### 1.1. The old (Objective-C-compatible) API
 
-`VNRecognizeAnimalsRequest` — класс, наследник `VNImageBasedRequest`. Доступен с iOS 13.0, iPadOS 13.0, macOS 10.15, Mac Catalyst 13.1, tvOS 13.0, visionOS 1.0. На момент сбора данных (2026-08-24) класс не помечен как deprecated. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest)
+`VNRecognizeAnimalsRequest` is a class, a subclass of `VNImageBasedRequest`. Available since iOS 13.0, iPadOS 13.0, macOS 10.15, Mac Catalyst 13.1, tvOS 13.0, visionOS 1.0. As of the data collection date (2026-08-24), the class is not marked deprecated. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest)
 
-Объявление:
+Declaration:
 
 ```swift
 class VNRecognizeAnimalsRequest
 ```
 
-Ключевые члены:
+Key members:
 
 ```swift
 var results: [VNRecognizedObjectObservation]? { get }
 func supportedIdentifiers() throws -> [VNAnimalIdentifier]
-class func knownAnimalIdentifiers(forRevision requestRevision: Int) -> [VNAnimalIdentifier] // deprecated метод
+class func knownAnimalIdentifiers(forRevision requestRevision: Int) -> [VNAnimalIdentifier] // deprecated method
 ```
 
-Есть константы ревизий `VNRecognizeAnimalsRequestRevision1` и `VNRecognizeAnimalsRequestRevision2`. Метод `knownAnimalIdentifiers(forRevision:)` помечен устаревшим — вместо него следует использовать `supportedIdentifiers()` на созданном экземпляре запроса. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest)
+There are revision constants `VNRecognizeAnimalsRequestRevision1` and `VNRecognizeAnimalsRequestRevision2`. The `knownAnimalIdentifiers(forRevision:)` method is marked deprecated — `supportedIdentifiers()` should be used instead, on a created request instance. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest)
 
-`VNAnimalIdentifier` — структура-обёртка над строкой:
+`VNAnimalIdentifier` is a structure wrapping a string:
 
 ```swift
 struct VNAnimalIdentifier
@@ -50,11 +50,11 @@ init(rawValue: String)
 
 [Apple — VNAnimalIdentifier](https://developer.apple.com/documentation/vision/vnanimalidentifier)
 
-### 1.2. Новый Swift-only API (iOS 18+)
+### 1.2. The new Swift-only API (iOS 18+)
 
-На WWDC24 (сессия «Discover Swift enhancements in the Vision framework») Apple представила переработанный Vision API на структурах Swift с поддержкой Swift Concurrency: запросы теперь называются без префикса `VN` (например, `RecognizeAnimalsRequest`, `ClassifyImageRequest`, `DetectFaceRectanglesRequest`). Ведущая сессии — Megan Williams, команда Vision. [Apple — WWDC24 10163](https://developer.apple.com/videos/play/wwdc2024/10163/)
+At WWDC24 (the session "Discover Swift enhancements in the Vision framework"), Apple introduced a reworked Vision API built on Swift structs with Swift Concurrency support: requests are now named without the `VN` prefix (for example, `RecognizeAnimalsRequest`, `ClassifyImageRequest`, `DetectFaceRectanglesRequest`). The session presenter was Megan Williams, Vision team. [Apple — WWDC24 10163](https://developer.apple.com/videos/play/wwdc2024/10163/)
 
-`RecognizeAnimalsRequest` — структура, доступна с iOS 18.0, iPadOS 18.0, Mac Catalyst 18.0, macOS 15.0, tvOS 18.0, visionOS 2.0, watchOS 27.0 (в бета-статусе на watchOS). [Apple — RecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/recognizeanimalsrequest)
+`RecognizeAnimalsRequest` is a struct, available since iOS 18.0, iPadOS 18.0, Mac Catalyst 18.0, macOS 15.0, tvOS 18.0, visionOS 2.0, watchOS 27.0 (beta status on watchOS). [Apple — RecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/recognizeanimalsrequest)
 
 ```swift
 struct RecognizeAnimalsRequest
@@ -63,14 +63,14 @@ init(_ revision: RecognizeAnimalsRequest.Revision? = nil)
 
 func perform(on image: CGImage, orientation: CGImagePropertyOrientation?) async throws -> [RecognizedObjectObservation]
 func perform(on pixelBuffer: CVPixelBuffer, orientation: CGImagePropertyOrientation?) async throws -> [RecognizedObjectObservation]
-// перегрузки perform(on:) также принимают URL, Data, CIImage, CMSampleBuffer
+// perform(on:) overloads also accept URL, Data, CIImage, CMSampleBuffer
 
 var supportedAnimals: [RecognizeAnimalsRequest.Animal] { get }
 ```
 
-Согласно документации Apple: «This request generates a collection of `RecognizedObjectObservation` objects that describe the animals the request detects.» [Apple — RecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/recognizeanimalsrequest)
+According to Apple's documentation: «This request generates a collection of `RecognizedObjectObservation` objects that describe the animals the request detects.» [Apple — RecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/recognizeanimalsrequest)
 
-`RecognizeAnimalsRequest.Animal` — перечисление:
+`RecognizeAnimalsRequest.Animal` is an enum:
 
 ```swift
 enum Animal
@@ -78,17 +78,17 @@ case cat  // An animal identifier for cats.
 case dog  // An animal identifier for dogs.
 ```
 
-Доступность и здесь: iOS 18.0+ и аналогично на других платформах. Есть также отдельный тип `RecognizeAnimalsRequest.Identifier`, помеченный как бета-API — по нему подробностей в открытых источниках не найдено. [Apple — RecognizeAnimalsRequest.Animal](https://developer.apple.com/documentation/vision/recognizeanimalsrequest/animal)
+Availability here too: iOS 18.0+ and correspondingly on other platforms. There is also a separate `RecognizeAnimalsRequest.Identifier` type, marked as a beta API — no details on it were found in open sources. [Apple — RecognizeAnimalsRequest.Animal](https://developer.apple.com/documentation/vision/recognizeanimalsrequest/animal)
 
-В обзоре фреймворка Vision `RecognizeAnimalsRequest` относится к разделу «Image classification and recognition» нового Swift API, тогда как `VNRecognizeAnimalsRequest` находится в разделе «Legacy API». Официальная формулировка Apple: «Starting in iOS 18.0, the Vision framework provides a new Swift-only API.» [Apple — Vision framework](https://developer.apple.com/documentation/vision)
+In the Vision framework overview, `RecognizeAnimalsRequest` belongs to the "Image classification and recognition" section of the new Swift API, while `VNRecognizeAnimalsRequest` is in the "Legacy API" section. Apple's official wording: «Starting in iOS 18.0, the Vision framework provides a new Swift-only API.» [Apple — Vision framework](https://developer.apple.com/documentation/vision)
 
-### 1.3. Что актуально для iOS 26 и что рекомендует Apple
+### 1.3. What's relevant for iOS 26 and what Apple recommends
 
-На момент сбора данных Apple не публиковала явного заявления о депрекации `VNRecognizeAnimalsRequest` — оба API присутствуют в документации Vision одновременно, старый вынесен в раздел «Legacy API», новый — в основные разделы. Из этого следует practical-вывод (не подтверждённая Apple прямая рекомендация, а логика структуры документации): для нового проекта на Unity 6.3 с целевым iOS 18+ разумно ориентироваться на `RecognizeAnimalsRequest`, но при необходимости поддержки более старых iOS (13–17) нужен `VNRecognizeAnimalsRequest`. Прямой цитаты Apple вида «используйте только новый API» не найдено — «надёжных источников не найдено».
+As of the data collection date, Apple has not published an explicit deprecation statement for `VNRecognizeAnimalsRequest` — both APIs are present in the Vision documentation at the same time, with the old one moved into the "Legacy API" section and the new one in the main sections. This leads to a practical conclusion (not a confirmed direct recommendation from Apple, but the logic of the documentation's structure): for a new project on Unity 6.3 targeting iOS 18+, it makes sense to rely on `RecognizeAnimalsRequest`, but if support for older iOS versions (13–17) is needed, `VNRecognizeAnimalsRequest` is required. No direct Apple quote of the form "use only the new API" was found — "no reliable source found."
 
-## 2. Полный рабочий пример: старый API (`VNRecognizeAnimalsRequest`)
+## 2. Full working example: the old API (`VNRecognizeAnimalsRequest`)
 
-Ниже — пример, собранный из деклараций Apple (класс, свойства, инициализаторы `VNImageRequestHandler`) и типового паттерна использования Vision-запросов. Показывает путь UIImage → CGImage → `VNImageRequestHandler` (с указанием ориентации) → `VNRecognizeAnimalsRequest` → чтение `VNRecognizedObjectObservation`.
+Below is an example assembled from Apple's declarations (the class, properties, `VNImageRequestHandler` initializers) and the typical pattern for using Vision requests. It shows the path UIImage → CGImage → `VNImageRequestHandler` (with orientation specified) → `VNRecognizeAnimalsRequest` → reading `VNRecognizedObjectObservation`.
 
 ```swift
 import UIKit
@@ -100,7 +100,7 @@ func recognizeAnimal(in image: UIImage, completion: @escaping ([VNRecognizedObje
         return
     }
 
-    // Ориентацию нужно передать явно: CGImage/CVPixelBuffer её не хранят.
+    // Orientation must be passed explicitly: CGImage/CVPixelBuffer don't store it.
     let orientation = CGImagePropertyOrientation(image.imageOrientation)
 
     let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
@@ -122,9 +122,9 @@ func recognizeAnimal(in image: UIImage, completion: @escaping ([VNRecognizedObje
     }
 }
 
-// Преобразование UIImage.Orientation -> CGImagePropertyOrientation.
-// Соответствие взято из документации Apple по CGImagePropertyOrientation
-// (case up = 1 ... left = 8) и стандартного набора случаев UIImage.Orientation.
+// Converting UIImage.Orientation -> CGImagePropertyOrientation.
+// The mapping is taken from Apple's CGImagePropertyOrientation documentation
+// (case up = 1 ... left = 8) and the standard set of UIImage.Orientation cases.
 extension CGImagePropertyOrientation {
     init(_ uiOrientation: UIImage.Orientation) {
         switch uiOrientation {
@@ -142,29 +142,29 @@ extension CGImagePropertyOrientation {
 }
 ```
 
-Чтение labels и boundingBox (сигнатуры — из документации Apple по `VNRecognizedObjectObservation` и `VNDetectedObjectObservation.boundingBox`):
+Reading labels and boundingBox (signatures from Apple's documentation for `VNRecognizedObjectObservation` and `VNDetectedObjectObservation.boundingBox`):
 
 ```swift
 for observation in observations {
-    // labels отсортированы по убыванию confidence; confidence внутри labels
-    // в сумме дают 1.0 — итоговая уверенность = label.confidence * observation.confidence.
+    // labels are sorted by descending confidence; confidence within labels
+    // sums to 1.0 — the final confidence = label.confidence * observation.confidence.
     guard let topLabel = observation.labels.first else { continue }
 
-    let identifier = topLabel.identifier          // "Cat" или "Dog"
+    let identifier = topLabel.identifier          // "Cat" or "Dog"
     let finalConfidence = topLabel.confidence * observation.confidence
 
-    // boundingBox — нормализованные координаты, начало координат внизу слева.
+    // boundingBox — normalized coordinates, origin at the bottom-left.
     let normalizedBox = observation.boundingBox
 
     print("\(identifier): \(finalConfidence)")
 }
 ```
 
-Источник по формуле итоговой уверенности и сортировке `labels` — документация `VNRecognizedObjectObservation`: «The confidence values of all classifications in the array sum up to `1.0`», итоговая уверенность конкретной классификации получается умножением `classification.confidence` на `observation.confidence`. [Apple — VNRecognizedObjectObservation](https://developer.apple.com/documentation/vision/vnrecognizedobjectobservation)
+The source for the final-confidence formula and the sorting of `labels` is the `VNRecognizedObjectObservation` documentation: «The confidence values of all classifications in the array sum up to `1.0`»; the final confidence of a given classification is obtained by multiplying `classification.confidence` by `observation.confidence`. [Apple — VNRecognizedObjectObservation](https://developer.apple.com/documentation/vision/vnrecognizedobjectobservation)
 
-## 3. Полный рабочий пример: новый API (`RecognizeAnimalsRequest`, iOS 18+)
+## 3. Full working example: the new API (`RecognizeAnimalsRequest`, iOS 18+)
 
-Пример на `async/await`, основанный на официальной сигнатуре `perform(on:orientation:)` и на паттерне из WWDC24: «on iOS 18.0+, using the new Swift-featured API, you create `let request = RecognizeAnimalsRequest()`, then in a Task, call `try await request.perform(on: fileURL)`». [Apple — WWDC24 10163](https://developer.apple.com/videos/play/wwdc2024/10163/)
+An `async/await` example, based on the official `perform(on:orientation:)` signature and on the pattern from WWDC24: «on iOS 18.0+, using the new Swift-featured API, you create `let request = RecognizeAnimalsRequest()`, then in a Task, call `try await request.perform(on: fileURL)`». [Apple — WWDC24 10163](https://developer.apple.com/videos/play/wwdc2024/10163/)
 
 ```swift
 import Vision
@@ -177,16 +177,16 @@ func recognizeAnimalsModern(cgImage: CGImage, orientation: CGImagePropertyOrient
 }
 ```
 
-Чтение результата (сигнатуры — из документации `RecognizedObjectObservation`):
+Reading the result (signatures from the `RecognizedObjectObservation` documentation):
 
 ```swift
 struct RecognizedObjectObservation {
     let labels: [ClassificationObservation]
-    // boundingBox — через протокол BoundingBoxProviding
+    // boundingBox — via the BoundingBoxProviding protocol
 }
 ```
 
-Итоговая уверенность считается так же, как в старом API: «Multiply the classification confidence with the confidence of this observation to get the actual confidence for each label.» [Apple — RecognizedObjectObservation](https://developer.apple.com/documentation/vision/recognizedobjectobservation)
+The final confidence is computed the same way as in the old API: «Multiply the classification confidence with the confidence of this observation to get the actual confidence for each label.» [Apple — RecognizedObjectObservation](https://developer.apple.com/documentation/vision/recognizedobjectobservation)
 
 ```swift
 for observation in observations {
@@ -196,7 +196,7 @@ for observation in observations {
 }
 ```
 
-Для справки — аналогичный, но не привязанный к животным, реальный пример из статьи Apple о классификации изображений (демонстрирует официальный стиль работы с новым API, включая фильтрацию по точности через `hasMinimumPrecision`/`hasMinimumRecall`):
+For reference — an analogous but not animal-specific real example from Apple's article on image classification (demonstrates the official style of working with the new API, including precision filtering via `hasMinimumPrecision`/`hasMinimumRecall`):
 
 ```swift
 // Returns an `ImageFile` object based on the `ClassifyImageRequest` results.
@@ -224,17 +224,17 @@ func classifyImage(url: URL) async throws -> ImageFile {
 
 [Apple — Classifying images for categorization and search](https://developer.apple.com/documentation/vision/classifying-images-for-categorization-and-search)
 
-## 4. Система координат `boundingBox` и перевод в координаты изображения
+## 4. The `boundingBox` coordinate system and converting to image coordinates
 
-`boundingBox` объявлен в `VNDetectedObjectObservation` (родитель `VNRecognizedObjectObservation`) как:
+`boundingBox` is declared in `VNDetectedObjectObservation` (the parent of `VNRecognizedObjectObservation`) as:
 
 ```swift
 var boundingBox: CGRect { get }
 ```
 
-Официальная формулировка Apple: «The system normalizes the coordinates to the dimensions of the processed image, with the origin at the lower-left corner of the image.» То есть координаты нормализованы в диапазон 0…1, а начало координат — **левый нижний угол**, а не левый верхний, как в UIKit. [Apple — VNDetectedObjectObservation.boundingBox](https://developer.apple.com/documentation/vision/vndetectedobjectobservation/boundingbox)
+Apple's official wording: «The system normalizes the coordinates to the dimensions of the processed image, with the origin at the lower-left corner of the image.» That is, the coordinates are normalized to the 0…1 range, and the origin is the **lower-left corner**, not the upper-left as in UIKit. [Apple — VNDetectedObjectObservation.boundingBox](https://developer.apple.com/documentation/vision/vndetectedobjectobservation/boundingbox)
 
-Для перевода нормализованного прямоугольника в пиксельные координаты изображения Apple предоставляет функцию:
+To convert a normalized rectangle to pixel coordinates of the image, Apple provides a function:
 
 ```swift
 func VNImageRectForNormalizedRect(
@@ -244,18 +244,18 @@ func VNImageRectForNormalizedRect(
 ) -> CGRect
 ```
 
-Абстракт: «Projects a rectangle from normalized coordinates into image coordinates.» Параметры: `normalizedRect` — исходный прямоугольник в нормализованных координатах; `imageWidth`, `imageHeight` — ширина и высота изображения, в координаты которого проецируем. Возвращает `CGRect` в пиксельных координатах изображения. Доступна с iOS 11.0+. [Apple — VNImageRectForNormalizedRect](https://developer.apple.com/documentation/vision/vnimagerectfornormalizedrect(_:_:_:))
+Abstract: «Projects a rectangle from normalized coordinates into image coordinates.» Parameters: `normalizedRect` — the source rectangle in normalized coordinates; `imageWidth`, `imageHeight` — the width and height of the image whose coordinates we're projecting into. Returns a `CGRect` in the image's pixel coordinates. Available since iOS 11.0+. [Apple — VNImageRectForNormalizedRect](https://developer.apple.com/documentation/vision/vnimagerectfornormalizedrect(_:_:_:))
 
-Точная формула перевода (проекция без функции, если нужно сделать вручную — тот же результат, что даёт `VNImageRectForNormalizedRect`):
+The exact conversion formula (the projection without the function, for doing it manually — the same result that `VNImageRectForNormalizedRect` gives):
 
 ```
 pixelX = normalizedRect.origin.x * imageWidth
-pixelY = (1 - normalizedRect.origin.y - normalizedRect.height) * imageHeight   // инверсия оси Y
+pixelY = (1 - normalizedRect.origin.y - normalizedRect.height) * imageHeight   // Y-axis inversion
 pixelWidth = normalizedRect.width * imageWidth
 pixelHeight = normalizedRect.height * imageHeight
 ```
 
-Практический пример использования функции (обёртка написана нами по официальной сигнатуре из раздела 4 — сама идея «умножить нормализованные координаты на ширину и высоту» описана в независимом разборе Vision-координат): «just multiply the coordinates by the width and height of the full image», и Vision даёт для этого готовую функцию `VNImageRectForNormalizedRect()`. [Machine, Think! — How to display Vision bounding boxes](https://machinethink.net/blog/bounding-boxes/)
+A practical example of using the function (the wrapper was written by us based on the official signature from section 4 — the idea of "multiplying normalized coordinates by width and height" itself is described in an independent breakdown of Vision coordinates): «just multiply the coordinates by the width and height of the full image», and Vision provides a ready-made function for this, `VNImageRectForNormalizedRect()`. [Machine, Think! — How to display Vision bounding boxes](https://machinethink.net/blog/bounding-boxes/)
 
 ```swift
 extension CGRect {
@@ -267,11 +267,11 @@ extension CGRect {
 let boxInPixels = observation.boundingBox.rect(in: sourceImage)
 ```
 
-Дополнительно для отображения на экране (`UIImageView`) нужен ещё один шаг — учёт `contentMode` (`aspectFit`/`aspectFill`): «you have to take its `contentMode` into account… need to apply the same rules to your bounding boxes» — то есть пиксельные координаты изображения и координаты вью, как правило, не совпадают напрямую, и поверх `VNImageRectForNormalizedRect` нужно ещё одно преобразование (масштаб + сдвиг), которое сама функция не делает. [Machine, Think! — How to display Vision bounding boxes](https://machinethink.net/blog/bounding-boxes/)
+Additionally, displaying on screen (`UIImageView`) requires one more step — accounting for `contentMode` (`aspectFit`/`aspectFill`): «you have to take its `contentMode` into account… need to apply the same rules to your bounding boxes» — that is, the image's pixel coordinates and the view's coordinates generally don't match directly, and on top of `VNImageRectForNormalizedRect` you need one more transform (scale + offset) that the function itself doesn't do. [Machine, Think! — How to display Vision bounding boxes](https://machinethink.net/blog/bounding-boxes/)
 
-## 5. Ориентация изображения (`CGImagePropertyOrientation`)
+## 5. Image orientation (`CGImagePropertyOrientation`)
 
-`VNImageRequestHandler` предполагает, что изображение подано в правильной («upright») ориентации, но `CGImage`, `CIImage` и `CVPixelBuffer` сами по себе не хранят информацию об ориентации — поэтому во всех инициализаторах `VNImageRequestHandler` есть параметр `orientation: CGImagePropertyOrientation`:
+`VNImageRequestHandler` assumes the image is supplied in the correct ("upright") orientation, but `CGImage`, `CIImage`, and `CVPixelBuffer` themselves don't store orientation information — which is why every `VNImageRequestHandler` initializer has an `orientation: CGImagePropertyOrientation` parameter:
 
 ```swift
 init(cgImage: CGImage, orientation: CGImagePropertyOrientation, options: [VNImageOption : Any])
@@ -284,71 +284,71 @@ init(url: URL, orientation: CGImagePropertyOrientation, options: [VNImageOption 
 
 [Apple — VNImageRequestHandler](https://developer.apple.com/documentation/vision/vnimagerequesthandler)
 
-`CGImagePropertyOrientation` — перечисление с восемью значениями (доступно с iOS 4.0):
+`CGImagePropertyOrientation` is an enum with eight values (available since iOS 4.0):
 
 ```swift
 @frozen enum CGImagePropertyOrientation
-case up = 1              // Данные соответствуют предполагаемой ориентации показа.
-case upMirrored = 2      // Отражены по горизонтали.
-case down = 3            // Повёрнуты на 180°.
-case downMirrored = 4    // Отражены по вертикали.
-case leftMirrored = 5    // Отражены по горизонтали и повёрнуты на 90° против часовой стрелки.
-case right = 6           // Повёрнуты на 90° против часовой стрелки.
-case rightMirrored = 7   // Отражены по горизонтали и повёрнуты на 90° по часовой стрелке.
-case left = 8            // Повёрнуты на 90° по часовой стрелке.
+case up = 1              // Data matches the intended display orientation.
+case upMirrored = 2      // Mirrored horizontally.
+case down = 3            // Rotated 180°.
+case downMirrored = 4    // Mirrored vertically.
+case leftMirrored = 5    // Mirrored horizontally and rotated 90° counterclockwise.
+case right = 6           // Rotated 90° counterclockwise.
+case rightMirrored = 7   // Mirrored horizontally and rotated 90° clockwise.
+case left = 8            // Rotated 90° clockwise.
 ```
 
-Официальное пояснение Apple: «For example, the pixel data for an image captured by an iOS device camera is encoded in the camera sensor's native landscape orientation. When the user captures a photo while holding the device in portrait orientation, iOS writes an orientation value of `.right` in the resulting image file.» [Apple — CGImagePropertyOrientation](https://developer.apple.com/documentation/imageio/cgimagepropertyorientation)
+Apple's official explanation: «For example, the pixel data for an image captured by an iOS device camera is encoded in the camera sensor's native landscape orientation. When the user captures a photo while holding the device in portrait orientation, iOS writes an orientation value of `.right` in the resulting image file.» [Apple — CGImagePropertyOrientation](https://developer.apple.com/documentation/imageio/cgimagepropertyorientation)
 
-Типовая причина сбоя распознавания — неверно переданная или вовсе не переданная ориентация. Пояснение из независимого разбора: «The camera sensor on the iPhone is mounted in landscape orientation… When the device is in portrait mode, images coming from the camera are seen by the Core ML model as rotated 90 degrees to the right», и решение — передавать `orientation: .right` в `VNImageRequestHandler`, «so Vision already fixes the image's rotation before passing it to Core ML». Для приложений, поддерживающих и портретную, и ландшафтную ориентацию, рекомендуется держать `AVCaptureConnection` всегда в ландшафтной ориентации, регулируя только preview-слой, и передавать в Vision соответствующую ориентацию устройства. [Machine, Think! — How to display Vision bounding boxes](https://machinethink.net/blog/bounding-boxes/)
+A typical cause of recognition failure is an incorrectly passed or entirely omitted orientation. Explanation from an independent breakdown: «The camera sensor on the iPhone is mounted in landscape orientation… When the device is in portrait mode, images coming from the camera are seen by the Core ML model as rotated 90 degrees to the right», and the fix is to pass `orientation: .right` to `VNImageRequestHandler`, «so Vision already fixes the image's rotation before passing it to Core ML». For apps supporting both portrait and landscape orientation, it's recommended to keep `AVCaptureConnection` always in landscape orientation, adjusting only the preview layer, and to pass Vision the corresponding device orientation. [Machine, Think! — How to display Vision bounding boxes](https://machinethink.net/blog/bounding-boxes/)
 
-## 6. Порог уверенности (confidence)
+## 6. Confidence threshold
 
-`confidence` в Vision — значение `Float` от `0.0` до `1.0`. Для `VNRecognizedObjectObservation`/`RecognizedObjectObservation` действует правило: суммарная уверенность всех классификаций внутри `labels` равна `1.0`, а итоговая («настоящая») уверенность конкретной метки — произведение `label.confidence * observation.confidence`. [Apple — VNRecognizedObjectObservation](https://developer.apple.com/documentation/vision/vnrecognizedobjectobservation)
+`confidence` in Vision is a `Float` value from `0.0` to `1.0`. For `VNRecognizedObjectObservation`/`RecognizedObjectObservation` the rule holds: the total confidence of all classifications within `labels` equals `1.0`, and the final ("real") confidence of a given label is the product `label.confidence * observation.confidence`. [Apple — VNRecognizedObjectObservation](https://developer.apple.com/documentation/vision/vnrecognizedobjectobservation)
 
-Apple не публикует рекомендованное числовое пороговое значение confidence именно для `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest`. В новом Swift API для похожей задачи (`ClassifyImageRequest`) Apple предлагает не жёсткий порог, а методы `hasMinimumPrecision(_:forRecall:)` и `hasMinimumRecall(_:forPrecision:)`, которые фильтруют результаты по соотношению точности/полноты, а не по сырому числу confidence — то есть сама Apple рекомендует не подбирать «магическое число» вручную, а описывать желаемый компромисс между precision и recall. [Apple — Classifying images for categorization and search](https://developer.apple.com/documentation/vision/classifying-images-for-categorization-and-search)
+Apple does not publish a recommended numeric confidence threshold specifically for `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest`. In the new Swift API, for a similar task (`ClassifyImageRequest`), Apple offers not a hard threshold but the methods `hasMinimumPrecision(_:forRecall:)` and `hasMinimumRecall(_:forPrecision:)`, which filter results by a precision/recall ratio rather than a raw confidence number — meaning Apple itself recommends not picking a "magic number" by hand but describing the desired precision/recall trade-off. [Apple — Classifying images for categorization and search](https://developer.apple.com/documentation/vision/classifying-images-for-categorization-and-search)
 
-Практика сообщества: разработчики берут `identifier` (`"Cat"`/`"Dog"`) и `confidence` из `labels.first` и сравнивают с порогом, подобранным опытным путём под свою задачу — жёстко прописанного «стандартного» значения (например, 0.7 или 0.9) в найденных источниках нет. Конкретные числа, которые встречаются в общих (не Apple-специфичных) материалах про классификаторы кот/собака — это пороги конкретных сторонних моделей, а не значения, рекомендованные Apple для Vision. Точных данных по эталонному порогу для Vision нет — «точных данных нет».
+Community practice: developers take the `identifier` (`"Cat"`/`"Dog"`) and `confidence` from `labels.first` and compare it against a threshold picked empirically for their task — there is no hard-coded "standard" value (e.g., 0.7 or 0.9) in the sources found. The specific numbers that appear in general (not Apple-specific) materials about cat/dog classifiers are thresholds for particular third-party models, not values recommended by Apple for Vision. There is no exact data on a reference threshold for Vision — "no exact data."
 
-## 7. Ограничения
+## 7. Limitations
 
-- **Только кот и собака.** И старый (`VNAnimalIdentifier.cat`/`.dog`), и новый (`RecognizeAnimalsRequest.Animal.cat`/`.dog`) API распознают исключительно два вида животных — других идентификаторов в документации не описано. [Apple — VNAnimalIdentifier](https://developer.apple.com/documentation/vision/vnanimalidentifier), [Apple — RecognizeAnimalsRequest.Animal](https://developer.apple.com/documentation/vision/recognizeanimalsrequest/animal)
-- **Надёжность различения кота и собаки.** Официальных данных Apple о проценте ошибок (кот принят за собаку и наоборот) не найдено. «Надёжных источников не найдено».
-- **Рисунки/изображения на экране.** Специальных данных или официальных заявлений Apple о поведении `VNRecognizeAnimalsRequest` на мультфильмах, рисунках или фотографии кота, показанной на экране другого устройства, не найдено. «Надёжных источников не найдено».
-- **Несколько животных в кадре.** `results`/`perform(on:)` возвращают **массив** наблюдений (`[VNRecognizedObjectObservation]` / `[RecognizedObjectObservation]`) — то есть API спроектирован для работы с несколькими объектами в одном кадре, у каждого — собственный `boundingBox` и собственные `labels`. Прямого текста Apple о заявленном максимуме одновременно распознаваемых животных в одном кадре не найдено. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest)
+- **Only cat and dog.** Both the old (`VNAnimalIdentifier.cat`/`.dog`) and the new (`RecognizeAnimalsRequest.Animal.cat`/`.dog`) API recognize exclusively two animal species — no other identifiers are described in the documentation. [Apple — VNAnimalIdentifier](https://developer.apple.com/documentation/vision/vnanimalidentifier), [Apple — RecognizeAnimalsRequest.Animal](https://developer.apple.com/documentation/vision/recognizeanimalsrequest/animal)
+- **Reliability of distinguishing cat from dog.** No official Apple data on the error rate (cat mistaken for dog and vice versa) was found. "No reliable source found."
+- **Drawings/images on a screen.** No specific data or official Apple statements about the behavior of `VNRecognizeAnimalsRequest` on cartoons, drawings, or a photo of a cat shown on another device's screen were found. "No reliable source found."
+- **Multiple animals in frame.** `results`/`perform(on:)` return an **array** of observations (`[VNRecognizedObjectObservation]` / `[RecognizedObjectObservation]`) — meaning the API is designed to work with multiple objects in a single frame, each with its own `boundingBox` and its own `labels`. No direct Apple text stating a declared maximum number of simultaneously recognized animals in one frame was found. [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest)
 
-## 8. Быстродействие и потребление (Neural Engine)
+## 8. Performance and resource use (Neural Engine)
 
-Официальных численных бенчмарков задержки конкретно для `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest` от Apple не найдено. Общий принцип диспетчеризации Vision/Core ML описан в независимых источниках так: «Vision (and the Core ML models it runs) dispatches automatically to the Neural Engine when available, falls back to the GPU when not, and to the CPU as a last resort» — то есть разработчик не выбирает исполнитель напрямую, это делает система. [Blake Crosley — Apple Vision Framework](https://blakecrosley.com/blog/vision-framework-built-in)
+No official numeric latency benchmarks specifically for `VNRecognizeAnimalsRequest`/`RecognizeAnimalsRequest` from Apple were found. The general Vision/Core ML dispatch mechanism is described in independent sources as: «Vision (and the Core ML models it runs) dispatches automatically to the Neural Engine when available, falls back to the GPU when not, and to the CPU as a last resort» — meaning the developer doesn't choose the executor directly, the system does. [Blake Crosley — Apple Vision Framework](https://blakecrosley.com/blog/vision-framework-built-in)
 
-Там же приводятся оценки задержки для **других** запросов Vision (не для распознавания животных): распознавание текста (OCR) — 150–300 мс на страницу чека; определение лиц — 5–15 мс на кадр; поза тела при 60 fps — менее 16 мс на кадр; эмбеддинги изображений — 20–40 мс. Эти цифры не от Apple и не относятся именно к `VNRecognizeAnimalsRequest`, приводятся только как ориентир порядка величины для Vision-запросов на устройстве. [Blake Crosley — Apple Vision Framework](https://blakecrosley.com/blog/vision-framework-built-in)
+The same source gives latency estimates for **other** Vision requests (not animal recognition): text recognition (OCR) — 150–300 ms per receipt page; face detection — 5–15 ms per frame; body pose at 60 fps — under 16 ms per frame; image embeddings — 20–40 ms. These figures are not from Apple and don't relate specifically to `VNRecognizeAnimalsRequest`; they're given only as an order-of-magnitude reference for on-device Vision requests. [Blake Crosley — Apple Vision Framework](https://blakecrosley.com/blog/vision-framework-built-in)
 
-Для доступа к Neural Engine нет отдельного явного флага в Vision — это происходит автоматически внутри Core ML, на который опираются запросы Vision. Разработчик не может напрямую проверить или заставить конкретный запрос выполниться именно на Neural Engine — это «hint», которым управляет система. [Blake Crosley — Apple Vision Framework](https://blakecrosley.com/blog/vision-framework-built-in)
+There is no separate explicit flag in Vision for accessing the Neural Engine — it happens automatically inside Core ML, which Vision requests rely on. A developer cannot directly check or force a given request to run specifically on the Neural Engine — it's a "hint" controlled by the system. [Blake Crosley — Apple Vision Framework](https://blakecrosley.com/blog/vision-framework-built-in)
 
-## 9. Альтернатива для Android: ML Kit (Google)
+## 9. Android alternative: ML Kit (Google)
 
-Для будущего портирования на Android у Google есть два разных, но связанных API в составе ML Kit:
+For future porting to Android, Google has two distinct but related APIs within ML Kit:
 
 ### ML Kit Object Detection & Tracking
 
-- Работает на устройстве («happens on the device»), не по сети.
-- За один проход в изображении находит и отслеживает объекты, для каждого — положение (bounding box); в видеопотоке каждому объекту присваивается уникальный ID для трекинга между кадрами.
-- Есть встроенный «грубый» (coarse) классификатор с пятью категориями: «home goods, fashion goods, food, plants, and places» — то есть категорий немного, детальной информации о виде объекта (например, «кошка» отдельно от «собаки») эта классификация не даёт.
-- Позиционируется как «optimized for mobile devices and intended for use in real-time applications, even on lower-end devices».
+- Runs on-device («happens on the device»), not over the network.
+- In a single pass it finds and tracks objects in the image, giving each one a position (bounding box); in a video stream, each object is assigned a unique ID for tracking across frames.
+- Has a built-in "coarse" classifier with five categories: «home goods, fashion goods, food, plants, and places» — so there aren't many categories, and this classification doesn't give detailed information about the type of object (e.g., "cat" separately from "dog").
+- Positioned as «optimized for mobile devices and intended for use in real-time applications, even on lower-end devices».
 
 [Google — Object detection and tracking](https://developers.google.com/ml-kit/vision/object-detection)
 
 ### ML Kit Image Labeling
 
-- Базовая модель распознаёт «more than 400 categories» — люди, вещи, места, активности, в том числе виды животных, товары.
-- Предназначена для классификации **всего изображения целиком** («image classification models that describe the full image»), а не для нахождения и обводки конкретных объектов на фото — для этой задачи Google явно рекомендует Object Detection & Tracking: «for classifying one or more objects in an image, such as shoes or pieces of furniture, the Object Detection & Tracking API may be a better fit».
-- Поддерживает как встроенную базовую модель, так и собственные модели TensorFlow Lite/LiteRT.
+- The base model recognizes «more than 400 categories» — people, things, places, activities, including animal species and products.
+- Intended for classifying the **whole image** («image classification models that describe the full image»), not for locating and drawing boxes around specific objects in a photo — for that task Google explicitly recommends Object Detection & Tracking: «for classifying one or more objects in an image, such as shoes or pieces of furniture, the Object Detection & Tracking API may be a better fit».
+- Supports both the built-in base model and custom TensorFlow Lite/LiteRT models.
 
 [Google — Image labeling](https://developers.google.com/ml-kit/vision/image-labeling)
 
-**Вывод для портирования:** ни Object Detection & Tracking, ни Image Labeling не дают «из коробки» такой же прицельной пары идентификаторов «кот/собака» с bounding box, как связка `VNRecognizeAnimalsRequest` + Vision. Ближе всего по духу — Image Labeling (там литералы вроде «cat» могут встречаться среди 400+ категорий), но официального списка меток ML Kit Image Labeling в рамках этого исследования не открывался — точный список нужно сверять по `label-map` в документации Google отдельно.
+**Conclusion for porting:** neither Object Detection & Tracking nor Image Labeling gives an out-of-the-box, equally targeted "cat/dog" identifier pair with a bounding box, the way the `VNRecognizeAnimalsRequest` + Vision combination does. The closest in spirit is Image Labeling (labels like "cat" may appear among its 400+ categories), but the official ML Kit Image Labeling label list wasn't opened within the scope of this research — the exact list needs to be checked separately against the `label-map` in Google's documentation.
 
-## Источники
+## Sources
 
 - [Apple — VNRecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/vnrecognizeanimalsrequest)
 - [Apple — RecognizeAnimalsRequest](https://developer.apple.com/documentation/vision/recognizeanimalsrequest)
@@ -363,7 +363,7 @@ Apple не публикует рекомендованное числовое п
 - [Apple — CGImagePropertyOrientation](https://developer.apple.com/documentation/imageio/cgimagepropertyorientation)
 - [Apple — VNDetectAnimalBodyPoseRequest](https://developer.apple.com/documentation/vision/vndetectanimalbodyposerequest)
 - [Apple — Detecting animal body poses with Vision](https://developer.apple.com/documentation/vision/detecting-animal-body-poses-with-vision)
-- [Apple — Vision framework (обзор)](https://developer.apple.com/documentation/vision)
+- [Apple — Vision framework (overview)](https://developer.apple.com/documentation/vision)
 - [Apple — Classifying images for categorization and search](https://developer.apple.com/documentation/vision/classifying-images-for-categorization-and-search)
 - [Apple — WWDC24: Discover Swift enhancements in the Vision framework](https://developer.apple.com/videos/play/wwdc2024/10163/)
 - [Machine, Think! — How to display Vision bounding boxes](https://machinethink.net/blog/bounding-boxes/)

@@ -1,45 +1,45 @@
-# Конвейер порождения 2D-рисунков предметов вне движка
+# Pipeline for generating 2D item art outside the engine
 
-Дата сбора сведений: 2026-08-24.
+Date material collected: 2026-08-24.
 
-## Кратко
+## In brief
 
-- Google Imagen 4 уже отключён: официальная документация фиксирует «This model is deprecated and will be shut down on August 17, 2026» — на дату сбора (24 августа 2026) модель, скорее всего, недоступна; заменой Google называет семейство Nano Banana через Gemini API. [1]
-- Актуальные модели генерации через Gemini API на 24 августа 2026: Gemini 2.5 Flash Image (Nano Banana), Gemini 3.1 Flash Image (Nano Banana 2), Gemini 3.1 Flash Lite Image (Nano Banana 2 Lite), Gemini 3 Pro Image (Nano Banana Pro) — у всех подтверждена цена и batch-тариф. [2]
-- У OpenAI действует линейка `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1-mini`, `gpt-image-1` с ценой за токен (не за изображение напрямую), параметром `background: "transparent"` для прозрачного фона и без параметра seed. [3][4]
-- У Black Forest Labs (FLUX) подтверждена официальная цена по каждой модели линейки FLUX.2/FLUX.1/Kontext, за мегапиксель или флэт за изображение; FLUX.2 поддерживает референсные изображения (до 8 через API), явного подтверждения прозрачного фона и seed в открытых страницах не найдено. [5][6]
-- Ни для одной проверенной модели не подтверждён детерминированный `seed`-параметр как публично документированная возможность — там, где это не удалось проверить, честно указано «данных не найдено».
-- Единый стиль набора держат не одной настройкой, а связкой приёмов: фиксированный шаблон наказа + референсное изображение + (по возможности) LoRA, обученная на 20–30 референсных спрайтах; чистый seed закрывает не более «~80%» проблемы, по опыту практиков. [7]
-- `rembg` (версия 2.0.81 на PyPI, 24 410 звёзд на GitHub, обновлён 18 августа 2026) и `backgroundremover` (0.4.5, 8020 звёзд, обновлён 10 июля 2026) остаются рабочими средствами удаления фона на Python. [8][9]
-- Pillow даёт готовый набор для автообрезки и выравнивания: `Image.getbbox(alpha_only=True)`, `Image.crop(box)`, `Image.thumbnail(size)`, `Image.paste(im, box, mask)`. [10]
-- Для Unity важны: степень двойки текстуры под платформу, единый PPU, отступы 2–4 px в атласе, компрессия ASTC/ETC2 на мобильных, Sprite Atlas для сокращения числа draw call. [11][12]
-- Перекраску кота из слоёв в 2D делают через маски цвета и один шейдер (Replace Color / Color Mask в Shader Graph, либо ручной HLSL с RGB-масками), а не через отдельные текстуры на каждый вариант окраса. [13][14][15]
+- Google Imagen 4 is already discontinued: the official documentation states "This model is deprecated and will be shut down on August 17, 2026" — as of the collection date (August 24, 2026) the model is most likely unavailable; Google names the Nano Banana family via the Gemini API as the replacement. [1]
+- Current image-generation models via the Gemini API as of August 24, 2026: Gemini 2.5 Flash Image (Nano Banana), Gemini 3.1 Flash Image (Nano Banana 2), Gemini 3.1 Flash Lite Image (Nano Banana 2 Lite), Gemini 3 Pro Image (Nano Banana Pro) — pricing and the batch rate are confirmed for all of them. [2]
+- OpenAI has the `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1-mini`, `gpt-image-1` line, priced per token (not directly per image), with a `background: "transparent"` parameter for a transparent background and no seed parameter. [3][4]
+- Black Forest Labs (FLUX) has confirmed official pricing for every model in the FLUX.2/FLUX.1/Kontext line, per megapixel or a flat price per image; FLUX.2 supports reference images (up to 8 via the API), with no explicit confirmation of transparent background or seed found on the open pages. [5][6]
+- No deterministic `seed` parameter is confirmed as a publicly documented capability for any of the verified models — where this could not be verified, it is honestly marked "no data found."
+- A single, consistent style across a set is kept not by one setting but by a combination of techniques: a fixed prompt template + a reference image + (where possible) a LoRA trained on 20–30 reference sprites; a plain seed closes no more than "~80%" of the problem, per practitioner experience. [7]
+- `rembg` (version 2.0.81 on PyPI, 24,410 stars on GitHub, updated August 18, 2026) and `backgroundremover` (0.4.5, 8020 stars, updated July 10, 2026) remain working background-removal tools in Python. [8][9]
+- Pillow provides a ready set of tools for auto-cropping and alignment: `Image.getbbox(alpha_only=True)`, `Image.crop(box)`, `Image.thumbnail(size)`, `Image.paste(im, box, mask)`. [10]
+- For Unity, what matters: power-of-two texture size for the platform, a single consistent PPU, 2–4 px padding in the atlas, ASTC/ETC2 compression on mobile, Sprite Atlas to reduce the number of draw calls. [11][12]
+- Recoloring a layered 2D cat is done via color masks and a single shader (Replace Color / Color Mask in Shader Graph, or a hand-written HLSL with RGB masks), not via a separate texture for each coat variant. [13][14][15]
 
-## Модели порождения изображений через API (август 2026)
+## Image-generation models via API (August 2026)
 
-### OpenAI: линейка gpt-image
+### OpenAI: the gpt-image line
 
-По официальному руководству (developers.openai.com, проверено 2026-08-24) актуальны модели `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1`, `gpt-image-1-mini`; для Responses API вызов идёт через модель вроде `gpt-5.6`, которая обращается к инструменту генерации изображений. [3]
+Per the official guide (developers.openai.com, verified 2026-08-24), the current models are `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1`, `gpt-image-1-mini`; for the Responses API, the call goes through a model like `gpt-5.6`, which calls the image-generation tool. [3]
 
-Поддерживаемые размеры (`size`): `1024x1024`, `1536x1024`, `1024x1536`, `2048x2048`, `2048x1152`, `2160x3840`, `3840x2160`, `auto`. Ограничения: «максимальный размер края ≤ 3840px», «оба края кратны 16px», «коэффициент длинной к короткой стороне ≤ 3:1». [3]
+Supported sizes (`size`): `1024x1024`, `1536x1024`, `1024x1536`, `2048x2048`, `2048x1152`, `2160x3840`, `3840x2160`, `auto`. Limits: "max edge size ≤ 3840px," "both edges a multiple of 16px," "long-to-short side ratio ≤ 3:1." [3]
 
-Прозрачный фон подтверждён официально: нужно установить `background: "transparent"`; работает с форматами `png` и `webp`, но не с `jpeg`. [3]
+Transparent background is officially confirmed: set `background: "transparent"`; works with the `png` and `webp` formats, but not `jpeg`. [3]
 
-Batch-режима как отдельного API для изображений в руководстве не найдено; параметр `n` лишь «генерирует несколько изображений сразу в одном запросе» — это не то же самое, что настоящий batch job. Отдельный `seed`-параметр в документации не упоминается; более того, сама документация признаёт ограничение консистентности: «модель может иногда испытывать сложности поддерживать консистентность» для повторяющихся персонажей. [3]
+No batch mode as a separate API for images was found in the guide; the `n` parameter only "generates multiple images at once in a single request" — this is not the same as an actual batch job. A separate `seed` parameter is not mentioned in the documentation; moreover, the documentation itself acknowledges a consistency limitation: "the model may sometimes struggle to maintain consistency" for recurring characters. [3]
 
-Прочие параметры: `quality` — `"low"`, `"medium"`, `"high"`, `"auto"`; `format` — `"png"` (по умолчанию), `"jpeg"`, `"webp"`; `output_compression` — 0–100% для JPEG/WebP; `moderation` — `"auto"` или `"low"`. [3]
+Other parameters: `quality` — `"low"`, `"medium"`, `"high"`, `"auto"`; `format` — `"png"` (default), `"jpeg"`, `"webp"`; `output_compression` — 0–100% for JPEG/WebP; `moderation` — `"auto"` or `"low"`. [3]
 
-Официальная цена (developers.openai.com/api/docs/pricing, проверено 2026-08-24) указана за 1 млн токенов, а не за изображение напрямую:
+Official pricing (developers.openai.com/api/docs/pricing, verified 2026-08-24) is given per 1M tokens, not directly per image:
 
 ```
-gpt-image-2:      input $8.00 / output $30.00 за 1M токенов
-gpt-image-1.5:    input $8.00 / output $32.00 за 1M токенов
-gpt-image-1-mini: input $2.50 / output $8.00  за 1M токенов
-gpt-image-1:      input $10.00 / output $40.00 за 1M токенов
+gpt-image-2:      input $8.00 / output $30.00 per 1M tokens
+gpt-image-1.5:    input $8.00 / output $32.00 per 1M tokens
+gpt-image-1-mini: input $2.50 / output $8.00  per 1M tokens
+gpt-image-1:      input $10.00 / output $40.00 per 1M tokens
 ```
-Batch-режим (для текстовых/токенных вызовов, не путать с «batch генерации изображений» выше) — цены в два раза ниже. [4]
+Batch mode (for text/token calls, not to be confused with the "image-generation batch" mentioned above) is priced at half. [4]
 
-Официальная таблица расхода токенов на одно изображение по `quality`/`size` (для моделей линейки до `gpt-image-2`):
+Official table of token cost per image by `quality`/`size` (for models in the line up to `gpt-image-2`):
 
 | Quality | Square (1024×1024) | Portrait (1024×1536) | Landscape (1536×1024) |
 |---|---|---|---|
@@ -47,15 +47,15 @@ Batch-режим (для текстовых/токенных вызовов, н�
 | Medium | 1056 tokens | 1584 tokens | 1568 tokens |
 | High | 4160 tokens | 6240 tokens | 6208 tokens |
 
-Для `gpt-image-2` отдельной табличной раскладки токенов в открытой документации не найдено — расчёт предлагается через калькулятор внутри руководства. [3]
+For `gpt-image-2`, no separate token-table breakdown was found in the open documentation — the calculation is offered via a calculator embedded in the guide. [3]
 
-### Google: Imagen (отключается) и семейство Nano Banana
+### Google: Imagen (being shut down) and the Nano Banana family
 
-Официальная документация Gemini API прямо пишет про Imagen: «This model is deprecated and will be shut down on August 17, 2026; migrate to Nano Banana for image generation». Дата сбора сведений — 24 августа 2026, то есть срок уже прошёл: полагаться на Imagen 4 в новом проекте нельзя. [1]
+The official Gemini API documentation states plainly about Imagen: "This model is deprecated and will be shut down on August 17, 2026; migrate to Nano Banana for image generation." The material-collection date is August 24, 2026 — meaning the deadline has already passed: Imagen 4 cannot be relied on for a new project. [1]
 
-Пока модель была активна, официальная цена по тарифам была: Fast — $0.02, Standard — $0.04, Ultra — $0.06 за изображение; поддерживались размеры 1K и 2K (2K — только Standard/Ultra), соотношения сторон 1:1, 3:4, 4:3, 9:16, 16:9, конфигурация через `numberOfImages` (1–4), `imageSize`, `aspectRatio`, `personGeneration`. Ни seed, ни референсных изображений, ни прозрачного фона, ни batch-режима для Imagen в документации не описано. [1]
+While the model was active, the official pricing tiers were: Fast — $0.02, Standard — $0.04, Ultra — $0.06 per image; supported sizes were 1K and 2K (2K — Standard/Ultra only), aspect ratios 1:1, 3:4, 4:3, 9:16, 16:9, configured via `numberOfImages` (1–4), `imageSize`, `aspectRatio`, `personGeneration`. No seed, reference images, transparent background, or batch mode is described for Imagen in the documentation. [1]
 
-Официальная замена — линейка Nano Banana через Gemini API. Официальная цена (ai.google.dev/gemini-api/docs/pricing, проверено 2026-08-24):
+The official replacement is the Nano Banana line via the Gemini API. Official pricing (ai.google.dev/gemini-api/docs/pricing, verified 2026-08-24):
 
 ```
 Gemini 2.5 Flash Image (Nano Banana):
@@ -65,7 +65,7 @@ Gemini 2.5 Flash Image (Nano Banana):
 
 Gemini 3.1 Flash Image (Nano Banana 2):
   input $0.50 / 1M tokens
-  output $60 / 1M tokens ($0.045–0.151 per image, зависит от разрешения)
+  output $60 / 1M tokens ($0.045–0.151 per image, depending on resolution)
   batch: $0.25 / 1M input, $30 / 1M output
 
 Gemini 3.1 Flash Lite Image (Nano Banana 2 Lite):
@@ -80,72 +80,72 @@ Gemini 3 Pro Image (Nano Banana Pro):
 ```
 [2]
 
-Размеры: Nano Banana 2 Lite — 0.5K (512px) и 1K; Nano Banana 2 и Nano Banana Pro — 1K, 2K и 4K. [2]
+Sizes: Nano Banana 2 Lite — 0.5K (512px) and 1K; Nano Banana 2 and Nano Banana Pro — 1K, 2K and 4K. [2]
 
-Референсные изображения официально подтверждены: модели Nano Banana поддерживают «up to 14 reference images» для сохранения консистентности персонажей и предметов — лимит варьируется по уровню модели. [2]
+Reference images are officially confirmed: the Nano Banana models support "up to 14 reference images" to preserve consistency of characters and objects — the limit varies by model tier. [2]
 
-Batch API подтверждён отдельно: «All of the image generation capabilities described on this page can also be run as batch jobs using the Batch API», с оговоркой «higher rate limits in exchange for a turnaround of up to 24 hours». [2]
+Batch API is confirmed separately: "All of the image generation capabilities described on this page can also be run as batch jobs using the Batch API," with the caveat "higher rate limits in exchange for a turnaround of up to 24 hours." [2]
 
-Прозрачный фон и `seed`-параметр в проверенной документации не упомянуты — данных не найдено.
+Transparent background and a `seed` parameter are not mentioned in the verified documentation — no data found.
 
-### Black Forest Labs: линейка FLUX
+### Black Forest Labs: the FLUX line
 
-Официальная страница цен bfl.ai/pricing (проверено 2026-08-24, данные извлечены из встроенной в страницу JSON-разметки) даёт по каждой модели точную цену. Часть моделей тарифицируется за мегапиксель (первый мегапиксель дороже последующих), часть — плоской ценой за изображение:
+The official pricing page bfl.ai/pricing (verified 2026-08-24, data extracted from the JSON markup embedded in the page) gives exact pricing per model. Some models are priced per megapixel (the first megapixel costs more than subsequent ones), others at a flat price per image:
 
 ```
-FLUX.2 [max]:          $0.07 за первый Мп, $0.03 за каждый следующий Мп
-                       референс-изображения: $0.03 / Мп
-FLUX.2 [pro]:          $0.03 за первый Мп, $0.015 за каждый следующий Мп
-                       референс-изображения: $0.015 / Мп
-FLUX.2 [klein] 9B:     $0.015 за первый Мп, $0.002 за каждый следующий Мп
-                       референс-изображения: $0.002 / Мп
-FLUX.2 [klein] 4B:     $0.014 за первый Мп, $0.001 за каждый следующий Мп
-                       референс-изображения: $0.001 / Мп
-FLUX.2 [flex]:         плоская цена $0.05 / Мп
+FLUX.2 [max]:          $0.07 for the first Mp, $0.03 for each following Mp
+                       reference images: $0.03 / Mp
+FLUX.2 [pro]:          $0.03 for the first Mp, $0.015 for each following Mp
+                       reference images: $0.015 / Mp
+FLUX.2 [klein] 9B:     $0.015 for the first Mp, $0.002 for each following Mp
+                       reference images: $0.002 / Mp
+FLUX.2 [klein] 4B:     $0.014 for the first Mp, $0.001 for each following Mp
+                       reference images: $0.001 / Mp
+FLUX.2 [flex]:         flat price $0.05 / Mp
 
-FLUX.1 Kontext [max]:  $0.08 за изображение
-FLUX.1 Kontext [pro]:  $0.04 за изображение
-FLUX 1.1 [pro] Ultra:  $0.06 за изображение
-FLUX 1.1 [pro]:        $0.04 за изображение
-FLUX.1 [pro]:          $0.05 за изображение
-FLUX.1 [dev]:          $0.025 за изображение
-FLUX.1 Fill [pro]:     $0.05 за изображение
+FLUX.1 Kontext [max]:  $0.08 per image
+FLUX.1 Kontext [pro]:  $0.04 per image
+FLUX 1.1 [pro] Ultra:  $0.06 per image
+FLUX 1.1 [pro]:        $0.04 per image
+FLUX.1 [pro]:          $0.05 per image
+FLUX.1 [dev]:          $0.025 per image
+FLUX.1 Fill [pro]:     $0.05 per image
 ```
-Правило подсчёта мегапикселей указано текстом на самой странице: «for pricing, resolution is always rounded up to the next megapixel, separately for each reference image and for the generated image» и «1 megapixel is counted as 1024x1024 pixels». [5]
+The megapixel-counting rule is given as text on the page itself: "for pricing, resolution is always rounded up to the next megapixel, separately for each reference image and for the generated image" and "1 megapixel is counted as 1024x1024 pixels." [5]
 
-Референсные изображения (для консистентности стиля/персонажа) официально подтверждены документацией FLUX.2 (docs.bfl.ai/flux_2, проверено 2026-08-24): лимит зависит от модели — «[klein]: Recommended max 6», «[max] / [pro] / [flex]: Up to 8 (API), 10 (playground)». [6]
+Reference images (for style/character consistency) are officially confirmed by the FLUX.2 documentation (docs.bfl.ai/flux_2, verified 2026-08-24): the limit depends on the model — "[klein]: Recommended max 6," "[max] / [pro] / [flex]: Up to 8 (API), 10 (playground)." [6]
 
-Прозрачный фон на выходе, `seed`-параметр и отдельный batch-эндпоинт со скидкой в проверенных официальных источниках не описаны — данных не найдено. На странице цен упомянуты только общие «volume discounts... for high-throughput workloads» по индивидуальным условиям, это не то же самое, что документированный batch API. [5]
+Transparent output background, a `seed` parameter, and a separate discounted batch endpoint are not described in the verified official sources — no data found. The pricing page only mentions general "volume discounts... for high-throughput workloads" under individual terms, which is not the same as a documented batch API. [5]
 
-## Приёмы удержания единого стиля в наборе
+## Techniques for keeping a consistent style across a set
 
-Практики сходятся в том, что единый стиль — это не одна настройка, а связка приёмов, применённая одновременно, а не по отдельности.
+Practitioners agree that a consistent style is not one setting but a combination of techniques applied together, not separately.
 
-**Фиксированный шаблон наказа + seed закрывают не всё.** Один из практиков формулирует так: «Seed control and prompt templates only get you 80% of the way. Here's what closes the gap: Use a LoRA fine-tuned on your target art style» — и уточняет, что «Even a small LoRA (4-8 rank) trained on 20-30 reference sprites dramatically improves consistency». [7]
+**A fixed prompt template + seed do not close the whole gap.** One practitioner puts it this way: "Seed control and prompt templates only get you 80% of the way. Here's what closes the gap: Use a LoRA fine-tuned on your target art style" — and adds that "Even a small LoRA (4-8 rank) trained on 20-30 reference sprites dramatically improves consistency." [7]
 
-**Причина рассинхронизации стиля называется «style drift»**: «generating the same character twice can yield two completely different art styles», лечится «a combination of fixed seeds, detailed style prompts, and a reusable prompt template». [7]
+**The cause of style desynchronization is called "style drift"**: "generating the same character twice can yield two completely different art styles," treated with "a combination of fixed seeds, detailed style prompts, and a reusable prompt template." [7]
 
-**Схема через референсное изображение**: сначала генерируется одно эталонное изображение персонажа/стиля, затем оно передаётся как референс во все последующие вызовы вместе с тем же seed и тем же шаблоном наказа — «using the same seed value, same style settings, and same prompt structure across all generations for maximum consistency». [7]
+**Reference-image scheme**: first, one reference image of the character/style is generated, then it is passed as a reference into every subsequent call together with the same seed and the same prompt template — "using the same seed value, same style settings, and same prompt structure across all generations for maximum consistency." [7]
 
-**«Art bible» до первого вызова API**: один из источников советует до генерации набора явно зафиксировать текстом камеру, палитру, направление света, масштаб, размер тайла и материальные правила — «lock the camera, palette, light direction, scale, tile size, and material rules before generating batches» — потому что «if AI changes the camera by 5-10 degrees between generations, the set feels broken». [7]
+**An "art bible" before the first API call**: one source advises explicitly fixing in text, before generating a set, the camera, palette, light direction, scale, tile size, and material rules — "lock the camera, palette, light direction, scale, tile size, and material rules before generating batches" — because "if AI changes the camera by 5-10 degrees between generations, the set feels broken." [7]
 
-**Порождение листом (sprite sheet) вместо поштучного порождения**: современные мультимодальные модели понимают явные указания на сетку кадров в одном наказе, например «Create a sprite sheet of the character running, 8 frames in 2 rows on grey background, side view, consistent proportions» — так получают один широкий лист, который дальше нарезается в движке, вместо N независимых вызовов с риском разъезжающегося стиля между кадрами. [7]
+**Generating as a sprite sheet instead of one item at a time**: modern multimodal models understand explicit frame-grid instructions in a single prompt, for example "Create a sprite sheet of the character running, 8 frames in 2 rows on grey background, side view, consistent proportions" — this produces one wide sheet that is then sliced up in the engine, instead of N independent calls with the risk of style drifting apart between frames. [7]
 
-**Батч и отбор лучшего**: «generate 4 images per pose with consecutive seeds and pick the best» — быстрее, чем перегенерировать по одному изображению за раз. [7]
+**Batching and picking the best**: "generate 4 images per pose with consecutive seeds and pick the best" — faster than regenerating one image at a time. [7]
 
-**ControlNet** (для моделей на базе Stable Diffusion) называется «the king of consistency and control» — позволяет держать позу/структуру по референсному изображению, глубине или карте позы при генерации листов и поворотов. [7]
+**ControlNet** (for Stable Diffusion-based models) is called "the king of consistency and control" — it lets you hold a pose/structure from a reference image, depth map, or pose map while generating sheets and turnarounds. [7]
 
-Практическое напоминание из того же источника: сгенерированный PNG — это ещё не игровой актив, «a generated PNG is not a game asset, just a picture of one»; нарезка листа на кадры, точка опоры, коллизия, аниматор — отдельный обязательный этап после генерации. [7]
+A practical reminder from the same source: a generated PNG is not yet a game asset, "a generated PNG is not a game asset, just a picture of one"; slicing the sheet into frames, the pivot point, collision, and the animator are a separate mandatory step after generation. [7]
 
-## Удаление фона и подготовка прозрачности на Python
+## Background removal and transparency preparation in Python
 
 ### rembg
 
-Текущая версия на PyPI — 2.0.81 (проверено 2026-08-24, `pip index versions rembg`); на GitHub — 24 410 звёзд, последний push 2026-08-18 (данные из GitHub API). Лицензия — MIT. [8]
+Current version on PyPI is 2.0.81 (verified 2026-08-24, `pip index versions rembg`); on GitHub — 24,410 stars, last push 2026-08-18 (data from the GitHub API). License — MIT. [8]
 
-Поддерживаемые модели включают `u2net`, `u2netp`, `isnet-general-use`, `isnet-anime`, семейство `birefnet-general` и его модификации, а также облачную модель по умолчанию `bria-rmbg` (~1.02 GB, для высокого качества). Для волос на портретах в документации отдельно рекомендуется `birefnet-portrait` с флагом деконтаминации цвета или альфа-матированием. Требование по версии Python: `>=3.11, <3.14`. Облачный вариант API имеет ограничение загрузки 20 MB. [8]
+Supported models include `u2net`, `u2netp`, `isnet-general-use`, `isnet-anime`, the `birefnet-general` family and its variants, plus the cloud default model `bria-rmbg` (~1.02 GB, for high quality). For hair in portraits the documentation separately recommends `birefnet-portrait` with the color-decontamination flag or alpha matting. Python version requirement: `>=3.11, <3.14`. The cloud API variant has a 20 MB upload limit. [8]
 
-Пример использования из README:
+Usage example from the README:
 ```python
 from rembg import remove
 from PIL import Image
@@ -158,27 +158,27 @@ output_img.save('output.png')
 
 ### backgroundremover
 
-Версия на PyPI — 0.4.5 (проверено 2026-08-24); на GitHub — 8020 звёзд, последний push 2026-07-10, репозиторий не заархивирован. [9]
+Version on PyPI — 0.4.5 (verified 2026-08-24); on GitHub — 8020 stars, last push 2026-07-10, repository not archived. [9]
 
-### Pillow: обрезка по содержимому, приведение к единому размеру, выравнивание
+### Pillow: content-aware cropping, uniform sizing, alignment
 
-Официальная документация Pillow (проверено 2026-08-24) даёт точные сигнатуры:
+The official Pillow documentation (verified 2026-08-24) gives exact signatures:
 
 ```python
 Image.getbbox(*, alpha_only: bool = True) -> tuple[int, int, int, int] | None
 ```
-Вычисляет ограничивающий прямоугольник ненулевых (непрозрачных, если `alpha_only=True`) областей — то есть основной инструмент автообрезки спрайта по содержимому. Возвращает `None`, если изображение пусто. [10]
+Computes the bounding box of non-zero (non-transparent, if `alpha_only=True`) areas — i.e., the main tool for auto-cropping a sprite to its content. Returns `None` if the image is empty. [10]
 
 ```python
 Image.crop(box: tuple[float, float, float, float] | None = None) -> Image
 ```
-Обрезает по прямоугольнику `(left, upper, right, lower)` в пикселях. С версии Pillow 3.4.0 операция больше не ленивая. [10]
+Crops to the `(left, upper, right, lower)` rectangle in pixels. As of Pillow 3.4.0 the operation is no longer lazy. [10]
 
 ```python
-im.thumbnail(size)  # например, size = (128, 128)
+im.thumbnail(size)  # e.g., size = (128, 128)
 im.save(file + ".thumbnail", "JPEG")
 ```
-Уменьшает изображение до `size`, сохраняя пропорции — подходит для приведения набора к единому «превью»-размеру перед атласированием. [10]
+Shrinks the image to `size` while preserving proportions — suitable for bringing a set to a uniform "preview" size before atlasing. [10]
 
 ```python
 Image.paste(
@@ -187,33 +187,33 @@ Image.paste(
     mask: Image | None = None
 ) -> None
 ```
-Вставка изображения или заливки цветом на холст нужного итогового размера; `mask` управляет прозрачностью вставляемой области — используется, чтобы выравнивать обрезанные спрайты по центру канвы фиксированного размера. [10]
+Pastes an image or a color fill onto a canvas of the desired final size; `mask` controls the transparency of the pasted area — used to align cropped sprites centered on a canvas of a fixed size. [10]
 
-Типичная цепочка для одного предмета: `getbbox()` → `crop(bbox)` → создать пустой холст фиксированного размера (`Image.new("RGBA", size, (0,0,0,0))`) → `paste(cropped, offset, cropped)`, где `offset` вычислен так, чтобы центрировать обрезанное содержимое.
+A typical chain for one item: `getbbox()` → `crop(bbox)` → create an empty canvas of a fixed size (`Image.new("RGBA", size, (0,0,0,0))`) → `paste(cropped, offset, cropped)`, where `offset` is computed to center the cropped content.
 
-## Подготовка спрайтов для Unity
+## Preparing sprites for Unity
 
-Официальный блог и документация Unity сходятся на нескольких правилах. Текстуры желательно приводить к степени двойки на сторону: «ideally be powers of two on each side, as this ensures hardware can efficiently compress images» — при этом ширина и высота не обязаны совпадать. Настройку `Max Size` можно и нужно задавать отдельно на платформу («Import Settings allow you to define a Max Size and other compression settings per platform»), с компрессией ASTC (лучший баланс качество/размер на современных GPU) или ETC2 (более широкая совместимость) на мобильных. [11]
+The official Unity blog and documentation agree on several rules. Textures should ideally be brought to a power of two on a side: "ideally be powers of two on each side, as this ensures hardware can efficiently compress images" — width and height need not match. The `Max Size` setting can and should be set separately per platform ("Import Settings allow you to define a Max Size and other compression settings per platform"), with ASTC compression (best quality/size balance on modern GPUs) or ETC2 (broader compatibility) on mobile. [11]
 
-Для листов, нарезаемых автоматически, между спрайтами нужен отступ: «Unity's texture sampling does need... proper padding is needed specifically to avoid visual glitches», в отличие от некоторых других движков. [11]
+For sheets sliced automatically, padding is needed between sprites: "Unity's texture sampling does need... proper padding is needed specifically to avoid visual glitches," unlike some other engines. [11]
 
-Pixels Per Unit (PPU) должен быть согласован по всему проекту: «Consistent Pixels Per Unit (PPU) across all related assets is paramount for ensuring uniform scaling and avoiding visual inconsistencies», типичные значения — 16/32/64 в зависимости от масштаба арта; значение по умолчанию — 100. [11]
+Pixels Per Unit (PPU) must be consistent across the whole project: "Consistent Pixels Per Unit (PPU) across all related assets is paramount for ensuring uniform scaling and avoiding visual inconsistencies," with typical values of 16/32/64 depending on the art's scale; the default value is 100. [11]
 
-Sprite Atlas — официальный механизм упаковки нескольких спрайтов в общую текстуру ради сокращения числа draw call на мобильных устройствах. Официальная рекомендация Unity: «ideally all or most sprites that are active in the Scene should belong to the same Atlas», а также стоит «split Sprite Textures into multiple smaller Atlases according to their common usage». Пустое пространство между упакованными текстурами уменьшает итоговый размер атласа и проверяется через панель Pack Preview в инспекторе. Если `Max Texture Size` в platform-specific overrides меньше текущих размеров атласа, Unity уменьшает упакованную текстуру автоматически. [12]
+Sprite Atlas is Unity's official mechanism for packing multiple sprites into a shared texture to reduce the number of draw calls on mobile devices. The official Unity recommendation: "ideally all or most sprites that are active in the Scene should belong to the same Atlas," and it's also worth "split[ting] Sprite Textures into multiple smaller Atlases according to their common usage." Empty space between packed textures reduces the resulting atlas size and is checked via the Pack Preview panel in the inspector. If `Max Texture Size` in the platform-specific overrides is smaller than the atlas's current dimensions, Unity shrinks the packed texture automatically. [12]
 
-Одно независимое (не официальное Unity) измерение производительности на мобильном устройстве: сцена с ~120 уникальными текстурами спрайтов на Android среднего уровня держала 38 fps при 6,2 мс CPU-времени на отрисовку; после упаковки в один атлас 2048×2048 та же сцена держала стабильные 60 fps при 1,4 мс CPU-времени, теми же артом, шейдерами и графом сцены. Это цифры стороннего источника, не официальной документации Unity — приводятся с пометкой источника. [16]
+One independent (not official Unity) mobile-device performance measurement: a scene with ~120 unique sprite textures on a mid-range Android device held 38 fps at 6.2 ms of CPU render time; after packing into a single 2048×2048 atlas, the same scene held a stable 60 fps at 1.4 ms of CPU time, with the same art, shaders, and scene graph. These are figures from a third-party source, not official Unity documentation — given with the source noted. [16]
 
-Итоговый чек-лист для 2D-мобильного пайплайна: тип текстуры — `Sprite (2D and UI)`; для пиксель-арта — фильтр `Point (No Filter)`; единый PPU по проекту; отступы 2–4 px между спрайтами в атласах; `Max Size` — степень двойки под целевую платформу; компрессия ASTC/ETC2 на мобильных; группировка активных на сцене спрайтов в общие Sprite Atlas; per-platform overrides для снижения размера текстур на мобильных устройствах. [11][12]
+Final checklist for a 2D mobile pipeline: texture type — `Sprite (2D and UI)`; for pixel art — `Point (No Filter)` filtering; a single consistent PPU project-wide; 2–4 px padding between sprites in atlases; `Max Size` — a power of two for the target platform; ASTC/ETC2 compression on mobile; grouping sprites active in the scene into shared Sprite Atlases; per-platform overrides to reduce texture size on mobile devices. [11][12]
 
-## Сборка кота из слоёв: перекраска через маски и шейдер
+## Assembling the cat from layers: recoloring via masks and a shader
 
-Принцип, который разбирают все найденные практические источники: вместо отдельной текстуры на каждый окрас кота держат одну обесцвеченную (или полутоновую) базовую текстуру и одну или несколько чёрно-белых масок, а конечный цвет собирает шейдер во время отрисовки.
+The principle all the practical sources found agree on: instead of a separate texture for each cat coat, keep one desaturated (or grayscale) base texture and one or more black-and-white masks, and let a shader assemble the final color at render time.
 
-### Через ноды Shader Graph (Cyanilux)
+### Via Shader Graph nodes (Cyanilux)
 
-Самый простой вариант — тонирование через `Multiply`: полутоновая текстура умножается на цветовое свойство материала и идёт в Base Color/Albedo — «one of the simplest forms of adjusting colour is a tint using a Multiply node between a greyscale input texture and a given colour». [13]
+The simplest option is tinting via `Multiply`: a grayscale texture is multiplied by the material's color property and fed into Base Color/Albedo — "one of the simplest forms of adjusting colour is a tint using a Multiply node between a greyscale input texture and a given colour." [13]
 
-Более гибкие узлы — `Replace Color` и `Color Mask`. Соответствующие им HLSL-функции (дословно из разбора):
+More flexible nodes are `Replace Color` and `Color Mask`. Their corresponding HLSL functions (verbatim from the writeup):
 ```hlsl
 float3 ReplaceColor(float3 In, float3 From, float3 To,
                     float Range, float Fuzziness){
@@ -228,15 +228,15 @@ float3 ColorMask(float3 In, float3 MaskColor,
     return saturate((Distance - Range) / max(Fuzziness, 1e-5));
 }
 ```
-Важная оговорка о мобильной производительности: методы, которые меняют UV-координаты на этапе фрагментного шейдера, создают «dependent texture read», которая «can prevent GPU texture pre-fetches and increase latency» — то есть дороже именно на мобильных GPU, и это стоит профилировать на целевом устройстве, а не считать теоретически. [13]
+An important caveat about mobile performance: methods that change UV coordinates at the fragment-shader stage create a "dependent texture read," which "can prevent GPU texture pre-fetches and increase latency" — i.e., it is more expensive precisely on mobile GPUs, and this is worth profiling on the target device rather than assuming theoretically. [13]
 
-### Через маски цвета поверх обесцвеченной текстуры (4experience.co)
+### Via color masks over a desaturated texture (4experience.co)
 
-Пошагово: (1) убрать цвет из альбедо — либо нодой saturation, либо (предпочтительнее по производительности) заранее подготовленной чёрно-белой текстурой без цветовой информации; (2) заранее подготовить маски под каждую перекрашиваемую область (например, в Blender или любом графическом редакторе); (3) для каждой маски применить узел `Lerp`, где сама маска выступает альфа-значением, определяющим, где ложится новый цвет; (4) повторить для всех дополнительных масок и объединить результаты; (5) добавить настраиваемые параметры для опциональных деталей и общих масок (логотипов/узоров), требующих отдельного UV-маппинга. [14]
+Step by step: (1) remove color from the albedo — either with a saturation node or (preferable for performance) a pre-prepared black-and-white texture with no color information; (2) prepare masks in advance for each recolorable area (for example, in Blender or any graphics editor); (3) for each mask apply a `Lerp` node, where the mask itself serves as the alpha value determining where the new color lands; (4) repeat for all additional masks and combine the results; (5) add configurable parameters for optional details and shared masks (logos/patterns) that require a separate UV mapping. [14]
 
-### Через явный RGB-канал маски в собственном шейдере (staraban.com)
+### Via an explicit RGB mask channel in a custom shader (staraban.com)
 
-Дословный пример ShaderLab-шейдера с тремя независимыми цветами, каждый привязан к своему каналу маски-текстуры (R/G/B):
+A verbatim example of a ShaderLab shader with three independent colors, each tied to its own mask-texture channel (R/G/B):
 ```glsl
 Shader "Particles/ColorTint" {
 Properties {
@@ -246,7 +246,7 @@ _TintColorGreen ("Tint Color Green", Color) = (0.5,0.5,0.5,0.5)
 _TintColorBlue ("Tint Color Blue", Color) = (0.5,0.5,0.5,0.5)
 }
 ```
-Фрагментный шейдер:
+Fragment shader:
 ```glsl
 fixed4 frag (v2f i) : COLOR
 {
@@ -259,7 +259,7 @@ fixed4 frag (v2f i) : COLOR
     return baseColor;
 }
 ```
-И управляющий C#-скрипт, назначающий цвета материалу:
+And the controlling C# script that assigns colors to the material:
 ```csharp
 public class Player : MonoBehaviour {
     public Transform head;
@@ -278,13 +278,13 @@ public class Player : MonoBehaviour {
     }
 }
 ```
-Применительно к коту: канал R маски — цвет базового меха, G — цвет пятен/полос узора, B — например, цвет ушей/лап; так один спрайт кота и одна маска дают произвольное число окрасов без роста числа текстур. [15]
+Applied to the cat: mask channel R — the base fur color, G — the color of pattern spots/stripes, B — for example, the color of the ears/paws; so one cat sprite and one mask give an arbitrary number of coats without growing the number of textures. [15]
 
-Готовое решение уровня ассета для пиксель-арта — Mana Seed Shaders: перекраска происходит простым назначением материала на спрайт, «eliminating the need for extra palette swapped sheets», с предзагруженными палитрами. [13]
+A ready-made asset-level solution for pixel art is Mana Seed Shaders: recoloring happens by simply assigning a material to the sprite, "eliminating the need for extra palette swapped sheets," with preloaded palettes. [13]
 
-## Пакетный прогон на Python: организация
+## Batch runs in Python: organization
 
-Официальный пример от OpenAI (`openai-cookbook/examples/api_request_parallel_processor.py`) описан как решение именно для параллелизации запросов к API с ограничением по лимитам: «parallelizes requests to the OpenAI API while throttling to stay under rate limits, streaming requests from a file to avoid running out of memory for giant jobs, making requests concurrently to maximize throughput, throttling request and token usage, retrying failed requests up to a configurable number of times, and logging errors». Пример запуска (для другого эндпоинта, но структура переносится на генерацию изображений заменой `request_url` и тела запроса):
+An official example from OpenAI (`openai-cookbook/examples/api_request_parallel_processor.py`) is described as a solution specifically for parallelizing API requests while respecting rate limits: "parallelizes requests to the OpenAI API while throttling to stay under rate limits, streaming requests from a file to avoid running out of memory for giant jobs, making requests concurrently to maximize throughput, throttling request and token usage, retrying failed requests up to a configurable number of times, and logging errors." Example invocation (for a different endpoint, but the structure carries over to image generation by swapping `request_url` and the request body):
 ```
 python examples/api_request_parallel_processor.py \
   --requests_filepath ... \
@@ -295,7 +295,7 @@ python examples/api_request_parallel_processor.py \
 ```
 [17]
 
-Официально рекомендованный OpenAI паттерн повторных попыток — декоратор `tenacity.retry` с `wait_random_exponential` (случайная экспоненциальная задержка, чтобы повторные запросы разных задач не били по API одновременно). Дословный пример из документации:
+The officially recommended OpenAI retry pattern is the `tenacity.retry` decorator with `wait_random_exponential` (a randomized exponential delay, so retries from different jobs don't hit the API at the same moment). Verbatim example from the documentation:
 ```python
 from openai import OpenAI
 from tenacity import (
@@ -317,16 +317,16 @@ completion_with_backoff(
     prompt="Once upon a time,",
 )
 ```
-Документация отдельно оговаривает: «Tenacity is a third-party tool» — OpenAI не даёт гарантий по его надёжности, это готовый, но сторонний компонент. [18]
+The documentation separately notes: "Tenacity is a third-party tool" — OpenAI gives no guarantees about its reliability; it's a ready-made but third-party component. [18]
 
-Практическая организация пакетного прогона набора предметов для игры, собранная из перечисленных выше официальных примеров и общих рекомендаций по конкурентности в Python:
-1. Список наказов формируется заранее как структура данных (например, список словарей: `{"id": "item_042_sword", "prompt": "...", "size": "1024x1024"}`), а не строится на лету — это то же требование, что и «streaming requests from a file», только в обратную сторону (можно писать результаты сразу по мере готовности).
-2. Одновременные обращения ограничиваются семафором или пулом (`asyncio.Semaphore`, либо счётчик запросов в минуту) — так же, как в примере от OpenAI, где троттлинг идёт по `max_requests_per_minute`/`max_tokens_per_minute`.
-3. Повторные попытки — через `tenacity` с экспоненциальной задержкой и джиттером, как в официальном примере выше; неуспешные запросы логируются отдельно с `id` задачи, чтобы их можно было перезапустить точечно.
-4. Сохранение — по осмысленному имени, включающему идентификатор предмета, а не порядковый номер вызова API (`item_042_sword_v1.png`), чтобы результат было легко сопоставить с исходным наказом при повторном запуске только неудачных позиций.
-5. Для сценария «нужно 500+ изображений и не горит по времени» вместо синхронного пула запросов стоит смотреть в сторону официального Batch API (см. разделы про OpenAI и Google выше) — он даёт по данным официальных страниц пониженную цену за счёт отложенного (до 24 часов у Google) исполнения, а не за счёт параллелизма на стороне клиента.
+A practical organization for a batch run generating a set of game items, assembled from the official examples listed above and general Python concurrency recommendations:
+1. The list of prompts is built ahead of time as a data structure (for example, a list of dicts: `{"id": "item_042_sword", "prompt": "...", "size": "1024x1024"}`), not built on the fly — the same requirement as "streaming requests from a file," just in reverse (results can be written out as soon as they are ready).
+2. Concurrent calls are bounded by a semaphore or a pool (`asyncio.Semaphore`, or a per-minute request counter) — the same as in the OpenAI example, where throttling runs on `max_requests_per_minute`/`max_tokens_per_minute`.
+3. Retries — via `tenacity` with exponential backoff and jitter, as in the official example above; failed requests are logged separately with the job's `id`, so they can be retried individually.
+4. Saving — under a meaningful name that includes the item's identifier, not the API call's sequence number (`item_042_sword_v1.png`), so the result is easy to match against the original prompt when only the failed items are rerun.
+5. For a "need 500+ images and it's not time-critical" scenario, instead of a synchronous request pool it's worth looking at the official Batch API (see the OpenAI and Google sections above) — per the official pages it gives a lower price in exchange for deferred (up to 24 hours at Google) execution, not for client-side parallelism.
 
-## Источники
+## Sources
 
 1. [Imagen — ai.google.dev/gemini-api/docs/imagen](https://ai.google.dev/gemini-api/docs/imagen)
 2. [Gemini API pricing — ai.google.dev/gemini-api/docs/pricing](https://ai.google.dev/gemini-api/docs/pricing)
@@ -346,4 +346,3 @@ completion_with_backoff(
 16. [Why Sprite Atlases Matter for Unity Mobile Games — I Love Sprites Blog](https://ilovesprites.com/blog/unity-sprite-atlas-mobile-games)
 17. [api_request_parallel_processor.py — openai/openai-cookbook](https://github.com/openai/openai-cookbook/blob/main/examples/api_request_parallel_processor.py)
 18. [Rate limits guide (retry with tenacity) — developers.openai.com/api/docs/guides/rate-limits](https://developers.openai.com/api/docs/guides/rate-limits)
-

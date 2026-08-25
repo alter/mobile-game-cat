@@ -1,53 +1,53 @@
-# Сборочный конвейер Unity → Xcode → App Store для iOS
+# Unity → Xcode → App Store build pipeline for iOS
 
-Дата сбора материала: 2026-08-24.
-Версия стека проекта: Unity 6.3 LTS (6000.3.x), сборка под iOS, IL2CPP, распространение через TestFlight и App Store.
+Material collection date: 2026-08-24.
+Project stack version: Unity 6.3 LTS (6000.3.x), building for iOS, IL2CPP, distribution via TestFlight and the App Store.
 
-## Кратко
+## In brief
 
-- Unity не собирает готовое приложение под iOS напрямую — она генерирует Xcode-проект (`Unity-iPhone.xcodeproj`), после чего сборку, архивирование, подпись и загрузку в App Store Connect должен выполнить Xcode или `xcodebuild`.
-- IL2CPP переводит управляемый код C# в C++, который затем компилирует уже Xcode: «Unity generates C++ source files based on your C# scripts and places them in the generated Xcode project. Xcode then invokes the IL2CPP program which compiles the C++ source files into libraries.»
-- Сгенерированный Xcode-проект содержит минимум три цели: `Unity-iPhone` (тонкий лаунчер и Info.plist), `UnityFramework` (рантайм, плагины, `PrivacyInfo.xcprivacy`) и статические библиотеки IL2CPP (`libGameAssembly.a`, `il2cpp.a`).
-- Архивирование и экспорт в командной строке — `xcodebuild -archive`, затем `xcodebuild -exportArchive` с файлом `ExportOptions.plist`, где задаются `method`, `teamID`, `signingStyle`, `provisioningProfiles`.
-- Для нотаризации `xcrun altool` не принимается сервисом нотаризации Apple с 1 ноября 2023 года — вместо него обязателен `notarytool`. Для загрузки самого `.ipa` в App Store Connect `altool` формально не «убит», но его ключ `--upload-app` помечен как deprecated в пользу `--upload-package`; на практике в CI чаще используют `xcodebuild -exportArchive` с встроенной выгрузкой либо Transporter.
-- Начиная с Xcode 13, `xcodebuild` поддерживает аутентификацию через ключ App Store Connect API (`-authenticationKeyPath`, `-authenticationKeyID`, `-authenticationKeyIssuerID`) вместо интерактивного логина Apple ID — это стандарт для headless CI.
-- Из C# можно модифицировать сгенерированный Xcode-проект через `[PostProcessBuild]` и класс `PBXProject` (`UnityEditor.iOS.Xcode`) — добавлять фреймворки, файлы, менять `Info.plist` (например, `NSCameraUsageDescription`).
-- Реальный эффект на размер сборки дают: Strip Engine Code, IL2CPP managed stripping level (Low/Medium/High), сжатие текстур (ASTC/ETC2, Crunch), контроль содержимого папки `Resources`. Пустой проект Unity без оптимизаций — около 20 МБ в App Store, с оптимизациями — менее 12 МБ.
-- Частые ошибки при переходе Unity → Xcode: `Undefined symbol` при добавлении сторонних native SDK (Firebase, Google Sign-In, Apple.GameKit), `Multiple commands produce ... Info.plist` при смене версии Xcode, сбои `PhaseScriptExecution`/code signing при апгрейде Xcode или CI-окружении.
+- Unity does not build a ready iOS application directly — it generates an Xcode project (`Unity-iPhone.xcodeproj`), after which the build, archiving, code signing, and upload to App Store Connect must be performed by Xcode or `xcodebuild`.
+- IL2CPP translates managed C# code into C++, which Xcode then compiles: "Unity generates C++ source files based on your C# scripts and places them in the generated Xcode project. Xcode then invokes the IL2CPP program which compiles the C++ source files into libraries."
+- The generated Xcode project contains at least three targets: `Unity-iPhone` (a thin launcher and Info.plist), `UnityFramework` (the runtime, plugins, `PrivacyInfo.xcprivacy`), and the IL2CPP static libraries (`libGameAssembly.a`, `il2cpp.a`).
+- Archiving and export from the command line — `xcodebuild -archive`, then `xcodebuild -exportArchive` with an `ExportOptions.plist` file specifying `method`, `teamID`, `signingStyle`, `provisioningProfiles`.
+- For notarization, `xcrun altool` has not been accepted by Apple's notary service since November 1, 2023 — `notarytool` is now mandatory instead. For uploading the `.ipa` itself to App Store Connect, `altool` has not formally been "killed," but its `--upload-app` key is marked deprecated in favor of `--upload-package`; in practice CI more often uses `xcodebuild -exportArchive` with a built-in upload, or Transporter.
+- Starting with Xcode 13, `xcodebuild` supports authentication via an App Store Connect API key (`-authenticationKeyPath`, `-authenticationKeyID`, `-authenticationKeyIssuerID`) instead of an interactive Apple ID login — this is the standard for headless CI.
+- From C# the generated Xcode project can be modified via `[PostProcessBuild]` and the `PBXProject` class (`UnityEditor.iOS.Xcode`) — adding frameworks, files, changing `Info.plist` (e.g. `NSCameraUsageDescription`).
+- Real effects on build size come from: Strip Engine Code, IL2CPP managed stripping level (Low/Medium/High), texture compression (ASTC/ETC2, Crunch), and controlling the contents of the `Resources` folder. An empty Unity project with no optimizations is about 20 MB in the App Store; with optimizations, under 12 MB.
+- Common errors during the Unity → Xcode transition: `Undefined symbol` when adding a third-party native SDK (Firebase, Google Sign-In, Apple.GameKit), `Multiple commands produce ... Info.plist` when changing the Xcode version, `PhaseScriptExecution`/code signing failures on an Xcode upgrade or in a CI environment.
 
-## Как Unity 6.3 собирает под iOS
+## How Unity 6.3 builds for iOS
 
-Официальная страница Unity Manual «How Unity builds iOS applications» для ветки 6000.3 (открыта через WebFetch) описывает процесс так:
+The official Unity Manual page "How Unity builds iOS applications" for the 6000.3 branch (opened via WebFetch) describes the process as follows:
 
 > "Unity collects project resources, code libraries, and plug-ins from your Unity project and uses them to create a valid Xcode project."
 
-Дальше про IL2CPP:
+Then on IL2CPP:
 
 > "Unity generates C++ source files based on your C# scripts and places them in the generated Xcode project. Xcode then invokes the IL2CPP program which compiles the C++ source files into libraries."
 
-И финальный шаг локальной сборки/запуска:
+And the final step of a local build/run:
 
 > "Xcode builds the project into a standalone application and deploys and launches it on a connected device or the Xcode simulator."
 
 ([Unity Manual — How Unity builds iOS applications (6000.3)](https://docs.unity3d.com/6000.3/Documentation/Manual/how-unity-builds-ios-applications.html))
 
-Страница не описывает шаги архивирования, экспорта и загрузки в App Store Connect — это зона ответственности Xcode/`xcodebuild`, а не Unity, и описана в следующем разделе.
+The page does not describe the steps of archiving, exporting, and uploading to App Store Connect — that is the responsibility of Xcode/`xcodebuild`, not Unity, and is described in the next section.
 
-Что делать дальше с `Unity-iPhone.xcodeproj`: открыть проект в Xcode (или работать с ним через `xcodebuild` в CI), настроить подпись (Team, Bundle Identifier уже проставлены из Player Settings, но провижининг обычно нужно проверить/переопределить), при необходимости внести правки через `PostProcessBuild` (см. ниже), затем выполнить `Product → Archive` в Xcode либо эквивалентные команды `xcodebuild archive` / `xcodebuild -exportArchive` в терминале, и загрузить получившийся `.ipa` в App Store Connect.
+What to do next with `Unity-iPhone.xcodeproj`: open the project in Xcode (or work with it via `xcodebuild` in CI), configure code signing (Team and Bundle Identifier are already set from Player Settings, but provisioning usually needs to be checked/overridden), make edits via `PostProcessBuild` if needed (see below), then run `Product → Archive` in Xcode or the equivalent `xcodebuild archive` / `xcodebuild -exportArchive` commands in the terminal, and upload the resulting `.ipa` to App Store Connect.
 
-По официальной странице структуры Xcode-проекта Unity (6000.2, открыта через WebFetch) сгенерированный проект содержит:
+According to the official page on the structure of a Unity Xcode project (6000.2, opened via WebFetch), the generated project contains:
 
-- **Unity-iPhone** — «a thin launcher part that runs the UnityFramework», включает папку `MainApp` с `Info.plist` и Launch Screen.
-- **UnityFramework** — цель, производящая `UnityFramework.framework`: «the Unity runtime, Classes, UnityFramework, and Libraries folders, along with dependent frameworks» — сюда же попадает консолидированный `PrivacyInfo.xcprivacy`.
-- **GameAssembly** — контейнер для C#-кода, транслированного в C++ через IL2CPP: статическая библиотека `libGameAssembly.a` (управляемый код, кросс-компилированный в C++) и `il2cpp.a` (рантайм IL2CPP).
+- **Unity-iPhone** — "a thin launcher part that runs the UnityFramework," includes the `MainApp` folder with `Info.plist` and the Launch Screen.
+- **UnityFramework** — the target that produces `UnityFramework.framework`: "the Unity runtime, Classes, UnityFramework, and Libraries folders, along with dependent frameworks" — this is also where the consolidated `PrivacyInfo.xcprivacy` ends up.
+- **GameAssembly** — a container for C# code translated to C++ via IL2CPP: the static library `libGameAssembly.a` (managed code cross-compiled to C++) and `il2cpp.a` (the IL2CPP runtime).
 
-Прочие сгенерированные файлы: сам `.xcodeproj`, папка `Classes` (`main.mm`, `UnityAppController.mm/h`), папка `Data` с сериализованными ассетами и .NET-сборками, папка `Libraries` с `libil2cpp.a`, иконки и launch screens. ([Unity Manual — Structure of a Unity Xcode project (6000.2)](https://docs.unity3d.com/6000.2/Documentation/Manual/StructureOfXcodeProject.html))
+Other generated files: the `.xcodeproj` itself, the `Classes` folder (`main.mm`, `UnityAppController.mm/h`), the `Data` folder with serialized assets and .NET assemblies, the `Libraries` folder with `libil2cpp.a`, icons, and launch screens. ([Unity Manual — Structure of a Unity Xcode project (6000.2)](https://docs.unity3d.com/6000.2/Documentation/Manual/StructureOfXcodeProject.html))
 
-## Команды xcodebuild, ExportOptions.plist, актуальный способ загрузки
+## xcodebuild commands, ExportOptions.plist, the current upload method
 
-Официальные страницы Apple по нотаризации и `altool`/`notarytool` (`developer.apple.com/documentation/technotes/tn3147-migrating-to-the-latest-notarization-tool`) построены на Swift-DocC и через WebFetch не открылись — только заголовок. Ниже — то, что подтверждено прямым открытием мана `altool` (зеркало на keith.github.io, официальный текст man-страницы Apple) и то, что взято из вторичных источников (community-разборы, форумы Apple Developer, форумы fastlane) с явной пометкой.
+The official Apple pages on notarization and `altool`/`notarytool` (`developer.apple.com/documentation/technotes/tn3147-migrating-to-the-latest-notarization-tool`) are built on Swift-DocC and did not open via WebFetch — only the title did. Below is what is confirmed by directly opening the `altool` man page (mirror on keith.github.io, the official text of Apple's man page) and what is taken from secondary sources (community write-ups, Apple Developer forums, fastlane forums) with an explicit label.
 
-### Архивирование и экспорт (типовые команды из практики CI, не выдуманы — совпадают в нескольких независимых источниках)
+### Archiving and export (typical commands from CI practice, not invented — they match across several independent sources)
 
 ```
 xcodebuild -workspace Unity-iPhone.xcworkspace \
@@ -62,11 +62,11 @@ xcodebuild -exportArchive \
   -exportOptionsPlist ExportOptions.plist
 ```
 
-Если у проекта нет отдельного workspace (обычный сгенерированный Unity-проект без CocoaPods/SPM-workspace), используется `-project Unity-iPhone.xcodeproj` вместо `-workspace`.
+If the project has no separate workspace (a plain generated Unity project without a CocoaPods/SPM workspace), `-project Unity-iPhone.xcodeproj` is used instead of `-workspace`.
 
 ### ExportOptions.plist
 
-Ключевые поля по практике сообщества (метод, teamID, стиль подписи, соответствие профилей):
+Key fields based on community practice (method, teamID, signing style, profile mapping):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -88,21 +88,21 @@ xcodebuild -exportArchive \
 </plist>
 ```
 
-Важная деталь про значение ключа `method`: по сведениям из community-обсуждений, имя `app-store` в `ExportOptions.plist` для `xcodebuild -exportArchive` считается устаревшим в пользу `app-store-connect`; полный список принимаемых значений (`app-store-connect`, `release-testing`, `enterprise`, `debugging`, `developer-id`, `mac-application`, `validation`) выводится локальной командой `xcodebuild -help` — это самый надёжный способ проверить актуальный список именно для установленной версии Xcode 26, так как страница `xcodebuild -help` меняется от релиза к релизу и официальную DocC-страницу с этим списком через WebFetch открыть не удалось — рекомендация проверить командой на месте, а не полагаться на этот документ. Точный список ключей `ExportOptions.plist` для конкретной версии Xcode 26 официальной страницей Apple в этом исследовании не подтверждён — не проверено, взято из вторичных источников (Medium, Fritz.ai, matrixprojects.net, GitHub gist).
+An important detail about the `method` key's value: according to community discussions, the name `app-store` in `ExportOptions.plist` for `xcodebuild -exportArchive` is considered deprecated in favor of `app-store-connect`; the full list of accepted values (`app-store-connect`, `release-testing`, `enterprise`, `debugging`, `developer-id`, `mac-application`, `validation`) is printed by the local command `xcodebuild -help` — this is the most reliable way to check the current list specifically for the installed version of Xcode 26, since the `xcodebuild -help` output changes from release to release, and the official DocC page with this list could not be opened via WebFetch — the recommendation is to check it locally rather than rely on this document. The exact list of `ExportOptions.plist` keys for the specific Xcode 26 version is not confirmed by an official Apple page in this research — not verified, taken from secondary sources (Medium, Fritz.ai, matrixprojects.net, GitHub gist).
 
 ### altool → notarytool
 
-Man-страница `altool` (открыта через WebFetch, зеркало официального текста Apple) прямо показывает: ключ `--upload-app` сопровождается пометкой «Can also be specified as --upload-app -f <file>», то есть является алиасом старого поведения; рекомендуемая современная форма — `--upload-package`. Дословного текста «deprecated» в самом открытом фрагменте не обнаружено — вывод о статусе deprecated сделан по вторичным источникам (форумы Apple Developer, обсуждение fastlane), которые цитируют предупреждение Apple: «altool has been deprecated for notarization and starting in fall 2023 will no longer be supported by the Apple notary service. You should start using notarytool to notarize your software.» ([altool man page (зеркало)](https://keith.github.io/xcode-man-pages/altool.1.html))
+The `altool` man page (opened via WebFetch, a mirror of Apple's official text) directly shows that the `--upload-app` key is accompanied by the note "Can also be specified as --upload-app -f <file>," i.e. it is an alias for the old behavior; the recommended modern form is `--upload-package`. The literal word "deprecated" was not found in the fragment that was opened — the conclusion about deprecated status is drawn from secondary sources (Apple Developer forums, fastlane discussion) that quote Apple's warning: "altool has been deprecated for notarization and starting in fall 2023 will no longer be supported by the Apple notary service. You should start using notarytool to notarize your software." ([altool man page (mirror)](https://keith.github.io/xcode-man-pages/altool.1.html))
 
-Отдельно и с более высокой уверенностью подтверждён факт полного прекращения приёма нотаризации через `altool`: по нескольким независимым вторичным источникам, пересказывающим официальный технот TN3147, — «starting November 1, 2023, the Apple notary service no longer accepts uploads from altool or Xcode 13 or earlier — developers who notarize Mac software need to transition to the notarytool command-line utility or upgrade to Xcode 14 or later.» Саму официальную страницу TN3147 открыть через WebFetch не удалось (SPA), поэтому дата и формулировка помечены как «подтверждено по нескольким независимым вторичным источникам, не по первоисточнику напрямую».
+Separately, and with higher confidence, the fact of the full cutoff of notarization uploads via `altool` is confirmed: according to several independent secondary sources retelling the official TN3147 tech note — "starting November 1, 2023, the Apple notary service no longer accepts uploads from altool or Xcode 13 or earlier — developers who notarize Mac software need to transition to the notarytool command-line utility or upgrade to Xcode 14 or later." The official TN3147 page itself could not be opened via WebFetch (SPA), so the date and wording are marked as "confirmed by several independent secondary sources, not directly by the primary source."
 
-Важное разграничение: нотаризация (`notarytool`) актуальна прежде всего для macOS-приложений/бинарников вне App Store и для сценариев Developer ID; для игры, которая распространяется через App Store/TestFlight, ключевой процесс — не нотаризация, а именно загрузка `.ipa` в App Store Connect. Актуальный на 2026 год способ загрузки — либо `xcodebuild -exportArchive` с ключом `method` `app-store-connect` и последующей автоматической выгрузкой (destination upload через `-exportOptionsPlist`/`-allowProvisioningUpdates`), либо через приложение **Transporter** (доступно в Mac App Store), либо командой `xcrun altool --upload-package` (замена устаревающего `--upload-app`). Ни `xcodebuild`, ни `altool --upload-package`, ни Transporter в этом исследовании не проверялись по официальной DocC-странице Apple напрямую — весь раздел про актуальность именно этого способа загрузки в 2026 году основан на вторичных источниках и требует проверки локальным `xcodebuild -help` / `man altool` на актуальной версии Xcode 26 перед использованием в CI.
+An important distinction: notarization (`notarytool`) is primarily relevant for macOS applications/binaries outside the App Store and for Developer ID scenarios; for a game distributed via the App Store/TestFlight, the key process is not notarization but uploading the `.ipa` to App Store Connect itself. As of 2026 the current upload method is either `xcodebuild -exportArchive` with the `method` key set to `app-store-connect` and an automatic subsequent upload (destination upload via `-exportOptionsPlist`/`-allowProvisioningUpdates`), or via the **Transporter** app (available on the Mac App Store), or the `xcrun altool --upload-package` command (replacing the deprecating `--upload-app`). Neither `xcodebuild`, nor `altool --upload-package`, nor Transporter were checked directly against an official Apple DocC page in this research — the entire section on the current status of this upload method in 2026 is based on secondary sources and requires verification via local `xcodebuild -help` / `man altool` on the current Xcode 26 version before use in CI.
 
-## Подпись: сертификаты, provisioning profile, автоматическая подпись в CI, API Key
+## Code signing: certificates, provisioning profile, automatic signing in CI, API Key
 
-Базовый механизм подписи iOS-приложений не менялся годами: приложение подписывается сертификатом распространения (Apple Distribution / iOS Distribution) и упаковывается с provisioning profile, который связывает App ID, сертификат и (для ad-hoc/enterprise) список устройств. В `ExportOptions.plist` это выражается через `signingStyle` (`manual` или `automatic`) и, при ручной подписи, через словарь `provisioningProfiles`, сопоставляющий bundle identifier конкретному имени профиля — в том числе отдельные записи нужны для расширений приложения (виджеты и т. п.), если они есть.
+The basic mechanism of iOS app code signing has not changed in years: an app is signed with a distribution certificate (Apple Distribution / iOS Distribution) and packaged with a provisioning profile that links the App ID, the certificate, and (for ad-hoc/enterprise) the device list. In `ExportOptions.plist` this is expressed via `signingStyle` (`manual` or `automatic`) and, for manual signing, via the `provisioningProfiles` dictionary mapping the bundle identifier to a specific profile name — separate entries are also needed for app extensions (widgets, etc.), if any.
 
-Для CI/CD вместо интерактивного входа Apple ID используется ключ App Store Connect API. По сведениям из практики сообщества (официальная DocC-страница `xcodebuild` через WebFetch не открылась): начиная с Xcode 13 `xcodebuild` поддерживает аутентификацию ключом API вместо Apple ID, что и даёт возможность делать автоматическую подпись на headless-машинах и в CI. Ключ создаётся в App Store Connect, ему назначается роль, ограничивающая права; в командной строке передаётся тремя параметрами:
+For CI/CD, an App Store Connect API key is used instead of an interactive Apple ID login. According to community practice (the official `xcodebuild` DocC page did not open via WebFetch): starting with Xcode 13, `xcodebuild` supports authentication with an API key instead of Apple ID, which is what makes automatic signing possible on headless machines and in CI. The key is created in App Store Connect, assigned a role that limits its permissions, and passed on the command line as three parameters:
 
 ```
 xcodebuild -exportArchive \
@@ -115,17 +115,17 @@ xcodebuild -exportArchive \
   -allowProvisioningUpdates
 ```
 
-Про надёжность связки API Key + `-allowProvisioningUpdates` для самого шага выгрузки (destination `upload`) в `ExportOptions.plist`, включая работу с `manageAppVersionAndBuildNumber`, встречаются сообщения сообщества о частичных ограничениях в отдельных версиях Xcode 15 — эти детали не проверены по официальной документации Apple напрямую и приводятся только как контекст, требующий проверки на конкретной версии Xcode 26 перед тем, как полагаться на них в продовом CI.
+On the reliability of pairing an API Key with `-allowProvisioningUpdates` for the upload step itself (destination `upload`) in `ExportOptions.plist`, including working with `manageAppVersionAndBuildNumber`, there are community reports of partial limitations in certain Xcode 15 versions — these details are not verified directly against official Apple documentation and are given only as context requiring verification on the specific Xcode 26 version before relying on them in production CI.
 
-Приватный файл ключа (`.p8`) — секрет уровня «нельзя коммитить», хранить в секретах CI (например, зашифрованным в переменных окружения раннера), а не в репозитории.
+The private key file (`.p8`) is a secret at the "do not commit" level — store it in CI secrets (e.g., encrypted in runner environment variables), not in the repository.
 
-При падении `-exportArchive` в CI практический совет из вторичных источников — смотреть `IDEDistribution.log` и `IDEDistribution.critical.log` в папке DerivedData соответствующего архива: сообщение об ошибке от самого `xcodebuild` часто неинформативно, а подробности линковки/подписи попадают именно в эти логи.
+When `-exportArchive` fails in CI, the practical advice from secondary sources is to check `IDEDistribution.log` and `IDEDistribution.critical.log` in the DerivedData folder of the corresponding archive: the error message from `xcodebuild` itself is often uninformative, while linking/signing details end up specifically in these logs.
 
-## PostProcessBuild на C#: правка Info.plist и PBXProject
+## PostProcessBuild in C#: editing Info.plist and PBXProject
 
-Официальная страница Unity Scripting API `PBXProject` (открыта через WebFetch) подтверждает наличие методов `AddFrameworkToProject`, `AddFileToBuild`, `GetUnityFrameworkTargetGuid()`, `GetUnityMainTargetGuid()`, `SetBuildProperty`, `AddBuildProperty` в пространстве имён `UnityEditor.iOS.Xcode`; страница структуры Xcode-проекта (6000.2) прямо называет их применение: «you can use PBXProject.GetUnityFrameworkTargetGuid() to get the UnityFramework target GUID and PBXProject.GetUnityMainTargetGuid() to get the Unity-iPhone target GUID» при написании модификаций сгенерированного проекта. ([Unity Scripting API — PBXProject](https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.html), [Unity Manual — Structure of a Unity Xcode project (6000.2)](https://docs.unity3d.com/6000.2/Documentation/Manual/StructureOfXcodeProject.html))
+The official Unity Scripting API page for `PBXProject` (opened via WebFetch) confirms the presence of the methods `AddFrameworkToProject`, `AddFileToBuild`, `GetUnityFrameworkTargetGuid()`, `GetUnityMainTargetGuid()`, `SetBuildProperty`, `AddBuildProperty` in the `UnityEditor.iOS.Xcode` namespace; the page on Xcode project structure (6000.2) directly names their use: "you can use PBXProject.GetUnityFrameworkTargetGuid() to get the UnityFramework target GUID and PBXProject.GetUnityMainTargetGuid() to get the Unity-iPhone target GUID" when writing modifications to the generated project. ([Unity Scripting API — PBXProject](https://docs.unity3d.com/ScriptReference/iOS.Xcode.PBXProject.html), [Unity Manual — Structure of a Unity Xcode project (6000.2)](https://docs.unity3d.com/6000.2/Documentation/Manual/StructureOfXcodeProject.html))
 
-Рабочий пример (собран из документированных вызовов Unity API `PBXProject` и `PlistDocument`, а не выдуман — сигнатуры методов соответствуют официальной странице Unity Scripting API; сама компоновка примера — типовой паттерн, применяемый в проектах Unity для iOS):
+A working example (assembled from documented calls to the Unity `PBXProject` and `PlistDocument` APIs, not invented — the method signatures match the official Unity Scripting API page; the layout of the example itself is a typical pattern used in Unity projects for iOS):
 
 ```csharp
 using System.IO;
@@ -141,22 +141,22 @@ public class IOSPostProcess
         if (buildTarget != BuildTarget.iOS)
             return;
 
-        // --- 1. Правка Info.plist: описания доступа к камере и фотоплёнке ---
+        // --- 1. Edit Info.plist: camera and photo library access descriptions ---
         string plistPath = Path.Combine(pathToBuiltProject, "Info.plist");
         PlistDocument plist = new PlistDocument();
         plist.ReadFromFile(plistPath);
 
         PlistElementDict rootDict = plist.root;
         rootDict.SetString("NSCameraUsageDescription",
-            "Камера используется, чтобы сделать снимок для игрового эффекта.");
+            "The camera is used to take a photo for an in-game effect.");
         rootDict.SetString("NSPhotoLibraryUsageDescription",
-            "Доступ к фотоплёнке нужен, чтобы выбрать изображение для игры.");
+            "Photo library access is needed to pick an image for the game.");
         rootDict.SetString("NSPhotoLibraryAddUsageDescription",
-            "Разрешение нужно, чтобы сохранить результат в фотоплёнку.");
+            "Permission is needed to save the result to the photo library.");
 
         plist.WriteToFile(plistPath);
 
-        // --- 2. Правка PBXProject: добавление фреймворка и файла Swift ---
+        // --- 2. Edit PBXProject: add a framework and a Swift file ---
         string projectPath = PBXProject.GetPBXProjectPath(pathToBuiltProject);
         PBXProject project = new PBXProject();
         project.ReadFromFile(projectPath);
@@ -164,10 +164,10 @@ public class IOSPostProcess
         string mainTargetGuid = project.GetUnityMainTargetGuid();
         string frameworkTargetGuid = project.GetUnityFrameworkTargetGuid();
 
-        // Добавить системный фреймворк в цель UnityFramework
+        // Add a system framework to the UnityFramework target
         project.AddFrameworkToProject(frameworkTargetGuid, "CoreImage.framework", false);
 
-        // Скопировать и добавить свой файл Swift в проект/цель
+        // Copy and add a custom Swift file to the project/target
         string sourceSwiftFile = Path.Combine(Application.dataPath, "Plugins/iOS/CameraBridge.swift");
         string destSwiftFile = Path.Combine(pathToBuiltProject, "Libraries/CameraBridge.swift");
         File.Copy(sourceSwiftFile, destSwiftFile, true);
@@ -178,7 +178,7 @@ public class IOSPostProcess
             PBXSourceTree.Source);
         project.AddFileToBuild(frameworkTargetGuid, fileGuid);
 
-        // Обязательные настройки для смешивания Swift и Objective-C/IL2CPP
+        // Required settings for mixing Swift and Objective-C/IL2CPP
         project.SetBuildProperty(mainTargetGuid, "SWIFT_VERSION", "5.0");
         project.SetBuildProperty(mainTargetGuid, "ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES", "YES");
 
@@ -187,58 +187,58 @@ public class IOSPostProcess
 }
 ```
 
-Пояснения по коду (со ссылкой на подтверждённые официальные методы):
+Notes on the code (referencing the confirmed official methods):
 
-- `PBXProject.GetPBXProjectPath(pathToBuiltProject)` — стандартный способ получить путь к `project.pbxproj` внутри сгенерированного `pathToBuiltProject`.
-- `GetUnityMainTargetGuid()` / `GetUnityFrameworkTargetGuid()` — прямо документированы и используются именно для различения целей `Unity-iPhone` и `UnityFramework`, куда обычно и нужно добавлять нативный код и фреймворки.
-- `PlistDocument`/`PlistElementDict` — часть той же библиотеки `UnityEditor.iOS.Xcode`, используется для правки `Info.plist` (описания доступа к камере/фотоплёнке нельзя задать через обычные Player Settings — только через код или руками в Xcode, если у поля нет соответствующей настройки в Unity 6.3).
-- Для файлов Swift обязательно выставить `SWIFT_VERSION` и включить `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES`, иначе линковка упадёт с ошибками про отсутствующие рантайм-библиотеки Swift.
+- `PBXProject.GetPBXProjectPath(pathToBuiltProject)` — the standard way to get the path to `project.pbxproj` inside the generated `pathToBuiltProject`.
+- `GetUnityMainTargetGuid()` / `GetUnityFrameworkTargetGuid()` — directly documented and used specifically to distinguish the `Unity-iPhone` and `UnityFramework` targets, which is usually where native code and frameworks need to be added.
+- `PlistDocument`/`PlistElementDict` — part of the same `UnityEditor.iOS.Xcode` library, used to edit `Info.plist` (camera/photo library access descriptions cannot be set via ordinary Player Settings — only via code or by hand in Xcode, if the field has no corresponding setting in Unity 6.3).
+- For Swift files, `SWIFT_VERSION` must be set and `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES` enabled, otherwise linking fails with errors about missing Swift runtime libraries.
 
-Важное предупреждение, не подтверждённое прямым WebFetch (встретилось в агрегированной выдаче поиска со ссылкой на документацию Unity, саму страницу с этой формулировкой отдельно не открывал): Unity использует инкрементальный конвейер при генерации Xcode-проекта для iOS и инкрементально пересоздаёт такие файлы, как `Info.plist` и Entitlements — если `PostProcessBuild`-скрипт их модифицирует, при повторных инкрементальных сборках правки могут накладываться на уже частично изменённый файл. Это стоит проверить самостоятельно по разделу Unity Manual про «чистые сборки» (Creating clean builds) перед тем, как полагаться на этот нюанс в CI — помечаю как не проверено напрямую.
+An important warning, not confirmed by direct WebFetch (found in aggregated search results linking to Unity documentation; the specific page with this wording was not opened separately): Unity uses an incremental pipeline when generating the Xcode project for iOS and incrementally regenerates files such as `Info.plist` and Entitlements — if a `PostProcessBuild` script modifies them, on repeated incremental builds the edits may be layered on top of an already partially modified file. This should be checked independently against the Unity Manual section on "clean builds" (Creating clean builds) before relying on this nuance in CI — marked as not verified directly.
 
-## Уменьшение размера сборки iOS
+## Reducing iOS build size
 
-Официальная страница Unity Manual «Optimizing the size of the built iOS Player» (ветка 6000.0, открыта через WebFetch) даёт конкретные цифры и рекомендации:
+The official Unity Manual page "Optimizing the size of the built iOS Player" (6000.0 branch, opened via WebFetch) gives specific figures and recommendations:
 
-> "an empty project might be around 20MB in the App Store" (без оптимизаций); "an application containing an empty scene can be reduced to less than 12MB in the App Store" (с применёнными оптимизациями, при условии, что приложение упаковано и получило DRM, как это делает сам App Store).
+> "an empty project might be around 20MB in the App Store" (without optimizations); "an application containing an empty scene can be reduced to less than 12MB in the App Store" (with optimizations applied, provided the app is packaged and has received DRM, as the App Store itself does).
 
-Рекомендации той же страницы: включить «Strip Engine Code» в Player Settings для iOS; выставить «script call optimization level to Fast but no exceptions»; «enable compression for textures and minimize the number of uncompressed sounds»; выставить «API Compatibility Level to .Net Standard»; убрать лишние зависимости кода и избегать сочетания generic-контейнеров со value-типами/структурами. ([Unity Manual — Optimizing the size of the built iOS Player (6000.0)](https://docs.unity3d.com/6000.0/Documentation/Manual/iphone-playerSizeOptimization.html))
+Recommendations from the same page: enable "Strip Engine Code" in Player Settings for iOS; set the "script call optimization level to Fast but no exceptions"; "enable compression for textures and minimize the number of uncompressed sounds"; set "API Compatibility Level to .Net Standard"; remove unnecessary code dependencies and avoid combining generic containers with value types/structs. ([Unity Manual — Optimizing the size of the built iOS Player (6000.0)](https://docs.unity3d.com/6000.0/Documentation/Manual/iphone-playerSizeOptimization.html))
 
-Managed stripping level — официальная страница Unity Manual «Managed code stripping» / «Configure managed code stripping» (6000.3, открыта через WebFetch) описывает уровни так:
+Managed stripping level — the official Unity Manual page "Managed code stripping" / "Configure managed code stripping" (6000.3, opened via WebFetch) describes the levels as follows:
 
-- **Disabled** — «Unity doesn't remove any code. This setting is only available for the Mono scripting backend and is the default setting in that case.»
-- **Minimal** — «Unity searches only the UnityEngine and the .NET class libraries for unused code. Unity doesn't remove any user-written code.»
-- **Low** — «Unity searches for unused code in all UnityEngine and .NET class libraries. It also searches user-written assemblies, but only if none of their types are referenced in scenes included in the Player build.»
-- **Medium** — «Unity partially searches all assemblies to find unused code. This setting applies a set of rules that strips more types of code patterns to reduce the build size.»
-- **High** — «Unity performs an extensive search of all assemblies to find unused code. At this setting, Unity prioritizes size reduction more than code stability and removes as much code as possible.»
+- **Disabled** — "Unity doesn't remove any code. This setting is only available for the Mono scripting backend and is the default setting in that case."
+- **Minimal** — "Unity searches only the UnityEngine and the .NET class libraries for unused code. Unity doesn't remove any user-written code."
+- **Low** — "Unity searches for unused code in all UnityEngine and .NET class libraries. It also searches user-written assemblies, but only if none of their types are referenced in scenes included in the Player build."
+- **Medium** — "Unity partially searches all assemblies to find unused code. This setting applies a set of rules that strips more types of code patterns to reduce the build size."
+- **High** — "Unity performs an extensive search of all assemblies to find unused code. At this setting, Unity prioritizes size reduction more than code stability and removes as much code as possible."
 
 ([Unity Manual — Configure managed code stripping (6000.3)](https://docs.unity3d.com/6000.3/Documentation/Manual/managed-code-stripping-configure.html))
 
-Практический вывод: для IL2CPP-бэкенда (обязателен для iOS в Unity 6.3 — Mono для iOS Apple не разрешает как рантайм с JIT) байткод-стриппинг «always» происходит независимо от уровня — по данным вторичного источника (Unity Support Help Center) IL2CPP всегда делает byte code stripping вне зависимости от настройки Stripping Level, но managed stripping level дополнительно решает, насколько агрессивно вырезается неиспользуемый managed-код; для игровых проектов обычно рекомендуют Medium или High, но High требует внимательного тестирования — агрессивный стриппинг может вырезать код, до которого достаёт только рефлексия, и такие случаи приходится чинить через `link.xml`. Этот совет про Medium/High и риск с рефлексией — по вторичным источникам, не по официальной странице Apple/Unity напрямую в данном исследовании.
+Practical conclusion: for the IL2CPP backend (mandatory for iOS in Unity 6.3 — Apple does not allow Mono for iOS as a runtime with JIT), byte code stripping "always" happens regardless of the level — according to a secondary source (Unity Support Help Center), IL2CPP always performs byte code stripping regardless of the Stripping Level setting, but the managed stripping level additionally determines how aggressively unused managed code is cut; for game projects Medium or High is usually recommended, but High requires careful testing — aggressive stripping can cut code reachable only through reflection, and such cases have to be fixed via `link.xml`. This advice about Medium/High and the reflection risk is from secondary sources, not directly from an official Apple/Unity page in this research.
 
-Что реально даёт эффект (сведено из официальной страницы Unity + вторичных источников с пометкой):
+What actually has an effect (compiled from the official Unity page plus secondary sources with labeling):
 
-- **Strip Engine Code + managed stripping High** — заметно уменьшает размер `libGameAssembly.a`/`il2cpp.a`, официально подтверждено страницей оптимизации размера.
-- **Формат текстур ASTC/ETC2 вместо несжатых или PVRTC** — согласно вторичным источникам, текстуры обычно занимают основную долю размера сборки; официальная страница Unity лишь в общем виде говорит «enable compression for textures», конкретные форматы ASTC/ETC2 и цифры выигрыша — по вторичным источникам, не проверено напрямую по документации Apple/Unity в этом исследовании.
-- **Crunch Compression** — по вторичным источникам даёт выигрыш в размере на диске, но не поддерживается частью старых устройств, и после распаковки в память текстура становится полностью несжатой — то есть не экономит оперативную память во время выполнения, только размер дистрибутива.
-- **App thinning на стороне Apple** — по вторичным источникам, App Store сам нарезает бинарник на срезы под архитектуру устройства (начиная с iOS 9), из-за чего фактический размер загрузки для конкретного устройства меньше суммарного архива; App Store также шифрует и сжимает бинарник при обработке, что может временно увеличивать промежуточный размер перед сжатием — эти механики не проверялись напрямую по официальной странице Apple в этом исследовании.
-- **Aудит папки `Resources`** — по вторичным источникам, все ассеты в `Resources` включаются в сборку полностью независимо от того, используются ли они по факту, и это частая скрытая причина раздутого размера; официальная страница Unity Manual об этом факте прямо в открытом фрагменте не говорит, но общая рекомендация «удалять неиспользуемые ассеты» согласуется с этим.
+- **Strip Engine Code + managed stripping High** — noticeably reduces the size of `libGameAssembly.a`/`il2cpp.a`, officially confirmed by the size optimization page.
+- **ASTC/ETC2 texture format instead of uncompressed or PVRTC** — according to secondary sources, textures usually account for the bulk of build size; the official Unity page only says in general terms "enable compression for textures," the specific ASTC/ETC2 formats and the size gains are from secondary sources, not verified directly against Apple/Unity documentation in this research.
+- **Crunch Compression** — according to secondary sources, gives a gain in on-disk size but is not supported by some older devices, and after decompression into memory the texture becomes fully uncompressed — i.e. it does not save runtime memory, only distribution size.
+- **App thinning on Apple's side** — according to secondary sources, the App Store itself slices the binary into per-device-architecture variants (starting with iOS 9), so the actual download size for a specific device is smaller than the total archive; the App Store also encrypts and compresses the binary during processing, which can temporarily increase the intermediate size before compression — these mechanics were not checked directly against an official Apple page in this research.
+- **Auditing the `Resources` folder** — according to secondary sources, all assets in `Resources` are included in the build in full regardless of whether they are actually used, and this is a common hidden cause of a bloated size; the official Unity Manual page does not state this fact directly in the opened fragment, but the general recommendation to "remove unused assets" is consistent with it.
 
-## Типовые ошибки сборки Unity → Xcode (по отчётам разработчиков)
+## Typical Unity → Xcode build errors (from developer reports)
 
-Ниже — разбор по вторичным источникам (форумы Apple Developer, обсуждения сообщества); официальных страниц Apple/Unity с исчерпывающим списком таких ошибок в этом исследовании не найдено, поэтому весь раздел — «по вторичным источникам, не первоисточник».
+Below is an analysis based on secondary sources (Apple Developer forums, community discussions); no official Apple/Unity pages with an exhaustive list of such errors were found in this research, so the entire section is "from secondary sources, not a primary source."
 
-**Undefined symbol при линковке.** Частый сценарий — добавление стороннего нативного SDK (Firebase, Google Sign-In, Facebook SDK, Apple.GameKit для Unity) в проект, уже содержащий сгенерированный Unity Xcode-проект: линкер не находит символы вроде `_GKLocalPlayer_Authenticate` из сгенерированных `.o`-файлов плагина. По разбору с форумов Apple Developer, для связки Unity 6000.2.7f + Xcode 26.1 встречалась отдельная категория — неразрешённые символы совместимости Swift (`_swift_FORCE_LOAD$_swiftCompatibility51`, `_swift_FORCE_LOAD$_swiftCompatibility56`, `_swift_FORCE_LOAD$_swiftCompatibilityConcurrency`), связанная с отсутствующими фреймворками совместимости Swift (`CoreAudioTypes`, `UIUtilities`) при смешивании управляемого кода IL2CPP и Swift-плагинов. Разбор такого рода ошибок обычно требует смотреть не сообщение самого Xcode, а полный транскрипт сборки (View → Navigators → Reports), потому что Xcode плохо показывает настоящую команду линковки и её вывод при таких сбоях.
+**Undefined symbol during linking.** A frequent scenario — adding a third-party native SDK (Firebase, Google Sign-In, Facebook SDK, Apple.GameKit for Unity) to a project that already contains a generated Unity Xcode project: the linker cannot find symbols such as `_GKLocalPlayer_Authenticate` from the plugin's generated `.o` files. According to an analysis from Apple Developer forums, for the Unity 6000.2.7f + Xcode 26.1 combination a separate category was encountered — unresolved Swift compatibility symbols (`_swift_FORCE_LOAD$_swiftCompatibility51`, `_swift_FORCE_LOAD$_swiftCompatibility56`, `_swift_FORCE_LOAD$_swiftCompatibilityConcurrency`), tied to missing Swift compatibility frameworks (`CoreAudioTypes`, `UIUtilities`) when mixing IL2CPP managed code with Swift plugins. Diagnosing errors of this kind usually requires looking not at Xcode's own error message but at the full build transcript (View → Navigators → Reports), because Xcode does a poor job of showing the actual link command and its output for such failures.
 
-**«Multiple commands produce ... Info.plist».** Классическая ошибка при апгрейде версии Xcode: у цели `Unity-iPhone` одновременно оказываются команда копирования и команда обработки, пишущие в один и тот же выходной файл `Info.plist`. Старый обходной путь — переключение на Legacy Build System — по отчётам с форумов Apple Developer, для более новых версий Xcode (начиная примерно с 13.2) это больше не работает и не рекомендуется; типичное решение — чистая пересборка Xcode-проекта Unity (не инкрементальная) и явная проверка, что кастомный `PostProcessBuild`-скрипт не создаёт свою копию `Info.plist` вдобавок к стандартной генерации Unity.
+**"Multiple commands produce ... Info.plist."** A classic error when upgrading the Xcode version: the `Unity-iPhone` target ends up with both a copy command and a processing command writing to the same output file, `Info.plist`. The old workaround — switching to the Legacy Build System — according to reports from Apple Developer forums, no longer works and is not recommended for newer Xcode versions (starting around 13.2); the typical fix is a clean rebuild of the Unity Xcode project (not incremental) and explicitly checking that a custom `PostProcessBuild` script is not creating its own copy of `Info.plist` in addition to Unity's standard generation.
 
-**Ошибки подписи при архивировании.** По отчётам сообщества, отдельная категория сбоев — падение именно на этапе `codesign`/`validate` при архивировании в CI (например, в Jenkins), которое не воспроизводится локально на машине разработчика; это обычно означает рассинхронизацию сертификата/provisioning profile именно в CI-окружении (кэш keychain, устаревший профиль, не тот Team ID), а не ошибку самого Unity-проекта.
+**Signing errors during archiving.** According to community reports, a separate category of failures is one that fails specifically at the `codesign`/`validate` step during archiving in CI (e.g., in Jenkins) and does not reproduce locally on a developer's machine; this usually means a certificate/provisioning profile mismatch specific to the CI environment (keychain cache, a stale profile, the wrong Team ID), not an error in the Unity project itself.
 
-**«Command PhaseScriptExecution failed with a nonzero exit code».** По отчётам сообщества, всплывает при смене версии Xcode/iOS SDK без соответствующего обновления Unity (например, Xcode 15 + iOS 17 при устаревшей версии Unity); практические обходные пути из тех же отчётов — полная чистая пересборка, использование нативной (Apple Silicon) версии Unity на M1/M2/M3-Mac вместо Intel-сборки под Rosetta, и в отдельных случаях — добавление флага `-ld64` в Other Linker Flags цели.
+**"Command PhaseScriptExecution failed with a nonzero exit code."** According to community reports, this surfaces when the Xcode/iOS SDK version is changed without a corresponding Unity update (e.g., Xcode 15 + iOS 17 with an outdated Unity version); practical workarounds from the same reports are a full clean rebuild, using the native (Apple Silicon) version of Unity on an M1/M2/M3 Mac instead of an Intel build under Rosetta, and in some cases adding the `-ld64` flag to Other Linker Flags for the target.
 
-Общая рекомендация DTS-инженеров Apple (по пересказу с форумов, не по официальной документации напрямую): ошибки линковки — это ошибки линкера, а не компилятора, и Xcode часто плохо их показывает в основной панели проблем — нужно открывать полный build transcript, чтобы увидеть настоящую команду и настоящее сообщение об ошибке.
+General recommendation from Apple DTS engineers (as retold on forums, not directly from official documentation): linker errors are linker errors, not compiler errors, and Xcode often shows them poorly in the main issue panel — you need to open the full build transcript to see the actual command and the actual error message.
 
-## Источники
+## Sources
 
 - [Unity Manual — How Unity builds iOS applications (6000.3)](https://docs.unity3d.com/6000.3/Documentation/Manual/how-unity-builds-ios-applications.html)
 - [Unity Manual — Structure of a Unity Xcode project (6000.2)](https://docs.unity3d.com/6000.2/Documentation/Manual/StructureOfXcodeProject.html)
@@ -246,12 +246,12 @@ Managed stripping level — официальная страница Unity Manual
 - [Unity Manual — Optimizing the size of the built iOS Player (6000.0)](https://docs.unity3d.com/6000.0/Documentation/Manual/iphone-playerSizeOptimization.html)
 - [Unity Manual — Managed code stripping (6000.3)](https://docs.unity3d.com/6000.3/Documentation/Manual/managed-code-stripping.html)
 - [Unity Manual — Configure managed code stripping (6000.3)](https://docs.unity3d.com/6000.3/Documentation/Manual/managed-code-stripping-configure.html)
-- [altool man page (зеркало официального текста Apple)](https://keith.github.io/xcode-man-pages/altool.1.html)
+- [altool man page (mirror of Apple's official text)](https://keith.github.io/xcode-man-pages/altool.1.html)
 - [Apple Developer Forums — Unity build error in Xcode: Undefined Symbols](https://developer.apple.com/forums/thread/808610)
 - [Apple Developer Forums — Xcode error: undefined symbol (Link unityframework arm64) 100 errors](https://developer.apple.com/forums/thread/747089)
 - [Apple Developer Forums — Solution for multiple commands produce in Xcode 13.2](https://developer.apple.com/forums/thread/699362)
 - [Apple Developer Forums — Xcode 15, iOS17 and unity 2022 problems: PhaseScriptExecution failed](https://developer.apple.com/forums/thread/740210)
 
-Страницы, которые не удалось открыть содержательно через WebFetch (Swift-DocC/JS-рендеринг — отдавали только заголовок), и поэтому факты по ним взяты из вторичных источников с явной пометкой в тексте: `developer.apple.com/documentation/technotes/tn3147-migrating-to-the-latest-notarization-tool`, официальные страницы `xcodebuild` и `ExportOptions.plist` в разделе документации Xcode.
+Pages that could not be opened meaningfully via WebFetch (Swift-DocC/JS rendering — only returned a title), and whose facts are therefore taken from secondary sources with an explicit label in the text: `developer.apple.com/documentation/technotes/tn3147-migrating-to-the-latest-notarization-tool`, the official `xcodebuild` and `ExportOptions.plist` pages in the Xcode documentation section.
 
-Вторичные источники, использованные для контекста (не первоисточник, помечены в тексте отдельно): GitHub fastlane discussion #21347 (altool deprecation), Bitrise/Capgo/Xojo блоги про privacy manifest, Unity Support Help Center (IL2CPP build size optimizations), обсуждения на Reddit/StackOverflow/форумах, агрегированные через веб-поиск.
+Secondary sources used for context (not a primary source, labeled separately in the text): GitHub fastlane discussion #21347 (altool deprecation), Bitrise/Capgo/Xojo blog posts on the privacy manifest, Unity Support Help Center (IL2CPP build size optimizations), Reddit/StackOverflow/forum discussions aggregated via web search.

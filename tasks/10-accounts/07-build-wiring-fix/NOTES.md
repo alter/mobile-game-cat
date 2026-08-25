@@ -71,4 +71,84 @@ both.
 `10-accounts/04-unity` cannot hold `verify:passed`. Its acceptance requires the
 project to build and the tests to run, and from a clean state neither is true.
 Set it back to `verify:failed` until this task closes.
-</content>
+
+## Update, 25 August 2026: it now fails silently, which is worse
+
+Re-checked 25 August 2026. Two things changed since the note above, and the
+combination is more dangerous than the original break.
+
+**Which branch has what.** These are not the same, and an earlier draft of this
+note got it wrong:
+
+| | `main` | `dev` |
+|---|---|---|
+| bridge project | still `<ProjectReference … CatShelter.Core.csproj>` — the original break | `<Compile Include="…/Core/**/*.cs" />` — repaired |
+| four generated `.csproj` committed | yes | yes |
+| `dotnet test` discovers | 0 tests | 0 tests |
+
+**The bridge was repaired on `dev` only**, in `266d933` "Bridge compiles Core
+sources directly (Unity owns the project now); conformance green again". It no
+longer references the deleted `CatShelter.Core.csproj`; it pulls the sources in
+by glob and keeps `<RollForward>Major</RollForward>`. It builds clean on `dev`:
+0 warnings, 0 errors. `main` still carries the broken reference.
+
+**Credit where it is due: this half of the task is genuinely done.** Measured on
+`dev`: `pytest tools/tests` gives `67 passed`, none skipped, and the four CS0246
+errors are gone. It also survives a clean clone, because the six sources the glob
+reaches — `Board.cs`, `BoardSave.cs`, `Item.cs`, `Level.cs`, `PlayerProgress.cs`,
+`Shelf.cs` — are all tracked and none of them needs the editor to have been
+opened. The unfinished half is the Core test entry point, below.
+
+**The Unity-generated projects were committed on both branches.** The generated
+`game/CatShelter.Core.Tests.csproj` is byte-identical across `main` and `dev`
+(sha1 `a5af2d21…`), so the zero-test problem below is a property of both, not of
+the repair. All four:
+
+```
+game/Assembly-CSharp-Editor.csproj      generated
+game/Assembly-CSharp.csproj             generated
+game/CatShelter.Core.Tests.csproj       generated
+game/CatShelter.Core.csproj             generated
+```
+
+Each carries Unity's own header: "Generated file, do not modify, your changes
+will be overwritten". That directly fails VERIFY step 3 of this task, which
+requires `git ls-files '*.csproj'` to list no generated file.
+
+**And it produces a green result with zero tests run.** Measured, not inferred:
+
+```
+$ dotnet test game/CatShelter.Core.Tests.csproj --list-tests
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+$ echo $?
+0
+```
+
+Against 43 tests actually declared in `game/Assets/Tests/Core/*.cs`:
+`BoardTests` 21, `PartialInformationTests` 7, `BoardSaveTests` 5,
+`HeadlessRunTests` 5, `PlayerProgressTests` 5.
+
+The reason is in the generated file: `<OutputType>Library</OutputType>`,
+`<NoStandardLibraries>true</NoStandardLibraries>`, and no
+`Microsoft.NET.Test.Sdk`, no `IsTestProject`, no NUnit adapter. It is a Unity
+assembly description, not a runnable test project. VSTest finds no test host,
+discovers nothing, and exits 0.
+
+**Why this is worse than the CS0246 it replaced.** The original break was loud:
+four tests errored and anyone running the suite saw it. The current state
+returns success. A CI step, a pre-merge check, or a person running the
+documented command all get a zero exit code and conclude the core is covered by
+43 passing tests, when in fact nothing executed. Committing the generated
+projects removed the symptom and kept the disease.
+
+**This does not change what the task asks for.** Option B from `AGENT-BRIEF.md`
+is still the work: a hand-written dotnet test project **outside** `Assets`,
+carrying `Microsoft.NET.Test.Sdk` and an NUnit adapter, pulling the test and
+Core sources in by glob the same way the bridge now does. Then remove the four
+generated `.csproj` files from git and add them to `game/.gitignore`.
+
+**Add one acceptance criterion.** Green is not enough, because green is exactly
+what the broken state produces. The documented command must also **report a test
+count, and that count must match the number declared in the sources.** A run that
+executes zero tests must fail the check, not pass it.

@@ -29,12 +29,24 @@ Three rules, without which the set falls apart:
    states. Why — in sections 4 and 5. They're made by editing a finished
    image, otherwise they won't match.
 
-### English or Russian
+### English only
 
 Prompts are given in English: every verified image-generation model is
 noticeably more reliable in English, and the entire style vocabulary of the
-industry is in it. Russian explanations are for humans and don't go into the
+industry is in it. Explanatory prose is for humans and never goes into the
 prompt.
+
+### What this file deliberately does not contain
+
+**Output size.** No prompt here states a resolution, because the size is a
+generation parameter rather than part of the prompt, and duplicating it in two
+places guarantees the two eventually disagree. The single source is the table
+in section 5 of `art-brief.md`. Generate at least at the size given there — a
+larger render downsampled is fine, an upscale is not.
+
+**Format and delivery rules.** PNG, alpha, colour profile, pivot, what gets
+baked into the shadow, and why nothing is vector — all in section 4 of
+`art-brief.md`. Read it before the first pass, not after.
 
 ---
 

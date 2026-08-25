@@ -104,17 +104,70 @@ Unity".
 | Parameter | Value |
 |---|---|
 | Format | PNG, 8-bit per channel, with alpha channel |
+| Vector (SVG) | **not used anywhere** — see below |
 | Background | fully transparent, no halo or white fringe |
 | Unity texture type | `Sprite (2D and UI)` |
 | Filtering | `Bilinear` (not `Point` — we're not doing pixel art) |
 | iOS compression | ASTC |
+| Mip maps | **off** — a 2D sprite is never viewed at a distance |
 | Pixels Per Unit | **100**, uniform across the whole project |
-| Texture side | power of two, width and height may differ |
+| Sprite pivot | not the same for every group — see the table below |
+| Texture side | power of two where §5 says so; exceptions are marked there |
 | Sheet padding | 2–4 px between sprites |
-| Color space | sRGB |
+| Colour space | sRGB, **with no embedded ICC profile** |
 
 A uniform PPU isn't nitpicking: with different values items will be at
 different scales in the same scene, and it shows.
+
+Strip the colour profile. Generated images routinely carry Display P3 or some
+other embedded profile, and Unity will then shift every colour slightly — by
+enough to break the palette agreement between props that were supposed to match.
+
+### Pivot is not the same for every group
+
+Unity stores a pivot per sprite. Leave it unset and it defaults to centre, which
+is wrong for anything that stands on a surface.
+
+| Group | Pivot | Why |
+|---|---|---|
+| Pile items, blank tile, locked overlay | centre | they sit in a grid and in shelf slots |
+| Cat silhouettes and every cat layer | **bottom centre** | the three states differ in height; on a centre pivot the cat sinks into the floor in one state and floats in another |
+| Reward items | bottom centre | they stand on the room floor |
+| Rooms, house map, icon, card frame | centre | full-frame images, the pivot is never used |
+
+Set it in the source file if the tool supports it; otherwise say so on delivery
+and it gets set once on import.
+
+### Shadows: contact only is baked, the rest is the engine's job
+
+The style calls for a soft shadow falling to the lower right at 25% opacity.
+Only the **contact shadow** — the small dark patch directly beneath the object —
+is baked into the PNG. Nothing more.
+
+The reason is the pile. Items overlap heavily there, and a full drop shadow
+baked into every sprite stacks shadow on shadow on shadow and turns the heap
+into mud. The larger cast shadow, where it is wanted at all, is drawn at runtime
+by the thing that actually knows what lies on top of what.
+
+For rooms, the cat and the reward items — single objects that never overlap —
+the shadow may be baked in full.
+
+### Why there is no SVG anywhere
+
+Asked often enough to deserve a written answer.
+
+The style is a soft three-dimensional render with diffused light and ambient
+occlusion. Vector does not describe that; converting it to SVG would mean
+abandoning the style, not changing the format.
+
+The interface is built from UXML and USS markup rather than images, so there are
+no buttons or icons that would want to be vector.
+
+The app icon must be raster in any case: Apple requires 1024×1024 PNG with no
+alpha and no rounded corners.
+
+So: no `.svg`, in any group, for any reason. If a tool offers vector output,
+rasterise before delivery.
 
 ### Naming
 
@@ -146,18 +199,42 @@ Source files (layers) are delivered separately and not put in the repository.
 
 ## 5. Full list of work
 
-| Group | Files | Size | Priority | Task |
-|---|---|---|---|---|
-| Pile items | 30 | 256×256 | P0 | 4.1–4.3 |
-| "Under the clutter" blank tile | 1 | 256×256 | P0 | new, from 3.9 |
-| Locked item | 1 | 256×256 | P0 | new, from 3.11 |
-| Cat silhouettes | 6 | 512×512 | P0 | 4.4 |
-| Cat layers | see §7 | 512×512 | P0 | 4.5 |
-| Rooms, pairs | 24 | 1024×2048 | P1 | 4.7 |
-| Reward items | 2 | 256×256 | P1 | 4.8 |
-| House map | 12+3 | see §9 | P0 | new, from 6.2.1 |
-| App icon | 5 | 1024×1024 | P0 | 4.9 |
-| "Before — after" card frame | 1 | 1080×1080 | P2 | new, from 6.14 |
+| Group | Files | Size | Pivot | Priority | Task |
+|---|---|---|---|---|---|
+| Pile items | 30 | 256×256 | centre | P0 | 4.1–4.3 |
+| "Under the clutter" blank tile | 1 | 256×256 | centre | P0 | new, from 3.9 |
+| Locked item | 1 | 256×256 | centre | P0 | new, from 3.11 |
+| Cat silhouettes | 6 | **1024×1024** | bottom centre | P0 | 4.4 |
+| Cat layers | see §7 | **1024×1024** | bottom centre | P0 | 4.5 |
+| Rooms | 12 or 24 | **1536×3072** | centre | P1 | 4.7, see §8 |
+| Reward items | 2 | 256×256 | bottom centre | P1 | 4.8 |
+| House map | 12+3 | see §9 | centre | P0 | new, from 6.2.1 |
+| App icon | 5 | 1024×1024 | centre | P0 | 4.9 |
+| "Before — after" card frame | 1 | 1080×1080 *(not a power of two, deliberately — it never enters an atlas)* | centre | P2 | new, from 6.14 |
+
+### Why these sizes, worked out rather than guessed
+
+The target is iOS 15 and up, which in practice means these screens:
+
+| Device | Logical | Scale | Real pixels |
+|---|---|---|---|
+| iPhone SE 3 | 375×667 | 2x | 750×1334 |
+| iPhone 15/16 Pro | 393×852 | 3x | 1179×2556 |
+| iPhone 16 Pro Max | 440×956 | 3x | **1320×2868** |
+
+**Rooms were specified at 1024×2048 and that was wrong.** A room is a
+full-screen background, and the worst case needs 1320×2868 — the old figure was
+short by 296 px across and 820 down. It would have been upscaled and soft on
+exactly the screen where "is the before-and-after readable in half a second" is
+decided. 1536×3072 is the next power of two that covers it.
+
+**Cat silhouettes were specified at 512×512 and that is marginal.** The cat
+occupies roughly 200 logical points of height in a room, which is 600 real
+pixels at 3x. 512 is already below that, and it is the one asset a player looks
+at closely, so it goes to 1024×1024.
+
+**Pile items at 256×256 are correct** and were not changed: a tile is about 52
+logical points, 156 real pixels at 3x, so 256 has room to spare.
 
 Order of work is not top to bottom, but: first the **pilot** (§11), then
 items, then the cat, then the rooms.
@@ -270,6 +347,10 @@ files.** For six silhouettes — 60.
   of soft anti-aliasing;
 - the mask matches the base **point for point**: same frame, same pose, no
   offset;
+- the mask canvas is **the same 1024×1024 as the base**, and the mask is not
+  cropped to its own content. A trimmed mask loses the alignment the whole
+  layering scheme rests on, and the loss stays invisible until the layers are
+  composited — by which point every mask in the set is wrong the same way;
 - the mask doesn't extend past the base silhouette;
 - white patches are drawn so they read against any base color — on a white
   cat they're indicated only by outline and shadow.
@@ -313,8 +394,9 @@ So twelve rooms give thirty-seven levels without a single new room drawing.
 
 | Parameter | Value |
 |---|---|
-| Size | 1024×2048 (portrait, for phone) |
+| Size | **1536×3072** (portrait; covers 1320×2868 on the largest phone) |
 | Format | PNG without alpha (opaque background) |
+| Pivot | centre |
 | Pair | `room_01_dirty.png` and `room_01_clean.png`, exactly the same room from the same viewpoint |
 | Clear space | the bottom third of the frame stays reserved for the shelf and pile, don't put anything important there |
 
@@ -326,15 +408,41 @@ Twelve rooms: hallway, kitchen, living room, bedroom, nursery, study,
 bathroom, pantry, attic, porch, corridor, loft. Order isn't mandatory, but the
 attic and loft go last — they're the coziest.
 
-### Possible 2x savings that must be verified, not assumed
+### The rooms are the whole art budget, and the numbers say so
+
+Raising the resolution is not free. Twelve rooms as a dirty/clean pair, ASTC
+compressed at roughly 3.56 bits per pixel:
+
+| Size | In the build |
+|---|---|
+| 1024×2048, the old figure | ≈ 21 MB |
+| 1320×2868, exactly enough | ≈ 39 MB |
+| **1536×3072, chosen** | ≈ 48 MB |
+
+An empty Unity iOS build is 25–40 MB (`cat-shelter-tech.md`). Twenty-four room
+backgrounds at full resolution therefore **roughly double the size of the whole
+game**, and every other asset in this brief put together is a rounding error
+beside them.
+
+This makes the saving below the single most valuable open question in the art
+work, not a nice-to-have.
+
+### Halving the rooms: verify, do not assume
 
 If "dirty" can be produced as the clean background plus a grey-brown muting
-filter plus clutter on top, then the second background isn't needed, and the
-work drops from twenty-four files to twelve.
+filter plus clutter on top, the second background disappears: twelve files
+instead of twenty-four, and roughly 24 MB instead of 48.
 
-**Don't build this into the plan until one room passes the test.** The artist
-will likely tell you the real "before" differs by lighting, not a filter, and
-is probably right. But it's worth testing on one room — the savings are large.
+**Do not build it into the plan until one room passes the acceptance test
+below.** An artist will likely say the real "before" differs by lighting rather
+than by a filter, and will probably be right. But test it on one room before
+committing, because the saving is the difference between a game that downloads
+over cellular and one that does not.
+
+If the filter fails the test, the next lever is not resolution — it is whether
+all twelve rooms need a unique background at all, or whether some share a base
+and differ by dressing. That is a design question, not an art one, and it
+belongs to whoever owns section 4 of `cat-shelter-mvp.md`.
 
 ### Acceptance
 

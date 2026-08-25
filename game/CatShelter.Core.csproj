@@ -51,6 +51,7 @@
     <Compile Include="Assets/Core/Shelf.cs" />
     <Compile Include="Assets/Core/Board.cs" />
     <Compile Include="Assets/Core/PlayerProgress.cs" />
+    <Compile Include="Assets/Core/GameSave.cs" />
     <Compile Include="Assets/Core/Item.cs" />
     <Compile Include="Assets/Core/Level.cs" />
     <Compile Include="Assets/Core/BoardSave.cs" />

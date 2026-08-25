@@ -48,6 +48,7 @@
     <Analyzer Include="/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/BuildPipeline/Unity.SourceGenerators/Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets/Tests/Core/GameSaveTests.cs" />
     <Compile Include="Assets/Tests/Core/PlayerProgressTests.cs" />
     <Compile Include="Assets/Tests/Core/LevelLoader.cs" />
     <Compile Include="Assets/Tests/Core/HeadlessRunTests.cs" />

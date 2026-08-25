@@ -56,6 +56,34 @@ namespace CatShelter.Tests
             }
             return levels;
         }
+#else
+        /// <summary>
+        /// dotnet-test path: read the same files straight from disk. The repo
+        /// root is found relative to the test assembly location.
+        /// </summary>
+        public static System.Collections.Generic.IReadOnlyList<Level> LoadAllFromAssets()
+        {
+            // walk up until game/Assets/Levels exists (depth varies by host)
+            var dir = AppContext.BaseDirectory;
+            string levelsDir = null;
+            for (int i = 0; i < 12 && dir != null; i++)
+            {
+                dir = System.IO.Path.GetDirectoryName(dir);
+                var candidate = System.IO.Path.Combine(dir, "game", "Assets", "Levels");
+                if (System.IO.Directory.Exists(candidate))
+                {
+                    levelsDir = candidate;
+                    break;
+                }
+            }
+            if (levelsDir == null)
+                throw new System.IO.DirectoryNotFoundException(
+                    "game/Assets/Levels not found above " + AppContext.BaseDirectory);
+            var levels = new List<Level>();
+            foreach (var file in System.IO.Directory.GetFiles(levelsDir, "l*.json"))
+                levels.Add(FromJson(System.IO.File.ReadAllText(file)));
+            return levels;
+        }
 #endif
     }
 }

@@ -1,0 +1,627 @@
+Unity Editor version:    6000.3.22f1 (1c726e1fb402)
+Branch:                  6000.3/staging
+Build type:              Release
+Batch mode:              YES
+macOS version:           Version 26.0.1 (Build 25A362)
+Darwin version:          25.0.0
+Architecture:            arm64
+Running under Rosetta:   NO
+Available memory:        24576 MB
+Date:                    2026-08-25T13:52:16Z
+[Licensing::Module] Trying to connect to existing licensing client channel...
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-rdolgov" at "2026-08-25T13:52:16.53133Z"
+Launching external process: /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/PackageManager/Server/UnityPackageManager
+
+COMMAND LINE ARGUMENTS:
+/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/MacOS/Unity
+-batchmode
+-projectPath
+.
+-runTests
+-testPlatform
+EditMode
+-testResults
+/tmp/utf-results.xml
+-logFile
+utf.log
+Successfully changed project path to: /Users/rdolgov/workflow/git/mobile-game-cat/game
+/Users/rdolgov/workflow/git/mobile-game-cat/game
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gfx=262144"
+Player connection [8675477504]  Target information:
+
+Player connection [8675477504]  * "[IP] 10.200.210.41 [Port] 55504 [Flags] 2 [Guid] 2156276162 [EditorId] 2156276162 [Version] 1048832 [Id] OSXEditor(0,Mac) [Debug] 1 [PackageName] OSXEditor [ProjectName] Editor" 
+
+Player connection [8675477504]  * "[IP] 192.168.31.105 [Port] 55504 [Flags] 2 [Guid] 2156276162 [EditorId] 2156276162 [Version] 1048832 [Id] OSXEditor(0,Mac) [Debug] 1 [PackageName] OSXEditor [ProjectName] Editor" 
+
+Player connection [8675477504] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [8675477504] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Licensing::Client] Error: HandshakeResponse reported an error:
+	ResponseCode: 505
+	ResponseStatus: Unsupported protocol version '1.18.1'.
+[Licensing::Module] Error: Failed to handshake to channel: "LicenseClient-rdolgov"
+[Licensing::IpcConnector] LicenseClient-rdolgov channel disconnected successfully.
+[Licensing::IpcConnector] Channel LicenseClient-rdolgov-6000.3.22 doesn't exist
+Launching external process: /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Helpers/UnityLicensingClient.app/Contents/MacOS/Unity.Licensing.Client
+[Licensing::Module] Successfully launched the LicensingClient (PId: 39402)
+[Package Manager] Connected to IPC stream "Upm-39400" after 0.1 seconds.
+[Licensing::Module] Licensing is not yet initialized.
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-rdolgov-6000.3.22" at "2026-08-25T13:52:16.940522Z"
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.1+9fbee8e
+  Session Id:              fae81dc02eea45969fdc058407deb2e3
+  Correlation Id:          3df6a9c92827e4f91e1ea2f7362d25da
+  External correlation Id: 8274821029337507148
+  Machine Id:              ntsEtf8Jao8flmxwz9gnfnuj92A=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-rdolgov-6000.3.22" (connect: 0.17s, validation: 0.02s, handshake: 0.21s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-rdolgov-6000.3.22-notifications" at "2026-08-25T13:52:17.170869Z"
+[Licensing::Module] Connected to LicensingClient (PId: 39402, launch time: 0.00, total connection time: 0.40s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-QK2W-PF5B-DRTG-E49J-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 425700-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.00
+[Licensing::Module] Licensing Background thread has ended after 0.65s
+[Licensing::Module] Licensing is initialized (took 0.40s).
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-QK2W-PF5B-DRTG-E49J-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 425700-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Library Redirect Path: Library/
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Refreshing native plugins compatible for Editor in 0.06 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Initialize engine version: 6000.3.22f1 (1c726e1fb402)
+[Subsystems] Discovering subsystems at path /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path /Users/rdolgov/workflow/git/mobile-game-cat/game/Assets
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+ preferred device: Apple M2 (high power)
+Metal devices available: 1
+0: Apple M2 (high power)
+Using device Apple M2 (high power)
+Initializing Metal device caps: Apple M2
+Mac GPU Family: 2
+Apple GPU Family: 8
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Initialize mono
+Mono path[0] = '/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/Scripting/Managed'
+Mono path[1] = '/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/Scripting/MonoBleedingEdge/lib/mono/unityjit-macos'
+Mono config path = '/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/Scripting/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56400
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: /Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/WebGLSupport/UnityEditor.WebGL.Extensions.dll
+Register platform support module: /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/PlaybackEngines/MacStandaloneSupport/UnityEditor.OSXStandalone.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-QK2W-PF5B-DRTG-E49J-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 425700-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Register platform support module: /Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-QK2W-PF5B-DRTG-E49J-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 425700-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Register platform support module: /Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/iOSSupport/UnityEditor.iOS.Extensions.dll
+Registered in 0.002175 seconds.
+- Loaded All Assemblies, in  0.223 seconds
+[usbmuxd] Start listen thread
+[usbmuxd] Listen thread started
+[usbmuxd] Send listen message
+Native extension for iOS target not found
+Native extension for Android target not found
+Native extension for OSXStandalone target not found
+Native extension for WebGL target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:False
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.261 seconds
+Domain Reload Profiling: 484ms
+	BeginReloadAssembly (58ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (10ms)
+	RebuildCommonClasses (22ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (25ms)
+	LoadAllAssembliesAndSetupDomain (109ms)
+		LoadAssemblies (49ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (107ms)
+			TypeCache.Refresh (106ms)
+				TypeCache.ScanAssembly (97ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (0ms)
+	FinalizeReload (261ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (235ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (76ms)
+			SetLoadedEditorAssemblies (3ms)
+			BeforeProcessingInitializeOnLoad (46ms)
+			ProcessInitializeOnLoadAttributes (70ms)
+			ProcessInitializeOnLoadMethodAttributes (40ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-QK2W-PF5B-DRTG-E49J-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 425700-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 53 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.ai.navigation@2.0.14 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ai.navigation@134dd6a3b97b)
+    com.unity.analytics@3.8.2 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.analytics@c9d14a6bdec6)
+    com.unity.collab-proxy@2.12.4 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.collab-proxy@0b1559bcd34e)
+    com.unity.ide.rider@3.0.40 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ide.rider@e4950c6d131b)
+    com.unity.ide.visualstudio@2.0.26 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.purchasing@4.15.1 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.purchasing@265595791a69)
+    com.unity.timeline@1.8.12 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.timeline@8cd8509afae5)
+    com.unity.xr.legacyinputhelpers@2.1.13 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.xr.legacyinputhelpers@9535ff2c27ac)
+    com.unity.services.core@1.18.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.services.core@3464cb68d709)
+    com.unity.services.analytics@6.3.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.services.analytics@cde4e6cf92f9)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64)
+  Built-in packages:
+    com.unity.2d.sprite@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.2d.sprite@d8bb22511404)
+    com.unity.2d.tilemap@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.2d.tilemap@f666889fd587)
+    com.unity.multiplayer.center@1.0.1 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.test-framework@1.6.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ugui@20629863fcab)
+    com.unity.modules.accessibility@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ext.nunit@d8c07649098d)
+[Package Manager] com.unity.purchasing@4.15.1 is deprecated: Unity IAP 4 is unsupported as of June 8, 2026. IAP 5 is the supported version going forward.
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.01 seconds
+[Package Manager] Done resolving packages in 1.55 seconds
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 53 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.ai.navigation@2.0.14 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ai.navigation@134dd6a3b97b)
+    com.unity.analytics@3.8.2 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.analytics@c9d14a6bdec6)
+    com.unity.collab-proxy@2.12.4 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.collab-proxy@0b1559bcd34e)
+    com.unity.ide.rider@3.0.40 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ide.rider@e4950c6d131b)
+    com.unity.ide.visualstudio@2.0.26 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ide.visualstudio@a99d56dec63f)
+    com.unity.purchasing@4.15.1 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.purchasing@265595791a69)
+    com.unity.timeline@1.8.12 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.timeline@8cd8509afae5)
+    com.unity.xr.legacyinputhelpers@2.1.13 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.xr.legacyinputhelpers@9535ff2c27ac)
+    com.unity.services.core@1.18.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.services.core@3464cb68d709)
+    com.unity.services.analytics@6.3.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.services.analytics@cde4e6cf92f9)
+    com.unity.nuget.newtonsoft-json@3.2.2 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64)
+  Built-in packages:
+    com.unity.2d.sprite@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.2d.sprite@d8bb22511404)
+    com.unity.2d.tilemap@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.2d.tilemap@f666889fd587)
+    com.unity.multiplayer.center@1.0.1 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.multiplayer.center@f01f4ba8d00a)
+    com.unity.test-framework@1.6.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.test-framework@bd7f943e9647)
+    com.unity.ugui@2.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ugui@20629863fcab)
+    com.unity.modules.accessibility@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.physics2d)
+    com.unity.modules.screencapture@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.terrainphysics)
+    com.unity.modules.tilemap@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.tilemap)
+    com.unity.modules.ui@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.video)
+    com.unity.modules.vr@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.vr)
+    com.unity.modules.wind@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.modules.hierarchycore)
+    com.unity.ext.nunit@2.0.5 (location: /Users/rdolgov/workflow/git/mobile-game-cat/game/Library/PackageCache/com.unity.ext.nunit@d8c07649098d)
+[Package Manager] com.unity.purchasing@4.15.1 is deprecated: Unity IAP 4 is unsupported as of June 8, 2026. IAP 5 is the supported version going forward.
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.00 seconds
+[ScriptCompilation] Requested script compilation because: Assembly Definition File(s) changed
+[ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
+[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://unix:/tmp/ilpp.sock-d07a7d464044d2e669fe6b431b27e84d
+[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
+      Content root path: /Users/rdolgov/workflow/git/mobile-game-cat/game/
+[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc -
+[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+[40m[32minfo[39m[22m[49m: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 21.8189ms
+Starting: /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/BuildPipeline/bee_backend --ipc --defer-dag-verification --dagfile="Library/Bee/200b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: /Users/rdolgov/workflow/git/mobile-game-cat/game
+DisplayProgressbar: Compiling Scripts
+Starting: /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/Scripting/netcorerun/netcorerun "/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/BuildPipeline/ScriptCompilationBuildProgram.exe" "Library/Bee/200b0aE.dag.json" "Library/Bee/200b0aE-inputdata.json" "Library/Bee/buildprogram0.traceevents"
+WorkingDir: /Users/rdolgov/workflow/git/mobile-game-cat/game
+ExitCode: 4 Duration: 0s85ms
+[693/695    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.dll
+[694/695    0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.pdb
+Rebuilding DAG because FileSignature timestamp changed: Library/Bee/200b0aE-inputdata.json
+*** Tundra requires additional run (0.07 seconds), 2 items updated, 695 evaluated
+ExitCode: 0 Duration: 0s424ms
+Starting: /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Resources/BuildPipeline/bee_backend --ipc --defer-dag-verification --dagfile="Library/Bee/200b0aE.dag" --continue-on-failure --dagfilejson="Library/Bee/200b0aE.dag.json" --profile="Library/Bee/backend2.traceevents" ScriptAssemblies
+WorkingDir: /Users/rdolgov/workflow/git/mobile-game-cat/game
+ExitCode: 0 Duration: 1s246ms
+Finished compiling graph: 684 nodes, 11866 flattened edges (11010 ToBuild, 122 ToUse), maximum node priority 460
+[           0s] Delete 24 artifact files that are no longer in use. (like Library/ScriptAssemblies/Assembly-CSharp.dll)
+[339/681    0s] WriteText Library/Bee/artifacts/200b0aE.dag/CatShelter.Core.dll.mvfrm.rsp
+[341/681    0s] WriteText Library/Bee/artifacts/200b0aE.dag/CatShelter.Core.rsp2
+[356/681    0s] WriteText Library/Bee/artifacts/200b0aE.dag/CatShelter.Core.UnityAdditionalFile.txt
+[383/681    0s] WriteText Library/Bee/artifacts/200b0aE.dag/CatShelter.Core.rsp
+[677/681    0s] MovedFromExtractor-Combine Library/Bee/artifacts/200b0aE.dag/CatShelter.Core.dll.mvfrm
+[678/681    1s] Csc Library/Bee/artifacts/200b0aE.dag/CatShelter.Core.dll (+2 others)
+Assets/Core/BoardSave.cs(20,36): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/BoardSave.cs(25,50): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(44,34): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(52,53): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(70,42): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(18,21): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(24,30): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(32,33): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+[679/681    0s] CopyFiles Library/ScriptAssemblies/CatShelter.Core.pdb
+[680/681    0s] CopyFiles Library/ScriptAssemblies/CatShelter.Core.dll
+*** Tundra build success (1.22 seconds), 8 items updated, 681 evaluated
+Assets/Core/BoardSave.cs(20,36): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/BoardSave.cs(25,50): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(44,34): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(52,53): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(70,42): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(18,21): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(24,30): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+Assets/Core/Shelf.cs(32,33): warning CS8632: The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+AssetDatabase: script compilation time: 2.103728s
+Total cache size 38981596
+Total cache size after purge 38981596, took 00:00:00.0246459
+Begin MonoManager ReloadAssembly
+Symbol file LoadedFromMemory is not a mono symbol file
+- Loaded All Assemblies, in  0.325 seconds
+Start importing Assets/Core/CatShelter.Core.asmdef using Guid(10b3980dd53c646baa885bdd38d5519d) (AssemblyDefinitionImporter) -> (artifact id: 'c2b1932e03b0e0144fdb9485db36cb35') in 0.008657167 seconds
+Refreshing native plugins compatible for Editor in 0.93 ms, found 2 plugins.
+Native extension for iOS target not found
+Native extension for Android target not found
+Native extension for OSXStandalone target not found
+Native extension for WebGL target not found
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:False
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  0.429 seconds
+Domain Reload Profiling: 754ms
+	BeginReloadAssembly (95ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (9ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (28ms)
+	RebuildCommonClasses (22ms)
+	RebuildNativeTypeToScriptingClass (9ms)
+	initialDomainReloadingComplete (12ms)
+	LoadAllAssembliesAndSetupDomain (187ms)
+		LoadAssemblies (140ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (82ms)
+			TypeCache.Refresh (63ms)
+				TypeCache.ScanAssembly (53ms)
+			BuildScriptInfoCaches (17ms)
+			ResolveRequiredComponents (1ms)
+	FinalizeReload (429ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (358ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (24ms)
+			SetLoadedEditorAssemblies (2ms)
+			BeforeProcessingInitializeOnLoad (72ms)
+			ProcessInitializeOnLoadAttributes (144ms)
+			ProcessInitializeOnLoadMethodAttributes (114ms)
+			AfterProcessingInitializeOnLoad (1ms)
+			EditorAssembliesLoaded (0ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (7ms)
+Refreshing native plugins compatible for Editor in 0.99 ms, found 2 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=3e43f334d091b40eba7c1a1738f941bf): Total: 4.885 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=1 (actual=1, local cache=0, cache server=0)
+		Asset DB Process Time: managed=1 ms, native=724 ms
+		Asset DB Callback time: managed=140 ms, native=1571 ms
+		Scripting: domain reloads=1, domain reload time=325 ms, compile time=2105 ms, other=16 ms
+		Project Asset Count: scripts=804, non-scripts=1047
+		Asset File Changes: new=1, changed=1, moved=0, deleted=1
+		Scan Filter Count: 1
+	InvokeCustomDependenciesCallbacks: 0.001ms
+	InvokePackagesCallback: 1568.618ms
+	ApplyChangesToAssetFolders: 0.220ms
+	Scan: 190.864ms
+	OnSourceAssetsModified: 0.418ms
+	CategorizeAssetsWithTransientArtifact: 13.551ms
+	ProcessAssetsWithTransientArtifactChanges: 18.320ms
+	UnregisterDeletedAssets: 0.001ms
+	CategorizeAssets: 11.105ms
+	ImportOutOfDateAssets: 443.634ms (-1672.645ms without children)
+		ImportManagerImport: 11.104ms (2.271ms without children)
+			ImportInProcess: 8.823ms
+			UpdateCategorizedAssets: 0.010ms
+		CompileScripts: 2104.650ms
+		ReloadNativeAssets: 0.000ms
+		UnloadImportedAssets: 0.111ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.228ms
+		InitializingProgressBar: 0.000ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.000ms
+		OnDemandSchedulerStart: 0.186ms
+	PostProcessAllAssets: 141.288ms
+	Hotreload: 2.307ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.000ms
+	UnloadStreamsBegin: 0.496ms
+	PersistCurrentRevisions: 0.083ms
+	UnloadStreamsEnd: 0.001ms
+	GenerateScriptTypeHashes: 0.918ms
+	Untracked: 2494.300ms
+
+Application.AssetDatabase Initial Refresh End
+Launching external process: /Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/Helpers/UnityShaderCompiler
+Launched and connected shader compiler UnityShaderCompiler after 0.03 seconds
+Scanning for USB devices : 0.103ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-game
+2026-08-25 16:52:23.278 Unity[39400:6944533] NSEventModifierFlagFunction specified to -setKeyEquivalentModifierMask: for item <NSMenuItem: 0xb80a0e260 SDF, ke='Command-F12'>, but is only supported for system-provided menu items; will not be used
+Unloading 3 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 3120 unused Assets / (1.5 MB). Loaded Objects now: 3734.
+Memory consumption went from 133.4 MB to 131.9 MB.
+Total: 9.122042 ms (FindLiveObjects: 0.214416 ms CreateObjectMapping: 0.124333 ms MarkObjects: 8.086042 ms  DeleteObjects: 0.696542 ms)
+
+2026-08-25 16:52:23.318 Unity[39400:6944533] NSEventModifierFlagFunction specified to -setKeyEquivalentModifierMask: for item <NSMenuItem: 0xb80a030c0 SDF, ke='Command-F12'>, but is only supported for system-provided menu items; will not be used
+[Project] Loading completed in 6.794 seconds
+	Project init time: 				6.314 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.545 seconds
+		Asset Database init time: 		0.082 seconds
+		Global illumination init time: 	0.000 seconds
+		Assemblies load time: 			0.494 seconds
+		Unity extensions init time: 	0.003 seconds
+		Asset Database refresh time: 	4.885 seconds
+	Scene opening time: 			0.403 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1787665943321,"processId":39400,"projectLoad":6.793818,"projectInit":6.313584834,"templateInit":0.0,"packageManagerInit":0.54469475,"assetDatabaseInit":0.082124083,"globalIlluminationInit":0.000442667,"assembliesLoad":0.493754292,"unityExtensionsInit":0.002987,"assetDatabaseRefresh":4.885247416,"sceneOpening":0.40281675}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1787665943321,"processId":39400,"editorVersion":"6000.3.22f1 (1c726e1fb402)","branch":"6000.3/staging","buildType":"Release","platform":"OSX"}
+Subscribe to USB device events
+Scanning for USB devices : 0.076ms
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Client] Successfully resolved entitlement details
+Running tests for ExecutionSettings with details:
+targetPlatform = 
+playerHeartbeatTimeout = 600
+filters[0] = 
+   Filter with settings:
+   testMode = EditMode
+   targetPlatform = 
+   testNames = null
+   groupNames = null
+   categoryNames = null
+   assemblyNames = null
+ignoreTests = {}
+featureFlags = null
+
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at /Users/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:InitializeAndExecuteRun (string[]) (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:53)
+UnityEditor.TestTools.TestRunner.CommandLineTest.TestStarter:InitializeAndExecuteRun () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/TestStarter.cs:64)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions () (at /Users/bokken/build/output/unity/unity/Editor/Mono/EditorApplication.cs:392)
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 53)
+
+Start importing Assets/Resources/BillingMode.json using Guid(6af50b6d0b64145298101735893b4c4d) (TextScriptImporter) -> (artifact id: '2e8a7c486521289bc5344169e5e2c58a') in 0.003982583 seconds
+Refreshing native plugins compatible for Editor in 0.68 ms, found 2 plugins.
+Preloading 0 native plugins for Editor in 0.00 ms.
+Asset Pipeline Refresh (id=399c2579fba1b4da2816f2c99b533313): Total: 0.017 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+[UnityConnectServicesConfig] config is NOT valid, switching to default
+Created GICache directory at /Users/rdolgov/Library/Caches/com.unity3d.UnityEditor/GiCache. Took: 0.001s, timestamps: [6.796 - 6.798]
+Unloading 0 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 24 unused Assets / (121.4 KB). Loaded Objects now: 3755.
+Memory consumption went from 127.6 MB to 127.4 MB.
+Total: 9.908875 ms (FindLiveObjects: 0.078167 ms CreateObjectMapping: 0.036875 ms MarkObjects: 9.773458 ms  DeleteObjects: 0.020000 ms)
+
+Saving results to: /tmp/utf-results.xml
+Unloading 0 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 0 unused Assets / (0 B). Loaded Objects now: 3756.
+Memory consumption went from 125.6 MB to 125.6 MB.
+Total: 8.872667 ms (FindLiveObjects: 0.076083 ms CreateObjectMapping: 0.037042 ms MarkObjects: 8.755333 ms  DeleteObjects: 0.003958 ms)
+
+DisplayProgressbar: Undo
+Test run completed. Exiting with code 0 (Ok). No tests were executed.
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace () (at /Users/bokken/build/output/unity/unity/Runtime/Export/Scripting/StackTrace.cs:35)
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitApplication (UnityEditor.TestTools.TestRunner.CommandLineTest.Executer/ReturnCodes,string) (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:81)
+UnityEditor.TestTools.TestRunner.CommandLineTest.Executer:ExitIfRunIsCompleted () (at ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs:74)
+UnityEditor.EditorApplication:Internal_CallUpdateFunctions () (at /Users/bokken/build/output/unity/unity/Editor/Mono/EditorApplication.cs:392)
+
+(Filename: ./Library/PackageCache/com.unity.test-framework@bd7f943e9647/UnityEditor.TestRunner/CommandLineTest/Executer.cs Line: 81)
+
+Request timed out while processing request "https://public-cdn.cloud.unity3d.com/config/production", HTTP error code 0
+.[UnityConnect] Request timed out.
+An error occurred while processing request "https://public-cdn.cloud.unity3d.com/config/production", HTTP error code 299
+.[UnityConnect] An error occurred.
+Killing ADB server in 0.03559 seconds.
+Thread 0x16dc9b000 may have been prematurely finalized
+The command could not be loaded, possibly because:
+  * You intended to execute a .NET application:
+      The application 'build-server' does not exist.
+  * You intended to execute a .NET SDK command:
+      No .NET SDKs were found.
+
+Download a .NET SDK:
+https://aka.ms/dotnet-download
+
+Learn about SDK resolution:
+https://aka.ms/dotnet/sdk-not-found
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+[Licensing::IpcConnector] LicenseClient-rdolgov-6000.3.22-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-rdolgov-6000.3.22 channel disconnected successfully.
+Thread 0x16e213000 may have been prematurely finalized
+AcceleratorClientConnectionCallback - disconnected - :0
+[40m[32minfo[39m[22m[49m: Microsoft.Hosting.Lifetime[0]
+      Application is shutting down...
+Cleanup mono
+debugger-agent: Unable to listen on 43
+[usbmuxd] Stop listen thread
+[usbmuxd] Error: 
+[usbmuxd] Listen thread exiting

@@ -79,7 +79,7 @@ not reopened every week.
 | Surface | Verdict | Why |
 |---|---|---|
 | Energy / lives gate | **Not in the MVP. Open for the product.** | See below — it would corrupt metric 3 |
-| Booster on failure ("+1 slot") | **Chosen** | Sells recovery, not admission; already task 6.6 |
+| Booster on failure (**one more shelf, +3 slots, once per level**) | **Chosen** | Sells recovery, not admission; measured, see 6.6 |
 | Hints | **Good fit, post-MVP** | Becomes genuinely valuable once 3.9 hides kinds |
 | Items for the cat and the room | **Good fit, post-MVP** | Bed, bowl, toys — already the second wave in MVP §14 |
 | Frames, glow, backgrounds, poses around the cat | **Good fit, post-MVP** | Additive — they decorate her cat without replacing it |
@@ -727,7 +727,7 @@ drop-off reaching it is measured in M7.
 | 6.3 | Three cat states (VIEW) | P0 | transitions after the **4th and 8th completed room** | PlayMode at both boundaries |
 | 6.4 | Rewards at levels 4 and 8 (VIEW) | P1 | props appear in room | PlayMode |
 | 6.5 | Win screen, before/after (VIEW) | P0 | both frames shown | **HUMAN: difference readable in half a second** |
-| 6.6 | Lose screen, "+1 slot" button (VIEW) | P0 | tap recorded, stub shown; booster grows shelf by one slot in Core | PlayMode + event in analytics |
+| 6.6 | Lose screen, **"one more shelf" (+3 slots)** button (VIEW) | P0 | tap recorded, stub shown; **`AddSlots(3)`**, usable **once per level** | PlayMode + event in analytics; second tap in the same level must be refused |
 | 6.7 | **Mid-level save, written every move** (CORE) | P0 | quitting mid-level and reopening resumes the same board | unit tests: write, read, corrupted file; **on device: kill the app mid-level, reopen, same position** |
 | 6.8 | Notification, permission after level 2 (NATIVE) | **P0** | fires after 24 h | on device |
 | 6.9 | Click and haptics on placement (VIEW) | P1 | present | **HUMAN plays 5 minutes straight** |
@@ -762,6 +762,49 @@ Two moments are worth offering the share at, and no others: right after a room i
 cleaned, and at the cat's state transitions after levels 4 and 8, where the
 change in the animal itself is large enough to read at thumbnail size. Offering
 it on level 1 gives her nothing to show.
+
+### 6.6: one slot was measured and it does not work
+
+The executing agent ran 1110 adversarial games and reported that +1 rescues 58%
+of jams and +3 rescues 98%. Re-measured independently over 400 games across all
+37 levels with a *realistic* player — greedy with 12% random mistakes — and
+against a harder question, "did the run survive to the end" rather than "is a
+next move now possible":
+
+| Booster | Run survived the jam | Games won |
+|---|---|---|
+| none | — | 72% |
+| one slot | **33%** | 81% |
+| three slots | **81%** | 95% |
+| return three items to the pile | 51% | 86% |
+
+The conclusion holds, the numbers do not. One slot rescues a third, not a half.
+Clearing a jam only to hit another four moves later is not a rescue.
+
+**Why one slot fails.** The worst jam is nine distinct kinds on the shelf; a
+single extra place changes nothing, because completing any triple means digging
+two more of some kind out from under the pile. Three places are structural: with
+nine slots a jam needs five distinct kinds, with twelve it needs six, and that
+holds for the rest of the level rather than for one move.
+
+**A tempting alternative was tested and lost.** Returning three items from the
+shelf to the pile — the genre-standard booster — scores 51%, well behind three
+slots. It relieves the moment but leaves capacity unchanged; the extra slots keep
+paying out.
+
+**Two conditions on the decision.**
+
+*Once per level.* Repeatable, it takes the win rate towards 100%, the loss
+condition disappears and metric 4 stops meaning anything — nobody pays to be
+rescued from a game that cannot be lost.
+
+*Call it "one more shelf".* The shelf is three rows of three, so three slots is
+one more row. "+3 slots" is spreadsheet language; in a game about making a home
+tidy, you put up a shelf.
+
+**Still unverified.** 72% base win rate comes from a modelled player, not a human
+one. Task 3.7 puts five outsiders on the build; if they lose far more often, the
+booster needs re-measuring against them.
 
 ### 6.7 was under-specified, and the gap punishes exactly our player
 
@@ -906,7 +949,7 @@ it M8 is blind.
 | reached capture screen | > 90% | no external benchmark; internal funnel step | reasonable |
 | uploaded a photo | > 40% | none exists — the mechanic is novel | a guess, and unavoidably so |
 | returned on day 1 | > 35% | **puzzle median 19.66–20.74%** (GameAnalytics 2025, 11,600 games, 2024 data); all games averaged 27% (Adjust 2025) | **~1.8× the genre median** |
-| tapped "+1 slot" | > 15% of those who reached the lose screen | no comparable public figure found | a guess; denominator recorded separately |
+| tapped "one more shelf" | > 15% of those who reached the lose screen | no comparable public figure found | a guess; denominator recorded separately |
 
 The day-1 number is the problem. As written, "> 35%" is not a floor separating a
 viable game from a dead one — it is a level well above typical for the genre. A

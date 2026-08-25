@@ -79,7 +79,7 @@ not reopened every week.
 | Surface | Verdict | Why |
 |---|---|---|
 | Energy / lives gate | **Not in the MVP. Open for the product.** | See below — it would corrupt metric 3 |
-| Booster on failure (**one more shelf, +3 slots, once per level**) | **Chosen** | Sells recovery, not admission; measured, see 6.6 |
+| Booster on failure (**one more shelf** — offered, not granted, in the MVP) | **Chosen** | Sells recovery, not admission; a fake door measures intent, see 6.6 |
 | Hints | **Good fit, post-MVP** | Becomes genuinely valuable once 3.9 hides kinds |
 | Items for the cat and the room | **Good fit, post-MVP** | Bed, bowl, toys — already the second wave in MVP §14 |
 | Frames, glow, backgrounds, poses around the cat | **Good fit, post-MVP** | Additive — they decorate her cat without replacing it |
@@ -727,7 +727,7 @@ drop-off reaching it is measured in M7.
 | 6.3 | Three cat states (VIEW) | P0 | transitions after the **4th and 8th completed room** | PlayMode at both boundaries |
 | 6.4 | Rewards at levels 4 and 8 (VIEW) | P1 | props appear in room | PlayMode |
 | 6.5 | Win screen, before/after (VIEW) | P0 | both frames shown | **HUMAN: difference readable in half a second** |
-| 6.6 | Lose screen, **"one more shelf" (+3 slots)** button (VIEW) | P0 | tap recorded, stub shown; **`AddSlots(3)`**, usable **once per level** | PlayMode + event in analytics; second tap in the same level must be refused |
+| 6.6 | Lose screen, **"one more shelf" — a fake door** (VIEW) | P0 | tap recorded, "soon" stub shown, **level stays lost**, replay offered | PlayMode + event in analytics; **`AddSlots` must not be called in the MVP** |
 | 6.7 | **Mid-level save, written every move** (CORE) | P0 | quitting mid-level and reopening resumes the same board | unit tests: write, read, corrupted file; **on device: kill the app mid-level, reopen, same position** |
 | 6.8 | Notification, permission after level 2 (NATIVE) | **P0** | fires after 24 h | on device |
 | 6.9 | Click and haptics on placement (VIEW) | P1 | present | **HUMAN plays 5 minutes straight** |
@@ -763,7 +763,56 @@ cleaned, and at the cat's state transitions after levels 4 and 8, where the
 change in the animal itself is large enough to read at thumbnail size. Offering
 it on level 1 gives her nothing to show.
 
-### 6.6: one slot was measured and it does not work
+### 6.6 is a fake door: the button is offered, the level is not rescued
+
+The original MVP said it plainly — "нажатие считается, дальше показывается
+заглушка «скоро»". Tap counted, level lost, play again. The booster was never
+meant to fire in the MVP. It drifted into firing during the refactor, when
+`AddSlots` was implemented and the argument moved on to how many slots, without
+anyone noticing the argument was about the wrong thing. Restored.
+
+**Metric 4 measures intent, not usefulness.** The question the MVP answers is
+whether anyone would pay to be rescued. An offer appearing and a tap being
+counted answers it. What happens afterwards does not.
+
+**Granting it free would undo the difficulty we just built.** Base win rate is
+72%; with a free booster it is 95%. A week was spent making the game less
+trivial — hidden kinds, the pile-size curve, complications — and handing out a
+free rescue puts it straight back where it was, only through a button.
+
+**Losing here is not punishment.** The MVP forbids humiliating the player, but
+replaying a two-minute level is not humiliation. Punishment is losing progress or
+being locked out for a day. Failing 28% of runs is a reasonable rate and supplies
+the stakes the owner found missing when he played it through.
+
+### What the measurement was still for
+
+Not "grant it or not" but **what to offer**, so the offer is credible.
+
+| Booster | Run survived the jam | Games won |
+|---|---|---|
+| none | — | 72% |
+| one slot | 33% | 81% |
+| three slots | 81% | 95% |
+| return three items to the pile | 51% | 86% |
+
+Measured over 400 games across all 37 levels with a greedy player making 12%
+mistakes, scored on "did the run survive to the end" rather than "is a next move
+possible". The executing agent's 58%/98% came from 1110 adversarial games scored
+the looser way.
+
+A fake door reading "+1 slot" would measure willingness to pay for something that
+fails a third of the time. Three slots is an offer worth making — the worst jam
+is nine distinct kinds on the shelf, one extra place cannot help, and three
+change the jam threshold itself. Hence the wording: the shelf is three rows of
+three, so three slots is one more row, and "put up another shelf" is what a
+person would want at that moment.
+
+**When it becomes real, post-MVP:** three slots, once per level. Repeatable takes
+the win rate to 100% and there is nothing left to sell.
+
+**Still unverified.** 72% is a modelled player. If the five outsiders in 3.7 jam
+every other run, this is reopened — decided on people, not on simulation.
 
 The executing agent ran 1110 adversarial games and reported that +1 rescues 58%
 of jams and +3 rescues 98%. Re-measured independently over 400 games across all

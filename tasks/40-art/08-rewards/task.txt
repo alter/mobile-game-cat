@@ -1,0 +1,39 @@
+TASK: Reward items - bowl and blanket
+
+GOAL
+  Two objects that appear in the room and visibly change the kitten's
+  situation after room 4 and room 8, without functioning as a booster.
+
+CONTEXT
+  art-brief.md section 10, subsection "Вещи-награды"
+  art-prompts.md section 6, subsection "Награды" (both prompts, the
+  no-glow/no-badge negative additions)
+
+SCOPE
+  + reward_bowl.png: ceramic cat bowl, dusty mint, a small paw print.
+  + reward_blanket.png: folded cat blanket, muted peach, knitted texture.
+  + Same style pipeline as the 30 props, but "slightly nicer and cleaner" -
+    art-prompts.md section 6 - a gift, not clutter.
+  - No glow, sparkle, magic aura, rarity border, star, badge, plus sign or
+    number on either - art-prompts.md section 6 bans this explicitly: these
+    give no gameplay benefit and must not look like they do.
+  - Not placed in the room scene itself - that is code/VIEW placement, not
+    an art asset here.
+
+OUTCOME
+  2 PNGs, reward_bowl.png and reward_blanket.png, 256x256, transparent
+  alpha, under game/Assets/Art.
+
+VERIFY (QA)
+  1. Both files present, 256x256, clean alpha.
+  2. Neither reads as a power-up at a glance - checked by someone other than
+     the author, explicitly asked "does this look like it does something in
+     the game," expected answer no.
+  3. Placed at actual in-scene scale next to a room background: proportion
+     looks plausible, not toy-sized or oversized.
+
+ROLE
+  ART, QA
+
+DEPENDS
+  40-art/01-props

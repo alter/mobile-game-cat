@@ -1,0 +1,37 @@
+TASK: Copy in English
+
+GOAL
+  Every player-visible string in the shell is English. The design documents
+  are written in Russian; the shipped product is not.
+
+CONTEXT
+  cat-shelter-mvp.md section 4 (notification copy example, "Мурзик нашёл
+  что-то за диваном" - to be translated in tone, not transliterated)
+
+SCOPE
+  + Sweep all UXML/USS text, C# string literals in Shell/View, and the
+    notification copy (09-notification) for non-English text.
+  + Fix any found; re-run the grep clean.
+  − Not localisation infrastructure (no string tables, no locale switching) -
+    the MVP ships English only, by design; that decision lives in
+    tasks/DECISIONS.md if revisited.
+  − Not audio voice-over or store listing copy - store copy is
+    00-validate-demand's concern.
+
+OUTCOME
+  Zero non-English strings anywhere a player can see them.
+
+VERIFY (QA)
+  1. `grep` over the built asset tree (UXML, USS, string literals in
+     Assets/Shell and Assets/View) finds zero non-Latin/non-ASCII player-
+     facing text, excluding code comments.
+
+ROLE
+  VIEW
+
+DEPENDS
+  60-shell-build/03-house-map
+  60-shell-build/06-win-screen
+  60-shell-build/07-lose-screen-fake-door
+  60-shell-build/09-notification
+  60-shell-build/11-post-level-12

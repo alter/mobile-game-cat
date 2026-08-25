@@ -1,0 +1,29 @@
+TASK: Spend $400 on paid installs
+
+GOAL
+  Buy the installs the retention and monetisation test needs. This is the
+  money the whole gate rests on.
+
+CONTEXT
+  tasks/GOAL.md ($400, a hundred-odd installs)
+
+SCOPE
+  + Run paid acquisition until 100+ installs are recorded.
+  + Total spend capped at $400.
+  - Not choosing or re-deciding thresholds - that is 00-thresholds, and must
+    already be filed before this starts.
+  - Not analysing results - that is 02-collect-metrics.
+
+OUTCOME
+  100 or more installs, with dashboard-visible spend of $400 or less.
+
+VERIFY (QA)
+  1. Ad platform dashboard shows 100+ installs attributed to this campaign.
+  2. Total spend shown by the platform is at most $400.
+  3. Campaign start date is later than 00-thresholds' filed date.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  80-live-validation/00-thresholds

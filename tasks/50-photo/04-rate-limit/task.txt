@@ -1,0 +1,38 @@
+TASK: Rate limit in the Worker
+
+GOAL
+  A courtesy limit against a stuck or looping client. Not a security
+  boundary - that job belongs to the provider spend cap.
+
+CONTEXT
+  DECISIONS.md D11 (signing deleted; this is a courtesy limit, not a defence;
+  `period` binding only accepts 10 or 60 seconds)
+  knowledge/python/05-cloudflare-worker-proxy.md (Rate Limiting binding: setup
+  in wrangler.jsonc, `limit({ key })` usage, its per-minute ceiling)
+
+SCOPE
+  + Rate Limiting binding on /traits, keyed by a device identifier the game
+    sends, not by IP (mobile IPs are shared).
+  + Burst past the limit returns 429.
+  - Not a true daily per-device cap - the binding's `period` is 10 or 60
+    seconds only; a real daily counter needs KV or D1 and is built only if
+    10-accounts/01-spend-cap shows it is needed.
+  - Not the spend cap itself - that lives in 10-accounts/01-spend-cap and is
+    the actual ceiling on financial damage.
+
+OUTCOME
+  Requests from one device beyond the configured burst are refused with 429
+  while normal single-photo traffic is unaffected.
+
+VERIFY (ARCH)
+  1. A loop of requests from one device identifier past the configured limit:
+     later requests return 429.
+  2. A single normal request from a fresh device identifier still returns 200.
+  3. Deployed Worker re-checked, not just `wrangler dev` - local counters are
+     known to reset unreliably in dev mode.
+
+ROLE
+  TOOLS
+
+DEPENDS
+  50-photo/02-traits-worker

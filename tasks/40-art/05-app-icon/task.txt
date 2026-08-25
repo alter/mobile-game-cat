@@ -1,0 +1,38 @@
+TASK: App icon, five variants
+
+GOAL
+  The single image a stranger judges before installing anything - decides
+  more than the 12 levels do, per art-brief.md section 11.
+
+CONTEXT
+  art-brief.md section 10, subsection "Значок приложения"
+  art-prompts.md section 6, subsection "Значок приложения, пять вариантов"
+
+SCOPE
+  + 5 compositions (face close-up, cat through doorway, cat behind box,
+    split dirty/tidy, cat asleep on blanket), one shared prompt per variant.
+  + Square, fills entire frame, no margins, no transparency, no rounded
+    corners - system applies the mask.
+  + A cat visible on all five.
+  - Not "which is prettier" as a question - poll asks which one a person
+    would tap.
+  - No text, logo or watermark - icons are the asset most tempted to add a
+    wordmark; restated here on top of the standing negative block.
+
+OUTCOME
+  5 PNGs, icon_<n>.png for n in 1..5, 1024x1024, no alpha, under
+  game/Assets/Art.
+
+VERIFY (HUMAN)
+  1. All 5 files present, 1024x1024, fully opaque, no rounding baked in.
+  2. Poll of 10 outsiders, each asked "which would you tap?" - not "which
+     is prettiest." All 10 answers recorded in VERIFY.md, not just a tally.
+  3. If the top two variants are within 1 vote, record that as inconclusive
+     rather than declaring a winner.
+
+ROLE
+  ART, HUMAN
+
+DEPENDS
+  40-art/01-props
+  40-art/03-cat-silhouettes

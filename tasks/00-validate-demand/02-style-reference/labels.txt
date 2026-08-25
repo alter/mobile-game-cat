@@ -1,0 +1,7 @@
+phase:validate
+role:GROWTH
+type:research
+priority:P0
+status:todo
+verify:pending
+milestone:M0

@@ -1,0 +1,8 @@
+phase:accounts
+role:NATIVE
+type:chore
+priority:P0
+status:done
+verify:passed
+depends:10-accounts/03-xcode
+milestone:M1

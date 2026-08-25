@@ -1,0 +1,39 @@
+TASK: Cloudflare Worker, POST /traits
+
+GOAL
+  A single TypeScript Worker that stands between the game and the vision
+  model, so the model provider key never ships inside the app.
+
+CONTEXT
+  knowledge/python/05-cloudflare-worker-proxy.md (fetch handler, secrets, why
+  network wait is free CPU time)
+  cat-shelter-tech.md section 4 (wire contract: in, out, key, storage)
+  DECISIONS.md D11 (signing deleted; spend cap is the real ceiling, in 10-accounts)
+
+SCOPE
+  + One `fetch` handler at POST /traits: reads base64 image + media_type,
+    calls the Anthropic Messages API, returns the model's JSON.
+  + Method/path checks, malformed-JSON handling, oversized-payload rejection.
+  + Key stored via `wrangler secret put`, never in `wrangler.jsonc` or code.
+  + No storage of the image anywhere - it lives in memory for the request.
+  - Not the strict-schema enum enforcement - that is 03-traits-schema.
+  - Not the rate limit - that is 04-rate-limit.
+  - Not the spend cap itself - a provider-console setting owned by
+    10-accounts/01-spend-cap; this task only assumes it exists before going live.
+
+OUTCOME
+  A deployed Worker at a workers.dev URL that answers a well-formed request
+  with model output and rejects malformed, empty and oversized ones with the
+  right HTTP status.
+
+VERIFY (ARCH)
+  1. `wrangler dev` locally: valid payload gets 200, malformed JSON gets 400,
+     empty image_base64 gets 400, oversized payload gets 413.
+  2. Same four cases repeated against the deployed URL with `curl`.
+  3. `grep` the repo: the Anthropic key appears in no committed file.
+
+ROLE
+  TOOLS
+
+DEPENDS
+  10-accounts/01-spend-cap

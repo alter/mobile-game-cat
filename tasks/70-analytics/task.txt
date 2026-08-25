@@ -1,0 +1,39 @@
+TASK: Analytics - bought, not built
+
+GOAL
+  The four percentages M8 needs, produced by GameAnalytics (in-game events) and
+  App Store Connect (day-1 retention, no code). The old custom collection
+  service, offline queue, de-duplication scheme and report tool are deleted.
+
+CONTEXT
+  knowledge/analytics/03-free-analytics-options.md (why GameAnalytics over the
+  alternatives)
+  knowledge/00-vendor-lock-in.md (what we give up by buying instead of building)
+  DECISIONS.md
+
+SCOPE
+  + 00-att-silent-check: prove events reach the dashboard with no ATT prompt.
+  + 01-sdk-integration: SDK initialised, iOS keys set, ATT never requested.
+  + 02-nine-events: all nine events wired to their GameAnalytics types.
+  + 03-no-att-dialog: confirm the dialog never appears across a full session.
+  + 04-funnel-retention: funnel and day-1 retention readable and reconciled.
+  - Not the deleted collection service, queue, de-dup scheme or report tool.
+  - Not raw player-level export - a paid GameAnalytics product, out of scope
+    for a three-week probe.
+
+OUTCOME
+  Nine events flowing into the GameAnalytics dashboard from a build that never
+  shows an ATT dialog; day-1 retention readable in App Store Connect.
+
+VERIFY (GROWTH)
+  1. All nine event types appear in the GameAnalytics dashboard after one
+     manual playthrough.
+  2. No ATT dialog appears across a full playthrough on device.
+  3. Funnel and day-1 retention numbers reconcile with 10 manually logged
+     sessions.
+
+ROLE
+  NATIVE (00, 03), VIEW (01, 02), GROWTH (04)
+
+DEPENDS
+  60-shell-build

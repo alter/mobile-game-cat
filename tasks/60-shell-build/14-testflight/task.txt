@@ -1,0 +1,41 @@
+TASK: TestFlight distribution
+
+GOAL
+  Get the .ipa in front of real testers on real devices, the first check
+  that anything built in this milestone actually runs outside the dev
+  machine.
+
+CONTEXT
+  knowledge/ios/01-appstore-requirements-2026.md (internal testers: up to
+  100, builds available 90 days; external testers: up to 10,000 per app but
+  require an internal group first and go through Beta App Review; PrivacyInfo
+  manifest and the camera-usage App Privacy declaration are required before
+  any build is accepted)
+
+SCOPE
+  + Upload the .ipa from 13-headless-build to App Store Connect.
+  + Create an internal testing group, invite at least 3 people.
+  + Complete the App Privacy ("nutrition label") declaration for photo
+    collection - required regardless of the fact the photo is not stored
+    server-side, per the App Privacy rules.
+  − Not external/public TestFlight testers or Beta App Review - internal
+    testing only for this milestone.
+  − Not the App Store Connect record/tax/banking setup itself - that is
+    10-accounts.
+
+OUTCOME
+  A build installable by invited testers directly from TestFlight.
+
+VERIFY (NATIVE)
+  1. At least 3 invited people confirm the app installed and launched from
+     the TestFlight invite on their own devices.
+  2. App Store Connect shows the build as processed with the App Privacy
+     declaration filled in, not pending/incomplete.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  60-shell-build/13-headless-build
+  10-accounts/02-apple-developer-program
+  10-accounts/05-app-store-connect-record

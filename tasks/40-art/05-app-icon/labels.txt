@@ -1,0 +1,9 @@
+phase:art
+role:ART
+type:feature
+priority:P0
+status:todo
+verify:pending
+depends:40-art/01-props
+depends:40-art/03-cat-silhouettes
+milestone:M4

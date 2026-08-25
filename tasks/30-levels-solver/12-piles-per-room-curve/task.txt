@@ -1,0 +1,37 @@
+TASK: Piles-per-room curve
+
+GOAL
+  Fix the pacing knob - how many piles (large-reward moments) each room holds
+  - as its own property, separate from difficulty, and prove no room exceeds
+  the cap.
+
+CONTEXT
+  DECISIONS.md D2 (the three knobs: piles/room, pile size, complications)
+  NOTES.md in this directory (why pacing and difficulty must stay separate,
+    and why linear growth to 12 was rejected)
+  05-ship-37-levels (consumes this curve to distribute the 37 levels)
+
+SCOPE
+  + Curve: 1,2,3,3,3,3,3,3,4,4,4,4 piles across the twelve rooms - 37 levels
+    total.
+  + Property test: no generated/shipped room needs more than 4 piles.
+  - Not pile size or complications - those are difficulty knobs, tuned
+    independently (see NOTES.md); growing all three together was rejected.
+  - Not the room-holds-several-piles restructuring itself - that is
+    05-ship-37-levels, which this curve feeds.
+
+OUTCOME
+  A property test enforcing the per-room pile cap, and the curve values
+  encoded as the single source of truth 05 draws from.
+
+VERIFY (ARCH)
+  1. Property test: for every room in the shipped set, pile count <= 4.
+  2. Sum of piles-per-room across the 12 rooms equals 37.
+  3. Curve is non-decreasing room to room (matches the stated
+     1,2,3,3,3,3,3,3,4,4,4,4 shape, not an arbitrary permutation).
+
+ROLE
+  TOOLS, ARCH (review)
+
+DEPENDS
+  30-levels-solver/04-difficulty-curve

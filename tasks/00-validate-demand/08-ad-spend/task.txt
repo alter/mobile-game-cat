@@ -1,0 +1,37 @@
+TASK: Spend $300, $40 per creative
+
+GOAL
+  Buy the actual demand signal: cost per install (proxied by cost per landing
+  page click-through) for each of the 8 creatives.
+
+CONTEXT
+  cat-shelter-mvp.md section 12 (the four metrics, none of which apply yet -
+    this is pre-launch)
+  knowledge/analytics/02-benchmarks-and-attribution.md (CPI benchmarks by
+    region/genre; attribution frameworks not needed at this sample size)
+
+SCOPE
+  + $300 total, $40 per creative, run across the 8 creatives from
+    06-creatives, landing on the page from 07-store-page.
+  + CPI recorded per creative, per campaign, from the ad platform dashboard.
+  - Not SKAdNetwork or AdAttributionKit setup - at this sample size (under
+    500 installs) both are documented as adding no practical value; a simple
+    UTM/campaign tag on the landing page link is enough, see
+    knowledge/analytics/02-benchmarks-and-attribution.md.
+  - Not the go/no-go decision itself - that is 09-go-no-go.
+
+OUTCOME
+  A per-creative CPI table pulled from the ad platform dashboard.
+
+VERIFY (GROWTH)
+  1. Ad platform dashboard shows $300 total spend, split $40 per creative
+     (or documents why a creative was cut early).
+  2. CPI per creative is recorded with a screenshot or export of the
+     dashboard, not a hand-typed number.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  00-validate-demand/06-creatives
+  00-validate-demand/07-store-page

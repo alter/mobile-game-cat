@@ -1,0 +1,36 @@
+TASK: Skip -> default cat
+
+GOAL
+  A player who declines to photograph her cat must still reach the game with
+  a complete, playable cat - skipping is a supported path, not a dead end.
+
+CONTEXT
+  cat-shelter-mvp.md section 5 ("skip is possible - then a default cat is
+  given. The share of skippers is measured, it is one of the main numbers")
+
+SCOPE
+  + A skip control on the capture screen that bypasses camera/gallery/Worker
+    entirely and supplies one fixed default CatTraits value.
+  + The default cat then flows through the same meet-your-cat screen as a
+    photographed one, including name entry.
+  - Not the capture screen's camera/gallery UI - that is 08-capture-screen,
+    this task only adds the bypass control to it.
+  - Not analytics recording of the skip rate - that is 70-analytics; this
+    task only makes the path functionally complete.
+
+OUTCOME
+  Skipping produces the same default cat every time, named and playable, with
+  no dependency on network or camera permissions.
+
+VERIFY (QA)
+  1. PlayMode test: tap skip, reach meet-your-cat with the fixed default
+     traits, name it, proceed to the first level.
+  2. Same test run with the device in airplane mode and camera permission
+     denied - skip still completes.
+
+ROLE
+  VIEW
+
+DEPENDS
+  50-photo/08-capture-screen
+  40-art/06-coat-shader

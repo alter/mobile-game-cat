@@ -1,0 +1,28 @@
+TASK: Entities
+
+GOAL
+  Define the types the rules operate on, with no engine reference.
+
+CONTEXT
+  cat-shelter-mvp.md section 8 (entity list, with a note on every field that
+  changed and why)
+
+SCOPE
+  + Item (id, kind, blocked_by, revealed), Shelf, Level (number, room_id,
+    pile_index, pile, complications), Room, Board.
+  + Level rejects duplicate item ids and kind counts not divisible by three.
+  - No moves_limit field: there is no move counter, see DECISIONS.md.
+
+OUTCOME
+  Types compile as netstandard2.1, LangVersion 9.0.
+
+VERIFY (ARCH)
+  1. Project builds.
+  2. `bash build/check-core-purity.sh` passes.
+  3. A level with a kind appearing four times is rejected at construction.
+
+ROLE
+  CORE
+
+DEPENDS
+  10-accounts/04-unity

@@ -1,0 +1,47 @@
+TASK: Notification, permission after level 2
+
+GOAL
+  One local notification per day, fired if the player hasn't returned. This
+  is the only mechanism in the entire MVP designed to drive metric 3
+  (day-1 return), which is one of the three go/no-go gates.
+
+CONTEXT
+  cat-shelter-mvp.md section 4 (soft, no-guilt copy: "Мурзик нашёл что-то за
+  диваном" -> in English, no naming/shaming tone)
+  knowledge/ios/05-notifications-permissions.md (AuthorizationRequest,
+  iOSNotificationCalendarTrigger for a daily evening slot, the 64-pending
+  limit, and why the "asking first doubles refusal" claim does not survive
+  its own citation chain)
+  tasks/DECISIONS.md
+
+SCOPE
+  + Permission requested after the player completes level 2, not on first
+    launch.
+  + com.unity.mobile.notifications: AuthorizationRequest, then
+    iOSNotificationCalendarTrigger for one evening slot per day, Repeats=true.
+  + Soft, blame-free copy in English.
+  − Do not cite or repeat any specific opt-in percentage tied to request
+    timing (e.g. "doubles the refusal rate") in code comments, copy, or
+    reports - the sources for that number don't hold up. See NOTES.md.
+  − Not provisional authorization (silent, no banner/sound) - the goal here
+    is a noticeable return prompt, not an unobtrusive one.
+  − Not ATT / IDFA tracking - this game does not request it at all.
+
+OUTCOME
+  A build that asks for notification permission once, after level 2, and (if
+  granted) reliably fires one evening notification per day of inactivity.
+
+VERIFY (NATIVE)
+  1. On device: complete level 2, confirm the system permission dialog
+     appears at that point and not before.
+  2. On device: grant permission, background the app, confirm a notification
+     fires that evening and again 24h later without the app being reopened.
+  3. Copy reviewed against cat-shelter-mvp.md section 4's tone requirement:
+     no guilt, no urgency language.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  10-accounts/04-unity
+  20-rules-core/04-outcomes

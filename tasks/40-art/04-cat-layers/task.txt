@@ -1,0 +1,40 @@
+TASK: Cat layer masks
+
+GOAL
+  The black-and-white masks the coat shader reads to paint pattern, white
+  markings and eye colour onto each of the 6 base silhouettes.
+
+CONTEXT
+  art-brief.md section 7, subsections "Слои на каждый силуэт" and
+  "Требования к маскам"
+  art-prompts.md section 4, subsection "Слои, которые делаются вручную"
+  40-art/03-cat-silhouettes/NOTES.md (why hand-traced, not generated)
+
+SCOPE
+  + Per silhouette: 5 pattern masks (tabby, bicolor, calico, tuxedo,
+    pointed), 3 marking masks (chest, paws, face), 1 eyes mask - 9 x 6 = 54
+    files (solid needs none, the bare base is solid).
+  + Hand-traced against the accepted base, pixel-for-pixel, same pose/frame.
+  + White markings readable by outline+shadow on white fur, not fill alone.
+  - Not the base silhouettes - see 40-art/03-cat-silhouettes, accepted first.
+  - Not the runtime shader consuming these - VIEW work, excluded from this
+    milestone.
+  - No AI-generated mask attempt - a model cannot reproduce the base pixel
+    for pixel, see 03-cat-silhouettes/NOTES.md.
+
+OUTCOME
+  54 mask PNGs (cat_<state>_<fur>_pattern_<name>.png / _mark_<name>.png /
+  _eyes.png), 512x512, strict black/white with <=2px edge antialiasing,
+  under game/Assets/Art.
+
+VERIFY (QA)
+  1. Every mask pure black/white and does not extend past the base's alpha.
+  2. Overlaying each mask on its base at 100% opacity: zero pixel offset.
+  3. All 6 trait combinations composited by hand, checked by someone other
+     than the mask author: 6 coherent cats, no drift, no floating marking.
+
+ROLE
+  ART, QA
+
+DEPENDS
+  40-art/03-cat-silhouettes

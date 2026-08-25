@@ -1,0 +1,29 @@
+TASK: GameAnalytics SDK integration
+
+GOAL
+  Initialise the GameAnalytics SDK with iOS keys, without ever requesting ATT.
+
+CONTEXT
+  knowledge/analytics/04-gameanalytics-unity-usage.md
+  knowledge/00-vendor-lock-in.md
+
+SCOPE
+  + SDK package added, iOS game key and secret key configured.
+  + EnableAdvertisingIdTracking(false) called before Initialize().
+  + Debug logging enabled for local verification.
+  - No RequestTrackingAuthorization call - see DECISIONS.md.
+  - Not the nine event call sites - that is 02-nine-events.
+
+OUTCOME
+  SDK initialises on launch; debug log shows successful init using the vendor
+  identifier, not the advertising identifier.
+
+VERIFY (NATIVE)
+  1. Debug log line shows GameAnalytics init success on app launch.
+  2. No ATT dialog appears on first launch.
+
+ROLE
+  VIEW
+
+DEPENDS
+  70-analytics/00-att-silent-check

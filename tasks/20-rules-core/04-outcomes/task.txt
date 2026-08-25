@@ -1,0 +1,31 @@
+TASK: Outcomes - win and jam
+
+GOAL
+  Two distinguishable endings. Win when the pile is empty, jam when the shelf is
+  full with no match available.
+
+CONTEXT
+  cat-shelter-mvp.md section 3
+  reviews/2026-08-24-refactor-difficulty.md (why the move limit was removed)
+
+SCOPE
+  + GameOutcome.Win, GameOutcome.ShelfJammed.
+  + Win is checked BEFORE jam: an emptied pile is a win even if the shelf filled
+    on the same move.
+  - No OutOfMoves. A move takes exactly one item, winning needs exactly as many
+    moves as there are items, so any limit is either unreachable or makes the
+    level unwinnable.
+
+OUTCOME
+  Board reports one of two outcomes; the ordering bug cannot recur.
+
+VERIFY (ARCH)
+  1. One unit test per outcome.
+  2. A test for the boundary case: last item empties the pile and fills the
+     shelf - result is Win.
+
+ROLE
+  CORE
+
+DEPENDS
+  20-rules-core/03-shelf-match

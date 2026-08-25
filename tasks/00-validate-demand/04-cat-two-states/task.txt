@@ -1,0 +1,38 @@
+TASK: One cat, two states, for the creatives
+
+GOAL
+  Prove the same cat can be shown readably worse and readably better before
+  $300 of ad spend is committed. This is the project's single largest art
+  risk, pulled forward from 40-art so it is learned for free instead of after
+  the money moves.
+
+CONTEXT
+  cat-shelter-mvp.md section 10 (cat is a desaturated base + masks, not parts)
+  art-brief.md section 7 (full cat spec, why it's riskiest, two-attempt-
+    then-hire-an-artist rule)
+  art-prompts.md section 4 (state table, "same cat not two cats" wording)
+
+SCOPE
+  + One cat, two states only (worst and best of the three-state arc in
+    art-brief.md section 7) - thin, matted, hunched vs. sleek, relaxed.
+  + Same short-haired base image edited/re-prompted between states, not two
+    independent generations - continuity is the entire point.
+  - Not the third state, long-haired variant, or six-silhouette layer/mask
+    system - that is the full 4.4/4.5 in 40-art, after "go".
+  - Not colour recolouring by shader - these are flat generated images for
+    the creative, not the in-game palette system.
+
+OUTCOME
+  Two cat images (worse, better) that a stranger looking at both agrees is
+  one cat, not two.
+
+VERIFY (HUMAN)
+  1. Outside person, shown both images without context, answers "same cat or
+     two cats?" - "same cat" required to pass.
+  2. Outside person independently confirms which of the two looks improved.
+
+ROLE
+  ART, HUMAN
+
+DEPENDS
+  00-validate-demand/03-art-prompt-props

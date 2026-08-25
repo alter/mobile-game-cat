@@ -1,0 +1,37 @@
+TASK: Presentation, input, placement animation
+
+GOAL
+  Render one level with real art and let a player take an item from the pile
+  and place it on the shelf, with the taking and placing animated.
+
+CONTEXT
+  cat-shelter-mvp.md section 3 (pile, shelf, matching)
+  knowledge/unity/03-ui-toolkit-runtime.md (pointer events, drag-and-drop has
+  no built-in component, must be built on PointerManipulator)
+
+SCOPE
+  + Render Board.GetAvailable() items as sprites; hidden items show the
+    "unknown" prop art.
+  + Drag from pile to shelf via PointerDownEvent/PointerMoveEvent/
+    PointerUpEvent/PointerCaptureOutEvent, snap to nearest open slot.
+  + Triple match plays a clear animation; shelf slot frees.
+  − Not room-level composition (several piles, corners) - that is
+    02-room-piles.
+  − Not click sound or haptic feedback - that is 10-click-haptics.
+  − Not save/resume - that is 08-mid-level-save.
+
+OUTCOME
+  One level, fully playable by touch, with placement and match animated.
+
+VERIFY (QA)
+  1. PlayMode: full level run, pile empties, shelf matches fire, level ends
+     in Win.
+  2. A covered item renders as the "unknown" prop, not its real sprite.
+  3. Dropping an item outside any slot returns it to its pile position.
+
+ROLE
+  VIEW
+
+DEPENDS
+  20-rules-core/04-outcomes
+  40-art

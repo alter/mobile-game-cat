@@ -1,0 +1,28 @@
+TASK: Debug view of plain rectangles
+
+GOAL
+  A build that can be played by hand before any art exists. This is what the
+  gate in 30-levels-solver/07 puts in front of outsiders.
+
+CONTEXT
+  build/playtest/ - the HTML prototype already serves this purpose
+  art-brief.md section 6 (why ten kinds must be distinguishable at tile size)
+
+SCOPE
+  + Coloured rectangles for kinds, blanks for hidden items, the shelf, the pile.
+  + Distinguishable colours: any ten kinds told apart at tile size.
+  - No art, no cat, no room.
+
+OUTCOME
+  Something a person can play through on a phone.
+
+VERIFY (HUMAN)
+  1. A human plays one level through on a phone.
+  2. Ten kinds side by side at tile size are named as ten different things by
+     someone who did not build it.
+
+ROLE
+  VIEW, HUMAN
+
+DEPENDS
+  20-rules-core/04-outcomes

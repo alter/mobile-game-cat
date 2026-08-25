@@ -1,0 +1,53 @@
+TASK: Headless build
+
+GOAL
+  One command, from a clean checkout, produces an .ipa - so an agent can
+  build without a human touching Xcode.
+
+CONTEXT
+  knowledge/unity/05-headless-build-ci.md (-batchmode -nographics -quit
+  -executeMethod, EditorApplication.Exit for a real exit code, why relying on
+  -quit's own exit code is wrong)
+  knowledge/ios/02-unity-ios-build-pipeline.md (Unity emits an Xcode project,
+  not an .ipa; xcodebuild -archive then -exportArchive with ExportOptions.plist
+  finishes the job)
+  knowledge/ios/01-appstore-requirements-2026.md (Xcode 26+ / iOS 26 SDK
+  required for any upload since 28 April 2026 - already installed per
+  AGENT-BRIEF.md, verify rather than assume)
+
+SCOPE
+  + BuildScript.BuildIOS: Unity -batchmode -nographics -quit -executeMethod,
+    calls EditorApplication.Exit(0|1) explicitly rather than relying on
+    -quit's exit code.
+  + A second stage: xcodebuild -archive then -exportArchive with an
+    ExportOptions.plist (method app-store-connect, manual signing) producing
+    the .ipa.
+  + PostProcessBuild sets NSCameraUsageDescription/NSPhotoLibraryUsageDescription
+    for the photo-capture flow (50-photo) and any Info.plist entries this
+    milestone's features need.
+  + Wrapped as one script: `build/headless-build.sh`.
+  − Not notarization (notarytool) - that path is for macOS software outside
+    the App Store; this game ships through App Store Connect/TestFlight only.
+  − Not CI/runner setup (GameCI, GitHub Actions) - this task only needs the
+    command to work on the already-provisioned local machine, per
+    AGENT-BRIEF.md's "Среда: проверено 25 августа 2026" section.
+
+OUTCOME
+  `build/headless-build.sh` run from a clean checkout produces a signed .ipa
+  and a non-zero exit code on any failure.
+
+VERIFY (NATIVE)
+  1. From a clean checkout (fresh clone, no exported shell variables beyond
+     documented secrets), run `build/headless-build.sh`; an .ipa exists at
+     the documented output path.
+  2. Deliberately break the build (e.g. a compile error) and confirm the
+     script exits non-zero and the failure is visible in the log, not
+     swallowed by -quit.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  10-accounts/03-xcode
+  10-accounts/04-unity
+  60-shell-build/08-mid-level-save

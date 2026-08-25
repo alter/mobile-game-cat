@@ -1,0 +1,8 @@
+phase:levels
+role:TOOLS
+type:feature
+priority:P0
+status:done
+verify:passed
+depends:30-levels-solver/01-rules-in-solver
+milestone:M3

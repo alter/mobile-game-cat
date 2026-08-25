@@ -1,0 +1,39 @@
+TASK: 6-8 creatives for a game that does not exist
+
+GOAL
+  Produce the ad creatives the whole demand test runs on, built only from art
+  the pipeline has already proven it can make (03, 04, 05) - not from a
+  promise the game cannot keep.
+
+CONTEXT
+  cat-shelter-mvp.md sections 1, 11 (pitch; why before/after is half the
+    creative's power)
+  art-brief.md section 11 (a creative must come from the same pipeline as
+    the real game)
+
+SCOPE
+  + 8 files, 8-15 seconds each, four concepts: room before/after; photograph
+    your cat -> it appears in game; rescue from a box in the pile; clean
+    mechanic showcase.
+  + Built only from assets already produced in 03, 04, 05.
+  - Not additional art beyond the pilot set - a concept needing an asset the
+    pilot didn't produce is a blocker here, not a reason to generate more
+    art ad hoc.
+  - Not the store landing page the creatives point to - that is
+    07-store-page.
+
+OUTCOME
+  8 video files, one folder, named by concept.
+
+VERIFY (GROWTH)
+  1. 8 files exist, each 8-15 seconds.
+  2. Every asset used in the creatives traces back to 03, 04, or 05 - no
+     asset outside the pilot set.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  00-validate-demand/03-art-prompt-props
+  00-validate-demand/04-cat-two-states
+  00-validate-demand/05-room-dirty-clean

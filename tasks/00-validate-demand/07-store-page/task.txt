@@ -1,0 +1,37 @@
+TASK: Store placeholder page
+
+GOAL
+  Give the creatives a landing page that accepts traffic and records intent,
+  since Apple does not support publishing a real App Store listing without a
+  build that has passed review.
+
+CONTEXT
+  knowledge/analytics/02-benchmarks-and-attribution.md section "«Заглушка
+    страницы в магазине» как отдельный приём" (why a real App Store listing
+    isn't available pre-build, and what the fake-door alternative is)
+
+SCOPE
+  + A standalone web page imitating an app store card (icon, name, 2-3
+    screenshots or the creative itself, an "Install" button).
+  + Click on "Install" recorded as a proxy conversion, with source/campaign
+    tagged per creative.
+  - Not a real App Store listing - Apple requires a build that has passed
+    review before any listing, real or pre-order, can go live; that build
+    does not exist yet.
+  - Not Custom Product Pages or Product Page Optimization - both require an
+    already-published app and are for comparing creatives after launch, not
+    before one exists.
+
+OUTCOME
+  A live URL that records a click-through per creative/campaign.
+
+VERIFY (NATIVE)
+  1. A test click from each creative's campaign link produces a recorded
+     entry with the correct source tag.
+  2. Page loads on a real mobile browser, not just desktop.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  none

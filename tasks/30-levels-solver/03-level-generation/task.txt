@@ -1,0 +1,38 @@
+TASK: Level generation
+
+GOAL
+  Generate a batch of levels by rule - layered pile, kind counts divisible by
+  three - with every level in the batch solver-verified before it ships.
+
+CONTEXT
+  tools/solver/generate.py
+  tools/solver/schema.py (validate: acyclic blocked_by, ids unique, /3 counts)
+  tools/tests/test_generate.py
+  knowledge/solver/02-level-format-and-property-tests.md (Hypothesis, generate
+    valid-by-construction rather than filter-and-reject)
+
+SCOPE
+  + `generate_level`: layered DAG so blocked_by cycles are impossible by
+    construction, explicit optional `kind_count`.
+  + `main()`: batch of 100 per run, unsolvable levels rejected and counted.
+  + Property test: every generated level is solver-verified (the milestone's
+    key test - one failure rejects M3).
+  - Not which pile sizes to generate - that curve is 04-difficulty-curve.
+  - Not room/pile_index assignment for shipping - that is 05-ship-37-levels.
+
+OUTCOME
+  `python -m tools.solver.generate --count 100 --out <dir>` produces a batch
+  where every saved level parses and solves; rejects are reported, not shipped.
+
+VERIFY (ARCH)
+  1. `pytest tools/tests/test_generate.py -v` green, including
+     test_batch_of_100_all_parse_all_solvable.
+  2. Batch of 100 all parse in the loader (`schema.load_level`).
+  3. `test_explicit_kind_count_is_respected` passes - kind_count is a real
+     lever, not derived.
+
+ROLE
+  TOOLS, ARCH (review)
+
+DEPENDS
+  30-levels-solver/02-solver

@@ -1,0 +1,38 @@
+TASK: Go / no-go decision
+
+GOAL
+  Decide, on recorded evidence and before any further work starts, whether
+  the promise sells. This is Gate 1 of the project - see GOAL.md.
+
+CONTEXT
+  GOAL.md (Gate 1 definition, the stopping condition)
+  knowledge/analytics/02-benchmarks-and-attribution.md (CPI benchmarks: iOS
+    casual median $1.41, all-games median $0.36, US $1.22 - context for
+    judging whether $5 is a meaningful bar)
+
+SCOPE
+  + A written decision: go or no-go, citing the best creative's CPI from
+    08-ad-spend.
+  + The threshold used and why, decided before reading this task's own
+    result if not already fixed - see NOTES.md for the pre-existing gate
+    ("CPI < $5") and why it may be too loose.
+  - Not a re-run of the ad spend to get a better number - if the result is
+    ambiguous, that is itself the finding.
+  - Not the levels/solver playtest gate or the live-validation gate - those
+    are 30-levels-solver/07-outsiders-playtest and 80-live-validation.
+
+OUTCOME
+  A written go/no-go decision, filed in this task's directory, that the next
+  phase's start is conditioned on.
+
+VERIFY (HUMAN)
+  1. A human, not the agent that ran the ad spend, reads the CPI numbers from
+     08-ad-spend and signs the decision.
+  2. Nothing in 10-accounts or later phases starts before this file exists
+     and says "go".
+
+ROLE
+  HUMAN
+
+DEPENDS
+  00-validate-demand/08-ad-spend

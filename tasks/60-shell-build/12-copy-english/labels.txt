@@ -1,0 +1,12 @@
+phase:shell
+role:VIEW
+type:chore
+priority:P0
+status:todo
+verify:pending
+depends:60-shell-build/03-house-map
+depends:60-shell-build/06-win-screen
+depends:60-shell-build/07-lose-screen-fake-door
+depends:60-shell-build/09-notification
+depends:60-shell-build/11-post-level-12
+milestone:M6

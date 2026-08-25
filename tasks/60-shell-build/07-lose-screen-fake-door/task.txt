@@ -1,0 +1,43 @@
+TASK: Lose screen - "one more shelf" fake door
+
+GOAL
+  Measure willingness to pay to be rescued from a jam, without granting the
+  rescue. Metric 4 (tapped "one more shelf") is the only gate-3 signal that a
+  screen in this milestone directly produces.
+
+CONTEXT
+  cat-shelter-mvp.md section 6 (the fake door, why the booster is not real,
+  the four-booster measurement table)
+  tasks/DECISIONS.md (booster: what capacity growth is for, once-per-level
+  rule, the "one more shelf" naming)
+
+SCOPE
+  + Shown on GameOutcome.ShelfJammed.
+  + Button reads "one more shelf" (not "+3 slots" or "+1 slot" - spreadsheet
+    language does not belong in a game about tidying a home).
+  + Tap is counted and fires an analytics hook (event name/shape left to
+    70-analytics; this task only calls the hook).
+  + Tapping shows a "coming soon" stub. The level stays lost. Replay is
+    offered.
+  − `Shelf.AddSlots` must NEVER be called from this screen or anywhere in the
+    MVP. This is not an oversight to fix later - it is the point of the
+    task. See NOTES.md for what happens to win rate if it is (72% -> 95%).
+  − Not the eventual real booster (3 slots, once per level) - that ships
+    post-MVP, after gate 3, per DECISIONS.md.
+
+OUTCOME
+  A lose screen that offers a credible rescue, records intent to pay, and
+  never rescues anyone in this build.
+
+VERIFY (QA)
+  1. PlayMode: reaching ShelfJammed shows the screen; tapping the button
+     shows the stub, replays the same (lost) level, and the analytics hook
+     fires exactly once per tap.
+  2. Grep across `Assets/Shell` and `Assets/View` for `AddSlots` - zero call
+     sites outside of unit tests.
+
+ROLE
+  VIEW
+
+DEPENDS
+  20-rules-core/03-shelf-match

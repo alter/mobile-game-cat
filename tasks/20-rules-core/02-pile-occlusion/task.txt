@@ -1,0 +1,28 @@
+TASK: Pile with occlusion and hidden kinds
+
+GOAL
+  Only the top of the pile is reachable, and a buried item does not reveal its
+  kind until nothing covers it.
+
+CONTEXT
+  cat-shelter-mvp.md section 3
+  knowledge/solver/01-tile-match-solver.md (blocked_by dependency graph)
+  reviews/2026-08-24-refactor-difficulty.md (why hiding was added)
+
+SCOPE
+  + Board.GetAvailable() returns items with nothing still on top.
+  + Board.IsRevealed(item): false while covered.
+  - Not the visual treatment of a hidden item - that is 40-art and 60-shell.
+
+OUTCOME
+  Reachability and visibility both derived from blocked_by, no separate state.
+
+VERIFY (ARCH)
+  1. Unit tests: empty pile, single layer, three layers, circular block.
+  2. A covered item reports IsRevealed false; uncovering flips it.
+
+ROLE
+  CORE
+
+DEPENDS
+  20-rules-core/01-entities

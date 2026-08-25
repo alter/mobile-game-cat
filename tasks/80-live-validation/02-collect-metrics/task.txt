@@ -1,0 +1,37 @@
+TASK: Collect the four metrics
+
+GOAL
+  Read the numbers gate 3 decides on, from the tools already bought and
+  wired: GameAnalytics and App Store Connect.
+
+CONTEXT
+  tasks/GOAL.md (four metrics table, denominators)
+  knowledge/analytics/02-benchmarks-and-attribution.md (App Store Connect
+    hides slices under five users)
+
+SCOPE
+  + Capture-screen reach rate and photo-upload rate, from the GameAnalytics
+    funnel.
+  + Day-1 retention, from App Store Connect; fall back to GameAnalytics if
+    App Store Connect shows no figure at this install count.
+  + Booster-tap rate as two numbers: share who ever reached the lose screen,
+    and share of those who tapped - never one combined figure.
+  - Not deciding go/no-go - that is 03-decision.
+  - Not re-instrumenting events: if an expected event is missing, this task
+    stops and reports it, it does not add tracking code.
+
+OUTCOME
+  A filled table: four metric rows, five numbers (the fourth counted as
+  two), each with its dashboard source.
+
+VERIFY (QA)
+  1. Each number names its source (dashboard and screen, or a screenshot).
+  2. The fourth row shows two numbers, not one.
+  3. Numbers reconcile with a manual playthrough sample, per 70-analytics'
+     funnel-and-retention task.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  80-live-validation/01-spend

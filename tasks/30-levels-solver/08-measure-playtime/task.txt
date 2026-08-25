@@ -1,0 +1,35 @@
+TASK: Measure total playtime
+
+GOAL
+  Know how long the shipped content lasts, so day-1 retention (metric 3) is
+  read as desire to return, not as running out of content.
+
+CONTEXT
+  NOTES.md in this directory (the result and why it triggered 05/12)
+  DECISIONS.md D2 (576 taps / 14-24 min cited as the evidence for the pacing
+    redesign)
+
+SCOPE
+  + One person plays all shipped levels back to back, taps and time recorded.
+  + Verdict recorded alongside the number: does the loop hold up, not just how
+    long it took.
+  - Not the go/no-go on the mechanic itself - that is 07-outsiders-playtest,
+    judged by people with nothing invested.
+  - This measurement was taken on the OLD twelve-level, one-pile-per-room
+    build. It does not carry forward to the 37-level build in 05 without
+    re-running.
+
+OUTCOME
+  DONE 2026-08-24. 576 taps, 14 minutes brisk to 24 minutes unhurried, playing
+  all twelve levels on the refactored 36/48/60 pile-size curve.
+
+VERIFY (HUMAN)
+  1. Owner played all twelve levels on the refactored curve - tap count and
+     time recorded (576 taps, 14-24 min).
+  2. Verdict on feel recorded alongside the number, not just the duration.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  30-levels-solver/04-difficulty-curve

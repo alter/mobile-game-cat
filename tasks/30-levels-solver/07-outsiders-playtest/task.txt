@@ -1,0 +1,38 @@
+TASK: Five outsiders play the rectangle build
+
+GOAL
+  Find out whether the core loop is fun before any money or art is spent on
+  it. Gate 2 of the project - see GOAL.md.
+
+CONTEXT
+  build/playtest/index.html, make_playtest.py (the debug rectangle prototype)
+  30-levels-solver/06-json-level-loading (what it plays)
+  GOAL.md (gate 2 definition and threshold)
+  NOTES.md in this directory (why this gate exists and what "no" means)
+
+SCOPE
+  + Five people with nothing invested in the project play the debug build,
+    ten minutes each, plain rectangles, no art.
+  + One question, answered in writing: would they keep playing.
+  + build/playtest/index.html must reflect the CURRENT rules before the
+    session: no move limit (D1), current pile-size curve (04). It is stale
+    today - it still embeds `movesLimit` and a 35% opacity "blocked" convention
+    (see NOTES.md) and must be regenerated from the shipped levels first.
+  - Not a judgment by anyone who built the game - see ROLES.md, HUMAN section.
+  - Not hidden kinds or complications (09, 11) - this gate runs on the visible
+    pile, per the milestone's stated order (3.7 before 3.9-3.12).
+
+OUTCOME
+  Five written answers on file. Gate passes if at least 3 of 5 say they would
+  keep playing; the next phase (40-art) does not start until this is recorded.
+
+VERIFY (HUMAN)
+  1. Five written answers exist, dated, attributed to five distinct outsiders.
+  2. At least 3 of 5 say "yes, would keep playing" - counted, not paraphrased.
+  3. A human, not the agent that built the prototype, confirms the gate result.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  30-levels-solver/06-json-level-loading

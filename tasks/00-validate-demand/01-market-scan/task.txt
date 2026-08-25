@@ -1,0 +1,35 @@
+TASK: Market scan for "photograph your own cat"
+
+GOAL
+  Find out whether a game built on the player's own photographed cat already
+  exists, and if not, what the closest comparables earn, so the demand test
+  is not run blind into a crowded niche.
+
+CONTEXT
+  cat-shelter-mvp.md section 1 (pitch, one difference from the market)
+  cat-shelter-mvp.md section 2 (audience, women 30-55)
+
+SCOPE
+  + List of 10 comparable titles (tile/pile-match or pet-care casual games)
+    with revenue estimates and a one-line note on how close each comes to
+    "it's your own cat".
+  + A named check for whether the exact mechanic already exists.
+  - Not a style reference folder — screenshots for visual comparison are
+    02-style-reference.
+  - Not a decision about whether to proceed — that is 09-go-no-go.
+
+OUTCOME
+  A document listing 10 titles, each with a revenue estimate, a source, and
+  a note on mechanic overlap.
+
+VERIFY (GROWTH)
+  1. The list has 10 entries, each with a named source for its revenue
+     estimate (AppMagic, Sensor Tower, or equivalent).
+  2. A second person re-runs the store search for the core mechanic and
+     confirms the same titles surface, or documents a title that was missed.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  none

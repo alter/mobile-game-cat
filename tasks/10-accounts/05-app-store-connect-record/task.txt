@@ -1,0 +1,32 @@
+TASK: App record in App Store Connect
+
+GOAL
+  An app record that TestFlight builds can be uploaded to, so later builds
+  from 60-shell-build have somewhere to land.
+
+CONTEXT
+  cat-shelter-tasks.md lines 407-447, row 1.5
+
+SCOPE
+  + App record created in App Store Connect under the Active developer
+    account.
+  + A stub build uploaded and accepted by TestFlight.
+  - Not the Paid Apps Agreement - the app is free, no IAP; see
+    06-tax-forms-payout/NOTES.md.
+  - Not the real BuildScript.BuildIOS pipeline - a stub build from
+    03-xcode's toolchain is enough to prove the record works.
+
+OUTCOME
+  App Store Connect app record exists, and TestFlight has accepted at least
+  one uploaded build.
+
+VERIFY (NATIVE)
+  1. App Store Connect dashboard shows the app record.
+  2. TestFlight accepts an uploaded stub build without rejection.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  10-accounts/02-apple-developer-program
+  10-accounts/03-xcode

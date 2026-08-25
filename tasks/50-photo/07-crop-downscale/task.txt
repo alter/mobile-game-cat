@@ -1,0 +1,39 @@
+TASK: Crop and downscale to 512
+
+GOAL
+  Shrink the accepted photo to what the Worker and model need, and no more -
+  keeping the upload small and the per-call cost predictable.
+
+CONTEXT
+  knowledge/ios/04-unity-swift-native-plugin.md section 6 (resize-and-crop-
+  square example, JPEG re-encoding, base64 growth of about a third)
+  knowledge/vision-model/01-traits-strict-json.md (image cost is
+  ceil(w/28)*ceil(h/28) visual tokens; 512x512 = 361 tokens; model accuracy
+  degrades under 200px on a side)
+
+SCOPE
+  + Centre-crop to the Vision plugin's bounding box, then resize to 512x512.
+  + JPEG re-encode at quality that keeps payload under 200 KB before base64.
+  + Guard: if the bounding-box crop would be under 200px on a side, widen the
+    crop instead of upscaling a tiny region.
+  - Not orientation correction logic - that lives in the Vision plugin call
+    itself (05), which must already receive a correctly oriented image.
+  - Not the base64 encoding step's transport - that is the Worker's request
+    body in 02-traits-worker.
+
+OUTCOME
+  A 512x512 JPEG, base64-encoded, under 200 KB before encoding, ready to POST
+  to /traits.
+
+VERIFY (ARCH)
+  1. Run the crop/downscale step on all 20 accepted-cat images from the
+     reference set.
+  2. Every output is exactly 512x512 and under 200 KB pre-base64.
+  3. The under-200px guard triggers on at least one deliberately tiny test
+     crop and widens rather than upscales.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  50-photo/05-vision-plugin

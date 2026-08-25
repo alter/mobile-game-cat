@@ -1,0 +1,31 @@
+TASK: Confirm no ATT dialog anywhere
+
+GOAL
+  Verify across a full playthrough, not just first launch, that the ATT
+  dialog never appears.
+
+CONTEXT
+  knowledge/analytics/04-gameanalytics-unity-usage.md
+  DECISIONS.md
+
+SCOPE
+  + Full playthrough on a physical device: cold start, photo capture, one
+    win, one loss, backgrounding and relaunch.
+  - Not simulator-only testing - ATT prompting behaves differently on device.
+  - Not the dashboard/event-content check - that is 02-nine-events and
+    04-funnel-retention.
+
+OUTCOME
+  A recorded playthrough (screen recording or timestamped log) with no ATT
+  dialog at any point.
+
+VERIFY (GROWTH)
+  1. Screen recording or timestamped log of the full playthrough is attached
+     to this task directory.
+  2. Independent review of the recording confirms no ATT dialog appears.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  70-analytics/02-nine-events

@@ -1,0 +1,37 @@
+TASK: Art generation prompt - three-prop pilot
+
+GOAL
+  Prove the generation recipe (one prompt template, one batch) produces
+  props that read as one set, before committing to the full 30-item list or
+  to the harder cat and room pilots.
+
+CONTEXT
+  art-brief.md sections 2-4 (three requirements, style canon and prompt,
+    naming and PNG/alpha spec)
+  art-prompts.md sections 1-3 (usage, base blocks, 30-prop list and
+    template - pick 3)
+  knowledge/artgen/01-art-pipeline.md (model choice, background removal)
+
+SCOPE
+  + One prompt template run once, batch of 3 items from the 30-prop list.
+  + PNG, alpha, transparent background, single generation pass - no
+    hand-finishing.
+  - Not the remaining 27 props - that is 40-art/4.1-4.3, unblocked only after
+    09-go-no-go returns "go".
+  - Not the cat or the room - 04-cat-two-states and 05-room-dirty-clean run
+    after this pilot confirms the recipe works.
+
+OUTCOME
+  3 PNG files plus one contact sheet, produced by a single prompt and a
+  single batch run, in the naming scheme from art-brief.md section 4.
+
+VERIFY (HUMAN)
+  1. HUMAN views the 3 props side by side: one set, or a mismatch.
+  2. Files pass the technical spec: PNG, alpha channel, transparent
+     background, no halo.
+
+ROLE
+  ART, HUMAN
+
+DEPENDS
+  00-validate-demand/02-style-reference

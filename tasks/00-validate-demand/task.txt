@@ -1,0 +1,38 @@
+TASK: Validate demand before writing code
+
+GOAL
+  Find out whether "photograph your own cat, watch it improve" sells, before a
+  single line of the game is written. This is the demand half of the project
+  goal; nothing after it is justified without a "go".
+
+CONTEXT
+  cat-shelter-mvp.md section 1 (pitch), section 2 (audience), section 11
+    (style), section 12 (what we measure)
+  art-brief.md section 11 (pilot before the full art list, and why)
+  knowledge/analytics/02-benchmarks-and-attribution.md (CPI benchmarks, fake
+    store page not officially supported, ATT/attribution)
+
+SCOPE
+  + 01 market scan, 02 style reference, 03 three-prop pilot, 04 cat pilot,
+    05 room pilot, 06 eight creatives, 07 store landing, 08 paid spend,
+    09 go/no-go decision.
+  + The pilot (03, 04, 05) proves the art pipeline can produce what the
+    creatives need before any money is spent filming them.
+  - Not the full 30-prop set, the full six-silhouette cat, or the 12 rooms —
+    those are 40-art, gated by 09 returning "go".
+  - Not accounts, hardware, or spend cap setup — that is 10-accounts.
+
+OUTCOME
+  A written go/no-go decision in 09, backed by recorded CPI per creative and
+  a store landing page that took real traffic.
+
+VERIFY (HUMAN)
+  1. `09-go-no-go/VERIFY.md` exists and states go or no-go with a CPI number.
+  2. Every subtask under this directory has verify:passed or is explicitly
+     out of scope for M0.
+
+ROLE
+  GROWTH, ART, NATIVE, HUMAN
+
+DEPENDS
+  none

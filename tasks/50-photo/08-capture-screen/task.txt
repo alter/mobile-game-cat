@@ -1,0 +1,38 @@
+TASK: Capture screen
+
+GOAL
+  The first screen the player sees, before level one: take a photo of her cat
+  or pick one from the gallery, and get one of the four outcomes back.
+
+CONTEXT
+  cat-shelter-mvp.md section 5 (this is the first screen, before the first
+  level; skip is always available)
+  knowledge/ios/04-unity-swift-native-plugin.md section 5 (camera needs
+  NSCameraUsageDescription always; PHPickerViewController needs no photo-
+  library permission for the basic pick-and-use flow)
+
+SCOPE
+  + Two entry points: camera capture and gallery pick, both feeding the same
+    pipeline (05 Vision gate -> 06 outcome message -> 07 crop -> Worker call).
+  + Loading state while the Worker call is in flight.
+  + Required Info.plist keys present for camera access.
+  - Not the skip button's behaviour (10-skip-default-cat) or the rendering of
+    the resulting cat (09-meet-your-cat) - this screen only hands off traits.
+
+OUTCOME
+  A playable screen where both camera and gallery paths reach the Worker call
+  and surface one of the four outcome messages or a loading state.
+
+VERIFY (QA)
+  1. PlayMode test: camera path reaches the Worker call with a stubbed photo.
+  2. PlayMode test: gallery path reaches the Worker call with a stubbed photo.
+  3. PlayMode test: each of the four outcome messages renders when its
+     corresponding plugin result is injected.
+
+ROLE
+  VIEW
+
+DEPENDS
+  50-photo/06-outcome-handling
+  50-photo/07-crop-downscale
+  50-photo/02-traits-worker

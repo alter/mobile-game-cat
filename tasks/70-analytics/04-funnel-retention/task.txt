@@ -1,0 +1,35 @@
+TASK: Funnel and retention readable
+
+GOAL
+  Confirm the funnel and day-1 retention numbers that M8 depends on are
+  actually readable and trustworthy before the paid test spends money on them.
+
+CONTEXT
+  knowledge/analytics/03-free-analytics-options.md
+  knowledge/00-vendor-lock-in.md (raw export cost, 12-month data expiry)
+  DECISIONS.md
+
+SCOPE
+  + Three funnel steps readable in the GameAnalytics dashboard.
+  + Day-1 retention readable in App Store Connect with no code.
+  + Reconciliation against 10 manually logged sessions.
+  - Not a segment breakdown - App Store Connect hides slices under five
+    users; at roughly a hundred installs expect the headline number only.
+  - Not raw player-level export - out of scope for this probe, see
+    knowledge/00-vendor-lock-in.md.
+
+OUTCOME
+  A documented reconciliation of dashboard/App Store Connect numbers against
+  10 manually tracked sessions, with any discrepancy explained.
+
+VERIFY (QA)
+  1. Funnel step counts in GameAnalytics match the 10 manually logged
+     sessions within an explained margin.
+  2. App Store Connect shows a day-1 retention figure at current install
+     volume, even if unbroken down.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  70-analytics/02-nine-events

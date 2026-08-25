@@ -1,0 +1,40 @@
+TASK: Twelve rooms, dirty and clean
+
+GOAL
+  The before/after backdrop behind every level - half the strength of the
+  advertising creative depends on this reading instantly.
+
+CONTEXT
+  art-brief.md section 8 (12 rooms, why 2 backgrounds cover 37 levels,
+  unproven half-cost shortcut, acceptance)
+  art-prompts.md section 5 (why a pair can't be two prompts, clean-first-
+  then-derive order, the 12 room prompts, the derivation prompt)
+
+SCOPE
+  + 12 rooms x clean, generated first per room.
+  + 12 dirty variants, each derived by editing/re-referencing its own clean
+    image - never generated from an independent prompt.
+  - Not two independent prompts per room ("dirty X" / "clean X" separately)
+    - produces two different rooms, destroys the pair, per section 5.
+  - Not the clutter on top of the room - see 40-art/01-props, scattered by
+    code at runtime, not painted into the background.
+  - Bottom third of frame stays empty in both variants (shelf/pile go
+    there).
+
+OUTCOME
+  24 PNGs, room_<nn>_clean.png and room_<nn>_dirty.png for nn 01..12,
+  1024x2048, no alpha, under game/Assets/Art. Same camera, furniture and
+  window position within each pair.
+
+VERIFY (HUMAN)
+  1. 24 files present, correct size, no alpha channel.
+  2. Per pair: furniture/window position matches by eye - the same room,
+     not a similar one.
+  3. Each pair shrunk to 200x400, shown to an outsider for half a second:
+     instant naming of which is clean. Recorded per-room in VERIFY.md.
+
+ROLE
+  ART, HUMAN
+
+DEPENDS
+  00-validate-demand/05-room-dirty-clean

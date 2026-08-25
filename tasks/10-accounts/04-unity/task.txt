@@ -1,0 +1,38 @@
+TASK: Unity 6.3 LTS + iOS Build Support
+
+GOAL
+  The engine version this project standardises on, installed with the
+  module and licence entitlements needed for headless, scriptable iOS
+  builds - the toolchain every later Unity task runs on.
+
+CONTEXT
+  cat-shelter-tech.md section 5 (build for iOS)
+  knowledge/00-versions.md (why 6000.3.22f1, not the default-offered 6.5)
+  AGENT-BRIEF.md, environment section and licence-check section
+
+SCOPE
+  + Unity 6000.3.22f1 installed from the release archive (not the Hub's
+    default 6.5 offer, which is an Update release).
+  + iOS Build Support module present.
+  + Licence entitlements checked to include `com.unity.editor.headless` and
+    `com.unity.editor.platforms.ios`.
+  - Not the game project or ProjectSettings/Packages/manifest.json - task
+    1.4 in AGENT-BRIEF notes those still don't exist; creating them is
+    tracked separately, not part of installing the engine.
+  - Not the MCP integration - that comes after task 1.4, see AGENT-BRIEF.md.
+
+OUTCOME
+  Unity 6000.3.22f1 binary installed under the Editor hub path, iOSSupport
+  module present, licence confirmed to grant headless and iOS entitlements.
+
+VERIFY (NATIVE)
+  1. `UnityLicensingClient --showEntitlements` lists
+     `com.unity.editor.headless` and `com.unity.editor.platforms.ios`.
+  2. An empty project builds for iOS from the command line
+     (`-batchmode -nographics -quit`).
+
+ROLE
+  NATIVE
+
+DEPENDS
+  10-accounts/03-xcode

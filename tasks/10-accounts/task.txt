@@ -1,0 +1,37 @@
+TASK: Accounts, hardware, spend cap
+
+GOAL
+  The accounts and toolchain the rest of the project depends on to build,
+  sign and upload an iOS app, plus the one control that caps the bill an
+  agent could otherwise run up unsupervised.
+
+CONTEXT
+  cat-shelter-tasks.md lines 407-447 (M1 table and rationale)
+  cat-shelter-tech.md section 5 (build for iOS)
+  cat-shelter-mvp.md section 15 (legal and risk)
+  AGENT-BRIEF.md, environment section (verified 25 August 2026)
+  knowledge/ios/01-appstore-requirements-2026.md
+
+SCOPE
+  + 01-spend-cap, 02-apple-developer-program, 03-xcode, 04-unity,
+    05-app-store-connect-record, 06-tax-forms-payout.
+  - Not the Paid Apps Agreement or any IAP/payment setup - the MVP is free,
+    the "+3 slots" button is a stub, see 06-tax-forms-payout/NOTES.md.
+  - Not the BuildScript.BuildIOS pipeline itself - that is 60-shell-build.
+
+OUTCOME
+  A machine that can build and sign an empty iOS app end to end, an Apple
+  account able to hold an App Store Connect record, and a spend cap on the
+  model provider account so a runaway agent cannot exceed the budget.
+
+VERIFY (ARCH)
+  1. All six subtask directories exist with task.txt and labels.txt.
+  2. 03-xcode and 04-unity are status:done, matching AGENT-BRIEF.md's
+     verified environment.
+  3. 20-rules-core/task.txt's DEPENDS on 10-accounts/04-unity is satisfied.
+
+ROLE
+  HUMAN (01, 02, 06), NATIVE (03, 04, 05), ARCH (review)
+
+DEPENDS
+  (none)

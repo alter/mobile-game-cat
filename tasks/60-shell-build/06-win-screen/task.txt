@@ -1,0 +1,36 @@
+TASK: Win screen, before/after
+
+GOAL
+  Show the room's transformation at the moment it lands, so the "was/became"
+  spectacle - the game's actual pitch - is felt on every room close.
+
+CONTEXT
+  cat-shelter-mvp.md section 3 ("зрелище «было — стало» снимается на ролик за
+  восемь секунд")
+  art-brief.md section 8 (dirty/clean room pair requirements, room-pair
+  legibility accepted at 200x400 shown for half a second)
+
+SCOPE
+  + Screen shown on GameOutcome.Win for a room's last pile: dirty frame next
+    to clean frame (or a wipe/reveal transition between them).
+  + Shown once per room close, not once per pile.
+  − Not shown for non-final piles in a multi-pile room - that ends in
+    02-room-piles' corner-clear feedback, not this screen.
+  − Not the shareable card image - that is 15-share-card, which reuses these
+    two frames but composes them differently for export.
+
+OUTCOME
+  A win screen where the difference between before and after reads
+  immediately, without study.
+
+VERIFY (HUMAN)
+  1. Shown the win screen for half a second, a person who did not build it
+     names which side is "before" and which is "after" correctly and
+     immediately.
+
+ROLE
+  VIEW, HUMAN
+
+DEPENDS
+  60-shell-build/02-room-piles
+  40-art

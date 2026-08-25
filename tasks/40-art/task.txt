@@ -1,0 +1,36 @@
+TASK: Art
+
+GOAL
+  All visual assets needed before shell and photo capture can be built:
+  props, cat base and masks, rooms, house map, icon, overlays and rewards.
+
+CONTEXT
+  art-brief.md sections 1-5 (style canon, tech spec, full list of work)
+  art-prompts.md section 0 (prompt assembly, the three anti-drift rules)
+  GOAL.md, gate 1 (nothing here starts before "go")
+
+SCOPE
+  + 01-props, 02-prop-blockers, 03-cat-silhouettes, 04-cat-layers,
+    05-app-icon, 06-house-map, 07-rooms, 08-rewards, 09-share-frame.
+  + 02, 06, 09 are new relative to the old M4 list - see NOTES.md.
+  - Not the coat compositing shader that consumes 04's layers at runtime -
+    VIEW work, belongs with shell/view tasks, not this phase.
+  - Not the pilot (3 props, 1 cat, 1 room pair) - that is milestone M0,
+    referenced below as a dependency, not duplicated here.
+  - No cat clothing/skins, no UI screens - art-brief.md section 13.
+
+OUTCOME
+  Every asset in art-brief.md section 5, named per section 4, under
+  game/Assets/Art, each group with its own contact sheet.
+
+VERIFY (HUMAN)
+  1. All 9 subtasks report verify:passed with a VERIFY.md.
+  2. The 4 outsider checks (props at 52px, cat silhouettes, room pair, icon
+     poll) each have a named outsider/panel and a recorded answer.
+  3. One glance across all contact sheets shows no style mismatch.
+
+ROLE
+  ART, QA, HUMAN
+
+DEPENDS
+  00-validate-demand/09-go-no-go

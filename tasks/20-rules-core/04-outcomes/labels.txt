@@ -1,0 +1,8 @@
+phase:core
+role:CORE
+type:feature
+priority:P0
+status:done
+verify:passed
+depends:20-rules-core/03-shelf-match
+milestone:M2

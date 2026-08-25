@@ -1,0 +1,30 @@
+TASK: Tax forms and payout bank details
+
+GOAL
+  Payout paperwork for the day real monetisation appears. Not needed for
+  this MVP, kept alive only because it is slow to process later.
+
+CONTEXT
+  cat-shelter-tasks.md lines 407-447, row 1.2 and its rationale
+  cat-shelter-mvp.md section 6 (money in the MVP - no real payment exists)
+
+SCOPE
+  + Tax forms filed and bank payout details entered in the developer
+    account's payouts section, when idle time allows.
+  - Not a blocker for anything in M1-M8: no Paid Apps Agreement is needed,
+    see NOTES.md for why.
+  - Not the "+3 slots" purchase flow - that button is a stub by design,
+    see cat-shelter-mvp.md section 6; it never calls a payment API.
+
+OUTCOME
+  Payouts section in App Store Connect shows Active, ready for the day the
+  project takes real money.
+
+VERIFY (HUMAN)
+  1. Dashboard payouts section shows Active.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  10-accounts/02-apple-developer-program

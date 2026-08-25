@@ -1,0 +1,33 @@
+TASK: Xcode 26+, iOS 26 SDK
+
+GOAL
+  The build tool the App Store now requires, installed and selected, so an
+  iOS build can be produced and later signed on this machine.
+
+CONTEXT
+  cat-shelter-tech.md section 5 (build for iOS)
+  cat-shelter-mvp.md section 15 (legal and risk)
+  knowledge/ios/01-appstore-requirements-2026.md (exact deadline and wording)
+  AGENT-BRIEF.md, environment section (verified 25 August 2026)
+
+SCOPE
+  + Xcode 26+ installed, `xcode-select` pointing at it.
+  + iOS 26 SDK and simulator present.
+  - Not the deployment target of the game - iOS 15+ stays the minimum
+    runtime; this task only fixes the build tool, see NOTES.md.
+  - Not Unity's iOS Build Support module - see 04-unity.
+
+OUTCOME
+  Xcode 26.3 (build 17C529) installed, `xcode-select` pointing at
+  `/Applications/Xcode.app/Contents/Developer`, iOS SDK and simulator 26.2
+  present.
+
+VERIFY (NATIVE)
+  1. `xcodebuild -version` and `xcode-select -p` match the installed path.
+  2. An empty build installs on device or simulator, `xcodebuild` exits 0.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  (none)

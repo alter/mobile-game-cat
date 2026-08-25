@@ -1,0 +1,44 @@
+TASK: Shareable before/after card
+
+GOAL
+  Let a player share the transformation, not a portrait - the "was/became"
+  pair is what gets posted, a cat standing still is not.
+
+CONTEXT
+  cat-shelter-mvp.md section 3 (why "was/became" is the actual spectacle)
+  art-brief.md section 10 (share_frame.png, 1080x1080: before on the left,
+  after on the right, cat in front; no space reserved for the cat's name)
+  tasks/DECISIONS.md (the share card decision, Custom Product Page link)
+
+SCOPE
+  + Render share_frame.png with the room's before/after pair and the cat in
+    front, to a single image.
+  + Offer the share prompt only at two kinds of moment: right after a room
+    is cleaned, and at the two cat-state transitions (rooms 4 and 8) - not
+    on level 1, and not on every single pile clear.
+  + iOS share sheet, link pointing at a Custom Product Page, not the generic
+    App Store listing.
+  + Cat name must NOT appear anywhere on the rendered image.
+  + Fires a `share_tap` analytics hook (shape owned by 70-analytics).
+  − Not a full social feature (feeds, likes, friend lists) - out of scope
+    entirely, "вне MVP".
+  − Not the Custom Product Page's own content/setup - that is a store-side
+    task, this task only points the link at it.
+
+OUTCOME
+  A card image a player can share to any iOS share-sheet target, showing the
+  transformation with no player-identifying text on it.
+
+VERIFY (QA)
+  1. On device: trigger a share at a room close, share to Notes, confirm the
+     image arrives intact and shows both frames plus the cat.
+  2. Inspect the rendered image/its generation code: no cat-name string is
+     drawn onto it anywhere.
+  3. `share_tap` event recorded exactly once per share-sheet invocation.
+
+ROLE
+  VIEW
+
+DEPENDS
+  60-shell-build/06-win-screen
+  40-art

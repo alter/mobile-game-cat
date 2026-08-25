@@ -1,0 +1,33 @@
+TASK: Assemble style reference folder
+
+GOAL
+  Give the art pipeline a visual anchor before any prompt is written, so the
+  generated set is judged against real comparables, not against taste.
+
+CONTEXT
+  art-brief.md section 3 (style canon: what works, what doesn't, the named
+    comparables)
+  cat-shelter-mvp.md section 11 (style)
+
+SCOPE
+  + 30-40 screenshots, 6-8 per title, from Royal Match, Gossip Harbor, Merge
+    Mansion, Travel Town, Homescapes, taken from their App Store pages.
+  + One folder, one pass, before 03-art-prompt-props starts.
+  - Not the generation prompt itself - that is 03-art-prompt-props.
+  - Not a written style guide document - the canon is already written in
+    art-brief.md section 3; this task only collects images.
+
+OUTCOME
+  A folder of 30-40 screenshots, organised by title, usable as a side-by-side
+  reference during prompt curation.
+
+VERIFY (HUMAN)
+  1. Folder contains 5 subfolders (one per title), each with 6-8 images.
+  2. A human eye confirms the set reads as one visual family with the target
+     style (soft rounded shapes, warm muted palette) - not a random mix.
+
+ROLE
+  GROWTH
+
+DEPENDS
+  none

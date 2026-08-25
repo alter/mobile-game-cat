@@ -1,0 +1,36 @@
+TASK: Hidden kinds - an item shows its kind only once reachable
+
+GOAL
+  A buried item renders blank until nothing covers it, restoring the
+  not-knowing-what's-underneath tension the genre runs on.
+
+CONTEXT
+  game/Assets/Core/Item.cs (add a Revealed/kind-visible concept)
+  game/Assets/Core/Board.cs, IsRevealed (20-rules-core/02-pile-occlusion
+    already derives reachability from blocked_by - hiding rides the same field)
+  DECISIONS.md D3
+  NOTES.md in this directory
+
+SCOPE
+  + An item's kind is hidden while `blocked_by` is non-empty (unrevealed);
+    revealed once nothing covers it - derived, not separate state.
+  + Renderer contract: hidden items show blank, not their true kind.
+  - Not the visual/art treatment of a hidden tile - that is 40-art/60-shell.
+  - Not re-measuring difficulty under hiding - that is
+    10-remeasure-curve-partial-info, and must run AFTER this, not before.
+
+OUTCOME
+  Buried items render blank in the debug view and in the headless run's data;
+  a covered item reports hidden, uncovering flips it, with unit tests.
+
+VERIFY (ARCH)
+  1. Unit tests: an item with non-empty blocked_by reports kind hidden; once
+     all blockers are taken, it reports revealed.
+  2. `bash build/check-core-purity.sh` still passes - no engine leak introduced.
+  3. Blocks 10-remeasure-curve-partial-info until these tests are green.
+
+ROLE
+  CORE, ARCH (review)
+
+DEPENDS
+  30-levels-solver/06-json-level-loading

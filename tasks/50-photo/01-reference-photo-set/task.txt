@@ -1,0 +1,38 @@
+TASK: Reference photo set
+
+GOAL
+  Build the 40-image fixture that every other task in this phase is measured
+  against. Without it, 03, 05 and 06 have no acceptance criterion.
+
+CONTEXT
+  knowledge/ios/03-vision-animal-recognition.md (Vision only distinguishes cat
+  vs dog; no documented behaviour on photos-of-photos - this set is how we find
+  out ourselves)
+
+SCOPE
+  + 40 images in one folder: 20 different cats, 5 dogs, 5 with no animal,
+    5 blurry shots, 3 with several cats in frame, 2 photographs of a photo
+    (screen or print) rather than a live animal.
+  + One flat folder, filenames indicate the category (e.g. cat_01.jpg,
+    dog_02.jpg, empty_01.jpg, blurry_01.jpg, multi_01.jpg, ofphoto_01.jpg).
+  - Not curated for coat variety (that is 40-art's cat silhouettes) - just
+    real, varied cats.
+  - Not synthetic or generated images - live-camera or found photos only, so
+    the set reflects what the Worker and Vision will actually see.
+
+OUTCOME
+  A folder of 40 images, one per required category, committed where 03, 05 and
+  06 can read it.
+
+VERIFY (ARCH)
+  1. `ls` the folder: exactly 40 files.
+  2. Filename categories sum to 20+5+5+5+3+2 = 40.
+  3. Manual spot-check: the 5 "empty" images contain no animal, the 5 "dog"
+     images contain no cat, the 2 "photo of a photo" images show a screen or
+     print edge in frame.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  None - first task in this phase, no code prerequisite.

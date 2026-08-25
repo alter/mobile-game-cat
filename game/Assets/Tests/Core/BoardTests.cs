@@ -1,0 +1,308 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using CatShelter.Core;
+using NUnit.Framework;
+
+namespace CatShelter.Core.Tests
+{
+    [TestFixture]
+    public class BoardTests
+    {
+        private static ItemKind K(string id) => new(id, id);
+
+        private static PileEntry Entry(int id, string kind, params int[] blockedBy) =>
+            new(new Item(id, K(kind)), blockedBy.ToList());
+
+        // Levels must carry kinds in triples — enforced by the Board now.
+        private static Level MakeLevel(params PileEntry[] pile)
+        {
+            var list = pile.ToList();
+            int nextId = list.Count + 1;
+            foreach (var group in pile.GroupBy(e => e.Item.Kind.Id))
+            {
+                int deficit = (3 - group.Count() % 3) % 3;
+                for (int i = 0; i < deficit; i++)
+                    list.Add(Entry(nextId++, group.Key));
+            }
+            return new Level(1, "room_1", 0, list);
+        }
+
+        // ---- GetAvailable ----------------------------------------------------
+
+        [Test]
+        public void EmptyPile_NoAvailableItems()
+        {
+            var board = new Board(new Level(1, "room_1", 0, Array.Empty<PileEntry>()));
+            Assert.That(board.GetAvailable(), Is.Empty);
+        }
+
+        [Test]
+        public void SingleLayer_AllItemsAvailable()
+        {
+            var board = new Board(MakeLevel(Entry(1, "a"), Entry(2, "b")));
+            var ids = board.GetAvailable().Select(i => i.Id).ToList();
+            Assert.That(ids, Has.Member(1));
+            Assert.That(ids, Has.Member(2));
+        }
+
+        [Test]
+        public void ThreeLayers_OnlyTopOfEachStackAvailable()
+        {
+            var board = new Board(MakeLevel(
+                Entry(1, "a", 2),
+                Entry(2, "a", 3),
+                Entry(3, "a"),
+                Entry(4, "b"),
+                Entry(5, "b", 4)));
+            var ids = board.GetAvailable().Select(i => i.Id).ToList();
+            Assert.That(ids, Has.Member(3));
+            Assert.That(ids, Has.Member(4));
+            // items 1 and 2 are buried and must not be available
+            Assert.That(ids, Has.No.Member(1));
+            Assert.That(ids, Has.No.Member(2));
+        }
+
+        [Test]
+        public void CircularBlock_NothingInCycleAvailable()
+        {
+            var board = new Board(MakeLevel(
+                Entry(1, "a", 2),
+                Entry(2, "b", 1),
+                Entry(3, "c")));
+            var ids = board.GetAvailable().Select(i => i.Id).ToList();
+            Assert.That(ids, Has.Member(3));
+            Assert.That(ids, Has.No.Member(1));
+            Assert.That(ids, Has.No.Member(2));
+        }
+
+        [Test]
+        public void AfterTakingTopItem_ItemBelowBecomesAvailable()
+        {
+            var board = new Board(MakeLevel(
+                Entry(1, "a", 2),
+                Entry(2, "b"),
+                Entry(3, "c")));
+            Assert.That(board.TakeItem(2), Is.True);
+            var ids = board.GetAvailable().Select(i => i.Id).ToList();
+            Assert.That(ids, Has.Member(1));
+            Assert.That(ids, Has.Member(3));
+        }
+
+        [Test]
+        public void CannotTakeBlockedItem()
+        {
+            var board = new Board(MakeLevel(Entry(1, "a", 2), Entry(2, "b")));
+            Assert.That(board.TakeItem(1), Is.False);
+        }
+
+        [Test]
+        public void CannotTakeSameItemTwice()
+        {
+            var board = new Board(MakeLevel(Entry(1, "a"), Entry(2, "b")));
+            Assert.That(board.TakeItem(1), Is.True);
+            Assert.That(board.TakeItem(1), Is.False);
+        }
+
+        [Test]
+        public void UnknownItemId_Rejected()
+        {
+            var board = new Board(MakeLevel(Entry(1, "a")));
+            Assert.That(board.TakeItem(99), Is.False);
+        }
+
+        [Test]
+        public void DuplicateItemIds_ConstructorThrows()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                new Board(new Level(1, "room_1", 0,
+                    new[] { Entry(1, "a"), Entry(1, "b") })));
+        }
+
+        [Test]
+        public void KindNotInTriples_ConstructorThrows()
+        {
+            // two 'a' only — the win condition would strand items on the shelf
+            var pile = new[]
+            {
+                Entry(1, "a"),
+                Entry(2, "a"),
+            };
+            Assert.Throws<ArgumentException>(() =>
+                new Board(new Level(1, "room_1", 0, pile)));
+        }
+
+        [Test]
+        public void TakingItemAfterGameIsOver_Rejected()
+        {
+            var board = new Board(MakeLevel(
+                Entry(1, "a"), Entry(2, "a"), Entry(3, "a")));
+            board.TakeItem(1);
+            board.TakeItem(2);
+            Assert.That(board.IsOver, Is.False);
+            board.TakeItem(3); // this is the win
+            Assert.That(board.TakeItem(1), Is.False);
+        }
+    }
+
+    [TestFixture]
+    public class ShelfTests
+    {
+        private static Item Item(string kind, int id = 0) =>
+            new(id, new ItemKind(kind, kind));
+
+        [Test]
+        public void Place_FillsLeftmostFreeSlot()
+        {
+            var shelf = new Shelf();
+            shelf.TryPlace(Item("a", 1), out _);
+            shelf.TryPlace(Item("b", 2), out _);
+            Assert.That(shelf.Slots[0]!.Kind.Id, Is.EqualTo("a"));
+            Assert.That(shelf.Slots[1]!.Kind.Id, Is.EqualTo("b"));
+            Assert.That(shelf.Occupied, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Place_AfterMatchFreesSlots_ReusesFreeSlot()
+        {
+            var shelf = new Shelf();
+            for (int i = 0; i < 3; i++)
+                Assert.That(shelf.TryPlace(Item("x", i), out _), Is.True);
+
+            Assert.That(shelf.Occupied, Is.EqualTo(0));
+
+            var next = Item("y", 10);
+            Assert.That(shelf.TryPlace(next, out _), Is.True);
+            Assert.That(shelf.Slots[0], Is.SameAs(next));
+        }
+
+        [Test]
+        public void Match_CompletesAcrossRowBoundary()
+        {
+            // rows are presentation only; a triple spanning row 0 and row 1 matches
+            var shelf = new Shelf();
+            shelf.TryPlace(Item("m", 1), out _);
+            shelf.TryPlace(Item("m", 2), out _);
+            Assert.That(shelf.Occupied, Is.EqualTo(2), "no match before the third copy");
+
+            Assert.That(shelf.TryPlace(Item("m", 3), out var matched), Is.True);
+            Assert.That(matched!.Id, Is.EqualTo("m"));
+            Assert.That(shelf.Occupied, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Match_DoesNotFireWithTwoOfAKind()
+        {
+            var shelf = new Shelf();
+            shelf.TryPlace(Item("a", 1), out _);
+            shelf.TryPlace(Item("a", 2), out _);
+            Assert.That(shelf.Occupied, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void FullShelf_PlacementRefused()
+        {
+            var shelf = new Shelf();
+            var kinds = Enumerable.Range(0, Shelf.SlotsPerRow * Shelf.RowCount)
+                .Select(i => $"k{i}").ToList();
+            foreach (var k in kinds)
+                Assert.That(shelf.TryPlace(Item(k), out _), Is.True);
+
+            Assert.That(shelf.IsFull, Is.True);
+            Assert.That(shelf.TryPlace(Item("extra"), out _), Is.False);
+        }
+
+        [Test]
+        public void AddSlots_GrowsCapacity_KeepsPlacedItems()
+        {
+            var shelf = new Shelf();
+            shelf.TryPlace(Item("a", 1), out _);
+            Assert.That(shelf.Capacity, Is.EqualTo(9));
+
+            shelf.AddSlots(1);
+            Assert.That(shelf.Capacity, Is.EqualTo(10));
+            Assert.That(shelf.Occupied, Is.EqualTo(1));
+            Assert.That(shelf.IsFull, Is.False);
+            Assert.That(shelf.TryPlace(Item("extra"), out _), Is.True);
+        }
+    }
+
+    [TestFixture]
+    public class OutcomeTests
+    {
+        private static PileEntry E(int id, string kind, params int[] blockedBy) =>
+            new(new Item(id, new ItemKind(kind, kind)), blockedBy.ToList());
+
+        private static Level L(params PileEntry[] pile) =>
+            new(7, "room_1", 0, pile);
+
+        [Test]
+        public void Win_PileCleared_EvenWhenLastTakeFillsShelf()
+        {
+            // 12 items in 4 kinds, 8-slot shelf: the pile empties while the
+            // shelf holds 8 unmatched — win is checked before any jam.
+            var entries = new List<PileEntry>();
+            for (int kind = 0; kind < 4; kind++)
+                for (int i = 0; i < 3; i++)
+                    entries.Add(E(kind * 3 + i + 1, $"kind{kind}"));
+            // shuffle deterministically so blockers don't hide the point
+            var board = new Board(L(entries.ToArray()), shelfCapacity: 12);
+            foreach (var e in entries)
+                board.TakeItem(e.Item.Id);
+
+            Assert.That(board.IsOver, Is.True);
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.Win));
+        }
+
+        [Test]
+        public void ShelfJammed_UnmatchedKindsFillTheShelf()
+        {
+            // 5 kinds × 3 = 15 items on a nine-slot shelf: taking one of each
+            // of five kinds (15 slots needed) jams at slot ten.
+            var entries = new List<PileEntry>();
+            for (int kind = 0; kind < 5; kind++)
+                for (int i = 0; i < 3; i++)
+                    entries.Add(E(kind * 3 + i + 1, $"kind{kind}"));
+            var board = new Board(L(entries.ToArray()));
+
+            int[] order = { 1, 4, 7, 10, 13, 2, 5, 8, 11, 14 };
+            GameOutcome? outcome = null;
+            foreach (var id in order)
+            {
+                board.TakeItem(id);
+                if (board.IsOver) { outcome = board.Outcome; break; }
+            }
+
+            Assert.That(outcome, Is.EqualTo(GameOutcome.ShelfJammed));
+        }
+
+        [Test]
+        public void OutcomesAreTwoAndDistinct()
+        {
+            var values = new HashSet<GameOutcome>
+            {
+                GameOutcome.Win,
+                GameOutcome.ShelfJammed
+            };
+            Assert.That(values.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void CustomShelfCapacity_ChangesJamPoint()
+        {
+            var entries = new List<PileEntry>();
+            for (int kind = 0; kind < 5; kind++)
+                for (int i = 0; i < 3; i++)
+                    entries.Add(E(kind * 3 + i + 1, $"kind{kind}"));
+            // capacity 4: four distinct kinds jam on the fourth take
+            var board = new Board(L(entries.ToArray()), shelfCapacity: 4);
+            board.TakeItem(1);
+            board.TakeItem(4);
+            board.TakeItem(7);
+            Assert.That(board.IsOver, Is.False);
+            board.TakeItem(10);
+
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
+        }
+    }
+}

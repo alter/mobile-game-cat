@@ -5,6 +5,9 @@ level + same move order must produce the same outcome on both sides.
 
 No move limit: winning means taking every item, so a limit either blocks the
 level or can never be reached (reviews/2026-08-24-refactor-difficulty.md).
+
+Partial information (3.9): a buried item's kind is hidden until reachable.
+Locked items (3.11): unreachable until `locked_after_triples` triples done.
 """
 from __future__ import annotations
 
@@ -38,8 +41,13 @@ class RulesState:
         self.capacity = shelf_capacity
         self.taken: set[int] = set()
         self.shelf: list[str | None] = [None] * shelf_capacity
+        self.triples_completed = 0
         self.over = False
         self.outcome: Outcome | None = None
+
+    def is_locked(self, item: PileItem) -> bool:
+        return item.locked_after_triples > 0 \
+            and self.triples_completed < item.locked_after_triples
 
     def available(self) -> list[PileItem]:
         by_id = self.level.by_id()
@@ -47,20 +55,15 @@ class RulesState:
             item for item in self.level.pile
             if item.id not in self.taken
             and all(b in self.taken for b in item.blocked_by)
+            and not self.is_locked(item)
         ]
 
-    def _place_and_match(self, kind: str) -> None:
-        try:
-            slot = self.shelf.index(None)
-        except ValueError:
-            raise AssertionError("unreachable: jam handled before placement")
-        self.shelf[slot] = kind
-
-        # A completely full shelf with nothing matched is a jam; otherwise any
-        # completed triple is removed (mirrors Shelf.TryPlace → TryMatch).
-        if not self._try_match() and None not in self.shelf:
-            self.over = True
-            self.outcome = Outcome.SHELF_JAMMED
+    def is_revealed(self, item: PileItem) -> bool:
+        """Task 3.9: kind visible only once reachable."""
+        if item.id in self.taken:
+            return False
+        return (all(b in self.taken for b in item.blocked_by)
+                and not self.is_locked(item))
 
     def _try_match(self) -> bool:
         counts: dict[str, int] = {}
@@ -87,6 +90,8 @@ class RulesState:
         item = by_id[item_id]
         if not all(b in self.taken for b in item.blocked_by):
             raise ValueError(f"illegal move {item_id}: blocked")
+        if self.is_locked(item):
+            raise ValueError(f"illegal move {item_id}: locked")
 
         self.taken.add(item_id)
 
@@ -96,7 +101,17 @@ class RulesState:
             self.outcome = Outcome.WIN
             return True
 
-        self._place_and_match(item.kind)
+        slot = self.shelf.index(None)
+        self.shelf[slot] = item.kind
+
+        matched = self._try_match()
+        if matched:
+            self.triples_completed += 1
+        elif None not in self.shelf:
+            # full shelf with nothing matched = jam
+            self.over = True
+            self.outcome = Outcome.SHELF_JAMMED
+
         return True
 
     def add_slots(self, extra: int) -> None:

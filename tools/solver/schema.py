@@ -13,12 +13,14 @@ class PileItem:
     id: int
     kind: str
     blocked_by: tuple[int, ...] = field(default=())
+    locked_after_triples: int = 0
 
 
 @dataclass(frozen=True)
 class LevelDef:
     number: int
     room_id: str
+    pile_index: int
     pile: tuple[PileItem, ...]
 
     def by_id(self) -> dict[int, PileItem]:
@@ -34,6 +36,8 @@ def validate(level: LevelDef) -> None:
         raise LevelValidationError("number must be >= 1")
     if not level.room_id:
         raise LevelValidationError("room_id must be non-empty")
+    if level.pile_index < 0:
+        raise LevelValidationError("pile_index must be >= 0")
 
     ids = [item.id for item in level.pile]
     if len(ids) != len(set(ids)):
@@ -86,8 +90,12 @@ def level_to_dict(level: LevelDef) -> dict:
     return {
         "number": level.number,
         "room_id": level.room_id,
+        "pile_index": level.pile_index,
         "pile": [
-            {"id": i.id, "kind": i.kind, "blocked_by": list(i.blocked_by)}
+            {"id": i.id, "kind": i.kind,
+             "blocked_by": list(i.blocked_by),
+             **({"locked_after_triples": i.locked_after_triples}
+                if i.locked_after_triples else {})}
             for i in level.pile
         ],
     }
@@ -98,9 +106,11 @@ def level_from_dict(data: dict) -> LevelDef:
         return LevelDef(
             number=int(data["number"]),
             room_id=str(data["room_id"]),
+            pile_index=int(data.get("pile_index", 0)),
             pile=tuple(
                 PileItem(id=int(e["id"]), kind=str(e["kind"]),
-                         blocked_by=tuple(int(x) for x in e.get("blocked_by", [])))
+                         blocked_by=tuple(int(x) for x in e.get("blocked_by", [])),
+                         locked_after_triples=int(e.get("locked_after_triples", 0)))
                 for e in data["pile"]
             ),
         )

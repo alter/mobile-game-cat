@@ -203,3 +203,81 @@ def test_booster_recovery_agrees(conformance_results):
     assert cs_over, f"C# did not finish after booster; result={r}"
     assert cs_win == py_final, (
         f"booster recovery diverged: python_win={py_final} csharp={r['outcome']}")
+
+
+def test_locked_items_agree(conformance_results):
+    """A move on a locked item must be refused identically on both sides."""
+    rng = random.Random(4242)
+    from tools.solver.schema import LevelDef, PileItem
+    # locked 'x' triple + one full 'a' triple: taking the a-triple unlocks x
+    pile = (
+        PileItem(1, "x", (), 1),          # locked until 1 triple
+        PileItem(2, "x"), PileItem(3, "x"),
+        PileItem(4, "a"), PileItem(5, "a"), PileItem(6, "a"),
+    )
+    level = LevelDef(1, "room_01", 0, pile)
+    levels = [{
+        "number": 1, "room_id": level.room_id,
+        "pile": [{"id": i.id, "kind": i.kind,
+                  "blocked_by": list(i.blocked_by),
+                  "locked_after_triples": i.locked_after_triples}
+                 for i in level.pile]}]
+
+    # python side
+    st = new_state(level)
+    with pytest.raises(ValueError, match="locked"):
+        st.take(1)
+    for id in (4, 5, 6):
+        st.take(id)
+    assert any(i.id == 1 for i in st.available())
+    st.take(1)
+
+    # csharp side — same script; the locked take is simply not in it
+    script = {"1": [[4], [5], [6], [1], [2], [3]]}
+    with tempfile.TemporaryDirectory() as tmp:
+        lv_path = Path(tmp) / "l.json"
+        sc_path = Path(tmp) / "s.json"
+        res_path = Path(tmp) / "r.json"
+        lv_path.write_text(json.dumps(levels))
+        sc_path.write_text(json.dumps(script))
+        subprocess.run(
+            ["dotnet", "run", "--project", str(BRIDGE), "--",
+             str(lv_path), str(sc_path), str(res_path)],
+            check=True, capture_output=True)
+        r = json.loads(res_path.read_text())[0]
+
+    assert r["legal"], r["error"]
+    assert r["outcome"].lower() == "win"
+
+
+def test_locked_level_solution_agrees():
+    """Solver opens locks via free triples; C# replays to the same win."""
+    from tools.solver.schema import LevelDef, PileItem
+    lvl = LevelDef(1, "room_01", 0, (
+        PileItem(1, "x", (), 1), PileItem(2, "x", (), 1), PileItem(3, "x", (), 1),
+        PileItem(4, "a"), PileItem(5, "a"), PileItem(6, "a"),
+    ))
+    sol = solve(lvl)
+    assert sol is not None
+    outcome, _ = replay(lvl, list(sol.moves))
+    assert outcome == Outcome.WIN
+
+    levels = [{"number": 1, "room_id": lvl.room_id,
+               "pile_index": 0,
+               "pile": [{"id": i.id, "kind": i.kind,
+                         "blocked_by": [],
+                         "locked_after_triples": i.locked_after_triples}
+                        for i in lvl.pile]}]
+    with tempfile.TemporaryDirectory() as tmp:
+        lv_path = Path(tmp) / "l.json"
+        sc_path = Path(tmp) / "s.json"
+        res_path = Path(tmp) / "r.json"
+        lv_path.write_text(json.dumps(levels))
+        sc_path.write_text(json.dumps({"1": [[m] for m in sol.moves]}))
+        subprocess.run(
+            ["dotnet", "run", "--project", str(BRIDGE), "--",
+             str(lv_path), str(sc_path), str(res_path)],
+            check=True, capture_output=True)
+        r = json.loads(res_path.read_text())[0]
+
+    assert r["legal"] and r["over"] and r["outcome"].lower() == "win"

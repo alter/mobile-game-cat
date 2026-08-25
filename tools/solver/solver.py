@@ -3,6 +3,10 @@
 Depth-first search with failure memoization. "Sensible play" = the heuristic
 order (kinds closest to a triple first); the returned move count is what that
 policy achieves.
+
+Locked items (task 3.11): an item with locked_after_triples > 0 is not takeable
+until that many triples have been completed, so the search state must track the
+triple count alongside taken/shelf.
 """
 from __future__ import annotations
 
@@ -46,15 +50,17 @@ class _Search:
         shelf: list[str | None] = [None] * self.capacity
         path: list[int] = []
         taken: set[int] = set()
-        if self._dfs(taken, shelf, path):
+        triples = 0
+        if self._dfs(taken, shelf, path, triples):
             return Solution(moves=tuple(path), move_count=len(path))
         return None
 
-    def _dfs(self, taken: set[int], shelf, path: list[int]) -> bool:
+    def _dfs(self, taken: set[int], shelf, path: list[int],
+             triples: int) -> bool:
         if time.monotonic() > self.deadline:
             raise TimeoutError("solver deadline exceeded")
 
-        key = (frozenset(taken), self._shelf_key(shelf))
+        key = (frozenset(taken), self._shelf_key(shelf), min(triples, 30))
         if key in self.failed:
             return False
 
@@ -62,6 +68,8 @@ class _Search:
             item for item in self.pile
             if item.id not in taken
             and all(b in taken for b in item.blocked_by)
+            and not (item.locked_after_triples > 0
+                     and triples < item.locked_after_triples)
         ]
         sc = _counts_of(shelf)
         avail.sort(key=lambda it: -sc.get(it.kind, 0))
@@ -75,18 +83,12 @@ class _Search:
             new_shelf[slot] = item.kind
 
             jammed = False
-            if None not in new_shelf and all(
-                    n < 3 for n in _counts_of(new_shelf).values()):
+            new_triples = triples
+            matched = self._match(new_shelf)
+            if matched:
+                new_triples += 1
+            elif None not in new_shelf:
                 jammed = True
-
-            c = _counts_of(new_shelf)
-            for kind, n in c.items():
-                if n >= 3:
-                    removed = 0
-                    for i in range(len(new_shelf)):
-                        if new_shelf[i] == kind and removed < 3:
-                            new_shelf[i] = None
-                            removed += 1
 
             if jammed:
                 continue
@@ -97,13 +99,29 @@ class _Search:
             if len(taken) == self.total:
                 return True  # pile cleared → win (checked before any jam)
 
-            if self._dfs(taken, new_shelf, path):
+            if self._dfs(taken, new_shelf, path, new_triples):
                 return True
 
             taken.discard(item.id)
             path.pop()
 
         self.failed.add(key)
+        return False
+
+    @staticmethod
+    def _match(shelf) -> bool:
+        counts: dict[str, int] = {}
+        for kind in shelf:
+            if kind is not None:
+                counts[kind] = counts.get(kind, 0) + 1
+        for kind, n in counts.items():
+            if n >= 3:
+                removed = 0
+                for i in range(len(shelf)):
+                    if shelf[i] == kind and removed < 3:
+                        shelf[i] = None
+                        removed += 1
+                return True
         return False
 
 
@@ -117,5 +135,3 @@ def solve(level: LevelDef, state_cap: int = 500_000,
         return search.run()
     except TimeoutError:
         return None
-    finally:
-        pass

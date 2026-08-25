@@ -7,7 +7,8 @@ from tools.solver.schema import (
 
 
 def make_level(pile=None, number=1, room_id="room_01"):
-    return LevelDef(number=number, room_id=room_id, pile=tuple(pile or []))
+    return LevelDef(number=number, room_id=room_id, pile_index=0,
+                    pile=tuple(pile or []))
 
 
 def test_valid_roundtrip():

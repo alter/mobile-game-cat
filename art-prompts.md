@@ -8,10 +8,29 @@
 
 ## 0. Как этим пользоваться
 
+**Наказы руками не собирайте.** Есть сборщик:
+
+```bash
+python tools/artgen/build_prompts.py          # разложит готовые наказы в tools/artgen/out/
+python tools/artgen/build_prompts.py --check  # проверит, ничего не записав
+```
+
+Он берёт средние части из таблиц этого файла, приклеивает общий положительный
+блок, кадр и отрицательную часть, и кладёт по файлу на актив — целиком
+по-английски, готово к вставке. Заодно отказывается работать, если в наказ
+затесалась кириллица.
+
+Разбирает 48 активов: 30 предметов, 6 силуэтов кота, 12 комнат. Одиночные
+наказы из раздела 6 — болванка, запертый предмет, награды, значок, карта,
+рамка — в таблицы не вынесены и берутся оттуда как есть; они и так полные.
+
+**Русский текст в этом файле — пояснения для человека.** В наказ идёт только
+то, что внутри блоков кода и в ячейках таблиц, и там кириллицы нет.
+
 Каждый наказ собирается из трёх частей:
 
 ```
-[БАЗОВЫЙ СТИЛЬ] + [ПРЕДМЕТ И ЕГО ОСОБЕННОСТИ] + [КАДР]
+[BASE] + [SUBJECT] + [FRAME]
 ```
 
 и всегда сопровождается **отрицательной частью**. Отрицательная часть общая для
@@ -162,8 +181,8 @@ bottom third of the frame left empty and uncluttered
 ### Шаблон
 
 ```
-[БАЗОВЫЙ] , <описание предмета>, main colour <цвет> <код>,
-<особенность формы>, [КАДР ДЛЯ ПРЕДМЕТОВ]
+[BASE] , <subject description>, main colour <name> <hex>,
+<shape detail>, [FRAME_PROP]
 ```
 
 Отрицательная часть — общая, без изменений.
@@ -381,14 +400,14 @@ text on walls, posters with writing
 Правка чистой комнаты. Наказ для порождения с референсом:
 
 ```
-[БАЗОВЫЙ] , the same room, neglected and long abandoned,
+[BASE] , the same room, neglected and long abandoned,
 overall colour shifted to muddy taupe #6B6055 and dull umber #55493D,
 dim grey light instead of warm light, dust in the air,
 wallpaper peeling at the seams, cobwebs in the upper corners,
 furniture out of place and covered with dust sheets,
 scattered clutter on the floor, curtains sagging,
 identical camera angle, identical furniture layout, identical window position,
-[КАДР ДЛЯ КОМНАТ]
+[FRAME_ROOM]
 ```
 
 Ключевые слова здесь — три последних: **тот же ракурс, та же мебель, то же
@@ -419,10 +438,10 @@ identical camera angle, identical furniture layout, identical window position,
 ### Болванка — предмет под завалом
 
 ```
-[БАЗОВЫЙ] , an unidentifiable object hidden under a dust sheet,
+[BASE] , an unidentifiable object hidden under a dust sheet,
 warm grey #B0A79B cloth draped over an unknown shape,
 soft folds, a little dust, the shape underneath unreadable,
-calm and quiet, not spooky, [КАДР ДЛЯ ПРЕДМЕТОВ]
+calm and quiet, not spooky, [FRAME_PROP]
 ```
 
 В отрицательную дополнительно: `ghost, skull, face, eyes, anything recognisable
@@ -434,10 +453,10 @@ under the cloth`.
 ### Запертый предмет
 
 ```
-[БАЗОВЫЙ] , a length of rough twine wound crosswise several times,
+[BASE] , a length of rough twine wound crosswise several times,
 warm grey #B0A79B cord, tied in a simple knot at the centre,
 rendered as a standalone overlay on transparent background,
-nothing underneath, [КАДР ДЛЯ ПРЕДМЕТОВ]
+nothing underneath, [FRAME_PROP]
 ```
 
 Это **накладка поверх обычного предмета**, поэтому в середине должно оставаться
@@ -449,16 +468,16 @@ nothing underneath, [КАДР ДЛЯ ПРЕДМЕТОВ]
 
 ```
 reward_bowl:
-[БАЗОВЫЙ] , a ceramic cat bowl, dusty mint #A8C9B5,
+[BASE] , a ceramic cat bowl, dusty mint #A8C9B5,
 low and wide, empty, a small paw print painted on the side,
 slightly nicer and cleaner than ordinary household objects,
-[КАДР ДЛЯ ПРЕДМЕТОВ]
+[FRAME_PROP]
 
 reward_blanket:
-[БАЗОВЫЙ] , a small folded blanket for a cat, muted peach #E8B79A,
+[BASE] , a small folded blanket for a cat, muted peach #E8B79A,
 soft knitted texture, neatly folded in three, one corner turned over,
 slightly nicer and cleaner than ordinary household objects,
-[КАДР ДЛЯ ПРЕДМЕТОВ]
+[FRAME_PROP]
 ```
 
 В отрицательную обязательно: `glow, sparkle, magic aura, rarity border,
@@ -487,10 +506,10 @@ no rounded corners, no transparency`. Скругление накладывае�
 
 ```
 map_background:
-[БАЗОВЫЙ] , a cutaway view of a small two-storey house,
+[BASE] , a cutaway view of a small two-storey house,
 twelve empty rooms arranged in a grid inside the walls,
 plain interior, roof and outer walls in light oak #C9A97C,
-rooms empty and unfurnished, seen straight on, [КАДР ДЛЯ КОМНАТ]
+rooms empty and unfurnished, seen straight on, [FRAME_ROOM]
 ```
 
 Клетки комнат — три состояния, различимые издали: `dirty` тёмная серо-бурая,
@@ -503,9 +522,9 @@ rooms empty and unfurnished, seen straight on, [КАДР ДЛЯ КОМНАТ]
 ### Рамка карточки «было — стало»
 
 ```
-[БАЗОВЫЙ] , a simple square photo frame divided into two equal halves
+[BASE] , a simple square photo frame divided into two equal halves
 by a thin vertical line, light oak #C9A97C moulding, both halves empty,
-rendered as an overlay on transparent background, [КАДР ДЛЯ ПРЕДМЕТОВ]
+rendered as an overlay on transparent background, [FRAME_PROP]
 ```
 
 Место под имя кота **не предусматривать** — имя на публичной карточке решено не

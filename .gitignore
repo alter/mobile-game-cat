@@ -7,3 +7,4 @@ __pycache__/
 .venv/
 .hermes/
 game/Assets/Levels/pool/
+tools/artgen/out/

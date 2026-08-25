@@ -2,8 +2,8 @@ phase:shell
 role:VIEW
 type:feature
 priority:P0
-status:todo
-verify:pending
+status:done
+verify:pending — real art + drag-and-drop blocked by 40-art; click-to-take verified by build/screenshot
 depends:20-rules-core/04-outcomes
 depends:40-art
 milestone:M6

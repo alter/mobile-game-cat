@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using CatShelter.Core;
 using UnityEngine;
@@ -9,14 +10,15 @@ namespace CatShelter.View
 {
     /// <summary>
     /// Task 20-rules-core/06: debug view of plain rectangles — a build playable
-    /// by hand before any art exists. Scene is assembled from code; no scene
-    /// YAML, no prefabs.
+    /// by hand before any art exists. The scene asset carries a UIDocument with
+    /// DebugGame.uxml/uss assigned; this component populates the root.
     ///
-    /// Conventions (per DECISIONS.md):
+    /// Conventions (DECISIONS.md):
     /// - hidden kinds render as BLANK tiles (D3), not faded;
-    /// - locked kinds show a lock glyph and ignore taps until unlocked (D4-adjacent, 3.11);
+    /// - locked kinds show a lock glyph and ignore taps until unlocked (3.11);
     /// - the lose screen offers "one more shelf" but NEVER calls Shelf.AddSlots —
     ///   the booster is a fake door in the MVP (D4).
+    /// Styling lives in DebugGame.uss; inline styles only for per-tile colours.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class DebugGameView : MonoBehaviour
@@ -49,98 +51,32 @@ namespace CatShelter.View
 
         private readonly List<Level> _levels = new();
         private int _levelIndex;
-        private bool _finished;
 
         private void OnEnable()
         {
+            var uid = GetComponent<UIDocument>();
+
+            // The UXML carries its own <Style src="DebugGame.uss" />; all
+            // named elements are declared there, so Q() resolves on first run.
+            var gameRoot = uid.rootVisualElement.Q("game-root") ?? uid.rootVisualElement;
+
+            _pileArea = gameRoot.Q("pile");
+            _shelfArea = gameRoot.Q("shelf");
+            _title = gameRoot.Q<Label>("title");
+            _status = gameRoot.Q<Label>("status");
+            _overlay = gameRoot.Q("overlay");
+            _overlayTitle = gameRoot.Q<Label>("overlay-title");
+            _overlayBody = gameRoot.Q<Label>("overlay-body");
+            _primaryButton = gameRoot.Q<Button>("primary");
+            _secondaryButton = gameRoot.Q<Button>("secondary");
+
+            if (_pileArea == null)
+                throw new InvalidOperationException(
+                    "DebugGame.uxml skeleton not found in UIDocument source");
+
+            _levels.Clear();
             _levels.AddRange(LevelAssets.LoadAll().OrderBy(l => l.Number));
-            BuildUI();
             StartLevel(0);
-        }
-
-        private void BuildUI()
-        {
-            var root = GetComponent<UIDocument>().rootVisualElement;
-            root.style.backgroundColor = new Color(0.96f, 0.92f, 0.85f);
-            root.style.paddingTop = 12;
-            root.style.paddingBottom = 12;
-
-            var column = new VisualElement();
-            column.style.flexGrow = 1;
-            column.style.alignItems = Align.Center;
-            root.Add(column);
-
-            _title = new Label();
-            _title.style.fontSize = 18;
-            _title.style.unityFontStyleAndWeight = FontStyle.Bold;
-            _title.style.marginBottom = 4;
-            column.Add(_title);
-
-            _status = new Label();
-            _status.style.fontSize = 13;
-            _status.style.marginBottom = 6;
-            column.Add(_status);
-
-            // pile area: wrap of tiles
-            _pileArea = new VisualElement();
-            _pileArea.style.flexDirection = FlexDirection.Row;
-            _pileArea.style.flexWrap = Wrap.Wrap;
-            _pileArea.style.justifyContent = Justify.Center;
-            _pileArea.style.maxWidth = 380;
-            _pileArea.style.marginBottom = 14;
-            column.Add(_pileArea);
-
-            // shelf area: nine slots in one row
-            _shelfArea = new VisualElement();
-            _shelfArea.style.flexDirection = FlexDirection.Row;
-            column.Add(_shelfArea);
-
-            // overlay for win/lose cards
-            _overlay = new VisualElement();
-            _overlay.style.position = Position.Absolute;
-            _overlay.style.left = 0;
-            _overlay.style.right = 0;
-            _overlay.style.top = 0;
-            _overlay.style.bottom = 0;
-            _overlay.style.backgroundColor = new Color(0, 0, 0, 0.55f);
-            _overlay.style.alignItems = Align.Center;
-            _overlay.style.justifyContent = Justify.Center;
-            _overlay.style.display = DisplayStyle.None;
-            root.Add(_overlay);
-
-            var card = new VisualElement();
-            card.style.backgroundColor = Color.white;
-            card.style.borderTopLeftRadius = 16;
-            card.style.borderTopRightRadius = 16;
-            card.style.borderBottomLeftRadius = 16;
-            card.style.borderBottomRightRadius = 16;
-            card.style.paddingTop = 24;
-            card.style.paddingBottom = 24;
-            card.style.paddingLeft = 28;
-            card.style.paddingRight = 28;
-            card.style.maxWidth = 320;
-            _overlay.Add(card);
-
-            _overlayTitle = new Label();
-            _overlayTitle.style.fontSize = 17;
-            _overlayTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
-            card.Add(_overlayTitle);
-
-            _overlayBody = new Label();
-            _overlayBody.style.fontSize = 13;
-            _overlayBody.style.whiteSpace = WhiteSpace.Normal;
-            _overlayBody.style.marginTop = 8;
-            card.Add(_overlayBody);
-
-            _primaryButton = new Button(OnPrimary);
-            _primaryButton.text = "Continue";
-            _primaryButton.style.marginTop = 14;
-            card.Add(_primaryButton);
-
-            _secondaryButton = new Button(OnSecondary);
-            _secondaryButton.text = "One more shelf";
-            _secondaryButton.style.marginTop = 8;
-            card.Add(_secondaryButton);
         }
 
         private void StartLevel(int index)
@@ -150,13 +86,12 @@ namespace CatShelter.View
                 ShowCard("House complete!",
                     "Every room is tidy.",
                     "Play again", () => StartLevel(0),
-                    secondaryText: null, onSecondary: null);
+                    null, null);
                 return;
             }
             _levelIndex = index;
             _level = _levels[index];
             _board = new Board(_level);
-            _finished = false;
             Analytics.LevelStart(_level.Number);
             Render();
         }
@@ -184,7 +119,7 @@ namespace CatShelter.View
             foreach (var entry in _level.Pile)
             {
                 if (_board.TakenOrder.Contains(entry.Item.Id)) continue;
-                _pileArea.Add(MakeTile(entry, clickable: true));
+                _pileArea.Add(MakeTile(entry));
             }
         }
 
@@ -194,17 +129,7 @@ namespace CatShelter.View
             for (int i = 0; i < _board.Shelf.Capacity; i++)
             {
                 var slot = new VisualElement();
-                slot.style.width = 34;
-                slot.style.height = 38;
-                slot.style.marginLeft = 2;
-                slot.style.marginRight = 2;
-                slot.style.borderTopLeftRadius = 7;
-                slot.style.borderTopRightRadius = 7;
-                slot.style.borderBottomLeftRadius = 7;
-                slot.style.borderBottomRightRadius = 7;
-                slot.style.backgroundColor = new Color(1, 1, 1, 0.5f);
-                slot.style.alignItems = Align.Center;
-                slot.style.justifyContent = Justify.Center;
+                slot.AddToClassList("game__slot");
 
                 var item = _board.Shelf.Slots[i];
                 if (item != null)
@@ -214,54 +139,38 @@ namespace CatShelter.View
             }
         }
 
-        private VisualElement MakeTile(PileEntry entry, bool clickable)
+        private VisualElement MakeTile(PileEntry entry)
         {
             var revealed = IsRevealed(entry);
-            var available = !clickable || _board.GetAvailable()
-                .Any(a => a.Id == entry.Item.Id);
+            var available = _board.GetAvailable().Any(a => a.Id == entry.Item.Id);
+            var locked = _board.IsLockedByComplication(entry.Item);
 
             var tile = new VisualElement();
-            tile.style.width = 52;
-            tile.style.height = 52;
-            tile.style.marginLeft = 3;
-            tile.style.marginRight = 3;
-            tile.style.marginBottom = 3;
-            tile.style.borderTopLeftRadius = 10;
-            tile.style.borderTopRightRadius = 10;
-            tile.style.borderBottomLeftRadius = 10;
-            tile.style.borderBottomRightRadius = 10;
-            tile.style.alignItems = Align.Center;
-            tile.style.justifyContent = Justify.Center;
-
-            var locked = _board.IsLockedByComplication(entry.Item);
+            tile.AddToClassList("game__tile");
 
             if (!revealed)
             {
                 // D3: buried items hide their kind — blank tile, not faded
-                tile.style.backgroundColor = new Color(0.73f, 0.66f, 0.55f);
+                tile.AddToClassList("game__tile--hidden");
                 return tile;
             }
 
+            // Per-tile hue is genuinely one-off: computed from the kind id.
             tile.style.backgroundColor = HueFor(entry.Item.Kind.Id);
             tile.Add(MakeLabel(entry.Item.Kind.Id, locked ? "🔒" : null));
 
-            if (available && !locked && clickable)
-            {
+            if (available && !locked)
                 tile.RegisterCallback<ClickEvent>(_ => Take(entry.Item.Id));
-                tile.style.opacity = 1f;
-            }
             else
-            {
-                tile.style.opacity = 0.45f;
-            }
+                tile.AddToClassList("game__tile--dim");
+
             return tile;
         }
 
         private static Label MakeLabel(string kindId, string overrideText = null)
         {
             var label = new Label(overrideText ?? KindShort(kindId));
-            label.style.color = Color.white;
-            label.style.fontSize = 11;
+            label.AddToClassList("game__tile-label");
             return label;
         }
 
@@ -278,13 +187,11 @@ namespace CatShelter.View
 
         private void Take(int itemId)
         {
-            if (_finished || _board.IsOver) return;
-            if (!_board.TakeItem(itemId))
+            if (_board.IsOver || !_board.TakeItem(itemId))
                 return;
 
             if (_board.IsOver)
             {
-                _finished = true;
                 Finish();
                 return;
             }
@@ -308,7 +215,7 @@ namespace CatShelter.View
                         ? "The kitten likes it better already."
                         : "The room still has another pile.",
                     "Next", () => { HideCard(); StartLevel(_levelIndex + 1); },
-                    secondaryText: null, onSecondary: null);
+                    null, null);
             }
             else
             {
@@ -317,18 +224,16 @@ namespace CatShelter.View
                 ShowCard("Shelf jammed",
                     $"Levels finished: {_levelIndex}.\n\n" +
                     "Would you keep playing if this were the real game?",
-                    "Send answer", () =>
+                    "Replay", () =>
                     {
                         HideCard();
                         StartLevel(_levelIndex);   // replay the lost level
                     },
-                    secondaryText: "One more shelf",
-                    onSecondary: () =>
+                    "One more shelf", () =>
                     {
                         Analytics.BoosterTap();     // counted...
                         _overlayBody.text = "Coming soon.";  // ...stub shown...
                         _secondaryButton.SetEnabled(false); // ...level stays lost.
-                        _primaryButton.text = "Replay";
                     });
             }
         }
@@ -352,10 +257,10 @@ namespace CatShelter.View
             {
                 _secondaryButton.style.display = DisplayStyle.None;
             }
-            _overlay.style.display = DisplayStyle.Flex;
+            _overlay.AddToClassList("game__overlay--shown");
         }
 
-        private void HideCard() => _overlay.style.display = DisplayStyle.None;
+        private void HideCard() => _overlay.RemoveFromClassList("game__overlay--shown");
 
         private void OnPrimary() { /* wired per-card via clickable */ }
         private void OnSecondary() { /* wired per-card via clickable */ }

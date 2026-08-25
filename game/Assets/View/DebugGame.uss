@@ -1,0 +1,180 @@
+/* Debug view styling — task 20-rules-core/06.
+   Palette taken from build/playtest/index.html so the Unity build and the
+   HTML prototype look the same; the same codes are listed in art-prompts.md
+   section 1. Layout lives here, not inline: knowledge/unity/03-ui-toolkit-runtime.md
+   recommends class-based styling. The one exception is per-tile background
+   colour, which DebugGameView computes from the kind id at runtime. */
+
+.game__root {
+    flex-grow: 1;
+    background-color: #F4EAD8;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    padding-left: 12px;
+    padding-right: 12px;
+    align-items: center;
+}
+
+.game__title {
+    font-size: 20px;
+    color: #4A3B28;
+    -unity-font-style: bold;
+    margin-bottom: 2px;
+}
+
+.game__status {
+    font-size: 14px;
+    color: #6B6055;
+    margin-bottom: 12px;
+}
+
+/* The pile: tiles wrap into rows, newest additions flow left to right. */
+.game__pile {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    flex-grow: 1;
+    max-width: 360px;
+}
+
+/* The shelf sits at the bottom, one row, never wraps. */
+.game__shelf {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    background-color: #E8D9BD;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin-top: 12px;
+}
+
+.game__slot {
+    width: 44px;
+    height: 44px;
+    margin-left: 3px;
+    margin-right: 3px;
+    background-color: #F4EAD8;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: #C9A97C;
+    border-right-color: #C9A97C;
+    border-top-color: #C9A97C;
+    border-bottom-color: #C9A97C;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.game__tile {
+    width: 52px;
+    height: 52px;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    background-color: #C9A97C;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* D3: a buried item hides its kind. Blank tile, not a faded one —
+   the player must not be able to read what is underneath. */
+.game__tile--hidden {
+    background-color: #B0A79B;
+}
+
+/* Reachable but not takeable: dimmed, still readable. */
+.game__tile--dim {
+    opacity: 0.45;
+}
+
+.game__tile-label {
+    font-size: 18px;
+    color: #4A3B28;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+}
+
+/* Overlay is present in the tree from the start and hidden by default,
+   so showing it is a class toggle rather than a rebuild. */
+.game__overlay {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(74, 59, 40, 0.55);
+    align-items: center;
+    justify-content: center;
+}
+
+.game__overlay--shown {
+    display: flex;
+}
+
+.game__card {
+    background-color: #F4EAD8;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 24px;
+    padding-right: 24px;
+    align-items: center;
+    min-width: 260px;
+}
+
+.game__card-title {
+    font-size: 22px;
+    color: #4A3B28;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.game__card-body {
+    font-size: 15px;
+    color: #6B6055;
+    white-space: normal;
+    -unity-text-align: middle-center;
+    margin-bottom: 16px;
+    max-width: 240px;
+}
+
+.game__card-button {
+    font-size: 16px;
+    color: #4A3B28;
+    background-color: #C9A97C;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-top: 6px;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+    min-width: 200px;
+}

@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="DebugGame.uss" />
+    <ui:VisualElement name="game-root" class="game__root">
+        <ui:Label name="title" class="game__title" text="" />
+        <ui:Label name="status" class="game__status" text="" />
+        <ui:VisualElement name="pile" class="game__pile" />
+        <ui:VisualElement name="shelf" class="game__shelf" />
+        <ui:VisualElement name="overlay" class="game__overlay">
+            <ui:VisualElement name="card" class="game__card">
+                <ui:Label name="overlay-title" class="game__card-title" text="" />
+                <ui:Label name="overlay-body" class="game__card-body" text="" />
+                <ui:Button name="secondary" class="game__card-button" text="One more shelf" />
+                <ui:Button name="primary" class="game__card-button" text="Continue" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

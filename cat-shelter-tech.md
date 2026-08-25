@@ -1,255 +1,274 @@
-# Спасённый котёнок — техническая часть
+# Saved Kitten — technical part
 
-Дата: 24 августа 2026
-Дополнение к `cat-shelter-mvp.md`. Задачи и приёмка — в `cat-shelter-tasks.md`.
-Основания под каждым решением — в каталоге `knowledge/`, начинать с
-`knowledge/README.md`.
+Date: August 24, 2026
+Addendum to `cat-shelter-mvp.md`. Tasks and acceptance — in
+`cat-shelter-tasks.md`. The rationale behind each decision — in the
+`knowledge/` directory, start with `knowledge/README.md`.
 
 ---
 
-## Правка от 24 августа 2026
+## Edit from August 24, 2026
 
-Проверка всего набора по первоисточникам. Пять решений изменены, два
-подтверждены, одна ошибка исправлена.
+A check of the whole stack against primary sources. Five decisions
+changed, two confirmed, one error fixed.
 
-| Было | Стало | Почему |
+| Was | Now | Why |
 |---|---|---|
-| Узел-посредник на Python и FastAPI | один обработчик Cloudflare Workers | бесплатно, без карты, без задержки на пробуждение; ожидание сети не входит в предел процессорного времени |
-| Свой сбор событий | GameAnalytics + аналитика App Store Connect | бесплатно, без предела по игрокам; своё писать нечего |
-| Подпись запроса общим секретом | потолок расходов у поставщика | секрет достаётся из сборки, потолок — нет |
-| Сохранение через `System.Text.Json` | `JsonUtility`, для уровней — Newtonsoft из пакета Unity | **ошибка:** `System.Text.Json` Unity не поставляет, под IL2CPP он упирается в `Reflection.Emit` |
-| Xcode 16+ | Xcode 26+ | требование магазина вступило в силу 28 апреля 2026 |
-| Godot 4.6.3, «на 4.7 починок нет» | довод устарел | у 4.7 уже 4.7.1 и 4.7.2 |
+| A Python/FastAPI intermediary node | a single Cloudflare Workers handler | free, no card, no wake-up delay; network wait doesn't count toward the CPU-time limit |
+| Our own event collection | GameAnalytics + App Store Connect analytics | free, no player cap; nothing of our own to write |
+| Request signing with a shared secret | a spend cap at the vendor | the secret is extractable from the build, the cap isn't |
+| Save data via `System.Text.Json` | `JsonUtility`; for levels — Newtonsoft from the Unity package | **error:** Unity doesn't ship `System.Text.Json`, and under IL2CPP it hits `Reflection.Emit` |
+| Xcode 16+ | Xcode 26+ | the store requirement took effect April 28, 2026 |
+| Godot 4.6.3, "no patches for 4.7 yet" | argument stale | 4.7 already has 4.7.1 and 4.7.2 |
 
-Подтверждено проверкой: Unity 6.3 LTS существует с поддержкой до декабря 2027;
-MCP-сервер Unity первой стороны существует; стоимость разбора снимка укладывается
-в заявленные 0,1–0,3 цента; узор окраса на устройстве без облака **не** определяется.
+Confirmed by checking: Unity 6.3 LTS exists with support through December
+2027; a first-party Unity MCP server exists; the cost of parsing a photo
+falls within the stated 0.1-0.3 cent; the coat pattern still **cannot** be
+determined on device without the cloud.
 
 ---
 
-## 0. Главный принцип выбора версий
+## 0. The main principle for choosing versions
 
-Вопрос поставлен как «модное с MCP или устоявшееся». Ответ: **это не выбор, а
-разделение слоёв.**
+The question was framed as "trendy with MCP, or established." The answer:
+**this isn't a choice, it's a layer split.**
 
-Агент пишет по тому, что видел в обучении. На свежайшей версии движка он
-выдумывает несуществующие вызовы, ты ловишь это часами вместо минут, и вся
-выгода от скорости съедается. Значит:
+An agent writes based on what it saw in training. On the very latest
+engine version it invents calls that don't exist, you spend hours catching
+that instead of minutes, and the entire speed gain gets eaten up. So:
 
-- **Слой, который попадает в игру** — устоявшийся, с двумя-тремя выпусками
-  починок за спиной. Здесь новизна не даёт ничего, а стоит дорого.
-- **Слой, которым работает агент** (MCP-серверы, средства сборки, порождение
-  рисунков) — самый свежий. Он вне игры, ломается без последствий, меняется за
-  час.
+- **The layer that ships in the game** — established, with two or three
+  patch releases behind it. Novelty here gives nothing and costs a lot.
+- **The layer the agent works with** (MCP servers, build tools, art
+  generation) — the freshest available. It's outside the game, breaks
+  without consequence, changes within an hour.
 
-Правило: **новизна там, где откат бесплатен. Устойчивость там, где откат стоит
-недели.**
+Rule: **novelty where rollback is free. Stability where rollback costs
+weeks.**
 
-## 1. Движок
+## 1. Engine
 
-### Выбор
+### Choice
 
-**Unity 6.3 LTS (6000.3.x)** — если идём к издателю. Подтверждено: выпуск
-декабря 2025, поддержка до 4 декабря 2027, расширенная до 4 декабря 2028.
-Последняя правка на день проверки — **6000.3.22f1** от 13 августа 2026, её и
-брать.
+**Unity 6.3 LTS (6000.3.x)** — if we go to a publisher. Confirmed: released
+December 2025, support through December 4, 2027, extended through
+December 4, 2028. The latest patch as of the check date is
+**6000.3.22f1** from August 13, 2026 — take that one.
 
-**Внимание: Unity по умолчанию даёт не её.** Тому, кто скачивает редактор
-сегодня, предлагается 6.5 — `6000.5.9f1` от 19 августа 2026, обычный стабильный
-`f`-выпуск. Это не бета: прежняя редакция здесь врала, 6.5 вышла 15 июня 2026.
+**Warning: Unity does not offer it by default.** Anyone downloading the
+editor today is offered 6.5 — `6000.5.9f1` from August 19, 2026, a normal
+stable `f` release. This isn't a beta: the previous draft lied here, 6.5
+came out June 15, 2026.
 
-Брать всё равно 6.3 LTS: **6.5 — Update release**, такие живут «until the next
-release (update or LTS) is published», то есть поддержка оборвётся с выходом
-следующей версии, возможно через пару месяцев. У 6.3 LTS — до 4 декабря 2027,
-расширенная до 2028. То же и с 6000.4.
+Take 6.3 LTS anyway: **6.5 is an Update release**, and such releases live
+"until the next release (update or LTS) is published," meaning support
+ends the moment the next version ships — possibly in a couple of months.
+6.3 LTS has support through December 4, 2027, extended to 2028. Same goes
+for 6000.4.
 
-Ставится через [архив выпусков](https://unity.com/releases/editor/archive):
-найти `6000.3.22f1`, нажать «Unity Hub», ссылка `unityhub://` поставит нужную.
-Тот же путь есть внутри Hub: Installs → Install Editor → ссылка на архив. Не
-«6.3 недоступна», а «страница загрузки показывает рекомендованную».
+Installed through the [release archive](https://unity.com/releases/editor/archive):
+find `6000.3.22f1`, click "Unity Hub," the `unityhub://` link installs the
+right one. The same path exists inside the Hub: Installs → Install Editor
+→ the archive link. It's not "6.3 is unavailable," it's "the download page
+shows the recommended one."
 
-Что будет, если всё-таки работать на 6.5, и почему это не катастрофа —
-в `knowledge/00-versions.md`.
+What happens if you work on 6.5 anyway, and why that isn't a
+catastrophe — in `knowledge/00-versions.md`.
 
-Заодно: поддержка Unity 6.0 LTS кончается **16 октября 2026**. Если где-то
-остался проект на ней — это последний месяц.
+Also: support for Unity 6.0 LTS ends **October 16, 2026**. If a project is
+still on it somewhere — this is the last month.
 
-**Godot 4.6.3 stable** — если издаём сами. **Довод, которым этот выбор был
-обоснован, устарел.** В прежней редакции стояло «не 4.7, на 4.6.3 уже три
-выпуска починок, на 4.7 их пока нет». На 24 августа у 4.7 две починки: 4.7.1 от
-14 июля и 4.7.2 от 16 августа. Правило Godot гласит, что ветка поддерживается
-«until the next stable branch is released and has received its first patch
-update» — значит гарантированный срок 4.6 истёк в июле.
+**Godot 4.6.3 stable** — if we self-publish. **The argument this choice was
+based on is stale.** The previous draft said "not 4.7, 4.6.3 already has
+three patch releases, 4.7 doesn't have any yet." As of August 24, 4.7 has
+two patches: 4.7.1 from July 14 and 4.7.2 from August 16. Godot's rule
+states that a branch is supported "until the next stable branch is
+released and has received its first patch update" — meaning 4.6's
+guaranteed period expired in July.
 
-Вывод не «срочно переходить». Godot остаётся запасным путём и до отказа
-издателей его трогать незачем. Вывод в другом: **если дело до Godot дойдёт,
-версию надо выбирать заново, а не доставать отсюда.** Обоснование протухло за
-два месяца, и это хорошая иллюстрация, почему такие записи датируются.
+The conclusion is not "switch urgently." Godot remains a fallback path and
+there's no point touching it until publishers pass. The conclusion is
+elsewhere: **if it does come down to Godot, the version needs to be chosen
+again from scratch, not pulled from here.** The justification rotted in
+two months, and that's a good illustration of why such notes are dated.
 
-### Сравнение по существу
+### Comparison on the merits
 
 | | Unity 6.3 LTS | Godot 4.6.3 |
 |---|---|---|
-| Приём у издателей заготовок | единственный принимаемый | не принимают |
-| Формат сцен | машинный YAML с опознавателями | простой текст (.tscn/.tres) |
-| Правка сцен агентом | ломает опознаватели, нужен MCP | правит напрямую, MCP необязателен |
-| MCP | свой, первой стороны, но требует Unity Cloud и подписки; либо сторонние | сторонние, открытые |
-| Знание модели о движке | очень высокое (C# в верхнем слое обучающих данных) | среднее, GDScript встречается реже |
-| Прослойки для рекламы и замеров | все, что есть на рынке | AdMob (Poing Studios) и немногое сверх |
-| Оплата покупок на iOS | из коробки | StoreKit 2 под опекой Фонда с 2026 |
-| Вес пустой сборки | 25–40 МБ | 12–20 МБ |
-| Отчисления | отменены | нет, MIT |
+| Accepted by publishers for prototypes | the only one accepted | not accepted |
+| Scene format | machine YAML with identifiers | plain text (.tscn/.tres) |
+| Agent editing scenes | breaks identifiers, needs MCP | edits directly, MCP optional |
+| MCP | first-party, but requires Unity Cloud and a subscription; or third-party | third-party, open |
+| Model's knowledge of the engine | very high (C# is heavily represented in training data) | medium, GDScript appears less often |
+| Ready-made layers for ads and measurement | everything on the market | AdMob (Poing Studios) and a bit more |
+| iOS purchase handling | out of the box | StoreKit 2 under Foundation stewardship since 2026 |
+| Empty build weight | 25-40 MB | 12-20 MB |
+| Revenue cut | none | none, MIT |
 
-### Что это значит на практике
+### What this means in practice
 
-Godot быстрее в работе агента, но проигрывает там, где решается судьба заготовки
-— у издателя. Их набор для замеров существует только под Unity, и без него
-заготовку нечем измерить, а значит незачем принимать.
+Godot is faster to work with via an agent, but loses where a prototype's
+fate is decided — at the publisher. Their measurement layer exists only
+for Unity, and without it there's nothing to measure a prototype with,
+meaning nothing to accept it on.
 
-Знание модели о движке — недооценённая величина. C# и Unity в обучающих данных
-представлены во много раз шире GDScript. Агент на Unity ошибается реже просто
-потому, что видел больше кода.
+The model's knowledge of the engine is an underrated factor. C# and Unity
+are represented in training data many times more than GDScript. An agent
+on Unity makes fewer mistakes simply because it has seen more code.
 
-**Решение: Unity 6.3 LTS.** Godot остаётся запасным путём, если после первой
-заготовки все издатели откажут и мы уйдём в самостоятельный выпуск.
+**Decision: Unity 6.3 LTS.** Godot remains a fallback path if every
+publisher passes after the first prototype and we move to self-publishing.
 
-## 2. Состав средств
+## 2. Tool set
 
-### Внутри игры (устоявшееся, меняем только по нужде)
+### Inside the game (established, change only when necessary)
 
 ```
 Unity           6.3 LTS, 6000.3.22f1
-Язык            C#, .NET Standard 2.1
-Показ           встроенный, 2D Renderer (URP 2D)
-Интерфейс       UI Toolkit — вёрстка в UXML/USS, это простой текст,
-                агент правит напрямую, в отличие от сцен
-Состояние       свой конечный автомат, без сторонних библиотек
-Сохранение      один файл JSON через JsonUtility, состояние партии целиком,
-                запись на каждом ходу (не по сворачиванию приложения)
-Уровни          чтение JSON через com.unity.nuget.newtonsoft-json
-Тесты           Unity Test Framework (NUnit) для ядра правил
-Реклама         в MVP нет; при самостоятельном выпуске — LevelPlay
-Замеры          GameAnalytics (события) + аналитика App Store Connect (удержание)
+Language        C#, .NET Standard 2.1
+Rendering       built-in, 2D Renderer (URP 2D)
+UI              UI Toolkit — layout in UXML/USS, this is plain text,
+                the agent edits it directly, unlike scenes
+State           our own finite state machine, no third-party libraries
+Save data       one JSON file via JsonUtility, the whole run's state,
+                written on every move (not on app backgrounding)
+Levels          JSON read via com.unity.nuget.newtonsoft-json
+Tests           Unity Test Framework (NUnit) for the rules engine
+Ads             none in the MVP; LevelPlay for self-publishing
+Measurement     GameAnalytics (events) + App Store Connect analytics (retention)
 ```
 
-**Про JSON — исправление прежней редакции.** Там стоял `System.Text.Json`, и это
-ошибка: Unity его не поставляет, а под IL2CPP он упирается в `Reflection.Emit`,
-которого на iOS нет. Правильно так: файл сохранения — встроенный `JsonUtility`,
-он покрывает плоскую запись вида «пройденные уровни, текущий уровень, черты
-кота, признаки» и не требует ни одного пакета. Описания уровней сложнее —
-вложенные массивы предметов и перекрытий, — и для них берётся Newtonsoft из
-официального пакета Unity `com.unity.nuget.newtonsoft-json`. Это ровно тот
-случай, когда готовое лучше своего: разбор JSON руками писать незачем.
+**On JSON — a correction of the previous draft.** It had
+`System.Text.Json`, and that's an error: Unity doesn't ship it, and under
+IL2CPP it hits `Reflection.Emit`, which doesn't exist on iOS. Correct:
+the save file uses the built-in `JsonUtility`, which covers a flat record
+like "levels passed, current level, cat traits, flags" and requires no
+package at all. Level descriptions are more complex — nested arrays of
+items and overlaps — and for those Newtonsoft is taken from Unity's
+official `com.unity.nuget.newtonsoft-json` package. This is exactly the
+case where off-the-shelf beats homemade: there's no point writing your own
+JSON parser.
 
-**Про замеры — смена решения.** В прежней редакции стояло «свой сбор событий,
-HTTP на свой узел» без обоснования. Готовое покрывает задачу целиком и даром:
-GameAnalytics не ставит предела по числу игроков и не требует карты, а удержание
-на первый день App Store Connect считает сам, вообще без кода. Отдельно: диалог
-ATT можно не показывать — пакет сам его не вызывает. Что мы при этом отдаём и
-как уходить — в `knowledge/00-vendor-lock-in.md`.
+**On measurement — a change of decision.** The previous draft said "our
+own event collection, HTTP to our own node," with no justification.
+Off-the-shelf covers the task fully and free: GameAnalytics sets no cap on
+player count and requires no card, and App Store Connect counts day-one
+retention itself, with zero code. Separately: the ATT dialog can be
+skipped — the package doesn't trigger it on its own. What we give up in
+exchange, and how to exit, is in `knowledge/00-vendor-lock-in.md`.
 
-Чего сознательно не берём: DOTween, Zenject, Odin, готовые наборы. Каждая
-сторонняя библиотека — это то, о чём агент знает хуже, чем о голом Unity, и
-источник разъезда версий. На заготовке в три недели они не окупаются.
+What we deliberately don't take: DOTween, Zenject, Odin, ready-made kits.
+Every third-party library is something the agent knows worse than bare
+Unity, and a source of version drift. On a three-week prototype they don't
+pay off.
 
-### Вокруг игры (самое свежее, ломается без последствий)
+### Around the game (the freshest, breaks without consequence)
 
 ```
-Claude Code            основной исполнитель
-Unity MCP              см. оговорку ниже
-Git MCP + Filesystem   стандартные
-Порождение рисунков    пакетно, через API, один наказ на весь набор
-Решатель уровней       свой, Python 3, вне проекта Unity
-Узел-посредник         Cloudflare Workers, TypeScript, вне проекта Unity
-Сборка                 headless, из командной строки, через CI
+Claude Code             the primary executor
+Unity MCP               see the caveat below
+Git MCP + Filesystem    standard
+Art generation          batched, via API, one prompt for the whole set
+Level solver            our own, Python 3, outside the Unity project
+Intermediary node       Cloudflare Workers, TypeScript, outside the Unity project
+Build                   headless, from the command line, via CI
 ```
 
-**Решение по Unity MCP: берём `CoplayDev/unity-mcp`, но подключаем после
-задачи 1.4.**
+**Decision on Unity MCP: we take `CoplayDev/unity-mcp`, but connect it
+after task 1.4.**
 
-Официальный существует и это первая сторона — пакет `com.unity.ai.assistant`,
-предварительный выпуск, Claude Code в поддерживаемых назван прямо. **Отпадает:**
-требует проекта в Unity Cloud и действующей подписки на средства Unity AI, а у
-нас правило не платить за службы.
+An official one exists and it's first-party — the `com.unity.ai.assistant`
+package, a pre-release, and Claude Code is named directly among the
+supported ones. **It's out:** it requires a project on Unity Cloud and an
+active subscription to Unity AI tools, and our rule is not to pay for
+services.
 
-Живые сторонние, проверено через GitHub API 25 августа 2026:
+Live third-party ones, checked via the GitHub API on August 25, 2026:
 
-| Сервер | Звёзд | Лицензия | Последняя правка |
+| Server | Stars | License | Last updated |
 |---|---|---|---|
-| `CoplayDev/unity-mcp` | 13 643 | MIT | 07.08.2026 |
-| `IvanMurzak/Unity-MCP` | 3 979 | Apache-2.0 | 24.08.2026 |
-| `CoderGamester/mcp-unity` | 1 874 | MIT | 10.08.2026 |
+| `CoplayDev/unity-mcp` | 13,643 | MIT | 07.08.2026 |
+| `IvanMurzak/Unity-MCP` | 3,979 | Apache-2.0 | 24.08.2026 |
+| `CoderGamester/mcp-unity` | 1,874 | MIT | 10.08.2026 |
 
-Берём первый: MIT, наиболее ходовой, живой. У второго свежее правка и больше
-средств (70+ против 47), и он умеет работать в собранной игре — это может
-пригодиться позже при проверке на устройстве, но сейчас лишнее.
+We take the first one: MIT, most widely used, alive. The second has a more
+recent update and more tools (70+ versus 47), and it can work inside a
+built game — which may come in handy later for on-device testing, but is
+unneeded right now.
 
-**Зачем он нужен — не за скоростью.** Пакетный режим померен на этой машине:
-создание пустого проекта 6 секунд, повторное открытие 2–3. Это приемлемо, и
-довод «batchmode медленный» не подтвердился. Оговорка: замер на **пустом**
-проекте, с уровнями, спрайтами и пакетами будет дольше, насколько — узнаем,
-когда проект появится.
+**Why it's needed — not for speed.** Batch mode was measured on this
+machine: creating an empty project takes 6 seconds, reopening it 2-3. This
+is acceptable, and the "batchmode is slow" argument didn't hold up.
+Caveat: the measurement is on an **empty** project — with levels, sprites
+and packages it will be slower, by how much we'll find out once the
+project exists.
 
-Настоящая польза MCP в другом: **чтение консоли Unity** — ошибки компиляции и
-выполнения приходят разбираемыми, а не выуживанием из `Editor.log`, — плюс
-работа со сценами, запуск режима игры и осмотр происходящего.
+The real benefit of MCP is elsewhere: **reading the Unity console** —
+compile and runtime errors arrive already parsed, instead of being fished
+out of `Editor.log` — plus working with scenes, running play mode and
+inspecting what's happening.
 
-**Ограничение.** MCP живёт внутри **открытого редактора с окном**. Значит агент
-перестаёт быть самодостаточным: кто-то должен держать Unity запущенным. Это
-нормально на рабочей машине, но сборка и CI остаются на пакетном режиме. Два
-режима уживаются, подменять один другим не нужно.
+**Limitation.** MCP lives inside an **open editor with a window**. That
+means the agent stops being self-sufficient: someone has to keep Unity
+running. That's fine on a work machine, but the build and CI stay on
+batch mode. The two modes coexist; neither replaces the other.
 
-**Почему не сейчас.** Проекта Unity ещё нет — подключать не к чему. Момент
-подключения — сразу после 1.4, когда проект появится и начнётся работа со
-сценами. Разбор всех вариантов — в `knowledge/agents/01-unity-mcp.md`.
+**Why not now.** There's no Unity project yet — nothing to connect to.
+The moment to connect is right after 1.4, once the project exists and
+scene work begins. A full breakdown of the options is in
+`knowledge/agents/01-unity-mcp.md`.
 
-Разделение важное: **решатель уровней, порождение рисунков и узел-посредник живут
-вне проекта Unity.** Решатель и порождение рисунков — на Python, выдают JSON с
-описаниями уровней и PNG с предметами. Узел-посредник — отдельный обработчик на
-TypeScript. Так агент работает с ними как с обычными файлами, и они переживают
-смену движка.
+An important separation: **the level solver, art generation and the
+intermediary node live outside the Unity project.** The solver and art
+generation are in Python, outputting JSON with level descriptions and PNGs
+with items. The intermediary node is a separate TypeScript handler. This
+way the agent works with them as ordinary files, and they survive an
+engine change.
 
-## 3. Распознавание кота
+## 3. Recognizing the cat
 
-### Почему YOLO — неверный ответ
+### Why YOLO is the wrong answer
 
-YOLO решает задачу «найди и обведи». Наша задача — «опиши окрас». Это разные
-вещи. YOLO26 в виде CoreML — это лишний вес в 10–40 МБ ради того, что уже
-встроено в iOS бесплатно, и он всё равно не скажет, полосатый кот или пятнистый,
-без отдельного дообучения на своём наборе снимков, которого у тебя нет.
+YOLO solves "find and box it." Our task is "describe the coloring." These
+are different things. YOLO26 as CoreML is extra weight of 10-40 MB for
+something already built into iOS for free, and it still won't say whether
+the cat is tabby or spotted, without separate fine-tuning on your own
+photo set, which you don't have.
 
-Дообучать классификатор окраса — это недели на сбор и разметку данных ради
-задачи, где ошибка ничего не стоит (кот получился чуть не того оттенка — игрок
-не заметит).
+Fine-tuning a coloring classifier is weeks of collecting and labeling data
+for a task where an error costs nothing (the cat comes out a slightly
+wrong shade — the player won't notice).
 
-### Двухступенчатый разбор
+### Two-stage parsing
 
-**Ступень 1 — проверка «на снимке кот». На устройстве, бесплатно.**
+**Stage 1 — checking "is there a cat in the photo." On-device, free.**
 
-Apple Vision — встроенный распознаватель животных, отличает кошку от собаки,
-возвращает рамку и уверенность. Работает без сети, на нейронном сопроцессоре,
-снимок никуда не уходит.
+Apple Vision — a built-in animal recognizer, tells a cat from a dog,
+returns a box and a confidence score. Works offline, on the neural
+co-processor, the photo never leaves the device.
 
-Два имени, оба действующие: `VNRecognizeAnimalsRequest` — с iOS 13, доступен и
-из Objective-C, вынесен Apple в раздел «Legacy API», но как устаревший не
-помечен; `RecognizeAnimalsRequest` — новый вариант только для Swift, с iOS 18.
-Оба различают ровно двоих: `.cat` и `.dog`, больше Apple не даёт. Порог
-уверенности Apple не публикует — подбирать на эталонном наборе.
+Two APIs, both current: `VNRecognizeAnimalsRequest` — since iOS 13,
+available from Objective-C too, moved by Apple into the "Legacy API"
+section, but not marked deprecated; `RecognizeAnimalsRequest` — the newer
+Swift-only variant, since iOS 18. Both distinguish exactly two: `.cat` and
+`.dog`, Apple gives nothing more. Apple doesn't publish the confidence
+threshold — tune it on a reference set.
 
 ```
-если животных не найдено      → «Не вижу кота, попробуй другое фото»
-если найдена собака           → «Это собака! Нам нужен кот»
-если кот, уверенность < 0.6   → «Фото нечёткое, попробуй ближе»
-если кот                      → обрезаем по рамке, идём дальше
+if no animal found              → "I don't see a cat, try another photo"
+if a dog is found                → "That's a dog! We need a cat"
+if cat, confidence < 0.6         → "Photo's unclear, try getting closer"
+if cat                           → crop to the box, proceed
 ```
 
-Это же и есть заслон от непристойного: на вход принимается только то, что
-Vision опознал как кошку.
+This doubles as the indecency filter: only what Vision recognized as a cat
+is accepted as input.
 
-**Ступень 2 — черты окраса. Облако, доли цента.**
+**Stage 2 — coloring traits. Cloud, fractions of a cent.**
 
-Обрезанный по рамке снимок уходит на модель со зрением с жёстким наказом
-отвечать только строгим JSON:
+The photo cropped to the box goes to a vision model with a strict prompt
+to answer only in strict JSON:
 
 ```json
 {
@@ -261,155 +280,174 @@ Vision опознал как кошку.
 }
 ```
 
-Значения перечислимые, не свободный текст. **Задаются они не наказом, а схемой:**
-`output_config.format` с `json_schema`, где у каждого поля стоит `enum`, а у
-объекта `additionalProperties: false`. Тогда значение вне списка не «маловероятно»,
-а невозможно. Наказ «отвечай только JSON» даёт ответ, который обычно разбирается,
-а приёмка требует ста процентов. Одно ограничение схемы, которое надо обойти
-своим кодом: `maxItems` не поддерживается, длину `white_markings` режем в
-обработчике.
+The values are enumerable, not free text. **They're constrained not by the
+prompt, but by the schema:** `output_config.format` with `json_schema`,
+where every field has an `enum`, and the object has
+`additionalProperties: false`. Then a value outside the list isn't
+"unlikely," it's impossible. A prompt saying "answer only in JSON" gives an
+answer that usually parses, and acceptance demands one hundred percent.
+One schema limitation that has to be worked around in our own code:
+`maxItems` isn't supported, so the length of `white_markings` is trimmed
+in the handler.
 
-Обратно приходит около 100 байт. Снимок не хранится ни у тебя, ни у поставщика:
-«Image uploads are ephemeral and not stored beyond the duration of the API request».
+What comes back is about 100 bytes. The photo isn't stored either by us or
+by the vendor: "Image uploads are ephemeral and not stored beyond the
+duration of the API request."
 
-**Стоимость — посчитана, а не прикинута.** Изображение стоит
-`⌈ширина / 28⌉ × ⌈высота / 28⌉` визуальных токенов, для 512×512 это 361 токен.
-С наказом и ответом выходит около 611 токенов входа и 80 выхода. По ценам на
-24 августа 2026: **0,10 цента на Claude Haiku 4.5**, 0,20 на Sonnet 5, 0,51 на
-Opus 5. При 500 установках и 40% загрузивших это 200 разборов, то есть 20 центов
-за весь MVP. Прежняя оценка «0,1–0,3 цента» подтверждается.
+**Cost — calculated, not estimated.** An image costs
+`⌈width / 28⌉ × ⌈height / 28⌉` visual tokens; for 512×512 that's 361
+tokens. With the prompt and response it comes to about 611 input tokens
+and 80 output. At prices as of August 24, 2026: **0.10 cent on Claude
+Haiku 4.5**, 0.20 on Sonnet 5, 0.51 on Opus 5. At 500 installs and 40%
+uploading a photo that's 200 parses, i.e. 20 cents for the whole MVP. The
+previous estimate of "0.1-0.3 cent" is confirmed.
 
-Haiku 4.5 поддерживает structured outputs и стоит вчетверо дешевле Sonnet. Но
-разницу решает не цена, а качество разбора окраса, а его из документации не
-узнать — сравнивать глазами на эталонном наборе.
+Haiku 4.5 supports structured outputs and costs a quarter of Sonnet. But
+the choice isn't decided by price, it's decided by the quality of coloring
+parsing, and that can't be learned from documentation — it has to be
+compared by eye on a reference set.
 
-**Запасной путь без сети — и его честная граница.** Основной цвет своими силами
-определяется: k-средних по главным цветам обрезанного снимка, сопоставление с
-палитрой из шести окрасов. Белые отметины на лапах и морде — через точки позы
-тела из `VNDetectAnimalBodyPoseRequest`. Узор — **нет, и это не вопрос
-старания.** В таксономии классификатора Apple 1303 категории, из них кошачьих
-пять слов (`cat`, `adult_cat`, `kitten`, `bobcat`, `feline`) и ни одного окраса —
-при том что собачьих пород там за тридцать. Готовой свободной модели под эту
-задачу тоже нет. Значит офлайн ставим `solid` и получаем правдоподобного кота,
-но не кота этого игрока. Разбор: `knowledge/ios/06-on-device-coat-traits.md`.
+**A fallback path without a network — and its honest limit.** The base
+color can be determined on our own: k-means over the dominant colors of
+the cropped photo, matched against a palette of six colorings. White
+markings on paws and face — via body pose points from
+`VNDetectAnimalBodyPoseRequest`. The pattern — **no, and this isn't about
+trying harder.** In Apple's classifier taxonomy there are 1303 categories,
+of which five are cat-related words (`cat`, `adult_cat`, `kitten`,
+`bobcat`, `feline`) and not one coloring — while dog breeds number over
+thirty there. There's no ready open model for this task either. So offline
+we default to `solid` and get a believable cat, but not this player's cat.
+Breakdown: `knowledge/ios/06-on-device-coat-traits.md`.
 
-### Сборка кота из частей
+### Assembling the cat from parts
 
-Не порождённая картинка, а слои:
-
-```
-Cat sprite = силуэт(state, fur_length)
-           + заливка(base_color)
-           + маска узора(pattern)
-           + белые пятна(white_markings)
-           + глаза(eye_color)
-```
-
-Силуэтов три (по состояниям) × два (длина шерсти) = 6 наборов. Остальное —
-наложение цвета и масок в шейдере, порождается на лету. Итого рисуется 6
-наборов вместо 6 × 6 × 6 × 3 сочетаний.
-
-### Android потом
-
-Vision — только Apple. Под Android на второй очереди: ML Kit Object Detection
-для ступени 1, ступень 2 без изменений. Либо один YOLO26n в CoreML и TFLite —
-но это уже когда счёт установок пойдёт на тысячи и лишние 15 МБ будут окупаться.
-
-## 4. Узел-посредник
-
-Прямой вызов облака из игры невозможен: ключ уедет на устройство и утечёт в
-первую неделю. Нужен посредник.
+Not a generated image, but layers:
 
 ```
-Cloudflare Workers, TypeScript, один обработчик POST /traits
-вход:     обрезанный снимок, base64, до 512×512
-выход:    JSON с чертами
-ключ:     wrangler secret put — на устройство не попадает
-защита:   потолок расходов у поставщика; ограничение частоты в обработчике
-хранение: никакого; снимок живёт в памяти на время вызова
+Cat sprite = silhouette(state, fur_length)
+           + fill(base_color)
+           + pattern mask(pattern)
+           + white patches(white_markings)
+           + eyes(eye_color)
 ```
 
-**Почему не своя машина с FastAPI.** Прежняя редакция описывала настоящую
-службу — Python, gunicorn, systemd, nginx — ради нескольких сотен вызовов за всё
-время. Один обработчик Cloudflare Workers делает то же даром: 100 000 обращений
-в сутки на бесплатном уровне против наших сотен за весь MVP, банковская карта не
-нужна, приложение не засыпает.
+There are three silhouettes (by state) × two (fur length) = 6 sets.
+Everything else is color and mask overlay in the shader, generated on the
+fly. In total 6 sets are drawn instead of 6 × 6 × 6 × 3 combinations.
 
-Последнее важнее, чем кажется. Игрок ждёт ответа прямо на экране съёмки, и
-службы вроде Render, которые засыпают после четверти часа простоя и просыпаются
-около минуты, этот экран бы убили.
+### Android later
 
-Ключевой вопрос, который решает всё дело, проверен по странице пределов
-Cloudflare дословно: «Waiting on network requests (such as `fetch()` calls, KV
-reads, or database queries) does not count toward CPU time». То есть секунда
-ожидания ответа модели предел в 10 мс процессорного времени не съедает.
-Расходуется только настоящий счёт — раскодирование base64 и разбор JSON. Это
-надо будет померить через `wrangler tail` после первой выкладки.
+Vision is Apple-only. For Android in the second wave: ML Kit Object
+Detection for stage 1, stage 2 unchanged. Or a single YOLO26n in CoreML
+and TFLite — but only once install counts run into the thousands and the
+extra 15 MB pays for itself.
 
-Плата за решение одна: обработчик пишется на TypeScript, а не на Python. Это
-полсотни строк и единственный кусок вне Python во всём хозяйстве. Если хочется
-остаться на Python — PythonAnywhere, там `api.anthropic.com` уже в списке
-разрешённых адресов, но есть предел в 100 секунд процессорного времени в сутки.
+## 4. The intermediary node
 
-**Подпись запроса общим секретом убрана.** Секрет, зашитый в приложение,
-достаётся из сборки — значит защищал он ничего. От разорения защищает жёсткий
-потолок расходов в консоли поставщика, и выставить его надо до первого вызова.
-Ограничение частоты в обработчике остаётся, но как вежливость против
-заклинившего клиента, а не как охрана. Готовый образец обработчика, команды
-`wrangler` и работа с секретами — в `knowledge/python/05-cloudflare-worker-proxy.md`.
+A direct call to the cloud from the game is impossible: the key would ride
+along on the device and leak within the first week. A go-between is
+needed.
 
-### Свой сервер у нас есть — что на него класть, а что нет
+```
+Cloudflare Workers, TypeScript, one POST /traits handler
+input:    cropped photo, base64, up to 512×512
+output:   JSON with traits
+key:      wrangler secret put — never reaches the device
+guard:    a spend cap at the vendor; rate limiting in the handler
+storage:  none; the photo lives in memory for the duration of the call
+```
 
-Выяснилось, что сервер уже имеется, то есть предельная стоимость размещения на
-нём равна нулю. Это меняет меньше, чем кажется, и вот разделение.
+**Why not our own machine with FastAPI.** The previous draft described a
+real service — Python, gunicorn, systemd, nginx — for a few hundred calls
+total. A single Cloudflare Workers handler does the same for free: 100,000
+requests a day on the free tier against our hundreds for the whole MVP, no
+credit card needed, the app never sleeps.
 
-**Правило: на критическом пути — чужое управляемое, всё остальное — своё.**
+The last point matters more than it looks. The player waits for a response
+right there on the photo screen, and services like Render, which sleep
+after fifteen minutes idle and wake up in about a minute, would kill that
+screen.
 
-| Что | Где | Почему |
+The key question that settles the whole matter was checked word for word
+on Cloudflare's limits page: "Waiting on network requests (such as
+`fetch()` calls, KV reads, or database queries) does not count toward CPU
+time." So a second spent waiting for the model's answer doesn't eat into
+the 10 ms CPU-time limit. Only the real cost is spent — base64 decoding
+and JSON parsing. This will need to be measured via `wrangler tail` after
+the first deploy.
+
+The only price for this decision: the handler is written in TypeScript,
+not Python. That's fifty lines and the single piece outside Python in the
+whole stack. If staying on Python matters, PythonAnywhere has
+`api.anthropic.com` already on its allowed-address list, but caps CPU time
+at 100 seconds a day.
+
+**Request signing with a shared secret was dropped.** A secret baked into
+the app is extractable from the build — meaning it protected nothing. What
+protects against ruin is a hard spend cap in the vendor's console, and it
+needs to be set before the first call. Rate limiting in the handler stays,
+but as a courtesy against a stuck client, not as protection. A ready
+handler template, `wrangler` commands and secret handling — in
+`knowledge/python/05-cloudflare-worker-proxy.md`.
+
+### We do have our own server — what goes on it and what doesn't
+
+It turns out a server already exists, meaning the marginal cost of hosting
+on it is zero. This changes less than it seems, and here's the split.
+
+**Rule: on the critical path — someone else's managed service, everything
+else — our own.**
+
+| What | Where | Why |
 |---|---|---|
-| Разбор снимка `/traits` | Cloudflare Workers | простой недопустим: экран съёмки кормит метрику, которая решает судьбу проекта |
-| Сырой архив событий | свой Postgres | простой безвреден, зато данные остаются у нас |
-| Коды приглашений и счётчики | свой Postgres | вторая очередь, простой безвреден |
-| Отчёты по четырём мерам | GameAnalytics | уже готово, писать нечего |
+| Photo parsing `/traits` | Cloudflare Workers | downtime is unacceptable: the photo screen feeds the metric that decides the project's fate |
+| Raw event archive | our own Postgres | downtime is harmless, and the data stays ours |
+| Invite codes and counters | our own Postgres | second wave, downtime is harmless |
+| Reports on the four metrics | GameAnalytics | already done, nothing to write |
 
-Довод в пользу Cloudflare для посредника не «дёшево», а «нечему падать». Если
-свой сервер полежит сутки во время платной проверки, доля загрузивших снимок
-окажется занижена, а повторить проверку будет не на что.
+The argument for Cloudflare on the intermediary isn't "cheap," it's
+"nothing to fall over." If our own server is down for a day during the
+paid test, the share of photo uploads comes out understated, and there
+won't be money left to redo the test.
 
-**Postgres, без Redis.** Redis понадобился бы для ограничения частоты, но при
-сотнях обращений за всё время Postgres справится одной таблицей. Второй сервис,
-который надо поднимать и чинить, ради несуществующей нагрузки — чистый убыток.
+**Postgres, no Redis.** Redis would be needed for rate limiting, but at
+hundreds of calls total, Postgres handles it with one table. A second
+service to stand up and maintain, for load that doesn't exist, is pure
+loss.
 
-**Условие для любого обращения из игры: домен и действующий сертификат TLS.**
-iOS не пустит запрос по обычному HTTP — это App Transport Security, и обходить
-его ради прототипа не стоит.
+**Condition for any call from the game: a domain and a valid TLS
+certificate.** iOS won't allow a plain-HTTP request — that's App Transport
+Security, and it's not worth working around for a prototype.
 
-**Один настоящий выигрыш от своего сервера.** Слать события в оба места:
-GameAnalytics для отчётов, свой обработчик — складывать сырые события в
-Postgres. Это снимает зависимость, найденную при разборе: сырые данные по
-игрокам у GameAnalytics стоят от 499 долларов в месяц и хранятся 12 месяцев.
-Своя копия делает это неважным и стоит одной таблицы.
+**One real win from having our own server.** Send events to both places:
+GameAnalytics for reports, our own handler to drop raw events into
+Postgres. This removes a dependency found during the review: raw
+per-player data at GameAnalytics costs from 499 dollars a month and up and
+is retained for 12 months. Our own copy makes that irrelevant and costs
+one table.
 
-## 5. Сборка под iOS
+## 5. Building for iOS
 
 ```
-macOS + Xcode 26+          обязательно, см. ниже
-Unity iOS Build Support    модуль в Unity Hub
-цель                       iOS 15+ (охватывает всё живое железо)
-подпись                    Apple Developer Program, 99 $ в год
-проверочная раздача        TestFlight
+macOS + Xcode 26+          mandatory, see below
+Unity iOS Build Support    module in Unity Hub
+target                     iOS 15+ (covers all live hardware)
+signing                    Apple Developer Program, $99/year
+test distribution          TestFlight
 ```
 
-**Требование уточнено, и оно строже прежней записи.** Дословно с сайта Apple:
-«Starting April 28, 2026, apps and games uploaded to App Store Connect need to
-meet the following minimum requirements: iOS and iPadOS apps must be built with
-the iOS 26 & iPadOS 26 SDK or later». Дата уже прошла. Xcode 16 больше не даёт
-загружаемую сборку — нужен Xcode 26 или новее.
+**The requirement was refined, and it's stricter than the previous
+note.** Verbatim from Apple's site: "Starting April 28, 2026, apps and
+games uploaded to App Store Connect need to meet the following minimum
+requirements: iOS and iPadOS apps must be built with the iOS 26 &
+iPadOS 26 SDK or later." The date has already passed. Xcode 16 no longer
+produces an uploadable build — Xcode 26 or newer is required.
 
-Не путать два разных числа: требование касается **средства сборки**, а не
-наименьшей версии iOS, на которой работает игра. Цель iOS 15+ остаётся в силе.
+Don't confuse two different numbers: the requirement concerns the
+**build tool**, not the minimum iOS version the game runs on. The iOS 15+
+target stays in force.
 
-Сборка headless из командной строки, чтобы агент её запускал сам:
+Headless build from the command line, so the agent can run it itself:
 
 ```
 Unity -batchmode -quit -projectPath . \
@@ -418,58 +456,60 @@ Unity -batchmode -quit -projectPath . \
 xcodebuild -project Unity-iPhone.xcodeproj ...
 ```
 
-## 6. Что где живёт
+## 6. Where things live
 
 ```
-/game            проект Unity (Unity 6.3 LTS)
+/game            Unity project (Unity 6.3 LTS)
   /Assets
-    /Core        ядро правил, чистый C#, без UnityEngine
-    /View        показ, сцены, UI Toolkit
-    /Shell       оболочка: котёнок, комната, тексты
-    /Levels      описания уровней, JSON, порождаются извне
-    /Art         предметы и части кота, порождаются извне
-  /Tests         тесты ядра
-/tools           Python 3, вне Unity
-  /solver        решатель и порождение уровней
-  /artgen        пакетное порождение рисунков
-/worker          узел-посредник, TypeScript, Cloudflare Workers
-/knowledge       собранные знания по набору средств, со ссылками
-/docs            это описание и описание MVP
+    /Core        rules engine, plain C#, no UnityEngine
+    /View        rendering, scenes, UI Toolkit
+    /Shell       shell: kitten, room, texts
+    /Levels      level descriptions, JSON, generated externally
+    /Art         items and cat parts, generated externally
+  /Tests         engine tests
+/tools           Python 3, outside Unity
+  /solver        solver and level generation
+  /artgen        batch art generation
+/worker          intermediary node, TypeScript, Cloudflare Workers
+/knowledge       gathered knowledge about the tool set, with sources
+/docs            this document and the MVP description
 ```
 
-`Core` без единого `using UnityEngine` — это условие, а не пожелание. Оно даёт
-тесты без запуска движка, работу решателя с тем же кодом правил и возможность
-перенести ядро на Godot за день, если Unity окажется тупиком.
+`Core` with not a single `using UnityEngine` — this is a condition, not a
+wish. It gives tests that run without launching the engine, lets the
+solver work with the same rules code, and makes it possible to port the
+engine to Godot in a day if Unity turns out to be a dead end.
 
-## 7. Сводка решений
+## 7. Decision summary
 
-| Вопрос | Решение | Почему |
+| Question | Decision | Why |
 |---|---|---|
-| Движок | Unity 6.3 LTS, 6000.3.22f1 | издатели принимают только его |
-| Версия | долгоживущая, не свежая | агент знает её лучше; поддержка до декабря 2027 |
-| Godot | запасной путь, версию выбрать заново | если все издатели откажут |
-| Интерфейс | UI Toolkit (UXML/USS) | простой текст, агент правит сам |
-| Игровые библиотеки | нет (ни DOTween, ни Zenject, ни Odin) | на трёхнедельной заготовке не окупаются, агент знает голый Unity лучше |
-| Служебные пакеты | берём готовые: Newtonsoft, GameAnalytics | своё писать нечего, оба бесплатны |
-| Разбор JSON | `JsonUtility` для сохранения, Newtonsoft для уровней | `System.Text.Json` под IL2CPP не работает |
-| «Кот на снимке?» | Apple Vision, на устройстве | бесплатно, мгновенно, снимок не уходит |
-| Черты окраса | модель со зрением, облако | на устройстве узор не определяется в принципе |
-| Строгость ответа | схема `output_config.format`, не наказ | приёмка требует 100% разбора |
-| YOLO | не берём | решает не ту задачу, требует дообучения |
-| Кот в игре | слои и маски, не картинка | 6 наборов вместо сотен |
-| Узел-посредник | Cloudflare Workers, TypeScript | бесплатно, без карты, не засыпает |
-| Защита ключа | потолок расходов, не подпись | секрет из сборки достаётся, потолок — нет |
-| Замеры | GameAnalytics + App Store Connect | бесплатно; удержание считается вообще без кода |
-| Сырой архив событий | свой Postgres, вторым получателем | GameAnalytics не отдаёт сырые события дешевле 499 $/мес |
-| Ссылки для блогеров | Custom Product Pages | до 70 адресов, отчётность по каждому, входит в 99 $ |
-| Сохранение | состояние партии, на каждом ходу | иначе выход в метро стоит комнаты |
-| Виды предметов | скрыты, пока не откопаны | без этого уровень решается взглядом |
-| ATT | не спрашиваем | пакет сам не вызывает; диалог стоит установок |
-| MCP и агентская обвязка | самое свежее | вне игры, откат бесплатен |
+| Engine | Unity 6.3 LTS, 6000.3.22f1 | publishers only accept this one |
+| Version | long-lived, not the freshest | the agent knows it better; support through December 2027 |
+| Godot | fallback path, choose the version again | if every publisher passes |
+| UI | UI Toolkit (UXML/USS) | plain text, the agent edits it itself |
+| Game libraries | none (no DOTween, Zenject, Odin) | don't pay off on a three-week prototype, the agent knows bare Unity better |
+| Utility packages | take ready-made: Newtonsoft, GameAnalytics | nothing of our own to write, both free |
+| JSON parsing | `JsonUtility` for saves, Newtonsoft for levels | `System.Text.Json` doesn't work under IL2CPP |
+| "Is there a cat in the photo?" | Apple Vision, on-device | free, instant, the photo never leaves |
+| Coloring traits | vision model, cloud | the pattern can't be determined on-device, period |
+| Answer strictness | `output_config.format` schema, not a prompt | acceptance demands 100% parsing |
+| YOLO | not taken | solves the wrong task, needs fine-tuning |
+| Cat in the game | layers and masks, not an image | 6 sets instead of hundreds |
+| Intermediary node | Cloudflare Workers, TypeScript | free, no card, never sleeps |
+| Key protection | a spend cap, not a signature | the secret is extractable from the build, the cap isn't |
+| Measurement | GameAnalytics + App Store Connect | free; retention is counted with zero code |
+| Raw event archive | our own Postgres, as a second recipient | GameAnalytics doesn't hand over raw events cheaper than $499/mo |
+| Links for bloggers | Custom Product Pages | up to 70 addresses, reporting per address, included in the $99 |
+| Save data | run state, on every move | otherwise exiting on the subway costs a room |
+| Item kinds | hidden until dug up | without this the level is solved at a glance |
+| ATT | not asked | the package doesn't trigger it itself; the dialog costs installs |
+| MCP and agent tooling | the freshest | outside the game, rollback is free |
 
-**Что мы отдаём за бесплатное.** Сырые события по каждому игроку у GameAnalytics
-в бесплатный уровень не входят — это платный набор от 499 долларов в месяц, и
-данные всё равно живут 12 месяцев. Для трёхнедельной проверки, где сбор всё
-равно переделается под набор издателя, это приемлемый размен. Для долгоживущего
-продукта — нет. Пересмотреть сразу, как игра переживёт M8. Цена выхода из каждой
-службы разобрана в `knowledge/00-vendor-lock-in.md`.
+**What we give up for free.** Raw per-player events at GameAnalytics
+aren't included in the free tier — that's a paid package from 499 dollars
+a month, and the data lives for 12 months regardless. For a three-week
+test, where the collection setup will be redone for the publisher's kit
+anyway, this is an acceptable tradeoff. For a long-lived product — no.
+Revisit it as soon as the game survives M8. The exit cost from each
+service is broken down in `knowledge/00-vendor-lock-in.md`.

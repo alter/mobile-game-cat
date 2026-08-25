@@ -1,159 +1,163 @@
-# Спасённый котёнок — описание MVP
+# Saved Kitten — MVP description
 
-Дата: 24 августа 2026
-Состояние: ядро правил и решатель написаны, оболочка не начата
+Date: August 24, 2026
+State: rules engine and solver written, shell not started
 
-Правка от 25 августа 2026, после того как автор прошёл прототип целиком.
-Изменены разделы 3, 4, 8, 9, 13: счётчика ходов нет, виды предметов под завалом
-скрыты, комната содержит несколько завалов (37 уровней на 12 комнат), состояния
-кота привязаны к комнатам, игру можно бросить посреди уровня. Причина одна и
-измеренная: двенадцать уровней проходились за 14–24 минуты, то есть возврат на
-первый день мерил бы исчерпание содержимого, а не желание вернуться.
+Edit from August 25, 2026, after the author played through the whole
+prototype. Sections 3, 4, 8, 9, 13 changed: no move counter, item kinds
+under the pile are hidden, a room contains several piles (37 levels across
+12 rooms), cat states are tied to rooms, the game can be dropped mid-level.
+One reason, and it's measured: twelve levels were cleared in 14-24 minutes,
+meaning day-one return would measure content exhaustion, not desire to come
+back.
 
-Технические решения — в `cat-shelter-tech.md`, задачи и приёмка — в
-`cat-shelter-tasks.md`, основания со ссылками — в `knowledge/`, разборы — в
+Technical decisions — in `cat-shelter-tech.md`, tasks and acceptance — in
+`cat-shelter-tasks.md`, sourced rationale — in `knowledge/`, reviews — in
 `reviews/`.
 
 ---
 
-## 1. Суть в одном абзаце
+## 1. The gist in one paragraph
 
-Головоломка на разбор завала: игрок вытаскивает предметы из кучи и раскладывает
-на три полки по совпадению. Ради чего разбирает — в заброшенном
-доме сидит котёнок, и с каждой расчищенной комнатой ему становится лучше на
-глазах. На входе игрок снимает своего настоящего кота, и котёнок в игре
-получает его окрас.
+A pile-clearing puzzle: the player pulls items out of a pile and arranges
+them on three shelves by matching. What it's for — a kitten sits in an
+abandoned house, and with each cleared room it visibly gets better. On
+entry the player photographs their own real cat, and the in-game kitten
+gets its coloring.
 
-Отличие от всего, что есть на рынке: это её кот. Привязанность возникает до
-первого уровня, а не через двадцать часов прокачки.
+Difference from everything on the market: it's her cat. Attachment forms
+before the first level, not after twenty hours of grinding.
 
-## 2. Кому и почему
+## 2. Who and why
 
-Женщины 30–55, играют по 10–20 минут в паузах между делами.
+Women 30-55, playing 10-20 minutes between chores.
 
-Что ими движет (по убыванию силы):
+What drives them (in decreasing strength):
 
-- порядок из беспорядка — разобрать, вычистить, довести до вида;
-- забота о том, кто слабее и кому становится лучше;
-- завершённость — незакрытый набор мучает;
-- уют и обустройство своего места.
+- order from disorder — sort it out, clean it up, bring it into shape;
+- caring for someone weaker who's getting better;
+- completeness — an unfinished set is nagging;
+- coziness and furnishing one's own place.
 
-Чего избегать: наказаний за пропуск дня, спешки, соперничества, унижения при
-проигрыше, розового с блёстками (читается как игра для восьмилетних, а платят
-взрослые).
+What to avoid: punishment for skipping a day, rushing, competition,
+humiliation on loss, pink with glitter (reads as a game for eight-year-olds,
+while adults are the ones paying).
 
-Ключевое проектное правило: **котёнок не болеет.** Наказание за пропуск в игре
-про заботу отталкивает именно ту, кого ловим, и убивает разрешение на
-уведомления. Вместо болезни — котёнок скучает и не показал сегодняшнюю сценку.
-Тяга вернуться та же, вины нет.
+Key design rule: **the kitten doesn't get sick.** Punishing a skipped day in
+a game about caring repels exactly the audience we're after, and kills
+permission for notifications. Instead of illness — the kitten is bored and
+didn't show today's scene. The pull to come back is the same, without
+guilt.
 
-## 3. Ход игры
+## 3. How play works
 
-Поле: куча из 30–60 предметов, наложенных друг на друга. Доступны только
-верхние.
+The field: a pile of 30-60 items stacked on top of each other. Only the top
+ones are accessible.
 
-**Вид предмета виден, только когда до него добрались.** Пока предмет лежит под
-завалом — это болванка без узнаваемых очертаний. Снял верхний — увидел, что под
-ним. В этом и есть тяга жанра: не в сортировке, а в том, что не видно, что
-внизу. Игра, где вся куча видна сразу, решается одним взглядом и надоедает за
-двадцать минут — проверено на себе.
+**An item's kind is visible only once you've reached it.** While an item
+lies under the pile it's a blank with no recognizable outline. Take the top
+one off — see what's under it. That's exactly the pull of the genre: not
+sorting, but not seeing what's below. A game where the whole pile is
+visible at once is solved in one glance and gets boring in twenty minutes —
+tested on myself.
 
-Полки: три ячейки по 3 места. Игрок берёт предмет из кучи и кладёт на полку.
-Три одинаковых предмета на полке — они исчезают, место освобождается.
-Совпадение ищется среди всех девяти мест, а не внутри одной полки; ряды — это
-раскладка для глаза, не правило.
+Shelves: three cells of 3 slots each. The player takes an item from the
+pile and puts it on a shelf. Three identical items on a shelf — they
+disappear, the slot frees up. A match is searched for among all nine slots,
+not within one shelf; rows are a layout for the eye, not a rule.
 
-Проигрыш: все девять мест заняты, а совпадений нет. Счётчика ходов нет:
-победа означает «куча разобрана до конца», каждый ход снимает ровно один
-предмет, поэтому любой лимит либо делает уровень непроходимым, либо никогда
-не наступает. Единственный проигрыш — затор; так же устроены образцы жанра
-(Sheep a Sheep, Triple Match 3D, Zen Match).
+Loss: all nine slots are full and there's no match. No move counter: a win
+means "the pile is fully cleared," each move removes exactly one item, so
+any limit either makes the level unwinnable or never kicks in. The only
+loss is a jam; the genre's benchmarks work the same way (Sheep a Sheep,
+Triple Match 3D, Zen Match).
 
-Победа: куча разобрана до конца.
+Win: the pile is fully cleared.
 
-**Один завал — не одна комната.** В комнате несколько завалов, и уровень — это
-разбор одного из них. Комната расчищается по частям: угол, стена, подоконник.
-Двенадцать комнат остаются, содержимого становится втрое больше, новых рисунков
-не требуется — хлам собирается из тех же предметов, что и в головоломке.
+**One pile is not one room.** A room contains several piles, and a level is
+clearing one of them. A room clears in parts: a corner, a wall, a
+windowsill. Twelve rooms stay, content becomes three times as much, no new
+art is needed — the clutter is assembled from the same items as in the
+puzzle.
 
-Завалов на комнату: 1, 2, 3, дальше по три, к последним четырём комнатам —
-четыре. Итого **37 уровней**, примерно час с небольшим. Первая комната
-закрывается за один уровень: игрок сразу видит всю петлю целиком — разобрала,
-комната посветлела, коту лучше.
+Piles per room: 1, 2, 3, then three each, and for the last four rooms —
+four. Total **37 levels**, about an hour and a bit. The first room closes
+in one level: the player immediately sees the whole loop at once — cleared
+it, the room got brighter, the cat feels better.
 
-Три вещи растут по-разному, и путать их нельзя:
+Three things grow differently, and they must not be confused:
 
-| Что растёт | Чем управляет |
+| What grows | What it controls |
 |---|---|
-| завалов на комнату (1 → 4) | **темп** — как часто прилетает крупная награда |
-| размер завала (36 → 60 предметов) | сложность |
-| помехи (три штуки, каждая вводится в своей комнате) | сложность и разнообразие |
+| piles per room (1 → 4) | **pace** — how often a big reward lands |
+| pile size (36 → 60 items) | difficulty |
+| complications (three total, each introduced in its own room) | difficulty and variety |
 
-Растить всё три разом нельзя: они перемножаются, и последняя комната выходит
-неиграбельной. И промежуток между закрытиями комнат не должен превышать четырёх
-уровней — иначе на два-три подхода подряд не завершается ничего, ровно там, где
-игрок и бросает.
+Growing all three at once is not allowed: they multiply, and the last room
+turns out unplayable. And the gap between room closures must not exceed
+four levels — otherwise two or three sessions in a row finish nothing,
+exactly where the player quits.
 
-Замер разумной игрой при полной видимости давал около 98% / 87% / 66% побед по
-трём полосам размера кучи. **После введения скрытых видов эти числа
-недействительны** и должны быть получены заново — решатель остаётся годен как
-проверка проходимости, но перестаёт быть мерой сложности
-(reviews/2026-08-24-refactor-difficulty.md).
+A measurement with a rational player under full visibility gave about
+98% / 87% / 66% win rate across three pile-size bands. **After hidden kinds
+were introduced these numbers are invalid** and must be obtained again —
+the solver remains valid as a beatability check, but stops being a
+difficulty measure (reviews/2026-08-24-refactor-difficulty.md).
 
-Почему именно этот ход, а не три-в-ряд: в три-в-ряд из 120 новых игр за
-полугодие 2026 только одна дотянула до 100 тысяч в месяц хотя бы раз (AppMagic).
-Разбор завала даёт то же удовольствие от наведения порядка, но соревнование
-там несопоставимо слабее, и зрелище «было — стало» снимается на ролик за
-восемь секунд.
+Why this move and not match-3: of 120 new match-3 games released in the
+first half of 2026, only one reached 100 thousand a month even once
+(AppMagic). Pile clearing gives the same satisfaction of restoring
+order, but the competition there is incomparably weaker, and the
+"before-and-after" spectacle films into an eight-second clip.
 
-## 4. Оболочка
+## 4. The shell
 
-Дом из 12 комнат, в каждой от одного до четырёх завалов. Комната до разбора —
-грязная, серо-бурая, захламлённая. После — светлая и тёплая.
+A house of 12 rooms, each with one to four piles. A room before clearing is
+dirty, grey-brown, cluttered. After — bright and warm.
 
-Награда двухъярусная. После каждого уровня видимо расчищается часть комнаты —
-мелкая отдача, каждый раз. После последнего завала комната закрывается целиком:
-меняется свет, котёнок ведёт себя иначе, иногда появляется вещь — крупная
-отдача, заслуженная. Прежняя редакция давала только второе, то есть всё или
-ничего.
+The reward is two-tiered. After each level, part of the room visibly
+clears — a small payoff, every time. After the last pile, the room closes
+entirely: the light changes, the kitten behaves differently, sometimes an
+item appears — a big payoff, earned. The previous draft gave only the
+second, i.e. all or nothing.
 
-Есть и общий вид: **карта дома**, где видно все двенадцать комнат и сколько
-осталось. Третий по силе мотив аудитории — «завершённость, незакрытый набор
-мучает», и незакрытый дом это ровно он.
+There's also an overview: the **house map**, showing all twelve rooms and
+how much is left. The audience's third-strongest motive — "completeness, an
+unfinished set is nagging" — and an uncleared house is exactly that.
 
-Котёнок проходит три видимых состояния. Привязка — к **закрытым комнатам**, а не
-к номерам уровней: так дуга держится, даже если число завалов потом
-пересмотрят.
+The kitten goes through three visible states. The tie is to **closed
+rooms**, not to level numbers: that way the arc holds even if the number of
+piles is later revised.
 
-| Состояние | Когда | Как выглядит |
+| State | When | What it looks like |
 |---|---|---|
-| 1 | комнаты 1–4 | худой, шерсть свалявшаяся, уши прижаты, сидит в углу |
-| 2 | комнаты 5–8 | опрятнее, ходит по комнате, смотрит на игрока |
-| 3 | комнаты 9–12 | ухоженный, играет, спит на подоконнике |
+| 1 | rooms 1-4 | thin, matted fur, ears pinned back, sits in a corner |
+| 2 | rooms 5-8 | tidier, walks around the room, watches the player |
+| 3 | rooms 9-12 | well-groomed, plays, sleeps on the windowsill |
 
-Вещи как награда: миска за четвёртую комнату, одеяло за восьмую. Обе видимо
-меняют комнату и поведение котёнка. Полезности не дают и давать не должны — как
-только миска начнёт что-то добавлять, забота превратится в расчёт снаряжения.
-По той же причине миска, одеяло, корзинка и подушка **не раздаются за
-приглашения**: предмет, который можно выпросить, перестаёт быть свидетельством
-заботы.
+Items as rewards: a bowl for the fourth room, a blanket for the eighth.
+Both visibly change the room and the kitten's behavior. They give no
+utility and must not — the moment the bowl starts adding something, care
+turns into gear math. For the same reason the bowl, blanket, basket and
+cushion are **not given out for invites**: an item you can beg for stops
+being evidence of care.
 
-**Игру можно бросить на середине уровня.** Закрыл приложение в метро — вернулся
-на то же место, ничего не потеряно. Для аудитории, играющей в паузах между
-делами, прерывание это обычный режим, а не досадный случай; потеря наполовину
-разобранной комнаты — такое же наказание, как болезнь котёнка, просто называется
-иначе.
+**The game can be dropped mid-level.** Closed the app on the subway — came
+back to the same spot, nothing lost. For an audience playing in gaps
+between chores, interruption is the normal mode, not an annoying edge case;
+losing a half-cleared room would be the same punishment as the kitten
+getting sick, just under a different name.
 
-Уведомление: одно в сутки, вечером. Текст мягкий, без вины: «Мурзик нашёл
-что-то за диваном».
+Notification: one a day, in the evening. Soft wording, no guilt: "Murzik
+found something behind the couch."
 
-## 5. Съёмка своего кота
+## 5. Photographing your own cat
 
-Это главная особенность и главный источник дешёвой установки. Стоит на первом
-экране, до первого уровня.
+This is the main feature and the main source of cheap installs. It sits on
+the first screen, before the first level.
 
-**Не порождаем картинку.** Модель со зрением читает снимок и выдаёт строгий
-набор черт:
+**We don't generate an image.** A vision model reads the photo and outputs
+a strict set of traits:
 
 ```
 {
@@ -166,84 +170,90 @@
 }
 ```
 
-Котёнок собирается из готовых рисованных частей по этим чертам. Что это даёт:
+The kitten is assembled from ready-made drawn parts according to these
+traits. What this gives:
 
-- стоимость доли цента вместо 2–5 центов за порождение;
-- ответ за секунду вместо 5–15;
-- единый вид игры сохраняется, стиль не разъезжается;
-- один и тот же кот показывается во всех трёх состояниях бесплатно.
+- a cost of a fraction of a cent instead of 2-5 cents per generation;
+- a one-second response instead of 5-15;
+- the game's unified look is preserved, the style doesn't drift;
+- the same cat is shown in all three states for free.
 
-Похожесть достаточная: «это мой рыжий полосатый с белыми лапами» — привязанность
-уже возникла.
+Resemblance is sufficient: "that's my ginger tabby with white paws" — the
+attachment has already formed.
 
-Отказ, если `is_cat` ложно. Снимок не сохраняется нигде, наружу уходит только
-набор черт, обратно в игру — тоже. Это снимает почти все требования по данным.
+Rejection if `is_cat` is false. The photo isn't stored anywhere, only the
+trait set goes out, and only the trait set comes back into the game. This
+removes almost all data requirements.
 
-Пропуск съёмки возможен — тогда даётся кот по умолчанию. Но доля пропустивших
-измеряется, это одно из главных чисел проверки.
+Skipping the photo is possible — then a default cat is given. But the
+share of those who skip is measured; it's one of the main verification
+numbers.
 
-## 6. Деньги в MVP
+## 6. Money in the MVP
 
-Оплаты нет. На экране проигрыша есть кнопка **«поставить ещё полку»**. Нажатие
-считается, показывается заглушка «скоро», **уровень остаётся проигранным** —
-игрок переигрывает.
+No payments. On the loss screen there's a button **"add another shelf."**
+The tap is counted, a "coming soon" stub is shown, **the level stays
+lost** — the player replays it.
 
-Это дверь-обманка, и так и задумано. Четвёртая метрика меряет **намерение
-заплатить**, а не пользу от покупки: достаточно, чтобы предложение появилось и
-нажатие посчиталось. Выдавать спасение бесплатно нельзя — доля побед поднимется
-с 72% до 95%, и мы своими руками вернём игру к той необременительности, от
-которой только что уходили скрытыми видами и кривой сложности.
+This is a fake door, and it's meant to be. The fourth metric measures
+**intent to pay**, not the benefit of a purchase: it's enough that the
+offer appears and the tap is counted. Giving the rescue away for free is
+not an option — the win rate would climb from 72% to 95%, and we'd be
+handing the game back, with our own hands, the very undemanding-ness we
+just moved away from with hidden kinds and a tuned difficulty curve.
 
-Проигрыш здесь не наказание. Наказание — это отнятый прогресс или запертая на
-сутки игра; переиграть двухминутный уровень — обычное дело, и двадцать восемь
-процентов проигрышей дают ту самую ставку, без которой игра быстро надоедает.
+Losing here is not a punishment. Punishment is taken-away progress or a
+game locked for a day; replaying a two-minute level is routine, and
+twenty-eight percent of losses provide exactly the stakes without which the
+game gets boring fast.
 
-**Чем именно спасать — выяснено заранее, чтобы предложение было правдоподобным.**
-Замер на 400 партиях по всем 37 уровням, игрок жадный с 12% ошибок, мерка —
-пережила ли партия до конца:
+**What exactly to rescue with was worked out in advance, so the offer would
+be credible.** Measured over 400 runs across all 37 levels, a greedy player
+with 12% error rate, the metric being whether the run survived to the end:
 
-| Бустер | Партия пережила затор | Партий выиграно |
+| Booster | Run survived a jam | Runs won |
 |---|---|---|
-| нет | — | 72% |
-| одно место | 33% | 81% |
-| три места | **81%** | 95% |
-| вернуть три предмета в кучу | 51% | 86% |
+| none | — | 72% |
+| one slot | 33% | 81% |
+| three slots | **81%** | 95% |
+| return three items to the pile | 51% | 86% |
 
-Одно место не спасает: худший затор — девять разных видов на полке, и чтобы
-собрать тройку, надо выкопать ещё по два предмета какого-то вида. Три меняют сам
-порог затора — при девяти местах хватает пяти разных видов, при двенадцати нужно
-шесть.
+One slot doesn't save you: the worst jam is nine different kinds on the
+shelf, and to make a triple you'd have to dig up two more items of some
+kind. Three slots change the jam threshold itself — with nine slots five
+different kinds are enough, with twelve you need six.
 
-Отсюда и название. Полка — три ряда по три, три места это ровно **ещё один ряд**.
-Вешать обманку с надписью «+1 место» было бы нечестно вдвойне: мы бы измерили
-готовность платить за то, что в трети случаев не помогает.
+That's where the name comes from. The shelf is three rows of three; three
+slots is exactly **one more row**. Hanging a fake with the label "+1 slot"
+would be dishonest twice over: we'd be measuring willingness to pay for
+something that doesn't help a third of the time.
 
-Когда дойдёт до настоящей экономики: три места, один раз за уровень.
+Once real economy is built: three slots, once per level.
 
-Смысл: узнать готовность платить до того, как построена экономика. Если на
-кнопку не жмут — экономику строить не из чего, и это надо знать на третьей
-неделе, а не на восьмом месяце.
+The point: to learn willingness to pay before the economy is built. If
+nobody taps the button — there's nothing to build an economy from, and
+that needs to be known in week three, not month eight.
 
-## 7. Устройство кода
+## 7. Code structure
 
-Три слоя, жёстко разделённые.
+Three layers, strictly separated.
 
-**Ядро правил.** Поле, предметы, полки, ходы, условия победы и проигрыша.
-Чистая логика без единого обращения к движку, покрытая тестами. Здесь агенты
-работают лучше всего — задача формальная и проверяемая.
+**The rules engine.** The field, items, shelves, moves, win and loss
+conditions. Pure logic with not a single engine call, covered by tests.
+This is where agents work best — the task is formal and verifiable.
 
-**Слой показа.** Сцены, нажатия, оживление, переходы. Тонкий, знает про ядро,
-ядро про него не знает.
+**The view layer.** Scenes, taps, animation, transitions. Thin, knows
+about the engine, the engine doesn't know about it.
 
-**Оболочка.** Котёнок, комната, тексты, вещи. Вынесена в настройки так, чтобы
-за неделю переставить то же ядро на другую тему — космический корабль,
-обустройство кафе, что угодно. Если проверка ролика провалит котёнка, ты не
-начинаешь с нуля.
+**The shell.** The kitten, the room, the texts, the items. Pulled out into
+settings so that the same engine can be re-skinned for another theme in a
+week — a spaceship, running a café, whatever. If the ad-clip test kills the
+kitten, you don't start from zero.
 
-Это и есть настоящее преимущество инфраструктурщика: не одна игра, а станок,
-выдающий заготовки.
+That's the real advantage of an infrastructure-minded builder: not one
+game, but a machine that outputs prototypes.
 
-## 8. Сущности
+## 8. Entities
 
 ```
 Item        id, kind, sprite, layer, position, blocked_by[], revealed
@@ -252,252 +262,270 @@ Level       number, room_id, pile_index, items[], complications[]
 Room        id, pile_count, piles_cleared
 Cat         name, traits{}, state(1..3), owned_items[]
 Player      rooms_done, current_room, current_pile, cat, notifications_allowed
-Board       level, taken[], shelf, outcome        ← сохраняется целиком
+Board       level, taken[], shelf, outcome        ← saved in full
 Session     started_at, events[]
 ```
 
-Что изменилось против прежней редакции и почему:
+What changed from the previous draft and why:
 
-- у `Level` больше нет `moves_limit` — счётчика ходов нет вовсе;
-- `Item.revealed` — предмет под завалом не показывает свой вид;
-- `Shelf.capacity` изменяемая, потому что кнопка на экране проигрыша добавляет
-  место;
-- появилась `Room`: уровень знает, к какой комнате относится и какой он в ней по
-  счёту;
-- `Player` считает комнаты, а не уровни — к комнатам привязаны состояния кота;
-- **`Board` сохраняется целиком**, а не только номер уровня. Иначе выход на
-  середине уровня стоит комнаты.
+- `Level` no longer has `moves_limit` — there's no move counter at all;
+- `Item.revealed` — an item under the pile doesn't show its kind;
+- `Shelf.capacity` is mutable, because the button on the loss screen adds a
+  slot;
+- `Room` was added: a level knows which room it belongs to and which
+  number pile it is within it;
+- `Player` counts rooms, not levels — cat states are tied to rooms;
+- **`Board` is saved in full**, not just the level number. Otherwise
+  exiting mid-level costs a room.
 
-Сохранение — локальное, одним файлом, **записывается на каждом ходу**. Не при
-сворачивании: iOS убивает свёрнутое приложение без предупреждения, и последний
-ход пропадёт. Никакого сервера, никакого входа по учётной записи.
+Save data is local, a single file, **written on every move**. Not on
+backgrounding: iOS kills a backgrounded app without warning, and the last
+move would be lost. No server, no account login.
 
-## 9. Уровни через решатель
+## 9. Levels via the solver
 
-Уровни — не код, а описания: номер, комната, порядковый номер завала в комнате,
-набор предметов, действующие помехи.
+Levels are not code but descriptions: number, room, the pile's ordinal
+number within the room, the set of items, active complications.
 
-Порядок работ: агент порождает пачку описаний по заданным правилам сложности,
-решатель прогоняет каждое и отвечает на вопрос, проходимо ли оно вообще.
-Непроходимое отбрасывается.
+Workflow: an agent generates a batch of descriptions according to given
+difficulty rules, the solver runs each one and answers the question of
+whether it's beatable at all. Unbeatable ones are discarded.
 
-**Границы решателя надо знать.** Он считает, что видно всю кучу. Со скрытыми
-видами игрок так не может, поэтому решатель отвечает только «решение
-существует», но не «насколько трудно». Сложность меряется отдельно — прогоном
-жадного игрока, который видит лишь доступные предметы, по многу партий на
-уровень. Порядок жёсткий: сперва скрытие, потом замер, потом настройка размера
-кучи. Настраивать по старым числам — значит настраивать игру, в которую никто
-не будет играть.
+**The solver's limits need to be known.** It assumes the whole pile is
+visible. With hidden kinds the player can't do that, so the solver only
+answers "a solution exists," not "how hard." Difficulty is measured
+separately — by running a greedy player, who sees only the available
+items, through many runs per level. The order is strict: first hiding,
+then measurement, then tuning pile size. Tuning against old numbers means
+tuning a game nobody will play.
 
-Вручную 37 уровней — больше недели. Через решатель — час, и это ровно тот
-случай, ради которого он писался: уровни бесплатны, а рисунки нет. Именно
-поэтому дом остаётся из двенадцати комнат, а уровней втрое больше.
+Doing 37 levels by hand is more than a week. Through the solver — an hour,
+and that's exactly the case it was written for: levels are free, art isn't.
+That's precisely why the house stays at twelve rooms while the level count
+is triple that.
 
-## 10. Конвейер рисунков
+## 10. Art pipeline
 
-**Полное техническое задание на графику — в `art-brief.md`:** перечень всех
-работ с размерами и форматами, устройство кота из слоёв, семейства предметов,
-порядок работ и приёмка по каждой группе. **Дословные наказы на порождение —
-в `art-prompts.md`:** палитра в шестнадцатеричных значениях, положительный и
-отрицательный блоки, наказ на каждый из тридцати предметов, на шесть силуэтов
-кота и на каждую из двенадцати комнат. Ниже — только суть.
+**The full art brief — in `art-brief.md`:** a list of all the work with
+sizes and formats, the cat's layer construction, item families, work order
+and acceptance for each group. **The verbatim generation prompts — in
+`art-prompts.md`:** the palette in hex values, positive and negative
+blocks, a prompt for each of the thirty items, for the six cat silhouettes
+and for each of the twelve rooms. Below is only the gist.
 
-Один наказ, один список из ~30 предметов, пакетный прогон, ручной отбор.
-Единство вида важнее красоты каждой отдельной вещи — разнобой стилей это то,
-по чему сразу видно самодельную игру. Поэтому весь набор порождается одним
-наказом за один заход, а не по мере надобности.
+One prompt, one list of ~30 items, a batch run, manual curation. Unity of
+look matters more than the beauty of any single item — a mismatch of
+styles is what instantly gives away a homemade game. That's why the whole
+set is generated with one prompt in one pass, not as-needed.
 
-Наказ:
+Prompt:
 
-> мягкий трёхмерный мультипликационный вид, вид сверху под углом 30 градусов,
-> округлые формы без острых углов, толстая мягкая обводка, объём мягким
-> рассеянным светом сверху-слева, тёплая приглушённая палитра — кремовый,
-> персиковый, мятный, светлое дерево, никакой кислотности и высокой
-> контрастности, чистый однотонный фон, предмет по центру кадра
+> soft 3D cartoon look, top-down view at a 30-degree angle, rounded shapes
+> with no sharp corners, thick soft outline, volume from soft diffuse
+> light from top-left, warm muted palette — cream, peach, mint, light
+> wood, no acid tones or high contrast, clean solid-color background,
+> item centered in frame
 
-Кот собирается отдельно — но **не из частей.** Прежняя редакция говорила «тело,
-голова, хвост, лапы»; это неверно для нашего случая. Части окупаются только при
-оживлении, а в MVP анимации нет, и поза меняется от состояния к состоянию
-целиком: сжался в углу, идёт, лежит на подоконнике. Разбиение дало бы швы и
-втрое больше работы.
+The cat is assembled separately — but **not from parts.** The previous
+draft said "body, head, tail, paws"; that's wrong for our case. Parts pay
+off only with animation, and the MVP has no animation, and the pose
+changes wholesale from state to state: huddled in a corner, walking, lying
+on the windowsill. Splitting it up would give seams and triple the work.
 
-Правильно: **целый силуэт на каждое состояние** — шесть штук, три состояния на
-две длины шерсти, — а окрас, узор, белые пятна и глаза накладываются слоями
-поверх. Дословные наказы и устройство слоёв — в `art-prompts.md`, раздел 4.
+Correct: **a whole silhouette per state** — six of them, three states
+times two fur lengths — with coloring, pattern, white patches and eyes
+layered on top. Verbatim prompts and the layer setup — in
+`art-prompts.md`, section 4.
 
-## 11. Стиль
+## 11. Style
 
-Работает: округлые очертания, толстая мягкая обводка, объём светом, тёплая
-приглушённая палитра, свет как утро в комнате.
+Works: rounded outlines, thick soft edging, volume from light, warm muted
+palette, light like morning in a room.
 
-Не работает: точечная графика (её любят мужчины 25–40, твоя аудитория читает её
-как недоделанное), темнота, высокая контрастность, острые плоские очертания,
-переслащённость.
+Doesn't work: pixel art (loved by men 25-40, your audience reads it as
+unfinished), darkness, high contrast, sharp flat outlines, oversweetness.
 
-Три требования важнее стиля:
+Three requirements outrank style:
 
-1. Кот должен быть узнаваемо котом, не выдуманным существом. Пропорции близко к
-   настоящим, глаза чуть крупнее.
-2. Разница «до и после» читается на маленьком снимке за полсекунды. Грязь —
-   приглушённый серо-бурый, чистота — светлое и тёплое. Это половина силы ролика.
-3. Единый вид важнее красоты отдельного предмета.
+1. The cat must be recognizably a cat, not an invented creature.
+   Proportions close to real, eyes slightly larger.
+2. The "before and after" difference reads in a small thumbnail in half a
+   second. Dirt — muted grey-brown, cleanliness — light and warm. That's
+   half the power of the ad clip.
+3. Unity of look matters more than the beauty of any single item.
 
-Образцы для сверки: Royal Match, Gossip Harbor, Merge Mansion, Travel Town,
-Homescapes. Снимки берутся со страниц в App Store, по 6–8 кадров на игру.
+Reference samples: Royal Match, Gossip Harbor, Merge Mansion, Travel Town,
+Homescapes. Screenshots taken from App Store pages, 6-8 frames per game.
 
-## 12. Что меряем
+## 12. What we measure
 
-Четыре числа, больше не нужно:
+Four numbers, no more needed:
 
-| Число | Порог | Что делает рынок |
+| Number | Threshold | What the market does |
 |---|---|---|
-| дошли до экрана съёмки | > 90% | внутренний шаг воронки, сравнить не с чем |
-| загрузили снимок | > 40% | сравнить не с чем, приём новый |
-| вернулись на первый день | > 35% | **медиана головоломок 19,66–20,74%** |
-| нажали «поставить ещё полку» хотя бы раз | > 15% | сопоставимых открытых данных не нашлось; доля считается от дошедших до экрана затора |
+| reached the photo screen | > 90% | internal funnel step, nothing to compare to |
+| uploaded a photo | > 40% | nothing to compare to, the mechanic is new |
+| returned on day one | > 35% | **puzzle median is 19.66-20.74%** |
+| tapped "add another shelf" at least once | > 15% | no comparable open data found; the share is counted from those who reached the jam screen |
 
-**Порог возврата надо пересмотреть до траты денег.** Медиана по головоломкам —
-около 20% (GameAnalytics, 11 600 игр, данные 2024 года), в среднем по всем играм
-27% (Adjust). Записанные 35% — это не граница между живой игрой и мёртвой, а
-уровень заметно выше обычного для жанра. По такому правилу игра с 25% будет
-закрыта, хотя она выше медианы. Заодно: гулящая по блогам цифра «у головоломок
-около 32%» при проверке первоисточника не подтвердилась.
+**The retention threshold needs revisiting before spending money.** The
+puzzle median is about 20% (GameAnalytics, 11,600 games, 2024 data), the
+average across all games is 27% (Adjust). The recorded 35% is not the
+boundary between a live game and a dead one, but a level noticeably above
+the genre's norm. By this rule a game at 25% would be shut down even
+though it's above the median. Also: the figure "puzzles run around 32%"
+circulating on blogs did not check out against the primary source.
 
-Решение оставлено сознательно и вынесено в задачу 8.0: либо оставить 35% и
-охотиться только за прорывом, либо опустить до 25%, либо задать полосы вместо
-одной черты. Выбрать надо **до** траты 400 долларов, иначе порог подгонится под
-результат. Помнить и про выборку: на сотне установок 24% и 27% — одно и то же
-число.
+The decision is left open on purpose and pushed to task 8.0: either keep
+35% and hunt only for a breakout, or lower it to 25%, or set bands instead
+of one line. It must be chosen **before** spending 400 dollars, otherwise
+the threshold gets fitted to the result. Also remember the sample size: on
+a hundred installs, 24% and 27% are the same number.
 
-**Сбор — готовый, не свой.** Прежняя редакция говорила «свой, не чужой» без
-доводов. GameAnalytics берёт три внутриигровых числа даром, без предела по
-игрокам и без банковской карты; возврат на первый день App Store Connect считает
-сам, вообще без кода. Писать своё было незачем. Событий немного: `app_open`,
+**Collection is off-the-shelf, not our own.** The previous draft said
+"our own, not someone else's" with no arguments. GameAnalytics takes the
+three in-game numbers for free, with no player cap and no credit card;
+App Store Connect counts day-one retention itself, with no code at all.
+Writing our own was pointless. The events are few: `app_open`,
 `photo_screen_shown`, `photo_uploaded`, `photo_rejected`, `level_start`,
 `level_win`, `level_fail`, `booster_tap`, `notification_allowed`.
 
-Возврат на седьмой день в MVP не меряем — на 12 уровнях мерить нечего.
+Day-seven retention is not measured in the MVP — with 12 levels there's
+nothing to measure.
 
-## 13. План на три недели
+## 13. Three-week plan
 
-**Неделя 1.** Ядро правил со скрытыми видами и тремя помехами, решатель,
-37 описаний уровней по двенадцати комнатам. Игра играется в отладочном виде
-прямоугольниками, без единой картинки. К концу недели — полный проход и **пятеро
-посторонних, сыгравших в срез** (пара уровней из начала, середины и конца плюс
-одна целая комната).
+**Week 1.** The rules engine with hidden kinds and three complications,
+the solver, 37 level descriptions across twelve rooms. The game is played
+in a debug view of rectangles, without a single piece of art. By the end
+of the week — a full playthrough and **five outsiders who played a slice**
+(a couple of levels from the start, middle and end, plus one whole room).
 
-**Неделя 2.** Слой показа, набор предметов, сборка кота из частей, разбор снимка,
-экран съёмки, проверка «на снимке кот».
+**Week 2.** The view layer, the item set, assembling the cat from parts,
+photo parsing, the photo screen, the "is it a cat in the photo" check.
 
-**Неделя 3.** Комнаты с частичной расчисткой, карта дома, три состояния кота,
-вещи за четвёртую и восьмую комнату, уведомление, сохранение посреди уровня,
-экран проигрыша со счётчиком нажатий, сбор замеров, сборка под iOS, проверка
-на живом устройстве.
+**Week 3.** Rooms with partial clearing, the house map, three cat states,
+items for the fourth and eighth room, the notification, mid-level saving,
+the loss screen with a tap counter, gathering measurements, building for
+iOS, checking on a real device.
 
-Оценка честная при условии, что рисование идёт конвейером, а не поштучно.
-Большая часть срока — не код.
+The estimate is honest on the condition that art runs as a pipeline, not
+piece by piece. Most of the timeline is not code.
 
-## 14. Вне MVP
+## 14. Outside the MVP
 
-Вторая очередь, после того как числа сойдутся: приют на три места, обустройство,
-породы и редкость спасённого, докупка мест, груминг.
+Second wave, once the numbers check out: a three-slot shelter, decorating,
+breeds and rarity of the rescued cat, buying extra slots, grooming.
 
-Позже или никогда: одежда, обмен снимками в сетях (даёт почти нулевой приток при
-заметной работе), лечение, клубы.
+Later or never: clothing, sharing photos on social networks (gives almost
+zero acquisition for noticeable work), treatment, clubs.
 
-Отдельно: **редкость породы спасённого котёнка** — вот на чём строится доход во
-второй очереди, а не на клетках и мисках. Разобрал завал, нашёл коробку, а в ней
-кто-то обычный или редкий. Это тяга вытягивания в обёртке спасения, без сундуков
-и без вины.
+Separately: **the rarity of the rescued kitten's breed** — that's what
+revenue in the second wave is built on, not cages and bowls. Cleared a
+pile, found a box, and inside it someone ordinary or rare. This is the
+gacha pull dressed up as rescue, without loot boxes and without guilt.
 
-### Лестница помех — как игра дорастает до сотен раундов
+### The complication ladder — how the game grows into hundreds of rounds
 
-Записано, чтобы не потерялось. В MVP из этого берётся **одна** помеха, задача
-3.11; остальное — вторая очередь и дальше.
+Written down so it doesn't get lost. In the MVP only **one** complication
+from this list is taken, task 3.11; the rest is the second wave and
+beyond.
 
-Игры этого склада не растут за счёт увеличения поля. Они каждые тридцать-пятьдесят
-раундов вводят новое затруднение, и именно смена, а не размер, держит игрока.
-Наблюдение снято с «Пряжа Удар», где тысячи раундов держатся ровно этим.
+Games of this kind don't grow by enlarging the field. Every thirty to
+fifty rounds they introduce a new difficulty, and it's the change, not the
+size, that keeps the player. The observation is taken from "Yarn Punch,"
+where thousands of rounds hold up on exactly this.
 
-Что подходит нашей механике, по возрастанию стоимости:
+What fits our mechanic, in ascending order of cost:
 
-- **скрытые виды** — предмет показывает вид, только став доступным (в MVP, 3.9);
-- **запертые предметы** — открываются после N собранных троек (в MVP, 3.11);
-- **временно перекрытое место** на полке, на несколько ходов;
-- **парные предметы** — берутся только подряд, друг за другом;
-- **вид, требующий четырёх** совпадений вместо трёх;
-- **подача извне** — предметы прибывают в кучу по ходу разбора, а не лежат сразу;
-- **смена порядка** — куча перестраивается после каждой собранной тройки.
+- **hidden kinds** — an item shows its kind only once it becomes reachable
+  (in the MVP, 3.9);
+- **locked items** — unlock after N triples collected (in the MVP, 3.11);
+- **a temporarily blocked slot** on the shelf, for several moves;
+- **paired items** — can only be taken back-to-back, one right after the
+  other;
+- **a kind requiring four** matches instead of three;
+- **outside supply** — items arrive into the pile as clearing proceeds,
+  rather than lying there from the start;
+- **order shuffle** — the pile rearranges itself after each collected
+  triple.
 
-Правило подачи: одно затруднение вводится в отдельной комнате, объясняется без
-слов самим устройством уровня, и только потом сочетается с прежними. Комната, в
-которой появилось что-то новое, запоминается — это заодно лечит одинаковость
-двенадцати комнат.
+Rollout rule: one difficulty is introduced in its own room, explained
+wordlessly by the level's own construction, and only afterward combined
+with previous ones. The room where something new appeared is memorable —
+this also cures the sameness of the twelve rooms.
 
-### Про ограничение по энергии
+### On an energy cap
 
-Решение и доводы — в `cat-shelter-tasks.md`, раздел «Monetisation». Коротко: в
-MVP никаких ограничений, потому что они исказят метрику возврата; в продукте
-вопрос открыт и решается по данным M8, а не по привычке жанра.
+The decision and the reasoning — in `cat-shelter-tasks.md`, the
+"Monetisation" section. In short: no caps at all in the MVP, because they
+would distort the retention metric; in the product the question stays
+open and is decided by M8 data, not by genre habit.
 
-Одно исключение из списка «можно продавать»: **скины, меняющие окрас кота.**
-Окрас берётся с её фотографии, и в этом вся суть замысла. Продавать перекраску —
-значит продавать уничтожение того, из-за чего возникла привязанность. Всё вокруг
-кота — ошейники, лежанки, миски, игрушки, комната — продаётся. Сам кот не товар.
+One exception from the "sellable" list: **skins that change the cat's
+coloring.** The coloring is taken from her photo, and that's the whole
+point of the concept. Selling a recolor means selling the destruction of
+the very thing that created the attachment. Everything around the cat —
+collars, beds, bowls, toys, the room — is for sale. The cat itself is not
+merchandise.
 
-## 15. Правовое и рисковое
+## 15. Legal and risk
 
-- Загрузка снимков в игре с детским по виду оформлением — возрастной ценз и
-  разбор непристойного. Снимаем тем, что снимок не хранится и проверяется на
-  входе.
-- Порождённые игрой существа не выдаются за действия других игроков. Правила
-  Apple и Google это прямо запрещают.
-- Случайная выдача (породы во второй очереди) требует раскрытия вероятностей в
-  магазинах и уже режется в Бельгии, Нидерландах, Бразилии. Закладывать
-  раскрытие сразу.
-- Сборка под iOS требует Mac с **Xcode 26+**: с 28 апреля 2026 App Store
-  принимает только собранное на iOS 26 SDK. Дата уже прошла, Xcode 16 больше не
-  годится. Требование к средству сборки, не к наименьшей версии iOS.
+- Uploading photos in a game with a childlike look — age rating and
+  indecency screening. We cover this by not storing the photo and
+  checking it on the way in.
+- Creatures generated by the game are not passed off as other players'
+  actions. Apple's and Google's rules explicitly forbid this.
+- Random drops (breeds in the second wave) require odds disclosure in the
+  stores and are already being cut in Belgium, the Netherlands, Brazil.
+  Build in disclosure from the start.
+- Building for iOS requires a Mac with **Xcode 26+**: as of April 28,
+  2026 the App Store only accepts builds made with the iOS 26 SDK. The
+  date has already passed, Xcode 16 no longer works. This is a
+  requirement on the build tool, not on the minimum iOS version.
 
-## 16. Развилки
+## 16. Forks in the road
 
-**Движок — решено: Unity 6.3 LTS.** Разбор ниже сохранён, потому что возврат к
-Godot возможен, если все издатели откажут. Но версию Godot тогда надо будет
-выбирать заново: довод «на 4.7 ещё нет починок» устарел за два месяца, у неё уже
-4.7.1 и 4.7.2.
+**Engine — decided: Unity 6.3 LTS.** The analysis below is kept because a
+return to Godot is possible if every publisher passes. But the Godot
+version would then need to be chosen again: the argument "4.7 has no
+patches yet" is two months stale, it's already at 4.7.1 and 4.7.2.
 
-**Где крутится разбор снимка — решено: обработчик Cloudflare Workers.** Прямой
-вызов из игры отпадает, ключ уехал бы на устройство. Но и «своя машина» оказалась
-лишней: один обработчик на бесплатном уровне даёт 100 000 обращений в сутки
-против наших сотен за весь MVP, карта не нужна, приложение не засыпает. Стоимость
-разбора снимка посчитана — около 0,10 цента, то есть порядка 20 центов за всю
-проверку.
+**Where photo parsing runs — decided: a Cloudflare Workers handler.** A
+direct call from the game is out, the key would end up on the device. But
+"our own machine" also turned out to be excess: one handler on the free
+tier gives 100,000 requests a day against our hundreds for the whole MVP,
+no card needed, the app doesn't go to sleep. The cost of parsing a photo
+has been calculated — about 0.10 cent, i.e. roughly 20 cents for the whole
+test.
 
-Проверялось и то, нельзя ли убрать облако совсем. Нельзя: в таксономии
-классификатора Apple 1303 категории и всего пять кошачьих слов, ни одного окраса.
-Узор на устройстве не определяется.
+Whether the cloud could be dropped entirely was also checked. It can't: in
+Apple's classifier taxonomy there are 1303 categories and only five
+cat-related words, not one coloring. The pattern can't be determined on
+device.
 
-Разбор развилки по движку — ниже.
+The engine fork's analysis is below.
 
 | | Unity | Godot |
 |---|---|---|
-| Приём у издателей заготовок | принимают только его | не принимают |
-| Работа агентов | сцены в машинном формате, агент их ломает | всё простой текст, агент правит напрямую |
-| Скорость сборки через агентов | средняя | высокая |
-| Готовые прослойки для рекламы и замеров | все | AdMob и немного больше |
+| Accepted by publishers for prototypes | only one they accept | not accepted |
+| Agent work | scenes in a machine format, the agent breaks them | all plain text, the agent edits directly |
+| Build speed via agents | medium | high |
+| Ready-made ad and measurement layers | all | AdMob and a bit more |
 
-Идёшь к издателю (Homa, SayGames, Kwalee) — Unity, выбора нет, их прослойка для
-замеров существует только под него. Издаёшь сам на свою тысячу — Godot, там
-выигрыш в скорости реален.
+Go to a publisher (Homa, SayGames, Kwalee) — Unity, no choice, their
+measurement layer exists only for it. Publish yourself to your own
+thousand — Godot, the speed advantage there is real.
 
-Итог развилки: **Unity 6.3 LTS.** Godot остаётся запасным путём, если после
-первой заготовки откажут все издатели и мы уйдём в самостоятельный выпуск.
+Fork outcome: **Unity 6.3 LTS.** Godot stays a fallback path, in case
+every publisher passes after the first prototype and we go to
+self-publishing.
 
-## 17. Условие продолжения
+## 17. Continuation condition
 
-Три заготовки за три месяца, каждая до трёх недель. Тысяча долларов: 300 на
-проверку роликов до кода, 400 на проверку удержания после, 300 в запасе на
-вторую попытку.
+Three prototypes over three months, each up to three weeks. A thousand
+dollars: 300 for testing ad clips before code, 400 for testing retention
+afterward, 300 held in reserve for a second attempt.
 
-Если ни один ролик не даёт установку дешевле 5 долларов — закрыть и знать про
-себя правду, а не тянуть четвёртую попытку.
+If no clip delivers an install cheaper than 5 dollars — shut it down and
+know the truth about it, rather than dragging out a fourth attempt.

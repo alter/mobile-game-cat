@@ -5,8 +5,8 @@ GOAL
   are written in Russian; the shipped product is not.
 
 CONTEXT
-  cat-shelter-mvp.md section 4 (notification copy example, "Мурзик нашёл
-  что-то за диваном" - to be translated in tone, not transliterated)
+  cat-shelter-mvp.md section 4 (notification copy example, "Murzik found
+  something behind the couch" - to be translated in tone, not transliterated)
 
 SCOPE
   + Sweep all UXML/USS text, C# string literals in Shell/View, and the

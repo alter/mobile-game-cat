@@ -22,4 +22,4 @@ something new appears is the room that gets remembered - which also treats the
 sameness of the twelve rooms found in 08.
 
 Source: cat-shelter-tasks.md lines 577-586; cat-shelter-mvp.md section 14
-("Лестница помех").
+("The complication ladder — how the game grows into hundreds of rounds").

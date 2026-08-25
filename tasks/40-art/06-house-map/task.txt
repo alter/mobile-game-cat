@@ -7,7 +7,7 @@ GOAL
 CONTEXT
   art-brief.md section 9 (file list, why a house cutaway, far-glance
   readability requirement)
-  art-prompts.md section 6, subsection "Карта дома" (cutaway prompt, the
+  art-prompts.md section 6, subsection "House map" (cutaway prompt, the
   3-state rule: lightness carries the difference, not hue)
 
 SCOPE

@@ -6,7 +6,8 @@ GOAL
   exported by hand. Neither does today.
 
 CONTEXT
-  AGENT-BRIEF.md section "Задача 1.4: проекта Unity ещё нет, и есть коллизия"
+  AGENT-BRIEF.md section "Task 1.4: there's no Unity project yet, and
+  there's a collision"
   tasks/10-accounts/04-unity/task.txt
   tasks/README.md, the verify:passed contract
   build/solver-bridge/solver-bridge.csproj

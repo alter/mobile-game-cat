@@ -5,9 +5,9 @@ GOAL
   markings and eye colour onto each of the 6 base silhouettes.
 
 CONTEXT
-  art-brief.md section 7, subsections "Слои на каждый силуэт" and
-  "Требования к маскам"
-  art-prompts.md section 4, subsection "Слои, которые делаются вручную"
+  art-brief.md section 7, subsections "Layers for each silhouette" and
+  "Mask requirements"
+  art-prompts.md section 4, subsection "Layers made by hand"
   40-art/03-cat-silhouettes/NOTES.md (why hand-traced, not generated)
 
 SCOPE

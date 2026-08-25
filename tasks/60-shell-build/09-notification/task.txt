@@ -6,8 +6,8 @@ GOAL
   (day-1 return), which is one of the three go/no-go gates.
 
 CONTEXT
-  cat-shelter-mvp.md section 4 (soft, no-guilt copy: "Мурзик нашёл что-то за
-  диваном" -> in English, no naming/shaming tone)
+  cat-shelter-mvp.md section 4 (soft, no-guilt copy: "Murzik found something
+  behind the couch" -> in English, no naming/shaming tone)
   knowledge/ios/05-notifications-permissions.md (AuthorizationRequest,
   iOSNotificationCalendarTrigger for a daily evening slot, the 64-pending
   limit, and why the "asking first doubles refusal" claim does not survive

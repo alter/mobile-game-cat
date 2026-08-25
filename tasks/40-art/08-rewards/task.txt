@@ -5,8 +5,8 @@ GOAL
   situation after room 4 and room 8, without functioning as a booster.
 
 CONTEXT
-  art-brief.md section 10, subsection "Вещи-награды"
-  art-prompts.md section 6, subsection "Награды" (both prompts, the
+  art-brief.md section 10, subsection "Reward items"
+  art-prompts.md section 6, subsection "Rewards" (both prompts, the
   no-glow/no-badge negative additions)
 
 SCOPE

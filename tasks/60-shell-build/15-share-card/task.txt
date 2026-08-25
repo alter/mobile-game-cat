@@ -21,7 +21,7 @@ SCOPE
   + Cat name must NOT appear anywhere on the rendered image.
   + Fires a `share_tap` analytics hook (shape owned by 70-analytics).
   − Not a full social feature (feeds, likes, friend lists) - out of scope
-    entirely, "вне MVP".
+    entirely, "Outside the MVP".
   − Not the Custom Product Page's own content/setup - that is a store-side
     task, this task only points the link at it.
 

@@ -5,8 +5,8 @@ GOAL
   more than the 12 levels do, per art-brief.md section 11.
 
 CONTEXT
-  art-brief.md section 10, subsection "Значок приложения"
-  art-prompts.md section 6, subsection "Значок приложения, пять вариантов"
+  art-brief.md section 10, subsection "App icon"
+  art-prompts.md section 6, subsection "App icon, five variants"
 
 SCOPE
   + 5 compositions (face close-up, cat through doorway, cat behind box,

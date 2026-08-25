@@ -30,7 +30,8 @@ SCOPE
     the App Store; this game ships through App Store Connect/TestFlight only.
   − Not CI/runner setup (GameCI, GitHub Actions) - this task only needs the
     command to work on the already-provisioned local machine, per
-    AGENT-BRIEF.md's "Среда: проверено 25 августа 2026" section.
+    AGENT-BRIEF.md's "Environment: verified 25 August 2026, everything
+    ready" section.
 
 OUTCOME
   `build/headless-build.sh` run from a clean checkout produces a signed .ipa

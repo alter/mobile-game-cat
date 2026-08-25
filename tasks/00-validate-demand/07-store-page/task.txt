@@ -6,8 +6,8 @@ GOAL
   build that has passed review.
 
 CONTEXT
-  knowledge/analytics/02-benchmarks-and-attribution.md section "«Заглушка
-    страницы в магазине» как отдельный приём" (why a real App Store listing
+  knowledge/analytics/02-benchmarks-and-attribution.md section 'The "store
+    page stub" as a separate technique' (why a real App Store listing
     isn't available pre-build, and what the fake-door alternative is)
 
 SCOPE

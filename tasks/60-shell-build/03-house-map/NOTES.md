@@ -5,8 +5,8 @@ the MVP names explicitly" (lines 740-753).
 
 There was no screen showing the whole house. 6.2 binds a room to a level and
 6.10 (11-post-level-12) shows an end card, but nothing in between shows how
-much is left. The audience analysis lists, as motivator #3, "завершённость —
-незакрытый набор мучает" (an unfinished set nags). A house with four clean
+much is left. The audience analysis lists, as motivator #3, "completeness — an unfinished
+set is nagging" (an unfinished set nags). A house with four clean
 rooms and eight dirty ones makes that feeling visible, for the cost of one
 screen. Leaving it out would discard a retention driver the design already
 identified.

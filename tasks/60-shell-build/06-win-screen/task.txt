@@ -5,8 +5,8 @@ GOAL
   spectacle - the game's actual pitch - is felt on every room close.
 
 CONTEXT
-  cat-shelter-mvp.md section 3 ("зрелище «было — стало» снимается на ролик за
-  восемь секунд")
+  cat-shelter-mvp.md section 3 ('the "before-and-after" spectacle films into
+  an eight-second clip')
   art-brief.md section 8 (dirty/clean room pair requirements, room-pair
   legibility accepted at 200x400 shown for half a second)
 

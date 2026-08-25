@@ -25,7 +25,8 @@ is recorded here because the two tasks are easy to conflate: someone reading
 only this task.txt could reasonably assume the same pipeline produces the
 masks. It does not.
 
-art-prompts.md section 4 ("Что порождается нейросетью, а что нет") is
+art-prompts.md section 4 ("What the neural network generates and what it
+doesn't") is
 explicit: pattern masks and white-marking masks must align with the base
 silhouette pixel for pixel, and no image model reproduces an existing image
 exactly - it repaints the cat from scratch. Masks are made by hand-tracing

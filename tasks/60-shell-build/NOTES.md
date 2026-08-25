@@ -11,8 +11,8 @@ toward the goal - see GOAL.md, "Twelve tasks closed reported as progress."
 Two priorities were corrected during the conversion from the flat list:
 
 - **6.2.1 (house map) was missing entirely** and was added because it serves
-  audience motivator #3, "an unfinished set nags" (завершённость — незакрытый
-  набор мучает). See 03-house-map/NOTES.md.
+  audience motivator #3, "an unfinished set nags" (completeness — an
+  unfinished set is nagging). See 03-house-map/NOTES.md.
 - **6.8 (notification) was raised from P1 to P0.** Metric 3 (day-1 return) is
   one of four go/no-go numbers, and the evening notification is the only
   mechanism in the MVP designed to cause that return. A slipped P1 task here

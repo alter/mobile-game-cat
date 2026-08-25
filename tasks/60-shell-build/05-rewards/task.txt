@@ -8,7 +8,7 @@ GOAL
 CONTEXT
   cat-shelter-mvp.md section 4 (bowl at room 4, blanket at room 8; rewards
   must not be earnable by invitation, must not add utility)
-  art-brief.md section 10 ("Вещи-награды": no glow, no arrows, no numbers -
+  art-brief.md section 10 ("Reward items": no glow, no arrows, no numbers -
   it is a gift, not a booster)
 
 SCOPE

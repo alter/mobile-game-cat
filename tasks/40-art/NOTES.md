@@ -9,7 +9,7 @@ This tree does not map 1:1 to those rows. Differences, and why:
   52px distinguishability check) across three task.txt files.
 - **4.6, coat compositing shader, dropped from this tree.** It is not an art
   asset - it is VIEW code that consumes the layers `04-cat-layers` produces.
-  art-brief.md section 5 ("Полный перечень работ"), which this tree is built
+  art-brief.md section 5 ("Full list of work"), which this tree is built
   to match, lists only asset groups and does not include it. It belongs in a
   shell/view task once that phase is converted; leaving it here would give
   ART a task it cannot execute (no shader access - see ROLES.md).

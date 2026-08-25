@@ -5,8 +5,8 @@ GOAL
   on the right, cat in front. New asset, absent from the old M4 list.
 
 CONTEXT
-  art-brief.md section 10, subsection "Рамка карточки «было — стало»"
-  art-prompts.md section 6, subsection "Рамка карточки «было — стало»"
+  art-brief.md section 10, subsection "\"Before — after\" card frame"
+  art-prompts.md section 6, subsection "\"Before — after\" card frame"
 
 SCOPE
   + share_frame.png: square frame split into two equal halves by a thin

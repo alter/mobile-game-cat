@@ -5,7 +5,7 @@ GOAL
   room improvements read as a single accumulating thing.
 
 CONTEXT
-  cat-shelter-mvp.md section 4 ("завершённость" motivator, the house map)
+  cat-shelter-mvp.md section 4 ("completeness" motivator, the house map)
   art-brief.md section 9 (map_background, three cell states per room: dirty,
   partial, clean; states must differ at a glance, not by shade)
   tasks/DECISIONS.md

@@ -6,9 +6,9 @@ GOAL
   the project - see NOTES.md.
 
 CONTEXT
-  art-brief.md section 7, subsections "Как кот устроен" and "Что рисуется"
-  art-prompts.md section 4, subsections "Общая мысль" and "Наказы на шесть
-  силуэтов"
+  art-brief.md section 7, subsections "How the cat is built" and "What gets drawn"
+  art-prompts.md section 4, subsections "The general idea to keep in mind" and
+  "Prompts for the six silhouettes"
 
 SCOPE
   + 6 files: 3 states (hunched/thin, tidy/walking, sleek/resting) x 2 fur

@@ -5,7 +5,8 @@ GOAL
   it is reachable, and the overlay a locked item wears until cleared.
 
 CONTEXT
-  art-brief.md section 10, subsections "Болванка" and "Запертый предмет"
+  art-brief.md section 10, subsections "Blank tile — item under the clutter"
+  and "Locked item"
   art-prompts.md section 6, same two subsections
   cat-shelter-tasks.md lines 476, 478 (3.9 hidden kinds, 3.11 complications -
   why these exist)

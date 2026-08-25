@@ -74,15 +74,35 @@ Set it back to `verify:failed` until this task closes.
 
 ## Update, 25 August 2026: it now fails silently, which is worse
 
-Re-checked on `main` at `1ba991c`. Two things changed since the note above, and
-the combination is more dangerous than the original break.
+Re-checked 25 August 2026. Two things changed since the note above, and the
+combination is more dangerous than the original break.
 
-**The bridge was repaired.** `build/solver-bridge/solver-bridge.csproj` no
+**Which branch has what.** These are not the same, and an earlier draft of this
+note got it wrong:
+
+| | `main` | `dev` |
+|---|---|---|
+| bridge project | still `<ProjectReference … CatShelter.Core.csproj>` — the original break | `<Compile Include="…/Core/**/*.cs" />` — repaired |
+| four generated `.csproj` committed | yes | yes |
+| `dotnet test` discovers | 0 tests | 0 tests |
+
+**The bridge was repaired on `dev` only**, in `266d933` "Bridge compiles Core
+sources directly (Unity owns the project now); conformance green again". It no
 longer references the deleted `CatShelter.Core.csproj`; it pulls the sources in
-by glob (`<Compile Include="../../game/Assets/Core/**/*.cs" />`) and adds
-`<RollForward>Major</RollForward>`. It builds clean: 0 warnings, 0 errors.
+by glob and keeps `<RollForward>Major</RollForward>`. It builds clean on `dev`:
+0 warnings, 0 errors. `main` still carries the broken reference.
 
-**The Unity-generated projects were committed.** All four of them:
+**Credit where it is due: this half of the task is genuinely done.** Measured on
+`dev`: `pytest tools/tests` gives `67 passed`, none skipped, and the four CS0246
+errors are gone. It also survives a clean clone, because the six sources the glob
+reaches — `Board.cs`, `BoardSave.cs`, `Item.cs`, `Level.cs`, `PlayerProgress.cs`,
+`Shelf.cs` — are all tracked and none of them needs the editor to have been
+opened. The unfinished half is the Core test entry point, below.
+
+**The Unity-generated projects were committed on both branches.** The generated
+`game/CatShelter.Core.Tests.csproj` is byte-identical across `main` and `dev`
+(sha1 `a5af2d21…`), so the zero-test problem below is a property of both, not of
+the repair. All four:
 
 ```
 game/Assembly-CSharp-Editor.csproj      generated

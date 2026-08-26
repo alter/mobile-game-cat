@@ -518,7 +518,8 @@ PlayerSettings:
   enableInternalProfiler: 0
   logObjCUncaughtExceptions: 1
   enableCrashReportAPI: 0
-  cameraUsageDescription: 
+  cameraUsageDescription: To photograph your cat, so the kitten in the game can take
+    her colours.
   locationUsageDescription: 
   microphoneUsageDescription: 
   bluetoothUsageDescription: 

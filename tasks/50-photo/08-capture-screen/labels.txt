@@ -2,7 +2,7 @@ phase:photo
 role:VIEW
 type:feature
 priority:P0
-status:todo
+status:in_progress
 verify:pending
 depends:50-photo/06-outcome-handling
 milestone:M5

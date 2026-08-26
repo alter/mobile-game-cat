@@ -96,7 +96,8 @@ namespace CatShelter.Core.Tests
                          .Where(m => m.File.StartsWith("blurry") || m.File.StartsWith("multi")))
             {
                 var outcome = Judge(file);
-                Assert.That(outcome, Is.AnyOf(PhotoOutcome.Cat, PhotoOutcome.NoAnimal), file);
+                Assert.That(outcome,
+                    Is.EqualTo(PhotoOutcome.Cat).Or.EqualTo(PhotoOutcome.NoAnimal), file);
             }
         }
 

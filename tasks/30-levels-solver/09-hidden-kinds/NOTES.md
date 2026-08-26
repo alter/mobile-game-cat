@@ -32,3 +32,23 @@ numbers would be tuning a game nobody will actually play, since nobody plays
 with the solver's perfect information.
 
 Source: cat-shelter-tasks.md lines 554-576; DECISIONS.md D3.
+
+## status:todo → done, 2026-08-26
+
+The label lagged the repository. Against this task's VERIFY list:
+
+- `Board.IsRevealed` reports an item hidden while anything covers it and
+  revealed once every blocker is taken; `PartialInformationTests` covers both
+  directions, and `tools/solver/rules.py::is_revealed` mirrors it.
+- `bash build/check-core-purity.sh` passes — no engine reference in `Core`.
+- The debug view renders buried items as blank tiles, per D3, not faded.
+
+Fixed here on the same day: `DebugGameView` carried its own hand-copied version
+of the reveal rule instead of calling `Board.IsRevealed`. Two copies of one rule
+drift apart, and the view is not covered by tests; it now asks Core.
+
+**What is done is the hiding, not the consequence.** The re-measurement is
+`10-remeasure-curve-partial-info`, still `todo`, so the warning above stands:
+the 98/87/66 table describes a game nobody plays.
+
+`verify` stays `pending` — the checker also edited Core.

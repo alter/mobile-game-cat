@@ -23,3 +23,36 @@ sameness of the twelve rooms found in 08.
 
 Source: cat-shelter-tasks.md lines 577-586; cat-shelter-mvp.md section 14
 ("The complication ladder — how the game grows into hundreds of rounds").
+
+## status:todo → done, 2026-08-26
+
+The label lagged the repository: the locked item is implemented, tested and
+present in shipped data.
+
+- `Item.LockedAfterTriples` gates both `GetAvailable` and `IsRevealed`;
+  `PartialInformationTests` pins that it opens exactly at N triples and not
+  before. `tools/solver/rules.py::is_locked` mirrors it, and two conformance
+  tests compare the implementations on locked levels.
+- 16 of the 37 shipped levels carry locked kinds (rooms 9–12, six items each,
+  always in triples, one threshold per kind — asserted by
+  `HeadlessRunTests.LockedKinds_AreValid`).
+- `bash build/check-core-purity.sh` passes.
+
+Two corrections made the same day:
+
+- `Board.LockThreshold` was dead — a constructor parameter, validated and
+  stored, read by nothing. Locking has always worked through
+  `Item.LockedAfterTriples`. Removed, so there is one mechanism rather than the
+  appearance of two.
+- A board where every remaining item was locked had **no outcome at all**: no
+  legal move, `IsOver` false, and on a phone no way off the screen. It is now a
+  `ShelfJammed` — one outcome with the full shelf, because to the player they
+  are the same thing: no move exists. Both implementations changed together.
+  It does not occur on the 37 shipped levels (0 in 11,100 simulated games), so
+  this was a trap set for the next batch of locked levels, not a live bug.
+
+**VERIFY 2 cannot be closed by an agent.** "A late room reads as distinct from
+an early room to someone who did not build it" needs that someone; it belongs
+with `07-outsiders-playtest`.
+
+`verify` stays `pending`.

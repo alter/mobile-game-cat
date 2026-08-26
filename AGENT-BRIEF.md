@@ -175,14 +175,39 @@ and USS — all of this is plain text. And Unity from the command line:
 ```bash
 UNITY="/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/MacOS/Unity"
 
-# build
+# build: Xcode project for a real device
 "$UNITY" -batchmode -nographics -quit -projectPath game \
-         -executeMethod BuildScript.BuildIOS -logFile build.log
+         -executeMethod BuildScript.BuildIOSXcodeProject -logFile build.log
 
-# tests
-"$UNITY" -batchmode -nographics -projectPath game \
-         -runTests -testPlatform EditMode -testResults results.xml -logFile tests.log
+# build: Xcode project for the simulator — a separate SDK, a separate folder
+"$UNITY" -batchmode -nographics -quit -projectPath game \
+         -executeMethod BuildScript.BuildIOSSimulatorProject -logFile build.log
+
+# tests — NOT through Unity, see the warning below
+dotnet test build/core-tests/core-tests.csproj   # 54 tests over Assets/Core
+python -m pytest tools/tests -q                  # 67 tests over tools/
 ```
+
+Unity only generates the Xcode project; compiling it, installing it into the
+simulator and taking the screenshot is `xcodebuild` plus `xcrun simctl`. The
+full verified sequence is in `cat-shelter-tech.md`, section 5 — use it whenever
+a claim about the game needs a picture behind it.
+
+**Never verify anything with `Unity -runTests`.** On this project it reports
+success while running nothing at all:
+
+```
+total="0" passed="0" failed="0" result="Passed"
+Test run completed. Exiting with code 0 (Ok). No tests were executed.
+```
+
+Exit code is 0. `CatShelter.Core.Tests.dll` compiles without errors and lands in
+`Library/ScriptAssemblies`, but the runner does not pick it up — reproduced on
+2026-08-26 with a cleared `Temp`, with `-assemblyNames CatShelter.Core.Tests`,
+with `defineConstraints` emptied and with `overrideReferences` disabled. **The
+cause is not established.** Until someone finds it, the two commands above are
+the only evidence that the code works; a green Unity test run is evidence of
+nothing.
 
 This isn't a workaround, it's the design: data in JSON and ScriptableObject,
 interface in UXML/USS, scenes assembled by code — **precisely so as not to

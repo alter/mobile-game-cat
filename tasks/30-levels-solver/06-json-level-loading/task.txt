@@ -7,7 +7,7 @@ GOAL
 CONTEXT
   game/Tests/Core/LevelLoader.cs (Newtonsoft parse, deliberately outside Core)
   game/Tests/Core/HeadlessRunTests.cs (currently hardcoded to levels 1-12)
-  game/Assets/Levels/*.json
+  game/Assets/Resources/Levels/*.json
 
 SCOPE
   + LevelLoader.FromJson: parses number, room_id, pile, blocked_by into Level.

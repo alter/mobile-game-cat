@@ -24,7 +24,7 @@ SCOPE
     12-piles-per-room-curve.
 
 OUTCOME
-  `game/Assets/Levels/` holds 37 definitions, each tagged with room and pile index.
+  `game/Assets/Resources/Levels/` holds 37 definitions, each tagged with room and pile index.
 
 VERIFY (ARCH)
   1. `python -m tools.solver.ship_levels` produces exactly 37 files.

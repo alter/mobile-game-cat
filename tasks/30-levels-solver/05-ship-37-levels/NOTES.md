@@ -29,3 +29,19 @@ opacity convention (as in `build/playtest/index.html` today) and becomes
 something the eye reads directly.
 
 Source: cat-shelter-tasks.md lines 484-514 (pre-restructure); DECISIONS.md D2.
+
+## status:todo → done, 2026-08-26
+
+The label lagged the repository: the 37 definitions had already shipped and the
+game loads them. Checked against this task's own VERIFY list before flipping it:
+
+- 37 files in `game/Assets/Resources/Levels/` — not `Assets/Levels/`; they moved
+  under `Resources/` so the player can load them at runtime, and the OUTCOME
+  line was corrected to match.
+- Every `room_id` + `pile_index` pair unique; piles per room come out
+  `[1,2,3,3,3,3,3,3,4,4,4,4]`, matching `tools/solver/pacing.py`.
+- `solve()` returns a solution for all 37 — zero dead ends.
+
+`verify` stays `pending`: the context that ran these checks is the one editing
+the rules engine, and it cannot sign its own work (`tasks/README.md`, the
+independence rule).

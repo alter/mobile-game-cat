@@ -18,3 +18,7 @@ fixtures/reference-photos/*.jpg
 # only part of the set that has to live in git.
 !fixtures/reference-photos/ofphoto_*.jpg
 !fixtures/reference-photos/own_*.jpg
+
+# Worker dependencies and local wrangler state
+worker/node_modules/
+worker/.wrangler/

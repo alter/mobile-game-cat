@@ -1,0 +1,33 @@
+{
+	// jsonc, not toml: Cloudflare recommends it for new projects and some
+	// newer Wrangler features are JSON-only.
+	"name": "cat-traits-proxy",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-08-24",
+
+	// The model key is NOT here and never is. It is set once with
+	//   npx wrangler secret put ANTHROPIC_API_KEY
+	// which stores it outside the repository and hides it in the dashboard
+	// afterwards. A key in this file would ship to anyone who clones.
+
+	"ratelimits": [
+		{
+			"name": "TRAITS_LIMITER",
+			"namespace_id": "1001",
+			"simple": {
+				// Keyed by the device id the game sends, not by IP: mobile
+				// carriers share addresses across many players, so an IP limit
+				// would cut off strangers together with an abuser.
+				"limit": 6,
+				// The binding accepts 10 or 60 only. A real daily cap needs a
+				// counter over KV or D1 and is not built until the spend cap
+				// shows it is needed (04-rate-limit scope).
+				"period": 60
+			}
+		}
+	],
+
+	"observability": {
+		"enabled": true
+	}
+}

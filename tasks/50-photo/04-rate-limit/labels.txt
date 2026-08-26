@@ -2,7 +2,7 @@ phase:photo
 role:TOOLS
 type:feature
 priority:P1
-status:todo
+status:in_progress
 verify:pending
 depends:50-photo/02-traits-worker
 milestone:M5

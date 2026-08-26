@@ -22,18 +22,18 @@ namespace CatShelter.Shell
             switch (outcome)
             {
                 case PhotoOutcome.NoAnimal:
-                    return "No cat in this one. Try a photo where she fills more of the frame.";
+                    return Copy.Of("photo.no_animal");
 
                 case PhotoOutcome.Dog:
                     // Naming the dog is the joke and the explanation at once,
                     // and it tells the player the app is looking, not broken.
-                    return "That looks like a dog. Lovely, but this shelter is for cats.";
+                    return Copy.Of("photo.dog");
 
                 case PhotoOutcome.UnclearCat:
-                    return "A cat, but too blurry to copy her colours. One more, holding still?";
+                    return Copy.Of("photo.unclear");
 
                 case PhotoOutcome.Cat:
-                    return "Got her.";
+                    return Copy.Of("photo.accepted");
 
                 default:
                     // Unreachable while PhotoOutcome has four values, and here

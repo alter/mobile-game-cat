@@ -51,6 +51,8 @@ namespace CatShelter.View
 
         private readonly List<Level> _levels = new();
         private int _levelIndex;
+        private RoomPlan _plan;
+        private PlayerProgress _progress;
 
         private void OnEnable()
         {
@@ -76,6 +78,8 @@ namespace CatShelter.View
 
             _levels.Clear();
             _levels.AddRange(LevelAssets.LoadAll().OrderBy(l => l.Number));
+            _plan = new RoomPlan(_levels);
+            _progress = new PlayerProgress(_plan.PilesPerRoomInOrder());
             if (!Resume())
                 StartLevel(0);
         }
@@ -100,6 +104,14 @@ namespace CatShelter.View
             _board = board;
             _levelIndex = SaveResume.IndexOf(_levels, board);
             _level = board.Level;
+
+            // Progress is not saved (60-shell-build/08 scope excludes it), so
+            // it is replayed: every level before the resumed one was won to get
+            // here. Without this, finishing the resumed level would ask
+            // PlayerProgress to complete a pile it is not standing on, and it
+            // refuses that by design.
+            for (int i = 0; i < _levelIndex; i++)
+                _progress.CompletePile(_levels[i].PileIndex);
             Analytics.LevelStart(_level.Number);
             Render();
             return true;
@@ -113,9 +125,9 @@ namespace CatShelter.View
             if (index >= _levels.Count)
             {
                 Shell.SaveFile.Clear();
-                ShowCard("House complete!",
-                    "Every room is tidy.",
-                    "Play again", () => StartLevel(0),
+                ShowCard(Shell.Copy.Of("house.complete.title"),
+                    Shell.Copy.Of("house.complete.body"),
+                    Shell.Copy.Of("house.complete.again"), () => StartLevel(0),
                     null, null);
                 return;
             }
@@ -129,19 +141,14 @@ namespace CatShelter.View
 
         private void Render()
         {
-            var roomNo = RoomNumberOf(_level.RoomId);
-            _title.text = $"Room {roomNo} of 12 · pile {_level.PileIndex + 1}";
-            _status.text =
-                $"Items left: {_level.Pile.Count - _board.TakenOrder.Count}";
+            var roomNo = RoomPlan.RoomNumber(_level.RoomId);
+            _title.text = Shell.Copy.Of("board.title", roomNo, _plan.RoomCount,
+                _level.PileIndex + 1, _plan.PilesIn(_level.RoomId));
+            _status.text = Shell.Copy.Of("board.items_left",
+                _level.Pile.Count - _board.TakenOrder.Count);
 
             RenderPile();
             RenderShelf();
-        }
-
-        private static int RoomNumberOf(string roomId)
-        {
-            var digits = roomId.Where(char.IsDigit).ToArray();
-            return digits.Length > 0 ? int.Parse(new string(digits)) : 1;
         }
 
         private void RenderPile()
@@ -243,11 +250,10 @@ namespace CatShelter.View
 
         private void Finish()
         {
-            var roomNow = RoomNumberOf(_level.RoomId);
-            var next = _levelIndex + 1 < _levels.Count
-                ? RoomNumberOf(_levels[_levelIndex + 1].RoomId)
-                : -1;
-            var lastPileOfRoom = next != roomNow;
+            // Which corner was cleared and whether the room is finished are
+            // both RoomPlan's to answer; the view used to work it out by
+            // comparing room numbers of adjacent levels.
+            var lastPileOfRoom = _plan.IsLastPileOfRoom(_level);
 
             // The move that ended the level was already saved by Take, and that
             // position is useless to resume into: a finished board with no card
@@ -261,34 +267,37 @@ namespace CatShelter.View
 
             if (_board.Outcome == GameOutcome.Win)
             {
+                // Progress advances on a win and only on a win, so the cat's
+                // state follows completed rooms rather than levels played.
+                _progress.CompletePile(_level.PileIndex);
                 Analytics.LevelWin(_level.Number);
                 // Permission is asked here, after a level was actually cleared,
                 // and only once ever — see Shell/EveningReminder.
                 StartCoroutine(Shell.EveningReminder.OnLevelCompleted(this, _level.Number));
                 ShowCard(
-                    lastPileOfRoom ? "Room clean!" : "Corner cleared!",
+                    Shell.Copy.Of(lastPileOfRoom ? "win.room_clean.title" : "win.corner.title"),
                     lastPileOfRoom
-                        ? "The kitten likes it better already."
-                        : "The room still has another pile.",
-                    "Next", () => { HideCard(); StartLevel(_levelIndex + 1); },
+                        ? Shell.Copy.Of("win.room_clean.body")
+                        : Shell.Copy.Of("win.corner.body",
+                            Mathf.RoundToInt(_plan.ClearedFractionAfter(_level) * 100)),
+                    Shell.Copy.Of("win.next"), () => { HideCard(); StartLevel(_levelIndex + 1); },
                     null, null);
             }
             else
             {
                 Analytics.LevelFail(_level.Number);
                 // D4: fake door — count intent, grant nothing. AddSlots is NOT called.
-                ShowCard("Shelf jammed",
-                    $"Levels finished: {_levelIndex}.\n\n" +
-                    "Would you keep playing if this were the real game?",
-                    "Replay", () =>
+                ShowCard(Shell.Copy.Of("lose.title"),
+                    Shell.Copy.Of("lose.body", _levelIndex),
+                    Shell.Copy.Of("lose.replay"), () =>
                     {
                         HideCard();
                         StartLevel(_levelIndex);   // replay the lost level
                     },
-                    "One more shelf", () =>
+                    Shell.Copy.Of("lose.booster"), () =>
                     {
                         Analytics.BoosterTap();     // counted...
-                        _overlayBody.text = "Coming soon.";  // ...stub shown...
+                        _overlayBody.text = Shell.Copy.Of("lose.booster.soon");  // ...stub shown...
                         _secondaryButton.SetEnabled(false); // ...level stays lost.
                     });
             }

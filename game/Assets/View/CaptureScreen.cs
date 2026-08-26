@@ -66,19 +66,19 @@ namespace CatShelter.View
             _root.style.justifyContent = Justify.Center;
 
             var ink = new Color(0.25f, 0.21f, 0.17f);
-            var title = new Label("Show us your cat");
+            var title = new Label(Shell.Copy.Of("capture.title"));
             title.style.fontSize = 26;
             title.style.marginBottom = 8;
             title.style.color = ink;
 
-            _message = new Label("A photo where she fills most of the frame works best.");
+            _message = new Label(Shell.Copy.Of("capture.hint"));
             _message.style.whiteSpace = WhiteSpace.Normal;
             _message.style.marginBottom = 20;
             _message.style.color = ink;
             _message.style.unityTextAlign = TextAnchor.MiddleCenter;
 
-            _camera = new Button(() => Pick(fromCamera: true)) { text = "Take a photo" };
-            _gallery = new Button(() => Pick(fromCamera: false)) { text = "Choose one I have" };
+            _camera = new Button(() => Pick(fromCamera: true)) { text = Shell.Copy.Of("capture.camera") };
+            _gallery = new Button(() => Pick(fromCamera: false)) { text = Shell.Copy.Of("capture.gallery") };
 
             // A camera the device does not have is not a button to grey out,
             // it is a button not to show: an iPad without one, or a simulator.
@@ -89,9 +89,9 @@ namespace CatShelter.View
             // players who skip is one of the numbers this project watches
             // (cat-shelter-mvp.md section 5), so the control has to be plainly
             // there rather than hidden away.
-            _skip = new Button(Skip) { text = "Not now — give me a kitten" };
+            _skip = new Button(Skip) { text = Shell.Copy.Of("capture.skip") };
 
-            _busy = new Label("Looking…");
+            _busy = new Label(Shell.Copy.Of("capture.looking"));
             _busy.style.color = ink;
             _busy.style.display = DisplayStyle.None;
             _busy.style.marginTop = 12;
@@ -117,7 +117,7 @@ namespace CatShelter.View
 
         private void Pick(bool fromCamera)
         {
-            SetBusy(true, "Opening…");
+            SetBusy(true, Shell.Copy.Of("capture.opening"));
             Action<byte[]> picked = bytes => StartCoroutine(Handle(bytes));
             Action<string> failed = reason =>
             {
@@ -125,8 +125,8 @@ namespace CatShelter.View
                 // "cancelled" is not a failure and must not read as one: she
                 // changed her mind, which is allowed.
                 _message.text = reason == "cancelled"
-                    ? "No rush. Pick one whenever you like."
-                    : $"That did not work: {reason}";
+                    ? Shell.Copy.Of("capture.cancelled")
+                    : Shell.Copy.Of("capture.failed", reason);
             };
 
             if (fromCamera) CatPicker.CaptureWithCamera(picked, failed);
@@ -139,7 +139,7 @@ namespace CatShelter.View
         /// </summary>
         public IEnumerator Handle(byte[] photo)
         {
-            SetBusy(true, "Looking…");
+            SetBusy(true, Shell.Copy.Of("capture.looking"));
             yield return null;      // let the busy state paint before Vision blocks
 
             var answer = Recognise(photo);
@@ -157,7 +157,7 @@ namespace CatShelter.View
                 yield break;
             }
 
-            SetBusy(true, "Copying her colours…");
+            SetBusy(true, Shell.Copy.Of("capture.colours"));
             yield return null;
 
             var prepared = Crop(photo, best);
@@ -165,7 +165,7 @@ namespace CatShelter.View
             {
                 // Vision said cat and the crop still failed: not the player's
                 // doing, and not something she can fix by trying harder.
-                _message.text = "Something went wrong on our side. Try that one again?";
+                _message.text = Shell.Copy.Of("photo.our_fault");
                 Analytics.PhotoRejected();
                 SetBusy(false);
                 yield break;
@@ -177,7 +177,7 @@ namespace CatShelter.View
             CatTraits traits = null;
             if (AskWorker != null)
             {
-                SetBusy(true, "Asking about her colours…");
+                SetBusy(true, Shell.Copy.Of("capture.colours"));
                 yield return null;
                 try { traits = AskWorker(prepared); }
                 catch (Exception e) { Debug.LogWarning($"[CaptureScreen] worker failed: {e.Message}"); }
@@ -202,7 +202,7 @@ namespace CatShelter.View
         {
             // No camera, no network, no permission: the same cat every time,
             // so two players who skipped can talk about the same kitten.
-            _message.text = "A kitten is waiting for you either way.";
+            _message.text = Shell.Copy.Of("capture.skipped");
             OnCatReady?.Invoke(CatTraits.Default);
         }
 

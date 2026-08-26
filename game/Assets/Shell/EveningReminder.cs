@@ -39,8 +39,8 @@ namespace CatShelter.Shell
         // because punishing a skipped day in a game about caring drives off
         // exactly the audience this is for. No guilt, no urgency, no counting
         // of days missed, nothing owed.
-        private const string Title = "Your kitten found something behind the couch";
-        private const string Body = "It is waiting to show you, whenever you have a minute.";
+        private static string Title => Copy.Of("notification.title");
+        private static string Body => Copy.Of("notification.body");
 
         public static bool Available =>
             Application.platform == RuntimePlatform.IPhonePlayer;

@@ -1,6 +1,6 @@
 ﻿<Solution>
   <Project Path="CatShelter.Core.Tests.csproj" />
-  <Project Path="CatShelter.Core.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="CatShelter.Core.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

@@ -2,7 +2,7 @@ phase:shell
 role:VIEW
 type:chore
 priority:P2
-status:todo
+status:done
 verify:pending
 depends:60-shell-build/12-copy-english
 milestone:M6

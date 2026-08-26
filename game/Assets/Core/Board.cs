@@ -9,7 +9,12 @@ namespace CatShelter.Core
     {
         /// <summary>The pile is empty — the room corner is cleared, the player won.</summary>
         Win,
-        /// <summary>The shelf is full with no match available — the player is stuck.</summary>
+        /// <summary>
+        /// The player is stuck: either the shelf is full with no match available,
+        /// or nothing in the pile can be taken because every remaining item is
+        /// locked by a complication. Both are one outcome because they are one
+        /// thing to the player — no move exists — and the booster answers both.
+        /// </summary>
         ShelfJammed
     }
 
@@ -35,9 +40,6 @@ namespace CatShelter.Core
         /// <summary>Ids already taken, in take order (task 6.7 serialisation).</summary>
         public IReadOnlyList<int> TakenOrder => _takenOrder;
 
-        /// <summary>Locked items open after this many completed triples.</summary>
-        public int LockThreshold { get; }
-
         public Level Level { get; }
         public Shelf Shelf { get; }
 
@@ -45,16 +47,13 @@ namespace CatShelter.Core
         public GameOutcome? Outcome { get; private set; }
 
         public Board(Level level)
-            : this(level, Shelf.SlotsPerRow * Shelf.RowCount, lockThreshold: 0)
+            : this(level, Shelf.SlotsPerRow * Shelf.RowCount)
         {
         }
 
-        public Board(Level level, int shelfCapacity, int lockThreshold = 0)
+        public Board(Level level, int shelfCapacity)
         {
             Level = level ?? throw new ArgumentNullException(nameof(level));
-            if (lockThreshold < 0)
-                throw new ArgumentOutOfRangeException(nameof(lockThreshold));
-            LockThreshold = lockThreshold;
             Shelf = new Shelf(shelfCapacity);
             // Every kind must appear in triples: otherwise the pile empties
             // while items remain stranded on the shelf and the win condition
@@ -87,6 +86,9 @@ namespace CatShelter.Core
                 .Select(e => e.Item)
                 .ToList();
         }
+
+        /// <summary>Whether this item has already left the pile.</summary>
+        public bool IsTaken(int itemId) => _taken.Contains(itemId);
 
         /// <summary>
         /// Task 3.9: an item shows its kind only once it is reachable —
@@ -149,7 +151,32 @@ namespace CatShelter.Core
                 return true;
             }
 
+            // Pile not empty, shelf not full, and yet nothing can be taken:
+            // every remaining item is locked and there are not enough triples
+            // to open them. Without this the board hangs — no outcome, no
+            // moves, and on a phone no way out.
+            if (GetAvailable().Count == 0)
+                Finish(GameOutcome.ShelfJammed);
+
             return true;
+        }
+
+        /// <summary>
+        /// Grow the shelf by <paramref name="extra"/> slots and, if that ended a
+        /// jam, resume play (the "one more shelf" booster, DECISIONS.md D4).
+        /// The MVP never calls this — the booster is a fake door — but the rules
+        /// mirror in tools/solver/rules.py has always resumed, and the two must
+        /// agree. Stays jammed when the extra room changes nothing.
+        /// </summary>
+        public void AddShelfSlots(int extra)
+        {
+            Shelf.AddSlots(extra);
+            if (!IsOver || Outcome != GameOutcome.ShelfJammed)
+                return;
+            if (Shelf.IsFull || GetAvailable().Count == 0)
+                return;
+            IsOver = false;
+            Outcome = null;
         }
 
         /// <summary>

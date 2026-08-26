@@ -114,6 +114,24 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
+        public void NumbersOutOfRange_ReturnNull_NoThrow()
+        {
+            // "never crash" was not kept: a value too large for int threw
+            // OverflowException, and a negative capacity was accepted, giving a
+            // resumed game a shelf the save never described.
+            Assert.That(GameSave.Read(
+                "catshelter-save-v1\nlevel 99999999999999999999 room_1 0\n" +
+                "shelf _ cap9\ntriples 0\ntaken \n"), Is.Null);
+            Assert.That(GameSave.Read(
+                "catshelter-save-v1\nlevel 1 room_1 0\n" +
+                "shelf a b c cap-5\ntriples 0\ntaken 1\n"), Is.Null);
+            Assert.That(GameSave.Read(
+                "catshelter-save-v1\nlevel 0 room_1 0\n" +
+                "shelf _ cap9\ntriples 0\ntaken \n"), Is.Null,
+                "levels are 1-based");
+        }
+
+        [Test]
         public void TruncatedSave_FallsBackCleanly()
         {
             var level = L(E(1, "a"), E(2, "b"));

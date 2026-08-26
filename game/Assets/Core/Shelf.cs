@@ -24,7 +24,11 @@ namespace CatShelter.Core
             _slots = new Item?[capacity];
         }
 
-        /// <summary>Grow the shelf by <paramref name="extra"/> slots (booster).</summary>
+        /// <summary>
+        /// Grow the shelf by <paramref name="extra"/> slots. Call
+        /// <see cref="Board.AddShelfSlots"/> instead when a game is in progress:
+        /// this one only widens the shelf and leaves a jammed board over.
+        /// </summary>
         public void AddSlots(int extra)
         {
             if (extra < 0)

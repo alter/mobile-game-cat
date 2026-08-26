@@ -122,6 +122,15 @@ spreadsheet language.
 **Post-MVP, when it becomes real:** three slots, once per level. Repeatable takes
 the win rate to 100% and there is nothing left to sell.
 
+**The mechanism now exists in Core and is still not called — 2026-08-26.**
+`Board.AddShelfSlots` grows the shelf and resumes a jammed game; `Shelf.AddSlots`
+alone never could, because the board stayed over. The Python mirror had always
+resumed, so the two implementations disagreed on what the booster does, and the
+conformance test hid it by applying the booster one move early — before the jam
+it was supposed to undo. Both sides now resume a jam, leave a win alone, and stay
+jammed when the extra room opens no move. The MVP still grants nothing: the fake
+door is unchanged.
+
 **Still unverified.** The 72% base rate comes from a modelled player. If the five
 outsiders in the playtest gate jam every other run, this reopens — decided on
 people, not on simulation.
@@ -352,9 +361,20 @@ page offers 6.5 by default. 6.5 is a real, stable release — `6000.5.9f1` of
 **Update release**, supported only "until the next release is published". 6.3 LTS
 runs to 4 December 2027, extended to 2028.
 
-**`JsonUtility` for the save file, Newtonsoft for level definitions.**
+**Newtonsoft for level definitions; the save file is written by hand, in Core.**
 `System.Text.Json` was in the plan and is a mistake: Unity does not ship it and
 under IL2CPP it needs `Reflection.Emit`, which iOS does not have.
+
+**Corrected 2026-08-26.** This decision used to name `JsonUtility` for the save
+file, and that could not be built: `JsonUtility` lives in `UnityEngine`, the save
+lives in `Core`, and `Core` carrying no engine reference is a condition of the
+project, enforced by `build/check-core-purity.sh`. Newtonsoft inside `Core` would
+be the same leak in a different coat. So `Core/GameSave.cs` writes its own line
+format — plain ASCII, no dependencies, identical under Unity and under
+`dotnet test`. The code did this from the start and explained itself only in a
+comment, which is exactly the "silent departure from the documents" GOAL.md warns
+about. If the Shell ever wants `JsonUtility` it may serialise the same fields;
+this format stays the lossless ground truth.
 
 **Xcode 26+ with the iOS 26 SDK.** Apple: "Starting April 28, 2026, apps and
 games uploaded to App Store Connect need to meet the following minimum

@@ -233,6 +233,10 @@ namespace CatShelter.Core.Tests
         private static PileEntry E(int id, string kind, params int[] blockedBy) =>
             new(new Item(id, new ItemKind(kind, kind)), blockedBy.ToList());
 
+        private static PileEntry Locked(int id, string kind, int unlockAfter) =>
+            new(new Item(id, new ItemKind(kind, kind), unlockAfter),
+                Array.Empty<int>());
+
         private static Level L(params PileEntry[] pile) =>
             new(7, "room_1", 0, pile);
 
@@ -302,6 +306,70 @@ namespace CatShelter.Core.Tests
             Assert.That(board.IsOver, Is.False);
             board.TakeItem(10);
 
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
+        }
+
+        // ---- the booster (DECISIONS.md D4) -----------------------------------
+        // The MVP never grants it, but the Python mirror has always resumed a
+        // jammed game and C# has not; conformance hid the divergence.
+
+        private static Board JammedBoard()
+        {
+            var entries = new List<PileEntry>();
+            for (int kind = 0; kind < 3; kind++)
+                for (int i = 0; i < 3; i++)
+                    entries.Add(E(kind * 3 + i + 1, $"kind{kind}"));
+            var board = new Board(L(entries.ToArray()), shelfCapacity: 3);
+            board.TakeItem(1);
+            board.TakeItem(4);
+            board.TakeItem(7);   // three distinct kinds on three slots
+            return board;
+        }
+
+        [Test]
+        public void Booster_ResumesAJammedBoard()
+        {
+            var board = JammedBoard();
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
+
+            board.AddShelfSlots(3);
+
+            Assert.That(board.Shelf.Capacity, Is.EqualTo(6));
+            Assert.That(board.IsOver, Is.False);
+            Assert.That(board.Outcome, Is.Null);
+            Assert.That(board.TakeItem(2), Is.True, "play continues after the booster");
+        }
+
+        [Test]
+        public void Booster_LeavesAWonBoardWon()
+        {
+            var board = new Board(L(E(1, "a"), E(2, "a"), E(3, "a")));
+            board.TakeItem(1);
+            board.TakeItem(2);
+            board.TakeItem(3);
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.Win));
+
+            board.AddShelfSlots(3);
+
+            Assert.That(board.IsOver, Is.True);
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.Win));
+        }
+
+        [Test]
+        public void Booster_StaysJammedWhenItOpensNoMove()
+        {
+            // shelf grows, but every remaining item is locked out of reach
+            var board = new Board(L(
+                E(1, "a"), E(2, "a"), E(3, "a"),
+                Locked(4, "b", 5), Locked(5, "b", 5), Locked(6, "b", 5)));
+            board.TakeItem(1);
+            board.TakeItem(2);
+            board.TakeItem(3);
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
+
+            board.AddShelfSlots(3);
+
+            Assert.That(board.IsOver, Is.True, "extra room changes nothing here");
             Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
         }
     }

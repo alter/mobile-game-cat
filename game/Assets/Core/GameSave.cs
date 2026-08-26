@@ -92,6 +92,11 @@ namespace CatShelter.Core
                                 else
                                     shelf.Add(tok == "_" ? null : tok);
                             }
+                            // A shelf shorter than its own capacity is padded; one
+                            // longer, or a nonsense capacity, is a broken file —
+                            // reject it instead of resuming a distorted position.
+                            if (capacity < 1 || capacity < shelf.Count)
+                                return null;
                             while (shelf.Count < capacity) shelf.Add(null);
                             break;
                         case "triples":
@@ -116,6 +121,10 @@ namespace CatShelter.Core
 
                 if (roomId == null || shelf == null || triples < 0 || taken == null)
                     return null;
+                if (levelNumber < 1 || pileIndex < 0 || cursorRoom < 1 || cursorPile < 0)
+                    return null;
+                if (taken.Any(id => id < 0))
+                    return null;
 
                 return new SavedGame(levelNumber, roomId, pileIndex,
                     taken, shelf, triples, cursorRoom, cursorPile,
@@ -126,6 +135,12 @@ namespace CatShelter.Core
                 return null;
             }
             catch (IndexOutOfRangeException)
+            {
+                return null;
+            }
+            // A number too large for int is malformed like any other garbage;
+            // without this the promise above ("never crash") was not kept.
+            catch (OverflowException)
             {
                 return null;
             }

@@ -180,10 +180,16 @@ def test_booster_recovery_agrees(conformance_results):
     slots_needed = 3  # one extra triple's worth
     st.add_slots(slots_needed)
 
+    # The booster must land AFTER the move that jammed, not on it. Attaching it
+    # to the last move grew the shelf before the jam happened, so the C# side
+    # never jammed and recovery went unchecked — while C# in fact could not
+    # recover at all, because AddSlots left the board over.
+    finish = _greedy_finish(st)
+    assert finish, "the booster freed no move — nothing to compare"
     case_levels = [_level_dict(level, 1)]
-    case_scripts = {str(1): script[:len(script)-1] +
-                    [[script[-1][0], "booster", slots_needed]] +
-                    _greedy_finish(st)}
+    case_scripts = {str(1): script +
+                    [[finish[0], "booster", slots_needed]] +
+                    finish[1:]}
     with tempfile.TemporaryDirectory() as tmp:
         lv_path = Path(tmp) / "l.json"
         sc_path = Path(tmp) / "s.json"
@@ -200,6 +206,8 @@ def test_booster_recovery_agrees(conformance_results):
     py_final = st.over and st.outcome == Outcome.WIN
     cs_over = bool(r["over"])
     cs_win = r["outcome"].lower() == "win"
+    assert r["capacity"] == st.capacity, (
+        f"shelf capacity diverged: python={st.capacity} csharp={r['capacity']}")
     assert cs_over, f"C# did not finish after booster; result={r}"
     assert cs_win == py_final, (
         f"booster recovery diverged: python_win={py_final} csharp={r['outcome']}")

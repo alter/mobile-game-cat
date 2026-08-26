@@ -53,13 +53,21 @@ namespace CatShelter.Core
         /// Rebuild a live Board from a snapshot: replays the recorded takes so
         /// occlusion state, reveal flags and triple count come out identical.
         /// The snapshot's shelf contents are validated against the replay.
+        ///
+        /// The shelf is rebuilt at its saved capacity, not the default one
+        /// (DECISIONS.md D12 lists capacity among what must survive). Replaying
+        /// on the grown shelf from move one reaches the same slots, because
+        /// placement always takes the leftmost free one; what it skips is a jam
+        /// the booster had already undone.
         /// </summary>
         public static Board Restore(Level level, BoardSnapshot snapshot)
         {
             if (level is null) throw new ArgumentNullException(nameof(level));
             if (snapshot is null) throw new ArgumentNullException(nameof(snapshot));
+            if (snapshot.Shelf.Count < 1)
+                throw new InvalidOperationException("snapshot corrupt: shelf capacity");
 
-            var board = new Board(level);
+            var board = new Board(level, snapshot.Shelf.Count);
             foreach (var id in snapshot.Taken)
             {
                 if (!board.TakeItem(id))

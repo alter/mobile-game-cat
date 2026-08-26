@@ -116,10 +116,13 @@ namespace CatShelter.View
         private void RenderPile()
         {
             _pileArea.Clear();
+            // One lookup for the whole pass: MakeTile used to ask the board for
+            // the full available list per tile.
+            var available = _board.GetAvailable().Select(i => i.Id).ToHashSet();
             foreach (var entry in _level.Pile)
             {
-                if (_board.TakenOrder.Contains(entry.Item.Id)) continue;
-                _pileArea.Add(MakeTile(entry));
+                if (_board.IsTaken(entry.Item.Id)) continue;
+                _pileArea.Add(MakeTile(entry, available.Contains(entry.Item.Id)));
             }
         }
 
@@ -139,10 +142,11 @@ namespace CatShelter.View
             }
         }
 
-        private VisualElement MakeTile(PileEntry entry)
+        private VisualElement MakeTile(PileEntry entry, bool available)
         {
-            var revealed = IsRevealed(entry);
-            var available = _board.GetAvailable().Any(a => a.Id == entry.Item.Id);
+            // Whether a kind is visible is a rule, and the rule lives in Core.
+            // This used to be a hand-copied duplicate of Board.IsRevealed.
+            var revealed = _board.IsRevealed(entry.Item);
             var locked = _board.IsLockedByComplication(entry.Item);
 
             var tile = new VisualElement();
@@ -180,22 +184,16 @@ namespace CatShelter.View
             return digits.Length > 0 ? new string(digits) : kindId[..2];
         }
 
-        private bool IsRevealed(PileEntry entry) =>
-            !_board.TakenOrder.Contains(entry.Item.Id)
-            && entry.BlockedBy.All(b => _board.TakenOrder.Contains(b))
-            && !_board.IsLockedByComplication(entry.Item);
-
         private void Take(int itemId)
         {
             if (_board.IsOver || !_board.TakeItem(itemId))
                 return;
 
-            if (_board.IsOver)
-            {
-                Finish();
-                return;
-            }
+            // Draw first, then judge: the last move used to jump straight to the
+            // card, so the player never saw the tile that ended the level.
             Render();
+            if (_board.IsOver)
+                Finish();
         }
 
         private void Finish()

@@ -112,14 +112,30 @@ class RulesState:
             self.over = True
             self.outcome = Outcome.SHELF_JAMMED
 
+        # Pile not empty, shelf not full, and yet nothing can be taken: every
+        # remaining item is locked and there are not enough triples to open
+        # them. One outcome with the full shelf — no move exists either way.
+        if not self.over and not self.available():
+            self.over = True
+            self.outcome = Outcome.SHELF_JAMMED
+
         return True
 
     def add_slots(self, extra: int) -> None:
-        """Mirror of Shelf.AddSlots — the '+1 slot' booster."""
+        """Mirror of Board.AddShelfSlots — the "one more shelf" booster.
+
+        Resumes a jammed game, and only a jammed one: a win stays won, and a
+        jam the extra room does not solve stays jammed. Used to reset `over`
+        unconditionally, which C# never did — the two now agree.
+        """
         if extra < 0:
             raise ValueError("extra must be >= 0")
         self.shelf.extend([None] * extra)
         self.capacity += extra
+        if self.outcome is not Outcome.SHELF_JAMMED:
+            return
+        if None not in self.shelf or not self.available():
+            return
         self.over = False
         self.outcome = None
 

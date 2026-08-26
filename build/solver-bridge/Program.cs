@@ -53,8 +53,6 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
     string error = "";
     foreach (var move in scriptDoc.RootElement.GetProperty(key).EnumerateArray())
     {
-        if (board.IsOver) break;
-
         // a move may be a bare id or [id, "booster", extra]
         int itemId;
         if (move.ValueKind == JsonValueKind.Number)
@@ -64,13 +62,18 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
         else if (move.ValueKind == JsonValueKind.Array && move.GetArrayLength() >= 1)
         {
             itemId = move[0].GetInt32();
+            // The booster is applied before the IsOver check on purpose: its
+            // whole point is to resume a jammed game, and breaking out first
+            // meant recovery was never exercised on the C# side.
             if (move.GetArrayLength() >= 3 && move[2].GetInt32() > 0)
-                board.Shelf.AddSlots(move[2].GetInt32());
+                board.AddShelfSlots(move[2].GetInt32());
         }
         else
         {
             continue;
         }
+
+        if (board.IsOver) break;
 
         if (!board.TakeItem(itemId))
         {

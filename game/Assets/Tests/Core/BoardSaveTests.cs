@@ -29,6 +29,26 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
+        public void Restore_KeepsTheGrownShelf()
+        {
+            // DECISIONS.md D12 lists shelf capacity among what must survive an
+            // interruption. Restore used to rebuild at the default nine, so a
+            // booster bought before the app was killed vanished with it.
+            var level = L(E(1, "a"), E(2, "b"), E(3, "c"),
+                          E(4, "a"), E(5, "b"), E(6, "c"),
+                          E(7, "a"), E(8, "b"), E(9, "c"));
+            var board = new Board(level);
+            board.AddShelfSlots(3);
+            board.TakeItem(1);
+            board.TakeItem(2);
+
+            var restored = BoardSave.Restore(level, BoardSave.Capture(board));
+
+            Assert.That(restored.Shelf.Capacity, Is.EqualTo(12));
+            Assert.That(restored.TakenOrder, Is.EqualTo(board.TakenOrder));
+        }
+
+        [Test]
         public void Restore_RebuildsIdenticalPosition()
         {
             var level = L(

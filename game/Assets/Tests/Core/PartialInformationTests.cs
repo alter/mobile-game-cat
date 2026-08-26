@@ -97,12 +97,30 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
-        public void ZeroLockThreshold_MeansNoLocks()
+        public void ItemsWithoutALockField_AreAllAvailable()
         {
-            // default constructor: nothing locked even if items carry a lock field
             var board = new Board(L(
                 E(1, "a"), E(2, "a"), E(3, "a")));
             Assert.That(board.GetAvailable().Count, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void EveryRemainingItemLocked_EndsAsJam_NotAHang()
+        {
+            // one free triple, then three items locked behind five triples that
+            // can never be collected: the board used to sit with no outcome and
+            // no legal move, which on a phone is a dead screen.
+            var board = new Board(L(
+                E(1, "a"), E(2, "a"), E(3, "a"),
+                Locked(4, "b", 5), Locked(5, "b", 5), Locked(6, "b", 5)));
+
+            board.TakeItem(1);
+            board.TakeItem(2);
+            board.TakeItem(3);
+
+            Assert.That(board.GetAvailable(), Is.Empty);
+            Assert.That(board.IsOver, Is.True, "no move exists, so the game is over");
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
         }
 
         private static Item _item(Board board, int id) =>

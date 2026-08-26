@@ -53,6 +53,16 @@ retention measure content exhaustion rather than desire.
 Measured win rate for a sensible player at nine shelf slots: 98% at 36 items,
 87% at 48, 66% at 60.
 
+**Retired 2026-08-26 — replaced, not corrected.** Those numbers reproduce
+exactly (98.0 / 87.0 / 69.5 from `python -m tools.solver.measure`), so nothing
+about them was miscalculated. They describe a player who only watches the
+shelf. A player who also notices which kinds have most copies open in front of
+her — a habit anyone acquires within a room or two — wins **99.0 / 96.5 /
+89.8**. Difficulty is set far more by how the player plays than by pile size,
+and one run in ten ending in a jam has consequences for metric 4; see
+`10-remeasure-curve-partial-info/NOTES.md`. The pacing structure this decision
+sets out is unaffected — the numbers attached to it are.
+
 **Rejected.** Linear growth to twelve piles per room. It yields 78 levels and
 94–156 minutes, tempting, but the final room would run twelve levels between
 large rewards — two or three whole sittings with nothing completing, arriving
@@ -77,6 +87,19 @@ information. It remains a feasibility oracle ("a solution exists") but stops
 being a difficulty oracle. The 98/87/66 table above was measured with full
 visibility and **does not survive hiding**. Order: hide first, re-measure second,
 tune pile size third.
+
+**Measured, 2026-08-26 — hiding changed nothing.** The re-measurement is done
+(`10-remeasure-curve-partial-info/NOTES.md`, from
+`python -m tools.solver.measure`). One policy, played with the buried pile
+hidden and with it visible, differs by **0.0 ± 1.2 percentage points**. The
+reason is structural and should have been foreseen: a move is chosen among
+*reachable* items, and a reachable item always shows its kind, so hiding
+removes only the planning past them — and 17 to 28 items are open at once, a
+quarter to a half of the pile. The level solved at a glance because the front
+is wide, not because the pile was visible; this decision aimed at the wrong
+half. Hiding stays — it is free, the genre does it, and whether it changes how
+the game *feels* is a question for the playtest, not for a simulation — but it
+must not be credited with difficulty it does not deliver.
 
 ---
 

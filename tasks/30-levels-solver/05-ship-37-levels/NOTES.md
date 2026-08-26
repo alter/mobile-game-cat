@@ -45,3 +45,24 @@ game loads them. Checked against this task's own VERIFY list before flipping it:
 `verify` stays `pending`: the context that ran these checks is the one editing
 the rules engine, and it cannot sign its own work (`tasks/README.md`, the
 independence rule).
+
+### The first VERIFY item was not actually met — fixed the same day
+
+"`python -m tools.solver.ship_levels` produces exactly 37 files" was checked by
+looking at the 37 files on disk, which is a different claim. The script still
+shipped twelve `level_NN.json` — one per room, from the era when a level *was*
+a room — and knew nothing of `pacing.py`. **The 37 levels the game loads could
+not be reproduced from the repository at all**; whatever made them was not
+committed.
+
+`ship_levels.py` now walks `pacing.level_map()`, sizes each pile by its room
+(`generate.items_for_room`, renamed from `_items_for_level` because the band
+belongs to the room, not to the level's place in the run), verifies each
+candidate with `solve()` and writes `l<seq>_room<room>_pile<index>.json`. On
+seed 7 it produces exactly the filenames now on disk, the same 36/48/60 bands
+and locked kinds in rooms 9–12 only.
+
+`tools/tests/test_ship_levels.py` turns all three VERIFY items into runnable
+checks — file count, unique room/pile pairs against the pacing curve,
+solvability of every level — plus the band and complication rules. Six tests,
+green (67 → 73 Python tests).

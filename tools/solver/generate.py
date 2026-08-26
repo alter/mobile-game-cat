@@ -14,14 +14,24 @@ from .schema import LevelDef, PileItem, save_level
 from .solver import solve
 
 
-def _items_for_level(number: int) -> int:
-    """Difficulty curve by pile size (reviews/2026-08-24-refactor-difficulty.md):
-    36 items for levels 1–4 (~98% wins), 48 for 5–8 (~87%), 60 for 9–12 (~66%)."""
-    if number <= 4:
+def items_for_room(room_number: int) -> int:
+    """Difficulty curve by pile size (reviews/2026-08-24-refactor-difficulty.md).
+
+    The band is a property of the ROOM, not of the level's position in the run:
+    36 items in rooms 1–4, 48 in rooms 5–8, 60 in rooms 9–12. Every pile in a
+    room is the same size, so the 37-level plan (D2) stays three bands wide
+    rather than thirty-seven steps long.
+    """
+    if room_number <= 4:
         return 36
-    if number <= 8:
+    if room_number <= 8:
         return 48
     return 60
+
+
+# Historical name from the one-level-per-room era, when the level number and
+# the room number were the same thing.
+_items_for_level = items_for_room
 
 
 # Task 3.11: the one complication shipped in the MVP. A whole kind is locked

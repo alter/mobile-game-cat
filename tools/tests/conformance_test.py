@@ -58,7 +58,14 @@ def build_cases(rng):
         case += 1
         levels.append(_level_dict(level, case))
         scripts.append([[m] for m in sol.moves])
-        expected[str(case)] = {"outcome": outcome.value}
+        state = new_state(level)
+        for move in sol.moves:
+            state.take(move)
+        expected[str(case)] = {
+            "outcome": outcome.value,
+            "occupied": state.capacity - state.shelf.count(None),
+            "triples": state.triples_completed,
+        }
         made += 1
 
     # --- jam cases: take a prefix of the solution, then play greedily in a
@@ -90,7 +97,11 @@ def build_cases(rng):
             case += 1
             levels.append(_level_dict(level, case))
             scripts.append(script)
-            expected[str(case)] = {"outcome": Outcome.SHELF_JAMMED.value}
+            expected[str(case)] = {
+                "outcome": Outcome.SHELF_JAMMED.value,
+                "occupied": st.capacity - st.shelf.count(None),
+                "triples": st.triples_completed,
+            }
             jam_made += 1
 
     assert len(expected) == N_WIN_CASES + N_JAM_CASES
@@ -146,6 +157,15 @@ def test_csharp_and_python_agree(conformance_results):
         got_outcome = _norm(got["outcome"])
         assert got_outcome == exp["outcome"], (
             f"case {key}: python={exp['outcome']} csharp={got['outcome']}")
+        # Not just the outcome: the two engines disagreed for months on whether
+        # the last item is placed before the win is declared, and matching
+        # outcomes hid it. Compare the position they end in.
+        assert got["occupied"] == exp["occupied"], (
+            f"case {key}: shelf holds {exp['occupied']} in python, "
+            f"{got['occupied']} in csharp")
+        assert got["triples"] == exp["triples"], (
+            f"case {key}: {exp['triples']} triples in python, "
+            f"{got['triples']} in csharp")
         outcomes_seen.add(exp["outcome"])
 
     # acceptance: BOTH outcomes covered by the comparison

@@ -95,22 +95,35 @@ class RulesState:
 
         self.taken.add(item_id)
 
-        # win before jam: an emptied pile wins even if the shelf filled up
+        # The last item is placed like any other, and the triple it completes is
+        # counted, before the win is declared. Returning early instead — as this
+        # did — left the shelf holding two items on every win where C# left it
+        # empty, and skipped the final triple in triples_completed. Same
+        # outcome, so the conformance test never saw it.
+        if None not in self.shelf:
+            # shelf full: the win still wins, otherwise it's a jam
+            self.over = True
+            self.outcome = (Outcome.WIN
+                            if len(self.taken) == len(self.level.pile)
+                            else Outcome.SHELF_JAMMED)
+            return True
+
+        self.shelf[self.shelf.index(None)] = item.kind
+
+        if self._try_match():
+            self.triples_completed += 1
+
+        # full-but-matched shelf with a pile remaining: nowhere for the next
+        # item to go
+        if None not in self.shelf and len(self.taken) != len(self.level.pile):
+            self.over = True
+            self.outcome = Outcome.SHELF_JAMMED
+            return True
+
         if len(self.taken) == len(self.level.pile):
             self.over = True
             self.outcome = Outcome.WIN
             return True
-
-        slot = self.shelf.index(None)
-        self.shelf[slot] = item.kind
-
-        matched = self._try_match()
-        if matched:
-            self.triples_completed += 1
-        elif None not in self.shelf:
-            # full shelf with nothing matched = jam
-            self.over = True
-            self.outcome = Outcome.SHELF_JAMMED
 
         # Pile not empty, shelf not full, and yet nothing can be taken: every
         # remaining item is locked and there are not enough triples to open

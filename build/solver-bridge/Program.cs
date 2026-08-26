@@ -90,7 +90,13 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
         ["error"] = error,
         ["over"] = board.IsOver,
         ["outcome"] = board.Outcome?.ToString() ?? "none",
-        ["capacity"] = board.Shelf.Capacity
+        ["capacity"] = board.Shelf.Capacity,
+        // Outcome alone hid a real divergence: the two engines disagreed on
+        // whether the last item is placed before the win is declared, which
+        // left Python holding two items on every win and one triple short.
+        ["occupied"] = board.Shelf.Occupied,
+        ["triples"] = board.TriplesCompleted,
+        ["taken"] = board.TakenOrder.Count
     });
 }
 

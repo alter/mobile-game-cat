@@ -76,13 +76,43 @@ namespace CatShelter.View
 
             _levels.Clear();
             _levels.AddRange(LevelAssets.LoadAll().OrderBy(l => l.Number));
-            StartLevel(0);
+            if (!Resume())
+                StartLevel(0);
         }
+
+        /// <summary>
+        /// Task 6.8: pick up the saved position, or report that there is none.
+        /// Anything unreadable — missing file, damaged text, a save from a level
+        /// that no longer ships, a position the rules reject — starts a fresh
+        /// board instead of throwing. Losing a pile is a setback; a launch
+        /// crash loses the player.
+        /// </summary>
+        private bool Resume()
+        {
+            var board = SaveResume.TryResume(Shell.SaveFile.Read(), _levels, out var reason);
+            if (board == null)
+            {
+                if (reason != "no readable save")
+                    Debug.LogWarning($"[DebugGameView] starting fresh: {reason}");
+                return false;
+            }
+
+            _board = board;
+            _levelIndex = SaveResume.IndexOf(_levels, board);
+            _level = board.Level;
+            Analytics.LevelStart(_level.Number);
+            Render();
+            return true;
+        }
+
+        /// <summary>Every move-completing path goes through here (VERIFY 3).</summary>
+        private void Save() => Shell.SaveFile.Write(GameSave.Write(_board, null));
 
         private void StartLevel(int index)
         {
             if (index >= _levels.Count)
             {
+                Shell.SaveFile.Clear();
                 ShowCard("House complete!",
                     "Every room is tidy.",
                     "Play again", () => StartLevel(0),
@@ -93,6 +123,7 @@ namespace CatShelter.View
             _level = _levels[index];
             _board = new Board(_level);
             Analytics.LevelStart(_level.Number);
+            Save();
             Render();
         }
 
@@ -189,6 +220,11 @@ namespace CatShelter.View
             if (_board.IsOver || !_board.TakeItem(itemId))
                 return;
 
+            // Written on the move, not on OnApplicationPause: iOS kills
+            // backgrounded apps without warning and the pause callback is not a
+            // reliable last chance (DECISIONS.md D12).
+            Save();
+
             // Draw first, then judge: the last move used to jump straight to the
             // card, so the player never saw the tile that ended the level.
             Render();
@@ -203,6 +239,16 @@ namespace CatShelter.View
                 ? RoomNumberOf(_levels[_levelIndex + 1].RoomId)
                 : -1;
             var lastPileOfRoom = next != roomNow;
+
+            // The move that ended the level was already saved by Take, and that
+            // position is useless to resume into: a finished board with no card
+            // on screen is a dead end on a phone. Overwrite it with where the
+            // player should land — the next level after a win, the start of this
+            // one after a jam, which is what "Replay" does anyway.
+            if (_board.Outcome == GameOutcome.Win && _levelIndex + 1 < _levels.Count)
+                Shell.SaveFile.Write(GameSave.Write(new Board(_levels[_levelIndex + 1]), null));
+            else
+                Shell.SaveFile.Clear();
 
             if (_board.Outcome == GameOutcome.Win)
             {

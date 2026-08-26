@@ -26,3 +26,83 @@ Three things this task requires, restated as scope above:
 
 Cheap to build, and it removes the single most common way this audience will
 lose work.
+
+---
+
+# Wired up, 2026-08-26
+
+The serialisation half had existed since `c0a4bcc` and was called by nothing:
+`GameSave`, `BoardSave` and `PlayerProgress` sat in `Core` with tests and no
+caller, so the game did not save at all. Now connected.
+
+## Where each piece lives, and why
+
+- `Core/GameSave` — what a save *is*: a line format, no files, no engine.
+- `Core/SaveResume` (new) — **whether a save may be resumed**. That is a rule,
+  so it does not live in the view. It answers with a `Board`, or with null and
+  a reason, and never throws.
+- `Shell/SaveFile` (new) — the only code that touches the disk.
+- `View/DebugGameView` — calls those two and decides nothing.
+
+The split matters because this codebase already made the opposite mistake once:
+`DebugGameView` had grown its own copy of `Board.IsRevealed`. A rule in the view
+is a rule that drifts and that no test covers.
+
+## Writing
+
+On every move, inside `Take`, right after `TakeItem` succeeds — never in
+`OnApplicationPause`, per point 2 above and D12.
+
+The file is replaced atomically: written to `board.save.tmp`, copied over,
+temp deleted. It is rewritten hundreds of times per level, and a save
+half-written when the process died would be worse than none — it would destroy
+the position that was still good.
+
+**A finished position is never left in the file.** The move that ends a level is
+written like any other, and resuming into it would strand the player: the
+outcome card dies with the process, leaving a board that refuses every tap. So
+`Finish` overwrites it — the start of the next level after a win, a cleared file
+after a jam, which is where "Replay" goes anyway. `SaveResume` also refuses an
+already-finished position, so a file left by an older build cannot strand
+anyone either.
+
+## Against the VERIFY list
+
+**1. Round-trip identical; corrupted file falls back without throwing.**
+`Tests/Core/SaveResumeTests.cs` — 12 cases: a shelf that contradicts its own
+replay, a take that cannot be replayed, a level that no longer ships, a grown
+shelf, a finished position, and truncation at every seventh byte. 60 → 72 tests
+under `dotnet test build/core-tests/core-tests.csproj`.
+
+**2. Kill and reopen: same position.** Done on the **simulator**, not on a
+device — there is no developer team yet (`10-accounts/02`), so nothing can run
+on hardware. Method: install, launch, `simctl terminate`, overwrite
+`Documents/board.save` in the app container with a known position, launch again,
+screenshot.
+
+- Injected level 3, `taken 1 7 16 2 11 27 3 17 19 4 5 6`, 4 triples, empty shelf.
+- After relaunch: "pile 2", "Items left: 24", empty shelf, 24 tiles — that exact
+  position.
+- Injected garbage (`cap-5`, `triples 99`, an unreplayable take): the app stayed
+  up, started level 1, and rewrote the file with a fresh save.
+
+A device can still differ — background kills, slower filesystem — so this item
+stays open until `14-testflight`.
+
+**3. A save call on every move-completing path.** One path takes an item,
+`DebugGameView.Take`, and it saves immediately;`OnApplicationPause` and
+`OnApplicationQuit` appear nowhere in the project:
+
+```
+grep -rn "Save()\|SaveFile\.\|OnApplicationPause\|OnApplicationQuit" \
+  game/Assets/View game/Assets/Shell
+```
+
+## Left undone on purpose
+
+Player-level progress — rooms done, cat state — is still not persisted;
+`PlayerProgress` remains uncalled. SCOPE excludes it ("Not Player-level progress
+beyond what's needed to resume the current board") and it belongs with
+`02-room-piles`. Consequence today: quitting on the win card and reopening lands
+on the next level, which is right, but nothing remembers how many rooms are
+done.

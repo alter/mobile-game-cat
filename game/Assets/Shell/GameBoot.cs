@@ -137,6 +137,7 @@ namespace CatShelter.Shell
                 var screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
                 screen.Build(uid.rootVisualElement);
                 screen.OnAccepted = photo => Report($"accepted a {photo.Length}-byte photo");
+                screen.OnCatReady = cat => Report($"cat ready ({cat.Origin}): {cat}");
 
                 // capture.txt may name a photo in the same folder: the pipeline
                 // then runs on it without anyone tapping, which is the only way

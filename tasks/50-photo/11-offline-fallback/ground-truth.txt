@@ -1,0 +1,30 @@
+# Base colour as a person reads it, judged by eye from the cropped photos.
+# One line per accepted crop: file, colour. Subjective, and written down so
+# the estimator is measured against something instead of tuned by feel.
+crop_blurry_01.jpg ginger
+crop_blurry_02.jpg grey
+crop_blurry_03.jpg white
+crop_blurry_05.jpg ginger
+crop_cat_01.jpg black
+crop_cat_02.jpg grey
+crop_cat_03.jpg grey
+crop_cat_04.jpg black
+crop_cat_05.jpg grey
+crop_cat_06.jpg grey
+crop_cat_07.jpg ginger
+crop_cat_08.jpg black
+crop_cat_09.jpg brown
+crop_cat_11.jpg black
+crop_cat_12.jpg brown
+crop_cat_13.jpg brown
+crop_cat_14.jpg brown
+crop_cat_15.jpg brown
+crop_cat_16.jpg brown
+crop_cat_17.jpg black
+crop_cat_18.jpg brown
+crop_cat_19.jpg brown
+crop_multi_01.jpg black
+crop_multi_02.jpg black
+crop_multi_03.jpg brown
+crop_ofphoto_01.jpg grey
+crop_ofphoto_03.jpg brown

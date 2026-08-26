@@ -24,6 +24,17 @@ namespace CatShelter.View
         /// <summary>What happens when a photo is finally accepted.</summary>
         public Action<byte[]> OnAccepted;
 
+        /// <summary>Where a finished cat goes, however it was arrived at.</summary>
+        public Action<CatTraits> OnCatReady;
+
+        /// <summary>
+        /// Ask the Worker for the coat. Injected, and null until
+        /// 02-traits-worker exists — which is exactly the "unreachable" case
+        /// 11-offline-fallback is about, so the fallback path is the one that
+        /// runs today.
+        /// </summary>
+        public Func<byte[], CatTraits> AskWorker;
+
         /// <summary>Injected so a test can drive the pipeline without a device.</summary>
         public Func<byte[], VisionAnswer> Recognise = bytes => CatVision.Recognise(bytes);
         public Func<byte[], AnimalBox, byte[]> Crop = (bytes, box) => CatPhoto.Prepare(bytes, box);
@@ -32,6 +43,7 @@ namespace CatShelter.View
         private Label _message;
         private Button _camera;
         private Button _gallery;
+        private Button _skip;
         private VisualElement _busy;
 
         public string CurrentMessage => _message?.text;
@@ -73,6 +85,12 @@ namespace CatShelter.View
             _camera.style.display = CatPicker.CameraAvailable
                 ? DisplayStyle.Flex : DisplayStyle.None;
 
+            // Skipping is a supported path, not a dead end: the share of
+            // players who skip is one of the numbers this project watches
+            // (cat-shelter-mvp.md section 5), so the control has to be plainly
+            // there rather than hidden away.
+            _skip = new Button(Skip) { text = "Not now — give me a kitten" };
+
             _busy = new Label("Looking…");
             _busy.style.color = ink;
             _busy.style.display = DisplayStyle.None;
@@ -82,6 +100,7 @@ namespace CatShelter.View
             _root.Add(_message);
             _root.Add(_camera);
             _root.Add(_gallery);
+            _root.Add(_skip);
             _root.Add(_busy);
             parent.Add(_root);
         }
@@ -148,7 +167,37 @@ namespace CatShelter.View
 
             Analytics.PhotoUploaded();
             OnAccepted?.Invoke(prepared);
+
+            CatTraits traits = null;
+            if (AskWorker != null)
+            {
+                SetBusy(true, "Asking about her colours…");
+                yield return null;
+                try { traits = AskWorker(prepared); }
+                catch (Exception e) { Debug.LogWarning($"[CaptureScreen] worker failed: {e.Message}"); }
+            }
+
+            if (traits == null)
+            {
+                // Task 6.11: no Worker, or it did not answer. Read the one
+                // trait a phone can read and default the rest — never an error
+                // screen, because the photo itself was fine.
+                var colour = Shell.CatColour.Estimate(prepared);
+                traits = colour != null
+                    ? CatTraits.FromColourOnly(colour)
+                    : CatTraits.Default;
+            }
+
+            OnCatReady?.Invoke(traits);
             SetBusy(false);
+        }
+
+        private void Skip()
+        {
+            // No camera, no network, no permission: the same cat every time,
+            // so two players who skipped can talk about the same kitten.
+            _message.text = "A kitten is waiting for you either way.";
+            OnCatReady?.Invoke(CatTraits.Default);
         }
 
         private void SetBusy(bool busy, string text = null)
@@ -157,6 +206,7 @@ namespace CatShelter.View
             if (text != null) ((Label)_busy).text = text;
             _camera.SetEnabled(!busy);
             _gallery.SetEnabled(!busy);
+            _skip.SetEnabled(!busy);
         }
     }
 }

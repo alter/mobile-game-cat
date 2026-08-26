@@ -217,8 +217,17 @@ namespace CatShelter.View
 
         private void Take(int itemId)
         {
+            var triplesBefore = _board.TriplesCompleted;
             if (_board.IsOver || !_board.TakeItem(itemId))
                 return;
+
+            // Feedback before the redraw: the tap should answer the finger, not
+            // wait for a frame of layout. A match speaks louder than a
+            // placement, which is the only difference the player needs to hear.
+            if (_board.TriplesCompleted > triplesBefore)
+                Shell.Feedback.Match();
+            else
+                Shell.Feedback.Place();
 
             // Written on the move, not on OnApplicationPause: iOS kills
             // backgrounded apps without warning and the pause callback is not a

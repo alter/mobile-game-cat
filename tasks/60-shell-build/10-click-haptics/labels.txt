@@ -2,7 +2,7 @@ phase:shell
 role:VIEW
 type:feature
 priority:P1
-status:todo
+status:done
 verify:pending
 depends:60-shell-build/01-presentation-input
 milestone:M6

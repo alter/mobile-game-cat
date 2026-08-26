@@ -25,6 +25,7 @@ namespace CatShelter.Shell
             // Opening the game today means no reminder about today: the next
             // one moves to tomorrow evening.
             EveningReminder.Reschedule();
+            Feedback.Attach(gameObject);
             StartCoroutine(EveningReminder.DebugRequestNow(this));
         }
 

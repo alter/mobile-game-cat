@@ -447,14 +447,75 @@ Don't confuse two different numbers: the requirement concerns the
 **build tool**, not the minimum iOS version the game runs on. The iOS 15+
 target stays in force.
 
-Headless build from the command line, so the agent can run it itself:
+### Two Xcode projects, not one
+
+Unity generates a project against **one** SDK, fixed at generation time by
+`PlayerSettings.iOS.sdkVersion`. The device project carries device-only
+static libraries (`Libraries/libiPhone-lib.a`, `baselib.a`, marked
+`platform 2`), and `SDKROOT = iphoneos`. It cannot be made to run in the
+simulator by picking a different destination in Xcode — the simulator
+needs its own generated project. Hence two entry points in
+`game/Assets/Editor/BuildScript.cs` and two output folders:
 
 ```
-Unity -batchmode -quit -projectPath . \
-      -executeMethod BuildScript.BuildIOS \
-      -logFile build.log
-xcodebuild -project Unity-iPhone.xcodeproj ...
+BuildScript.BuildIOSXcodeProject     -> game/build/ios/      device SDK
+BuildScript.BuildIOSSimulatorProject -> game/build/ios-sim/  simulator SDK
 ```
+
+`BuildIOSSimulatorProject` switches the SDK to `SimulatorSDK` and the
+simulator architecture to `ARM64` (the project default is `X86_64`, which
+on Apple Silicon would run under translation), builds, and then restores
+both settings — `ProjectSettings.asset` is left unchanged.
+
+### Running in the simulator — verified 26 August 2026
+
+The full path from source to a running app, no Xcode window involved:
+
+```bash
+UNITY="/Applications/Unity/Hub/Editor/6000.3.22f1/Unity.app/Contents/MacOS/Unity"
+cd game
+
+# 1. Generate the Xcode project against the simulator SDK
+"$UNITY" -batchmode -quit -nographics -projectPath "$(pwd)" \
+         -executeMethod BuildScript.BuildIOSSimulatorProject \
+         -logFile "$(pwd)/build/ios-sim-build.log"
+
+# 2. Compile it
+cd build/ios-sim/CatShelter
+xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone \
+           -configuration Debug -sdk iphonesimulator -arch arm64 \
+           -derivedDataPath ./DerivedData \
+           CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+
+# 3. Boot the simulator, install, launch
+xcrun simctl boot "iPhone 17"; open -a Simulator
+xcrun simctl install booted DerivedData/Build/Products/Debug-iphonesimulator/game.app
+xcrun simctl launch booted com.DefaultCompany.game
+
+# 4. Screenshot — this is how a visual claim gets proven
+xcrun simctl io booted screenshot /tmp/sim.png
+```
+
+Notes that cost time if forgotten:
+
+- No signing and no team ID are needed for the simulator; the two
+  `CODE_SIGNING_*` overrides are what make that true.
+- The bundle identifier is `com.DefaultCompany.game` until task 14
+  changes it — `simctl launch` takes the identifier, not the app name.
+- The app target builds as `game.app` (`PRODUCT_NAME_APP = game`), not
+  `CatShelter.app`.
+- `xcrun simctl list devices available` lists the device names accepted
+  by `boot`.
+- The first compile is a full IL2CPP pass over the whole project and
+  takes minutes; the result is ~260 MB in the Debug simulator
+  configuration.
+
+### Running on a real device
+
+Uses `game/build/ios/` and needs what the project does not yet have:
+`appleDeveloperTeamID` is empty, `appleEnableAutomaticSigning` is off,
+and the bundle identifier is still the Unity default. That belongs to
+task 14-testflight, not here.
 
 ## 6. Where things live
 

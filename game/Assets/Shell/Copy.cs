@@ -73,9 +73,14 @@ namespace CatShelter.Shell
                 ["lose.booster.soon"] = "Coming soon.",
 
                 // --- the end of the house ------------------------------------
-                ["house.complete.title"] = "House complete!",
-                ["house.complete.body"] = "Every room is tidy.",
-                ["house.complete.again"] = "Play again",
+                // An honest stop, not a teaser: no waitlist, no purchase, no
+                // "coming soon, wishlist now". The MVP's own rule is to build
+                // no second-wave feature before gate 3, and a call to action
+                // here would be exactly that.
+                ["house.complete.title"] = "Every room is clean",
+                ["house.complete.body"] =
+                    "All twelve of them, and one kitten who no longer has anywhere " +
+                    "to hide her finds.\n\nThat is as far as this house goes for now.",
 
                 // --- the photo screen ----------------------------------------
                 ["capture.title"] = "Show us your cat",

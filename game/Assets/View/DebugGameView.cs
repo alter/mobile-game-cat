@@ -124,11 +124,13 @@ namespace CatShelter.View
         {
             if (index >= _levels.Count)
             {
+                // Unreachable by play — Finish() ends the house on the last
+                // pile — but a save naming a level past the end would land
+                // here, and showing the ending screen is the right answer.
                 Shell.SaveFile.Clear();
                 ShowCard(Shell.Copy.Of("house.complete.title"),
                     Shell.Copy.Of("house.complete.body"),
-                    Shell.Copy.Of("house.complete.again"), () => StartLevel(0),
-                    null, null);
+                    null, null, null, null);
                 return;
             }
             _levelIndex = index;
@@ -271,6 +273,20 @@ namespace CatShelter.View
                 // state follows completed rooms rather than levels played.
                 _progress.CompletePile(_level.PileIndex);
                 Analytics.LevelWin(_level.Number);
+
+                // Task 6.11: the last pile of the last room ends the house, and
+                // it gets the ending screen rather than the ordinary win card
+                // followed by one. Reached by playing, shown once, and it does
+                // not offer to start over — that is out of scope on purpose.
+                if (_plan.Next(_level) == null)
+                {
+                    Shell.SaveFile.Clear();
+                    ShowCard(Shell.Copy.Of("house.complete.title"),
+                        Shell.Copy.Of("house.complete.body"),
+                        null, null, null, null);
+                    return;
+                }
+
                 // Permission is asked here, after a level was actually cleared,
                 // and only once ever — see Shell/EveningReminder.
                 StartCoroutine(Shell.EveningReminder.OnLevelCompleted(this, _level.Number));
@@ -309,8 +325,18 @@ namespace CatShelter.View
         {
             _overlayTitle.text = title;
             _overlayBody.text = body;
-            _primaryButton.text = primaryText;
-            _primaryButton.clickable = new Clickable(onPrimary);
+            if (primaryText == null)
+            {
+                // A card with nothing to press: the end of the house has
+                // nowhere to go next, and a button would have to invent one.
+                _primaryButton.style.display = DisplayStyle.None;
+            }
+            else
+            {
+                _primaryButton.style.display = DisplayStyle.Flex;
+                _primaryButton.text = primaryText;
+                _primaryButton.clickable = new Clickable(onPrimary);
+            }
             if (secondaryText != null)
             {
                 _secondaryButton.text = secondaryText;

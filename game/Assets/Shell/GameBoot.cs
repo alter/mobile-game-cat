@@ -18,6 +18,9 @@ namespace CatShelter.Shell
             // real one. Configure(null, null) keeps calls valid and silent.
             Core.Analytics.Configure(null, null);
 
+            // app:open, the denominator every other number is read against.
+            Core.Analytics.AppOpen();
+
             // Does nothing unless a `visiontest` folder was pushed into the
             // app container; see VisionSelfTest.
             VisionSelfTest.RunIfRequested();

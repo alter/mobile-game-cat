@@ -103,6 +103,13 @@ namespace CatShelter.View
             _root.Add(_skip);
             _root.Add(_busy);
             parent.Add(_root);
+
+            // photo:screen_shown counts players who REACHED this screen — the
+            // first of the four go/no-go metrics, whose threshold is >90%.
+            // Firing it after a photo is handled would count players who got
+            // as far as picking one, which is metric two, and would make the
+            // first metric look like the second.
+            Analytics.PhotoScreenShown();
         }
 
         public void Show() => _root.style.display = DisplayStyle.Flex;
@@ -142,7 +149,6 @@ namespace CatShelter.View
                 answer.FoundAnimal ? best.confidence : 0f);
 
             _message.text = PhotoMessages.For(outcome);
-            Analytics.PhotoScreenShown();
 
             if (!PhotoJudge.Accepts(outcome))
             {

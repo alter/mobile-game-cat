@@ -2,7 +2,7 @@ phase:analytics
 role:VIEW
 type:feature
 priority:P1
-status:todo
+status:in_progress
 verify:pending
 depends:70-analytics/01-sdk-integration
 milestone:M7

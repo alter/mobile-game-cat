@@ -10,9 +10,9 @@ CONTEXT
   out ourselves)
 
 SCOPE
-  + 40 images in one folder: 20 different cats, 5 dogs, 5 with no animal,
-    5 blurry shots, 3 with several cats in frame, 2 photographs of a photo
-    (screen or print) rather than a live animal.
+  + 41 images in one folder: 20 different cats, 5 dogs, 5 with no animal,
+    5 blurry shots, 3 with several cats in frame, 3 photographs of a photo
+    (screen or print) rather than a live animal - one per capture mode.
   + One flat folder, filenames indicate the category (e.g. cat_01.jpg,
     dog_02.jpg, empty_01.jpg, blurry_01.jpg, multi_01.jpg, ofphoto_01.jpg).
   - Not curated for coat variety (that is 40-art's cat silhouettes) - just
@@ -25,11 +25,19 @@ OUTCOME
   06 can read it.
 
 VERIFY (ARCH)
-  1. `ls` the folder: exactly 40 files.
-  2. Filename categories sum to 20+5+5+5+3+2 = 40.
+  1. `ls` the folder: exactly 41 files.
+  2. Filename categories sum to 20+5+5+5+3+3 = 41.
   3. Manual spot-check: the 5 "empty" images contain no animal, the 5 "dog"
-     images contain no cat, the 2 "photo of a photo" images show a screen or
+     images contain no cat, the 3 "photo of a photo" images show a screen or
      print edge in frame.
+
+  Amended 2026-08-26, from 40 files and two photos-of-a-photo. The owner shot
+  the same scene three ways - ordinary photo, portrait mode, and a frame
+  lifted from video - and those are three different inputs, not three copies:
+  portrait mode blurs the background before Vision ever sees it, and the video
+  frame arrives compressed and smaller. Dropping one would leave that capture
+  mode untested. This widens the check rather than relaxing it; it still needs
+  a human to accept, per the rule that criteria are not fitted to results.
 
 ROLE
   HUMAN

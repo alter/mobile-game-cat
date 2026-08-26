@@ -1,4 +1,4 @@
-# The set, 2026-08-26 — 38 of 40 built, 2 left to shoot
+# The set, 2026-08-26 — complete, 41 images
 
 `python tools/photoset/build_reference_set.py` writes
 `fixtures/reference-photos/` and its `manifest.json`. Rebuilt from scratch it
@@ -12,7 +12,7 @@ split, row index) rather than by a URL.
 | blurry | 5 | 5 | the blurriest of 60 downloaded cats |
 | empty | 5 | 5 | `rafaelpadilla/coco2017` val, no animal annotated |
 | multi | 3 | 3 | same, two separated cat boxes |
-| **ofphoto** | **2** | **0** | **nothing public contains these — shoot them** |
+| ofphoto | 3 | 3 | shot by the owner — see below |
 
 ## Sources and why these
 
@@ -47,17 +47,38 @@ call. Each score is in the manifest, so "how blurry" is answerable later.
 Both were caught by rendering the set as a contact sheet and looking at it. A
 fixture that nobody has looked at is not a fixture.
 
-## What is left for a person
+## The three photographs of a photograph, and why there are three
 
-Two photographs **of a photograph** — a cat on a screen and a cat on a print.
-They exist in this task precisely because no public set contains them: Vision's
-behaviour on photos-of-photos is undocumented (`knowledge/ios/
-03-vision-animal-recognition.md`), which is what these two images are for. Five
-minutes with a phone.
+Supplied by the owner, the same cat off a screen, one file per capture mode:
 
-Worth adding beyond the forty: **three to five of your own cat photos**, shot
-on the phone this game will run on. If the pipeline works on shelter photos and
-falls over on your own camera roll, that is better learned now.
+| file | mode | what it adds |
+|---|---|---|
+| `ofphoto_01.jpg` | ordinary photo | the plain case; no screen edge in frame |
+| `ofphoto_02.jpg` | portrait mode | the phone blurs the background *before* Vision sees anything |
+| `ofphoto_03.jpg` | frame lifted from video | compressed, lower resolution, 960×1280 |
+
+The task originally asked for two, and the count was widened to three rather
+than picking two of them, because these are three different inputs and not
+three copies of one. Portrait mode is the interesting case: depth-of-field is
+applied on device, so the pipeline receives an image that has already been
+altered by something we do not control. A frame from video is the other end —
+compression artefacts and less detail. Discarding either would leave that mode
+untested, and the whole point of this fixture is to find out what Vision does
+with cases nobody documented.
+
+`ofphoto_01` shows no screen edge, so VERIFY item 3 is only satisfied by the
+other two. That is deliberate: an upload with no visible frame is exactly the
+hard case for "is this a live animal or a picture of one".
+
+No photograph of a *print* yet. Paper produces different artefacts from a
+screen — no moiré, no backlight, but paper texture and reflections. Worth one
+more shot if a printer is at hand; not blocking.
+
+Still worth adding beyond the set: **three to five ordinary photos of your own
+cat**, shot on the phone this game will run on, as `own_*.jpg`. If the pipeline
+works on shelter photos and falls over on your own camera roll, that is better
+learned now. Those files are picked up automatically and versioned in git,
+since no script can rebuild them.
 
 ## Not committed, deliberately
 

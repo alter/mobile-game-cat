@@ -1,16 +1,14 @@
 {
-  "images": 38,
+  "images": 41,
   "by_category": {
     "cat": 20,
     "dog": 5,
     "empty": 5,
     "blurry": 5,
     "multi": 3,
-    "ofphoto": 0
+    "ofphoto": 3
   },
-  "missing": {
-    "ofphoto": 2
-  },
+  "missing": {},
   "blur_threshold": 42.4,
   "sharp_median": 945.5,
   "sources": {
@@ -18,6 +16,39 @@
     "multi_and_empty": "rafaelpadilla/coco2017/default/val"
   },
   "files": [
+    {
+      "file": "ofphoto_01.jpg",
+      "category": "ofphoto",
+      "dataset": "hand-shot",
+      "split": "-",
+      "row": -1,
+      "width": 582,
+      "height": 1280,
+      "sha256": "92739d8330466a4d4055ce3190bff1a56cc05c38fc29d1401890dd4d7ae8179e",
+      "sharpness": 203.2
+    },
+    {
+      "file": "ofphoto_02.jpg",
+      "category": "ofphoto",
+      "dataset": "hand-shot",
+      "split": "-",
+      "row": -1,
+      "width": 960,
+      "height": 1280,
+      "sha256": "a7c4a0d992cec0a5db3248ade021aeb51597661fbb5a0e75d8075964fa9beaf0",
+      "sharpness": 666.7
+    },
+    {
+      "file": "ofphoto_03.jpg",
+      "category": "ofphoto",
+      "dataset": "hand-shot",
+      "split": "-",
+      "row": -1,
+      "width": 960,
+      "height": 1280,
+      "sha256": "29435ccf72cf2572f253397165eebac29ea404bf341e95330ce74c01fd60e95f",
+      "sharpness": 962.1
+    },
     {
       "file": "cat_01.jpg",
       "category": "cat",

@@ -69,7 +69,12 @@ WANTED = {
     "empty": 5,
     "blurry": 5,
     "multi": 3,
-    "ofphoto": 2,          # hand-shot, see the module docstring
+    # Three, not the two the task first asked for: the same cat photographed
+    # off a screen in ordinary mode, in portrait mode (which blurs the
+    # background before Vision ever sees it) and as a frame lifted from video
+    # (compressed, lower resolution). Three capture modes, three different
+    # artefacts — dropping one leaves that mode untested.
+    "ofphoto": 3,
 }
 PAGE = 100
 
@@ -213,6 +218,22 @@ def build(out_dir: str, cat_pool: int = 60) -> dict:
     plain = cats[WANTED["blurry"]:][-WANTED["cat"]:]
 
     manifest = []
+    # Hand-shot files (ofphoto_*, own_*) are dropped into the folder by a
+    # person and cannot be re-fetched. Pick them up so a rebuild neither
+    # deletes them nor writes a manifest that pretends they are absent.
+    for path in sorted(out.glob("*.jpg")):
+        prefix = path.stem.rsplit("_", 1)[0]
+        if prefix not in ("ofphoto", "own"):
+            continue
+        data = path.read_bytes()
+        manifest.append({
+            "file": path.name, "category": prefix, "dataset": "hand-shot",
+            "split": "-", "row": -1,
+            "width": Image.open(path).width, "height": Image.open(path).height,
+            "sha256": hashlib.sha256(data).hexdigest(),
+            "sharpness": round(sharpness(data), 1),
+        })
+
     for group in (plain, dogs, empties, blurry, multis):
         for index, item in enumerate(group, start=1):
             name = f"{item['category']}_{index:02d}.jpg"

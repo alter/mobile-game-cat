@@ -14,3 +14,7 @@ tools/artgen/out/
 # licences, so only the manifest and the builder are versioned. Restore with
 # python tools/photoset/build_reference_set.py
 fixtures/reference-photos/*.jpg
+# ...except the hand-shot ones: no script can rebuild them, so they are the
+# only part of the set that has to live in git.
+!fixtures/reference-photos/ofphoto_*.jpg
+!fixtures/reference-photos/own_*.jpg

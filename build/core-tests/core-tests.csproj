@@ -21,5 +21,14 @@
     <PackageReference Include="NUnit" Version="4.2.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- build/coverage-summary.py reads TestResults/*/coverage.cobertura.xml,
+         which only appears when this collector is installed. Without it a test
+         run asking for "XPlat Code Coverage" still runs and still passes, and
+         writes no report at all, so 20-rules-core/05 could never have been
+         checked even though it was marked verify:passed. -->
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

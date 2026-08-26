@@ -31,6 +31,34 @@ namespace CatShelter.Core
             RoomId = roomId ?? throw new ArgumentNullException(nameof(roomId));
             PileIndex = pileIndex;
             Pile = pile ?? throw new ArgumentNullException(nameof(pile));
+
+            // Rejected here rather than at Board construction, so a level that
+            // cannot be won cannot be built in the first place — the Python
+            // side has always validated at load time (tools/solver/schema.py).
+            // Every kind must appear in triples: otherwise the pile empties
+            // while items are stranded on the shelf and the win fires on an
+            // unfinished board.
+            var counts = new Dictionary<string, int>();
+            foreach (var entry in Pile)
+            {
+                counts.TryGetValue(entry.Item.Kind.Id, out var seen);
+                counts[entry.Item.Kind.Id] = seen + 1;
+            }
+            foreach (var pair in counts)
+            {
+                if (pair.Value % 3 != 0)
+                    throw new ArgumentException(
+                        $"kind '{pair.Key}' appears {pair.Value} times, " +
+                        "not a multiple of three", nameof(pile));
+            }
+
+            var ids = new HashSet<int>();
+            foreach (var entry in Pile)
+            {
+                if (!ids.Add(entry.Item.Id))
+                    throw new ArgumentException(
+                        $"duplicate item id {entry.Item.Id}", nameof(pile));
+            }
         }
     }
 

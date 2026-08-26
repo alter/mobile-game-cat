@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Core and its tests compile into one assembly here (core-tests.csproj pulls
+     both source trees in), and coverlet skips the test assembly by default —
+     which produced a report with zero classes in it. IncludeTestAssembly makes
+     it measure the thing we care about; the filter then keeps the report to
+     CatShelter.Core so test code does not inflate the number. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <IncludeTestAssembly>true</IncludeTestAssembly>
+          <Include>[core-tests]CatShelter.Core.*</Include>
+          <Exclude>[core-tests]CatShelter.Core.Tests.*</Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

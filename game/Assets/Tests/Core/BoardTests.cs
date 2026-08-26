@@ -177,9 +177,8 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
-        public void Match_CompletesAcrossRowBoundary()
+        public void Match_CompletesWithinOneRow()
         {
-            // rows are presentation only; a triple spanning row 0 and row 1 matches
             var shelf = new Shelf();
             shelf.TryPlace(Item("m", 1), out _);
             shelf.TryPlace(Item("m", 2), out _);
@@ -188,6 +187,38 @@ namespace CatShelter.Core.Tests
             Assert.That(shelf.TryPlace(Item("m", 3), out var matched), Is.True);
             Assert.That(matched!.Id, Is.EqualTo("m"));
             Assert.That(shelf.Occupied, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void Match_CompletesAcrossRowBoundary()
+        {
+            // Rows are presentation only, and this is the case that proves it.
+            // The test that used to carry this name placed three copies into an
+            // empty shelf, so they landed in slots 0-2 — inside row 0, crossing
+            // nothing. Placement always takes the leftmost free slot, so the
+            // copies have to be spread by filling the slots between them.
+            var shelf = new Shelf();
+            shelf.TryPlace(Item("a", 1), out _);   // slot 0, row 0
+            shelf.TryPlace(Item("b", 2), out _);   // slot 1
+            shelf.TryPlace(Item("c", 3), out _);   // slot 2, end of row 0
+            shelf.TryPlace(Item("a", 4), out _);   // slot 3, row 1
+            shelf.TryPlace(Item("b", 5), out _);   // slot 4
+
+            var occupied = shelf.Slots
+                .Select((item, index) => (item, index))
+                .Where(pair => pair.item?.Kind.Id == "a")
+                .Select(pair => pair.index)
+                .ToList();
+            Assert.That(occupied, Is.EqualTo(new[] { 0, 3 }),
+                "the two 'a' copies must straddle the row boundary");
+            Assert.That(Shelf.SlotsPerRow, Is.EqualTo(3), "rows are three slots wide");
+
+            Assert.That(shelf.TryPlace(Item("a", 6), out var matched), Is.True);
+
+            Assert.That(matched!.Id, Is.EqualTo("a"));
+            Assert.That(shelf.Slots.Count(s => s?.Kind.Id == "a"), Is.EqualTo(0),
+                "all three 'a' left the shelf although they sat in rows 0 and 1");
+            Assert.That(shelf.Occupied, Is.EqualTo(3), "two 'b' and one 'c' stay");
         }
 
         [Test]

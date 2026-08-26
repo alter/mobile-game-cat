@@ -116,6 +116,25 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
+        public void IndexOf_FindsTheResumedLevel()
+        {
+            var levels = Levels();
+            var board = SaveResume.TryResume(
+                GameSave.Write(new Board(levels[2]), null), levels, out _);
+
+            Assert.That(SaveResume.IndexOf(levels, board), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void IndexOf_ReturnsMinusOne_ForABoardBuiltElsewhere()
+        {
+            // The view uses the index to know which level comes next, so a
+            // stranger board must not silently answer 0.
+            Assert.That(SaveResume.IndexOf(Levels(), new Board(Level(1))),
+                Is.EqualTo(-1));
+        }
+
+        [Test]
         public void TruncatedSave_FallsBack_NoThrow()
         {
             var full = SaveAfter(2, 5, 8);

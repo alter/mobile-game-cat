@@ -55,21 +55,9 @@ namespace CatShelter.Core
         {
             Level = level ?? throw new ArgumentNullException(nameof(level));
             Shelf = new Shelf(shelfCapacity);
-            // Every kind must appear in triples: otherwise the pile empties
-            // while items remain stranded on the shelf and the win condition
-            // fires on an unfinished board.
-            foreach (var group in level.Pile.GroupBy(e => e.Item.Kind.Id))
-            {
-                if (group.Count() % 3 != 0)
-                    throw new ArgumentException(
-                        $"kind '{group.Key}' appears {group.Count()} times, " +
-                        "not a multiple of three", nameof(level));
-            }
+            // Kinds-in-triples and unique ids are enforced by Level itself, so
+            // a Board cannot be handed a pile that breaks either.
             _entries = level.Pile.ToDictionary(e => e.Item.Id);
-            // Reject duplicate ids up front: occlusion bookkeeping relies on
-            // them being unique.
-            if (_entries.Count != level.Pile.Count)
-                throw new ArgumentException("Duplicate item ids in the pile", nameof(level));
             _taken = new HashSet<int>();
         }
 

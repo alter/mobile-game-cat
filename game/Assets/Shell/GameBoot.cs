@@ -17,6 +17,10 @@ namespace CatShelter.Shell
             // Analytics sink: no-op until the GameAnalytics SDK task wires the
             // real one. Configure(null, null) keeps calls valid and silent.
             Core.Analytics.Configure(null, null);
+
+            // Does nothing unless a `visiontest` folder was pushed into the
+            // app container; see VisionSelfTest.
+            VisionSelfTest.RunIfRequested();
         }
 
         private void OnEnable()

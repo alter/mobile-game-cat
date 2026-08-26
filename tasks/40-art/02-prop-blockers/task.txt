@@ -20,6 +20,11 @@ SCOPE
     care, per art-prompts.md section 6.
   - No skull, face or anything recognisable under the cloth.
 
+  Note (2026-08-27): hiding buried kinds was measured to change win rate by
+  0.0 +/- 1.2 percentage points, so prop_unknown exists for the feel of
+  discovery rather than for difficulty - see 30-levels-solver/10. It is still
+  needed while D3 stands; it disappears with D3 if D3 is ever reversed.
+
 OUTCOME
   2 PNGs, prop_unknown.png and prop_locked.png, 256x256, same frame/alpha
   rules as the 30 props, under game/Assets/Art.

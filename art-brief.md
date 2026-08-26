@@ -473,6 +473,16 @@ requirement: **states are distinguishable from a distance**, so the whole
 house reads at a single glance. Not by shade, but visibly: dark, halfway,
 light.
 
+> **Three states is a deliberate simplification, noted 2026-08-27.** Rooms hold
+> one to four piles (D2), so a four-pile room passes through 25%, 50% and 75%
+> on the way to clean, and the map has one tile for all three. That is fine:
+> the map answers "which rooms are left", and the room itself shows how far
+> through it you are, corner by corner (`60-shell-build/02-room-piles`). Drawing
+> a tile per pile would be 12 rooms × up to 5 states and would make the map
+> harder to read at a glance, which is the one thing it must do. If it ever
+> needs to be exact, `RoomPlan.ClearedFractionAfter` is the number the view
+> already has.
+
 ---
 
 ## 10. Small but mandatory
@@ -485,6 +495,20 @@ silhouette, a rag on top, dust. It should be visible that something is there,
 but not visible what.
 
 Appears on screen in large numbers, so it must not be visually noisy.
+
+> **Draw it, but know what it does — measured 2026-08-27.** Hiding buried kinds
+> (D3) was expected to make the game harder. It does not: the same policy
+> played with the pile hidden and with it visible differs by **0.0 ± 1.2
+> percentage points** over 400 games per band
+> (`30-levels-solver/10-remeasure-curve-partial-info`). The reason is that a
+> move is chosen among *reachable* items, whose kinds are always visible, and
+> 17 to 28 items are reachable at once — a quarter to half the pile. Hiding
+> changes what the player can plan past, and there is little past it to plan.
+>
+> So this tile earns its place on **feel** — discovery, the small reveal, what
+> the genre does — not on difficulty. Worth knowing before spending a day on
+> it: if D3 is ever reversed, this asset and the layer that draws it go with
+> it.
 
 ### Locked item
 

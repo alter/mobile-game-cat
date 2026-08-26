@@ -18,6 +18,10 @@ SCOPE
   - Not the room backgrounds - see 40-art/07-rooms; these are small map
     cells, not full-screen art, not derived pixel-for-pixel from the rooms.
   - No numbers, progress bars or text baked into the cells.
+  - Not one cell per pile. Rooms hold 1-4 piles, so "partial" covers 25%, 50%
+    and 75% alike; the map says which rooms are left, and the room itself
+    shows how far through it you are. Exactness is available from
+    RoomPlan.ClearedFractionAfter if it is ever wanted.
 
 OUTCOME
   37 PNGs: map_background.png plus map_room_<nn>_<state>.png for nn 01..12,

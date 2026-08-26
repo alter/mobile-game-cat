@@ -1,3 +1,4 @@
+tmp/
 bin/
 obj/
 TestResults/
@@ -8,3 +9,8 @@ __pycache__/
 .hermes/
 game/Assets/Levels/pool/
 tools/artgen/out/
+
+# Reference photo set: images come from third-party datasets under their own
+# licences, so only the manifest and the builder are versioned. Restore with
+# python tools/photoset/build_reference_set.py
+fixtures/reference-photos/*.jpg

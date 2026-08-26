@@ -1,0 +1,440 @@
+{
+  "images": 38,
+  "by_category": {
+    "cat": 20,
+    "dog": 5,
+    "empty": 5,
+    "blurry": 5,
+    "multi": 3,
+    "ofphoto": 0
+  },
+  "missing": {
+    "ofphoto": 2
+  },
+  "blur_threshold": 42.4,
+  "sharp_median": 945.5,
+  "sources": {
+    "cats_and_dogs": "microsoft/cats_vs_dogs/default/train",
+    "multi_and_empty": "rafaelpadilla/coco2017/default/val"
+  },
+  "files": [
+    {
+      "file": "cat_01.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 6,
+      "width": 500,
+      "height": 375,
+      "sha256": "cc39b9130c001a7cc5d3d427bd76669bb4a75b94cca02605e986f38f6c4a6c51",
+      "sharpness": 449.2
+    },
+    {
+      "file": "cat_02.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 32,
+      "width": 400,
+      "height": 492,
+      "sha256": "1f5ba17171736eaa2a515e44273baea4bd5a303de2f436088d87c5b42b5dc172",
+      "sharpness": 452.7
+    },
+    {
+      "file": "cat_03.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 51,
+      "width": 500,
+      "height": 375,
+      "sha256": "4132401f6d312e41fd88c5d6a71bf18e0de4bc5a45e6724138d47c1fd78fccc4",
+      "sharpness": 471.8
+    },
+    {
+      "file": "cat_04.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 16,
+      "width": 500,
+      "height": 386,
+      "sha256": "29eacbe8c81a6a938334636dce33ca1abed72d479113073a4152958f197628b3",
+      "sharpness": 629.0
+    },
+    {
+      "file": "cat_05.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 9,
+      "width": 320,
+      "height": 240,
+      "sha256": "4da960e515f9550d56e14bbb70a4cd155cc92ccda7d5ef96e7c4a0d3f1339c03",
+      "sharpness": 688.8
+    },
+    {
+      "file": "cat_06.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 17,
+      "width": 358,
+      "height": 448,
+      "sha256": "c1dc0882919541d1c5d147db0b4f4f9f5629ac4d892f6b9575260dde52eece50",
+      "sharpness": 723.8
+    },
+    {
+      "file": "cat_07.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 12,
+      "width": 220,
+      "height": 300,
+      "sha256": "17e05c4a6c3707ff12c047d0e3a012a37516ba7a15baaf25686584616ecf78d9",
+      "sharpness": 770.2
+    },
+    {
+      "file": "cat_08.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 8,
+      "width": 500,
+      "height": 375,
+      "sha256": "28bad63c8325a744abba73209bfe7cd853038bb7b30773bae6973eaae5f9bee7",
+      "sharpness": 798.4
+    },
+    {
+      "file": "cat_09.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 24,
+      "width": 500,
+      "height": 454,
+      "sha256": "4439e7e2e35c1c5a2a474d42338b27e28bb95ef9835df40bacc85a8066d6a469",
+      "sharpness": 851.0
+    },
+    {
+      "file": "cat_10.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 36,
+      "width": 259,
+      "height": 270,
+      "sha256": "647c57bfc9280e9c4a46ee7aacea4245de27b6c7007c045e4a1157e51d6aba2f",
+      "sharpness": 942.2
+    },
+    {
+      "file": "cat_11.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 33,
+      "width": 500,
+      "height": 333,
+      "sha256": "3b5c8709ff2a95ba7e8d4c987528ad6b50c9ff8ca50229ca4fd090304cf9d0b1",
+      "sharpness": 948.8
+    },
+    {
+      "file": "cat_12.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 56,
+      "width": 500,
+      "height": 334,
+      "sha256": "767feb32bdad1ce7895d9015ef556be4a6c4a23e3021e8ae77a1867b63424307",
+      "sharpness": 1054.7
+    },
+    {
+      "file": "cat_13.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 11,
+      "width": 461,
+      "height": 320,
+      "sha256": "19a6adcb69db3b714a0501ad8303ccedf0c1ddc65b8e0c04e9a35a52a0b780a2",
+      "sharpness": 1463.7
+    },
+    {
+      "file": "cat_14.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 60,
+      "width": 300,
+      "height": 400,
+      "sha256": "683e40fc870f5449b31f7c8c8424b504835408416c3f63b17f8aeafdf6cd2804",
+      "sharpness": 1551.0
+    },
+    {
+      "file": "cat_15.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 5,
+      "width": 431,
+      "height": 360,
+      "sha256": "88c8ebc5cceda23b5d3132aeec790fdf8232026e45441bc9454a34279f48ff06",
+      "sharpness": 1727.6
+    },
+    {
+      "file": "cat_16.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 49,
+      "width": 500,
+      "height": 407,
+      "sha256": "1c2e3cbd8657432d69408f7bb4be297af2d879f1ff8b0c31e629ff48497aad6c",
+      "sharpness": 1758.5
+    },
+    {
+      "file": "cat_17.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 45,
+      "width": 500,
+      "height": 375,
+      "sha256": "ed0cae5b243c5b5ee9825801bab9d69c666ab510f46d712a0633cda5348443ec",
+      "sharpness": 1793.2
+    },
+    {
+      "file": "cat_18.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 42,
+      "width": 357,
+      "height": 391,
+      "sha256": "118b22869a9db3bc0e93a14b80205403335e20c4370ce9876b470c3ce15ac85a",
+      "sharpness": 1918.2
+    },
+    {
+      "file": "cat_19.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 1,
+      "width": 300,
+      "height": 281,
+      "sha256": "4e7154bee9da8ba8ecc5a18e072505efc904d23dbc143741f460b89333cdb883",
+      "sharpness": 2151.5
+    },
+    {
+      "file": "cat_20.jpg",
+      "category": "cat",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 27,
+      "width": 423,
+      "height": 418,
+      "sha256": "1ae7934e150569e1f71b4af120ad2abe717e0c3cc3f4ca3e38f246139eba844f",
+      "sharpness": 2852.0
+    },
+    {
+      "file": "dog_01.jpg",
+      "category": "dog",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 11741,
+      "width": 500,
+      "height": 375,
+      "sha256": "bb736cf8faa30ecf9a9e62ae5245f9a1eda2e2df561e9523a1e7f23909c72ba2",
+      "sharpness": 917.1
+    },
+    {
+      "file": "dog_02.jpg",
+      "category": "dog",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 11742,
+      "width": 327,
+      "height": 500,
+      "sha256": "737df60567876cab9677fa873586afe612f7bdb16999905383505dea86573102",
+      "sharpness": 407.6
+    },
+    {
+      "file": "dog_03.jpg",
+      "category": "dog",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 11743,
+      "width": 500,
+      "height": 398,
+      "sha256": "d06ec9bf3dd1300683ba7f895b40eb95f40c9ca305c6395f5784aca21c775ea0",
+      "sharpness": 77.8
+    },
+    {
+      "file": "dog_04.jpg",
+      "category": "dog",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 11744,
+      "width": 500,
+      "height": 375,
+      "sha256": "43e669dc9369127ddf44caf79c2bb2309b884858862470b7b491afd5d4957e7b",
+      "sharpness": 313.6
+    },
+    {
+      "file": "dog_05.jpg",
+      "category": "dog",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 11745,
+      "width": 263,
+      "height": 413,
+      "sha256": "d96e60d4738e4d6082d4ae61d58d7434b1a76350195c609b922f1ebede6bfe25",
+      "sharpness": 526.8
+    },
+    {
+      "file": "empty_01.jpg",
+      "category": "empty",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 0,
+      "width": 500,
+      "height": 335,
+      "sha256": "261ba1b81c768f47b8452cd8fc7866a354a69c336a927032486d129b8684eb44",
+      "sharpness": 1034.5
+    },
+    {
+      "file": "empty_02.jpg",
+      "category": "empty",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 1,
+      "width": 427,
+      "height": 640,
+      "sha256": "1c2fb3e17c9cb7f70f10c2d418a6dbb6a2a3877020c39ea7494de6c7f030f225",
+      "sharpness": 1245.9
+    },
+    {
+      "file": "empty_03.jpg",
+      "category": "empty",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 2,
+      "width": 598,
+      "height": 640,
+      "sha256": "e8bdc69a8a58ae37aa4289191102f54585bc9dcf96202e061ff574c607c21b6b",
+      "sharpness": 1017.5
+    },
+    {
+      "file": "empty_04.jpg",
+      "category": "empty",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 3,
+      "width": 640,
+      "height": 481,
+      "sha256": "547ee9c5c2f5a1b0da558c30f01a92818961999392d205e88422bd4d5bb2e54e",
+      "sharpness": 992.0
+    },
+    {
+      "file": "empty_05.jpg",
+      "category": "empty",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 5,
+      "width": 640,
+      "height": 427,
+      "sha256": "58872621bb61bfa99670157e7402c7d59003d532fb5f78960a6e1177c202dc17",
+      "sharpness": 112.0
+    },
+    {
+      "file": "blurry_01.jpg",
+      "category": "blurry",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 0,
+      "width": 500,
+      "height": 375,
+      "sha256": "78c59808737081ebd4a3be74ab859c00b0c8758fdab3cbd4ce28b64dae4fc4f8",
+      "sharpness": 14.7
+    },
+    {
+      "file": "blurry_02.jpg",
+      "category": "blurry",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 47,
+      "width": 500,
+      "height": 441,
+      "sha256": "708159007613f2756c8d1c4bbda85c03675e8d120fa3cdad18e01d6e7b8a3a8c",
+      "sharpness": 25.4
+    },
+    {
+      "file": "blurry_03.jpg",
+      "category": "blurry",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 29,
+      "width": 350,
+      "height": 336,
+      "sha256": "dddf767d2bc66c5f5e5cf7241d7f4bf032065f4c2031b235f14d3efccb86e0cb",
+      "sharpness": 27.9
+    },
+    {
+      "file": "blurry_04.jpg",
+      "category": "blurry",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 44,
+      "width": 361,
+      "height": 500,
+      "sha256": "f35cf3d4a99dc638f20ddea175842403847f4b761be7c8ae1e4b333cbe34b033",
+      "sharpness": 34.1
+    },
+    {
+      "file": "blurry_05.jpg",
+      "category": "blurry",
+      "dataset": "microsoft/cats_vs_dogs",
+      "split": "train",
+      "row": 14,
+      "width": 473,
+      "height": 500,
+      "sha256": "60b5eee3e8242c81d73d0aab368367697eb2f9eb3d369b7e3bfc844d850829f0",
+      "sharpness": 42.4
+    },
+    {
+      "file": "multi_01.jpg",
+      "category": "multi",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 645,
+      "width": 640,
+      "height": 480,
+      "sha256": "58a4aa081452ad2930aba0d5c716615aaede8e43a6e80a456132877d318991af",
+      "sharpness": 1665.6
+    },
+    {
+      "file": "multi_02.jpg",
+      "category": "multi",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 1011,
+      "width": 640,
+      "height": 428,
+      "sha256": "d5af6e66ee264eae5e041c5894be1ff7d78141b1aeccc13b7115cf4bd96ebfcb",
+      "sharpness": 3350.0
+    },
+    {
+      "file": "multi_03.jpg",
+      "category": "multi",
+      "dataset": "rafaelpadilla/coco2017",
+      "split": "val",
+      "row": 2172,
+      "width": 640,
+      "height": 480,
+      "sha256": "dea9e7ef97386345f7cff32f9055da4982da5471c48d575146c796ab4563b04e",
+      "sharpness": 1309.1
+    }
+  ]
+}

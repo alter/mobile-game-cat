@@ -253,6 +253,9 @@ namespace CatShelter.View
             if (_board.Outcome == GameOutcome.Win)
             {
                 Analytics.LevelWin(_level.Number);
+                // Permission is asked here, after a level was actually cleared,
+                // and only once ever — see Shell/EveningReminder.
+                StartCoroutine(Shell.EveningReminder.OnLevelCompleted(this, _level.Number));
                 ShowCard(
                     lastPileOfRoom ? "Room clean!" : "Corner cleared!",
                     lastPileOfRoom

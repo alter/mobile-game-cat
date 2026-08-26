@@ -21,6 +21,11 @@ namespace CatShelter.Shell
             // Does nothing unless a `visiontest` folder was pushed into the
             // app container; see VisionSelfTest.
             VisionSelfTest.RunIfRequested();
+
+            // Opening the game today means no reminder about today: the next
+            // one moves to tomorrow evening.
+            EveningReminder.Reschedule();
+            StartCoroutine(EveningReminder.DebugRequestNow(this));
         }
 
         private void OnEnable()

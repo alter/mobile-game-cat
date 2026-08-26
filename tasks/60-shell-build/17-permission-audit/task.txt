@@ -1,0 +1,47 @@
+TASK: Audit what the app asks permission for, and cut it to the minimum
+
+GOAL
+  Every permission and every capability in the shipped Info.plist is there
+  because something the player does needs it, with the reason written down.
+  Anything a package dragged in unasked is removed.
+
+CONTEXT
+  knowledge/ios/05-notifications-permissions.md (notifications, ATT)
+  knowledge/ios/01-appstore-requirements-2026.md (privacy manifest, review)
+  tasks/DECISIONS.md D9 (ATT is deliberately never requested)
+  game/build/ios/CatShelter/Info.plist (what is actually generated today)
+
+SCOPE
+  + An inventory of every Ns*UsageDescription, UIBackgroundModes entry,
+    entitlement and capability in the generated Info.plist, each with: who put
+    it there, what player-visible action needs it, and what breaks without it.
+  + Remove or disable everything without an answer to the second column.
+  + Usage-description strings written for a person, not for review: "to find
+    your cat in the photo" beats "This app requires camera access".
+  + Check what the packages add unasked - purchasing, analytics, notifications
+    and the vision plugin each can contribute keys.
+  + The privacy manifest (PrivacyInfo.xcprivacy) checked against what the app
+    actually collects, since a wrong one is a review rejection.
+  - Not ATT: D9 settles it. Never call RequestTrackingAuthorization; call
+    EnableAdvertisingIdTracking(false) before Initialize(). This task only
+    confirms no package quietly reintroduces it.
+  - Not the photo permission flow itself - that is 50-photo/08-capture-screen.
+
+OUTCOME
+  A table in this task's NOTES.md listing every permission with its
+  justification, and a build whose Info.plist contains nothing beyond it.
+
+VERIFY (NATIVE)
+  1. `plutil -p` on the shipped Info.plist: every Ns*UsageDescription and
+     UIBackgroundModes entry appears in the table with a reason.
+  2. A launch on the simulator raises no permission dialog the player has not
+     asked for by an action.
+  3. `grep` for RequestTrackingAuthorization across Assets and Packages: no
+     call site (D9).
+
+ROLE
+  NATIVE
+
+DEPENDS
+  50-photo/05-vision-plugin
+  60-shell-build/09-notification

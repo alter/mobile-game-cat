@@ -1,0 +1,45 @@
+TASK: Get the text out of the code, so it can be translated
+
+GOAL
+  Every string a player reads lives in one place with a key, not inline in the
+  component that draws it. Translating then means adding a file, not hunting
+  through C# for quoted English.
+
+CONTEXT
+  60-shell-build/12-copy-english (the copy pass this feeds)
+  game/Assets/View/DebugGameView.cs (card titles and bodies, inline today)
+  game/Assets/Shell/EveningReminder.cs (notification title and body, inline)
+  knowledge/ios/05-notifications-permissions.md (notification text is set from
+    C#, so it goes through the same table)
+
+SCOPE
+  + One table of key -> English string, and a lookup used by every call site.
+  + The notification title and body included: they are the strings most likely
+    to need translating first, since a notification is what a non-English
+    speaker sees before anything else.
+  + A check that fails when a call site passes a literal instead of a key.
+  - Not actual translations, and not a second language. This task only makes
+    one possible.
+  - Not com.unity.localization: a package that pulls in addressables and an
+    editor workflow is heavy for ~30 strings, and the MVP rule is to add
+    dependencies only when hand-writing is worse. Revisit if the game ships.
+  - Not right-to-left layout, plurals or date formatting - none of the target
+    languages need them yet.
+
+OUTCOME
+  No user-visible English string literal remains outside the table, and adding
+  a language means adding one file.
+
+VERIFY (VIEW)
+  1. `grep` for quoted English in Assets/View and Assets/Shell returns only
+     the table itself, log lines and comments.
+  2. Changing one value in the table changes what the running game shows, on
+     the simulator.
+  3. The nine analytics event names are NOT in the table - they are protocol,
+     not copy, and translating them would break the funnel.
+
+ROLE
+  VIEW
+
+DEPENDS
+  60-shell-build/12-copy-english

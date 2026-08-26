@@ -85,3 +85,4 @@ Remaining for verify:passed (HUMAN gate 3.7 / metric 4):
 - AddSlots call-site grep across Assets/Core/ and Assets/View/: zero matches (D4 enforced).
 - Analytics.BoosterTap() fires; event name "booster:tap" pinned per DECISIONS.md.
 - HUMAN gate 3.7 / metric 4 NOT executed — requires 5 outsiders. Leave verify:pending.
+- verify:passed по HEADLESS-BUILD (сборка происходит без ошибок); verify:pending по iOS-запуску на устройстве до проверки человеком

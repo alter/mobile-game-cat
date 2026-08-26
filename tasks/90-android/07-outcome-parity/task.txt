@@ -1,0 +1,45 @@
+TASK: The four outcomes behave the same on both platforms
+
+GOAL
+  A photo rejected on iOS is rejected on Android, for the same reason, with
+  the same words. Otherwise metric 2 measures the platform rather than the
+  hook.
+
+CONTEXT
+  game/Assets/Core/PhotoOutcome.cs - PhotoJudge, and why the threshold is
+    0.60: it is the lowest confidence a genuine cat scored on the reference
+    set, measured, with a test asserting the constant equals that minimum
+  50-photo/06-outcome-handling/NOTES.md - the iOS numbers and the finding
+    that no threshold separates a real cat from a photo of one on a screen
+  90-android/05-recognition-plugin - the Android confidences to compare
+
+SCOPE
+  + Run the reference set through the Android plugin and produce the same
+    outcome table: cats accepted, dogs rejected as dogs, empty frames as no
+    animal, blurry and multi always landing in a branch.
+  + Decide, on those numbers, whether Android needs its own threshold. If it
+    does, it becomes a second named constant with its own measurement, not an
+    edit to the iOS one.
+  + Extend PhotoJudgeTests with the Android measurements, so both platforms
+    are pinned by the same test file.
+  - Not new copy. The four messages are the same on both platforms; if one
+    reads badly, that is 12-copy-english's problem, on both.
+  - Not a fifth outcome. Four branches, and the unknown-species case routes to
+    "no animal" on both.
+
+OUTCOME
+  A table in this directory with iOS and Android side by side per category,
+  and either "the same threshold holds" or a named Android constant with the
+  measurement behind it.
+
+VERIFY (ARCH)
+  1. Both columns filled from real runs, 41 rows each.
+  2. No dog accepted as a cat on either platform.
+  3. If a second threshold exists, a test asserts it equals the lowest genuine
+     cat confidence measured on Android, mirroring the iOS test.
+
+ROLE
+  VIEW
+
+DEPENDS
+  90-android/05-recognition-plugin

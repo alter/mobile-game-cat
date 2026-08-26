@@ -1,0 +1,48 @@
+TASK: Android recognition plugin
+
+GOAL
+  Stage one on Android: is there a cat, is it a cat or a dog, where, how sure.
+  The same answer shape CatVision returns on iOS, so PhotoJudge decides
+  identically on both platforms.
+
+CONTEXT
+  90-android/01-mlkit-capability-probe - the measured answer to what ML Kit
+    can do; this task implements whatever that concluded, and does not
+    relitigate it
+  game/Assets/Shell/CatVision.cs - the facade: VisionAnswer, AnimalBox,
+    identifier "Cat"/"Dog", confidence, pixel box with origin top-left
+  game/Assets/Plugins/iOS/CatVision.swift - the iOS half, including the
+    orientation rule and the bottom-left-to-top-left box flip
+
+SCOPE
+  + ML Kit called from Assets/Plugins/Android, returning the same JSON shape
+    the Swift side returns, so the C# parser is shared.
+  + Identifiers normalised to exactly "Cat" and "Dog" - PhotoJudge matches on
+    those strings and treats anything else as "no animal", deliberately.
+  + Bounding box in pixels, origin top-left, like iOS.
+  + Orientation handled explicitly, as on iOS, and stated in a comment.
+  + The 41-image reference set run through the built plugin, numbers filed
+    next to the iOS ones.
+  - Not a bundled model unless 01 concluded ML Kit cannot do it AND 00
+    accepted the size cost. That decision does not belong here.
+  - Not a different threshold from iOS without evidence - see 07.
+
+OUTCOME
+  CatVision.Recognise returns a filled VisionAnswer on Android, and the
+  reference-set numbers sit beside the iOS table in
+  50-photo/05-vision-plugin/NOTES.md.
+
+VERIFY (ARCH)
+  1. All 41 reference images run through the plugin on a device or emulator,
+     results filed.
+  2. Dogs are never reported as cats, and empty frames report nothing - the
+     two failures that would poison the funnel.
+  3. At least five bounding boxes drawn back onto their photos and eyeballed,
+     as was done for iOS.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/01-mlkit-capability-probe
+  90-android/04-picker-plugin

@@ -1,0 +1,47 @@
+TASK: Measure what ML Kit can actually tell about a cat
+
+GOAL
+  Find out, before any porting, whether Android can do stage one at all. iOS
+  gets "cat or dog, with a box and a confidence" from one call. Google has no
+  documented equivalent, and the whole photo hook depends on stage one.
+
+CONTEXT
+  knowledge/ios/03-vision-animal-recognition.md section 9 - the two candidate
+    APIs and the conclusion: "neither Object Detection & Tracking nor Image
+    Labeling gives an out-of-the-box, equally targeted cat/dog identifier pair
+    with a bounding box, the way VNRecognizeAnimalsRequest does"
+  50-photo/05-vision-plugin/NOTES.md - the iOS numbers to compare against:
+    cats 18/20, dogs 5/5, empty 0/5 detections, confidence 0.60-0.81
+  fixtures/reference-photos - the same 41 images, restored by
+    `python tools/photoset/build_reference_set.py`
+
+SCOPE
+  + A throwaway Android app or instrumented test that runs BOTH ML Kit Image
+    Labeling and ML Kit Object Detection over all 41 reference images.
+  + Per image: every label above 0.3 confidence, and any bounding box.
+  + A table with the same rows as the iOS one, so the two are comparable at a
+    glance: cats found, dogs found, empty frames, blurry, multi, photo-of-photo.
+  + An explicit answer to: does a "cat" label exist, does it come with a box,
+    and can dog be told from cat.
+  - Not the plugin itself - that is 05. This throws its code away.
+  - Not a bundled TFLite or YOLO model. If ML Kit cannot do it, that is a
+    finding for 00 to weigh, not a licence to add 15 MB of model.
+  - Not tuning a threshold. Measure first; 07 decides the threshold.
+
+OUTCOME
+  A results table in this directory covering all 41 images, with the iOS
+  numbers beside it, and a one-line verdict: ML Kit can / cannot replace
+  Vision for stage one.
+
+VERIFY (ARCH)
+  1. The table has 41 rows and names the ML Kit API and version used.
+  2. Cats, dogs and empty frames are counted separately, as on iOS.
+  3. If a "cat" label is claimed, at least five images show it with its
+     confidence quoted from real output, not summarised.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/00-android-decision
+  50-photo/01-reference-photo-set

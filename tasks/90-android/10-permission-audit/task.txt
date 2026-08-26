@@ -1,0 +1,48 @@
+TASK: Audit the Android manifest and cut it to the minimum
+
+GOAL
+  Every permission and feature in the shipped manifest is there because
+  something the player does needs it, with the reason written down. On iOS
+  this audit found a package that turned on a permission prompt by default;
+  Android has more ways for that to happen, not fewer.
+
+CONTEXT
+  60-shell-build/17-permission-audit/NOTES.md - the iOS result (48 plist
+    keys, exactly one permission) and the table format this reuses
+  DECISIONS.md D9 (no advertising id, no tracking prompt - on either
+    platform)
+  90-android/04-picker-plugin (the picker choice that avoids storage
+    permissions entirely)
+
+SCOPE
+  + `aapt dump permissions` on the built .apk, every line explained in a
+    table: who added it, what player action needs it, what breaks without it.
+  + The same for <uses-feature>: an unnecessary "required" feature hides the
+    app from devices that could run it.
+  + Anything unexplained removed, including permissions merged in from Unity
+    packages rather than written by us.
+  + AD_ID explicitly absent, and a check that no dependency puts it back.
+  + The Play Data Safety answers drafted from the same table, since they must
+    match it.
+  - Not the ATT equivalent: Android has none, and D9's rule is already
+    "request nothing".
+  - Not the store listing.
+
+OUTCOME
+  A table in this directory listing every permission and feature in the .apk
+  with its justification, and a build whose manifest contains nothing beyond
+  it.
+
+VERIFY (NATIVE)
+  1. `aapt dump permissions` output pasted whole, every line matched to a row.
+  2. `grep` for AD_ID and advertising id across Assets and the merged
+     manifest: nothing.
+  3. A clean install raises no permission dialog until the player presses the
+     button that needs one.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/04-picker-plugin
+  90-android/09-notifications

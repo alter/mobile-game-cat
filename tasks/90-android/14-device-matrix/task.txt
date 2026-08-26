@@ -1,0 +1,44 @@
+TASK: The smallest set of real Android devices worth testing on
+
+GOAL
+  Decide what "works on Android" means, before it means "works on the one
+  phone we happened to have". Android fragments in ways iOS does not, and an
+  unbounded matrix costs more than the phase.
+
+CONTEXT
+  cat-shelter-mvp.md section 2 (audience: women 30-55, playing in gaps - not
+    an audience holding flagship phones)
+  90-android/02-build-pipeline (the minimum API level this must agree with)
+  90-android/08-haptics (the API 29 split that needs one device either side)
+
+SCOPE
+  + A named list of three to five device profiles, each with the reason it is
+    on the list: one at the minimum API level, one mid-range at the median
+    Android version, one recent, and one without a camera or vibrator if the
+    audience plausibly has one.
+  + Each profile as either a physical device or a named emulator image, so a
+    second person reproduces the same set.
+  + One pass of the whole flow per profile: photo, three levels, a jam, a
+    save-and-resume, a notification.
+  + Results per profile, including refusals - "ML Kit was slow on the old one"
+    is a result.
+  - Not a device farm subscription. This audience does not need coverage; it
+    needs the four metrics measurable.
+  - Not screen-size layout work. If the board breaks at some aspect ratio,
+    that is a bug filed against the view, not a matrix entry.
+
+OUTCOME
+  A written matrix in this directory: profiles, why each, and the result of
+  one full pass on each.
+
+VERIFY (QA)
+  1. Every profile named with API level and how it is obtained.
+  2. Every profile has a filled result column, refusals included.
+  3. Any failure has a task filed against it rather than a note saying it was
+     seen.
+
+ROLE
+  QA, HUMAN
+
+DEPENDS
+  90-android/13-internal-testing

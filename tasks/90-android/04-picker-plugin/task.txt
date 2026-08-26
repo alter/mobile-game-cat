@@ -1,0 +1,48 @@
+TASK: Android photo picker plugin
+
+GOAL
+  The player picks or takes a photo on Android, and C# receives the same bytes
+  it receives on iOS - so CaptureScreen needs no Android branch.
+
+CONTEXT
+  game/Assets/Shell/CatPicker.cs - the C# facade whose #else branch this
+    fills; PickFromGallery, CaptureWithCamera, CameraAvailable, and the four
+    callbacks OnPicked / OnPickCancelled / OnPickFailed / OnPickUnavailable
+  game/Assets/Plugins/iOS/CatPicker.swift - the iOS half, including why the
+    photo comes back as a file path rather than bytes
+  60-shell-build/17-permission-audit/NOTES.md - the standard this holds to:
+    every permission justified or removed
+
+SCOPE
+  + Kotlin or Java under Assets/Plugins/Android, called through
+    AndroidJavaObject or a small JNI bridge, whichever needs less glue.
+  + Gallery via the Photo Picker (ACTION_PICK_IMAGES / PickVisualMedia), which
+    like PHPicker on iOS needs NO storage permission - that parity is the
+    point, not an accident.
+  + Camera via ACTION_IMAGE_CAPTURE with a FileProvider, requesting CAMERA
+    only when the camera button is pressed.
+  + The same four callbacks, by the same names, on the same GameObject.
+  + CameraAvailable answers honestly on devices without a camera.
+  - Not runtime permission UI beyond the system dialog.
+  - Not cropping - that is 06.
+  - Not READ_EXTERNAL_STORAGE or READ_MEDIA_IMAGES. If the picker seems to
+    need them, the wrong picker is being used.
+
+OUTCOME
+  On Android, CatPicker.PickFromGallery and CaptureWithCamera deliver JPEG
+  bytes to the same C# callbacks as on iOS, and the manifest asks for no
+  storage permission.
+
+VERIFY (NATIVE)
+  1. On an emulator with an image in the gallery: pick it, and the app logs
+     the byte count.
+  2. Cancel the picker: OnPickCancelled fires, and the screen shows the "no
+     rush" copy rather than an error.
+  3. `aapt dump permissions` on the built .apk lists CAMERA and no storage
+     permission.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/03-emulator-run

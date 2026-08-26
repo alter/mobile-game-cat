@@ -1,0 +1,46 @@
+TASK: Android click and haptics
+
+GOAL
+  Placing an item feels the same on Android: a short click and a light tap.
+  This is the per-move feedback that makes ten minutes of tidying pleasant
+  rather than mechanical, and it is the only thing the player feels hundreds
+  of times per session.
+
+CONTEXT
+  game/Assets/Shell/Feedback.cs - Place() and Match(), the two call sites,
+    and the synthesised blips that stand in until audio assets exist
+  game/Assets/Plugins/iOS/CatHaptics.swift - the iOS half, and why the
+    generators are kept prepared: one created at the moment of the tap arrives
+    late enough to feel unrelated to it
+  60-shell-build/10-click-haptics/task.txt - the scope rule that only the
+    good moments get feedback
+
+SCOPE
+  + VibrationEffect through AndroidJavaObject: a light predefined click for a
+    placement, something distinctly stronger for a match.
+  + API-level fallback: predefined effects need API 29+, so older devices get
+    a short one-shot rather than nothing.
+  + Respect the system's touch-feedback setting rather than vibrating over it.
+  - Not sound. The synthesised blips are already platform-neutral; they play
+    on Android unchanged.
+  - Not feedback on a refused tap or on the lose screen, on either platform.
+  - Not VIBRATE-permission gymnastics: it is a normal permission, granted at
+    install, and it goes in the audit table like every other one.
+
+OUTCOME
+  Feedback.Place and Feedback.Match produce a distinguishable vibration on
+  Android, degrading to a short buzz below API 29 and to silence where the
+  device has no vibrator.
+
+VERIFY (HUMAN)
+  1. On a physical device: a placement and a match feel different, judged by
+     someone not told which is which.
+  2. With system haptics turned off, the game does not vibrate.
+  3. On an API 28 device or emulator image, the app does not crash and still
+     buzzes.
+
+ROLE
+  NATIVE, HUMAN
+
+DEPENDS
+  90-android/03-emulator-run

@@ -1,0 +1,40 @@
+TASK: Google Play developer account
+
+GOAL
+  The account that lets an Android build reach a tester. Nothing downstream of
+  it can be checked without it, and it takes days that do not shrink with
+  effort - so it starts early or it blocks the end of the phase.
+
+CONTEXT
+  10-accounts/02-apple-developer-program - the iOS equivalent and what it
+    blocked
+  DECISIONS.md D11 (spend caps are the real protection; this is a one-off fee,
+    not a running cost)
+
+SCOPE
+  + A Google Play developer account, one-off registration fee, in Active
+    state.
+  + Identity verification completed - for individual accounts this is the step
+    that actually takes time, and it cannot be hurried.
+  + An app record created with the package name the build already uses, so the
+    two do not diverge.
+  + The fee and the date recorded, so the project's real spend stays known.
+  - Not the store listing, screenshots or description.
+  - Not billing or payouts: the MVP sells nothing. That is a later task if the
+    game survives gate 3.
+  - Not closed or open testing tracks - internal testing only, in 13.
+
+OUTCOME
+  A Play Console account in Active state with an app record whose package name
+  matches the build, and the fee recorded.
+
+VERIFY (HUMAN)
+  1. The console shows the account active and the app record created.
+  2. The package name in the console matches `aapt dump badging` on the .aab.
+  3. The amount and date are written down next to the Apple fee.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  90-android/00-android-decision

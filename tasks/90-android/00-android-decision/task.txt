@@ -1,0 +1,42 @@
+TASK: Decide whether Android happens at all, on numbers
+
+GOAL
+  Put the second platform behind a decision instead of an assumption. Android
+  doubles the native surface of a project whose whole point is finding out in
+  three weeks whether the game is worth building.
+
+CONTEXT
+  GOAL.md ("Building economy, progression or second-wave features before
+    gate 3" is a named anti-pattern; three gates, and only they measure the
+    goal)
+  80-live-validation/03-decision (the gate-3 verdict this waits on)
+  cat-shelter-tech.md "Android later" (second wave, and only once install
+    counts run into the thousands)
+
+SCOPE
+  + A written decision naming: the gate-3 numbers as measured, the reason
+    Android is expected to change them, and the cost in days.
+  + The cost estimate comes from this phase's own task list: count the tasks
+    marked NATIVE and say how long each is expected to take, rather than
+    guessing a total.
+  + An explicit answer to "what would have to be true for this to be wrong".
+  - Not a market-share argument. "Android is bigger" is true everywhere and
+    decides nothing here; what matters is whether OUR four metrics move.
+  - Not a technical feasibility study - that is 01 and 02.
+
+OUTCOME
+  A dated decision file in this directory: go or no-go for the Android phase,
+  citing gate-3 numbers by value, with the day estimate it is based on. Every
+  other task in 90-android is blocked until it says go.
+
+VERIFY (HUMAN)
+  1. The file names at least three gate-3 numbers by value, each with its
+     dashboard source.
+  2. The day estimate is a sum of per-task estimates, not a single guess.
+  3. A reader who disagrees can point at which number would have to change.
+
+ROLE
+  HUMAN
+
+DEPENDS
+  80-live-validation/03-decision

@@ -1,0 +1,51 @@
+TASK: Android client
+
+GOAL
+  The same game on Android, with the same four metrics measurable there. The
+  rules engine, levels, save and Worker are already platform-neutral; what
+  Android needs is a build, four native plugins to replace the iOS ones, a
+  store account, and proof that the photo hook survives the port.
+
+CONTEXT
+  cat-shelter-tech.md "Android later" (ML Kit for stage 1, stage 2 unchanged)
+  knowledge/ios/03-vision-animal-recognition.md section 9 (the ML Kit
+    comparison, and the warning that it gives no ready cat/dog pair with a
+    bounding box the way Vision does)
+  GOAL.md ("Building second-wave features before gate 3" is a named
+    anti-pattern - read 00-android-decision before starting anything else)
+  ROLES.md (NATIVE owns plugins and the build, VIEW owns screens)
+
+SCOPE
+  + 00: whether to do this at all, decided on numbers, before any code.
+  + 01: what ML Kit can actually do on our own 41-image reference set.
+  + 02..03: headless build and a run on an emulator.
+  + 04..08: the four native plugins - picker, recognition, crop, haptics,
+    notifications - each replacing one iOS plugin behind the same C# call.
+  + 09..11: permissions, save parity, analytics parity.
+  + 12..14: Play Console, internal testing, the device matrix.
+  - Not a second art set. Android uses the same PNGs; if something reads badly
+    at Android densities, that is a 40-art bug, not an Android task.
+  - Not rules, levels, solver or Worker changes. If Android needs a rules
+    change, something is wrong with the port, not with the rules.
+  - Not Google Play billing, ads, or Play Games services. The MVP sells
+    nothing on either platform.
+  - Not a shared-code refactor. The C# facades (CatVision, CatPhoto,
+    CatPicker, EveningReminder, Feedback) already have the right shape; each
+    Android task fills in the other half of an existing #if.
+
+OUTCOME
+  An Android build a tester can install from Play internal testing, that
+  photographs a cat, plays all 37 levels, saves, reminds and reports the same
+  nine events as the iOS build.
+
+VERIFY (ARCH)
+  1. The same 41-image reference set run through the Android recognition
+     plugin, with its numbers written next to the iOS ones.
+  2. One tester installs from internal testing and reaches level 3.
+  3. `grep` finds no rules, level or Worker file changed by this phase.
+
+ROLE
+  HUMAN, NATIVE, VIEW, QA, ARCH (review)
+
+DEPENDS
+  80-live-validation/03-decision

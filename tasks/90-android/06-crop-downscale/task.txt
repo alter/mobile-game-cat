@@ -1,0 +1,43 @@
+TASK: Android crop and downscale
+
+GOAL
+  The photo reaching the Worker from Android is the same shape as from iOS:
+  512x512, under 200 KB. Otherwise the model sees two different products and
+  the traits differ by platform for no reason the player caused.
+
+CONTEXT
+  game/Assets/Shell/CatPhoto.cs - the facade and the two constants
+  game/Assets/Plugins/iOS/CatPhoto.swift - the iOS half, and the reasoning
+    that matters more than the code: 512 because image cost is
+    ceil(w/28)*ceil(h/28) tokens, 200 px because accuracy falls off below it,
+    and the widen-rather-than-upscale rule
+  50-photo/07-crop-downscale/NOTES.md - the measured result: the under-200px
+    guard fired on 12 of 27 real boxes, so it is not a corner case
+
+SCOPE
+  + Crop to the recognition box, widen it when either side is under 200 px,
+    square it off, scale to 512x512, JPEG under 200 KB with stepped quality.
+  + Same behaviour as iOS on the same inputs - not "similar".
+  + Run over the crops of the reference set and compare sizes with the iOS
+    run: every output 512x512 and under the cap.
+  - Not orientation handling - that belongs to 05, as it does on iOS.
+  - Not a shared C# implementation. Decoding and re-encoding a JPEG in
+    managed code costs more than the platform call and would have to be
+    measured before being worth it.
+
+OUTCOME
+  CatPhoto.Prepare returns a 512x512 JPEG under 200 KB on Android, byte sizes
+  filed beside the iOS ones.
+
+VERIFY (ARCH)
+  1. Every accepted reference image processed on Android: all 512x512, all
+     under 200 KB, counts recorded.
+  2. The widen guard fires on the same images it fired on for iOS, or the
+     difference is explained.
+  3. Five crops eyeballed - the cat is whole and centred, not clipped.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/05-recognition-plugin

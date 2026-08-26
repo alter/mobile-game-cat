@@ -1,0 +1,46 @@
+TASK: Android evening reminder
+
+GOAL
+  The same one-a-day evening reminder on Android. It is the only mechanism in
+  the MVP built to cause a return, and metric 3 is one of the four numbers
+  that decide the project - a reminder that fires on one platform only makes
+  that metric a platform comparison.
+
+CONTEXT
+  game/Assets/Shell/EveningReminder.cs - the schedule, the ask-after-level-2
+    rule, and the reschedule-on-launch trick that makes it fire only on days
+    of inactivity
+  60-shell-build/09-notification/NOTES.md - including the package default
+    that asked for permission on the first frame and had to be turned off
+  knowledge/ios/05-notifications-permissions.md section 2 - the package is
+    the same one on both platforms
+
+SCOPE
+  + The Android half of EveningReminder: a notification channel, a daily
+    trigger at the same hour, replaced by identifier on every launch.
+  + POST_NOTIFICATIONS requested at the same moment as on iOS - after level 2
+    - because API 33+ requires a runtime request.
+  + The same copy, from the same Copy table key. No Android-specific wording.
+  + Exact-alarm APIs deliberately NOT used: an evening reminder does not need
+    to be exact, and asking for that permission is a review question nobody
+    wants to answer.
+  - Not push. There is no server sending anything, on either platform.
+  - Not a channel per notification type. One channel, named for what it is.
+
+OUTCOME
+  On Android, permission is asked after level 2 and never again, and a
+  reminder fires that evening and daily after, unless the player opened the
+  game that day.
+
+VERIFY (NATIVE)
+  1. On an emulator: no permission dialog before level 2 is cleared.
+  2. With the debug delay file in place, the notification is delivered while
+     the app is backgrounded - the same hook the iOS side uses.
+  3. Opening the app and backgrounding it again moves the pending notification
+     rather than adding a second one.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/03-emulator-run

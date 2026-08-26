@@ -1,0 +1,45 @@
+TASK: Headless Android build
+
+GOAL
+  One command produces an installable Android build, so every later Android
+  task can be checked by running it rather than by reading it - the same rule
+  that caught four defects on the iOS side.
+
+CONTEXT
+  game/Assets/Editor/BuildScript.cs - BuildIOSXcodeProject and
+    BuildIOSSimulatorProject, the shape this follows
+  cat-shelter-tech.md section 5 (the iOS equivalent, and why builds stay on
+    the command line)
+  AGENT-BRIEF.md ("Never verify anything with Unity -runTests" - the same
+    warning applies to reading a build log instead of installing the result)
+
+SCOPE
+  + BuildScript.BuildAndroidPlayer producing an .apk for local install.
+  + BuildScript.BuildAndroidBundle producing an .aab for Play.
+  + IL2CPP, ARM64 only: Play requires 64-bit, and ARMv7 doubles build time
+    for devices this audience does not have.
+  + Minimum API level written down with the reason, next to iOS 15+.
+  + Both entry points documented in cat-shelter-tech.md beside the iOS ones,
+    with the exact commands.
+  - Not signing for release - that is 13-internal-testing, which needs the
+    Play account.
+  - Not the emulator run - that is 03.
+  - Not a CI job.
+
+OUTCOME
+  `Unity -batchmode -quit -executeMethod BuildScript.BuildAndroidPlayer`
+  writes an .apk, and BuildAndroidBundle writes an .aab, both from a clean
+  checkout with no editor open.
+
+VERIFY (NATIVE)
+  1. Both commands run to completion and the two files exist, with sizes
+     recorded.
+  2. `aapt dump badging` on the .apk shows the expected package name, version
+     and minimum API level.
+  3. The build log contains no `error CS`, and the run exits 0.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/00-android-decision

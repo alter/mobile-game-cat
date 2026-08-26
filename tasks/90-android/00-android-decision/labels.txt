@@ -1,0 +1,8 @@
+phase:android
+role:HUMAN
+type:decision
+priority:P2
+status:todo
+verify:pending
+depends:80-live-validation/03-decision
+milestone:M9

@@ -1,0 +1,41 @@
+TASK: The save survives on Android exactly as it does on iOS
+
+GOAL
+  Prove that the platform-neutral half really is neutral. The board, the save
+  format and the rules are shared code; if anything about them turns out to be
+  iOS-shaped, this is where it shows, cheaply.
+
+CONTEXT
+  game/Assets/Core/GameSave.cs - the line format, and why it is hand-written
+    rather than JsonUtility (Core carries no engine reference)
+  game/Assets/Shell/SaveFile.cs - the only code that touches the disk, and the
+    atomic replace
+  60-shell-build/08-mid-level-save/NOTES.md - how this was checked on iOS:
+    inject a known position into the app container, relaunch, compare
+
+SCOPE
+  + The same injection check on Android: push a known save with `adb push`
+    into the app's files directory, relaunch, confirm the exact position.
+  + A corrupted save falls back to a fresh board without crashing, as on iOS.
+  + A save written on iOS restored on Android and back, byte for byte - the
+    format is text and platform-neutral, and this is the cheap proof.
+  - Not cloud save or cross-device sync. One local file, as scoped in 08.
+  - Not changing the format. If Android needs a format change, something
+    platform-specific leaked into Core and that is the finding.
+
+OUTCOME
+  A killed-and-reopened Android app resumes the same board, a corrupted file
+  starts fresh, and a save file moves between platforms unchanged.
+
+VERIFY (QA)
+  1. Inject a mid-level save, relaunch, and the screen shows that pile with
+     that many items left - screenshot filed.
+  2. Inject garbage: the app starts on level 1 and rewrites the file.
+  3. `diff` an iOS-written and an Android-written save of the same position:
+     identical.
+
+ROLE
+  CORE, QA
+
+DEPENDS
+  90-android/03-emulator-run

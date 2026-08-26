@@ -1,0 +1,45 @@
+TASK: A tester installs the build from Play internal testing
+
+GOAL
+  The Android equivalent of TestFlight: a build a real person installs on a
+  real phone from the store, not a sideloaded apk. Everything the emulator
+  cannot answer - vibration, camera, ML Kit on a real chip, notifications
+  surviving a night - waits on this.
+
+CONTEXT
+  60-shell-build/14-testflight - the iOS equivalent, still open for the same
+    reason (no account)
+  90-android/02-build-pipeline (the .aab this uploads)
+  90-android/10-permission-audit (the Data Safety answers this needs)
+
+SCOPE
+  + An .aab uploaded to the internal testing track, signed by Play App
+    Signing.
+  + The Data Safety form filled from the permission audit's table, not
+    independently - two different answers to the same question is how a review
+    rejection happens.
+  + At least one tester on the list who is not the author.
+  + The install link recorded here.
+  - Not closed testing, open testing or production.
+  - Not the twelve-tester-two-week requirement for personal accounts going to
+    production: internal testing does not need it, and production is not in
+    this phase.
+  - Not a store listing beyond the minimum internal testing demands.
+
+OUTCOME
+  A build installable from Play internal testing by an invited tester, with
+  the link and the tester's confirmation filed here.
+
+VERIFY (HUMAN)
+  1. A tester who is not the author installs from the link and reaches level
+     3.
+  2. That tester photographs a cat and reports which of the four outcomes they
+     saw.
+  3. The Data Safety answers match the audit table row for row.
+
+ROLE
+  NATIVE, HUMAN
+
+DEPENDS
+  90-android/12-play-console
+  90-android/10-permission-audit

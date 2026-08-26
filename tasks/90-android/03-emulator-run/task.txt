@@ -1,0 +1,40 @@
+TASK: The game runs on an Android emulator
+
+GOAL
+  A screenshot of the real board on Android. Until something is installed and
+  looked at, "it builds" means nothing - on iOS a build that compiled cleanly
+  still showed a black screen, twice.
+
+CONTEXT
+  90-android/02-build-pipeline (the .apk this installs)
+  60-shell-build/13-headless-build/NOTES.md (the iOS equivalent, and the
+    simulator commands that shape these)
+
+SCOPE
+  + An AVD created from the command line, named and recorded, so a second
+    person makes the same one.
+  + adb install, launch, screenshot - all scriptable, no Android Studio.
+  + The 37 levels load and the first board is playable: tiles respond, a
+    triple matches, the shelf fills.
+  + The commands written into cat-shelter-tech.md section 5 beside the iOS
+    ones.
+  - Not a physical device - that is 14-device-matrix.
+  - Not performance work. Slow on an emulator is not slow on a phone.
+  - Not the photo flow: the emulator has no camera worth testing and ML Kit
+    behaviour there is 01's problem.
+
+OUTCOME
+  A screenshot of level 1 running on the emulator, filed in this directory,
+  plus the exact command sequence that produced it.
+
+VERIFY (NATIVE)
+  1. `adb shell pm list packages` shows the app installed.
+  2. The screenshot shows the board with 36 tiles and a nine-slot shelf.
+  3. Taking three tiles of one kind removes them - shown by a second
+     screenshot or by the save file's contents.
+
+ROLE
+  NATIVE
+
+DEPENDS
+  90-android/02-build-pipeline

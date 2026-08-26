@@ -1,0 +1,43 @@
+TASK: The same nine events arrive from Android
+
+GOAL
+  The four go/no-go metrics must be readable across both platforms, or the
+  numbers describe iOS and Android separately and neither has enough players
+  to mean anything.
+
+CONTEXT
+  game/Assets/Core/Analytics.cs - the nine names, pinned, and the rule that
+    there are no others
+  70-analytics/02-nine-events/NOTES.md - the call sites, and the one that was
+    in the wrong place: photo:screen_shown fired after a photo was handled,
+    which would have made metric one read like metric two
+  DECISIONS.md D9 (GameAnalytics, and no advertising id on either platform)
+
+SCOPE
+  + The GameAnalytics SDK initialised on Android with its own game key.
+  + The same nine events firing from the same call sites - the call sites are
+    shared C#, so this is about the SDK reaching the dashboard, not about
+    adding calls.
+  + The dashboard showing platform as a dimension, so a metric can be read per
+    platform and combined.
+  + Advertising id off, explicitly, as on iOS.
+  - Not new events. Nine, on both platforms.
+  - Not a second analytics vendor.
+  - Not the funnel reconciliation - that is 70-analytics/04, and it covers
+    both platforms once both report.
+
+OUTCOME
+  One manual Android playthrough produces all nine event types in the
+  GameAnalytics dashboard, tagged Android, with no advertising id collected.
+
+VERIFY (GROWTH)
+  1. All nine appear in the dashboard from one Android session.
+  2. level_start/win/fail land under Progression, as on iOS.
+  3. The dashboard shows no advertising identifier for the Android build.
+
+ROLE
+  VIEW
+
+DEPENDS
+  90-android/03-emulator-run
+  70-analytics/02-nine-events

@@ -115,3 +115,52 @@ the miss rate above: 18/20, 5/5, 5/5.
 **3. Bounding boxes match the animal by eye on at least five images —** see
 `box-check.jpg` beside this file: the reported rectangles drawn back onto the
 photos.
+
+---
+
+## The macOS probe now exists, checked in — 2026-08-27
+
+`VERIFY.md` found that the table above cites "the macOS probe" as its source
+and no such program was anywhere in this repository. It now is:
+`tools/vision-probe/vision-probe.swift`, compiled with `swiftc`, run as
+`vision-probe fixtures/reference-photos`. It calls the same
+`VNRecognizeAnimalsRequest` `Plugins/iOS/CatVision.swift` calls, on the same
+machine class this table's numbers came from — but it is still **not the
+plugin**: no `@_cdecl` bridge, no C#/IL2CPP marshalling, and macOS Vision is
+not guaranteed to run the same model an iPhone's neural engine does. The
+plugin's own record is unchanged by any of this: **still 0 of 41,
+everywhere it has ever been run.**
+
+**Re-run today, compared against the table above, per image:**
+
+- **Every categorical result matches exactly** — 18/20 cats (same two
+  misses, `cat_10` and `cat_20`), 5/5 dogs, 0/5 empty, 4/5 blurry (same miss,
+  `blurry_04`), 3/3 multi, 2/3 ofphoto (same miss, `ofphoto_02`). Rounded
+  category means match too: cat 0.70, dog 0.74, blurry 0.73, multi 0.78,
+  ofphoto 0.63 — identical to the table above.
+- **The three values that set the 0.60 threshold reproduce almost exactly**:
+  `cat_03`, `cat_12`, `cat_14` came back 0.598, 0.602, 0.597 today — the
+  floor the threshold sits on did not move.
+- **But 9 of 41 individual confidence values differ from this table by more
+  than rounding, up to 0.09**: `cat_17` was 0.72 here, 0.81 today; `cat_08`
+  0.73 → 0.79; `dog_04` 0.74 → 0.78; `blurry_03` 0.74 → 0.78; `cat_04` 0.71 →
+  0.75; `multi_01` 0.79 → 0.75; `multi_02` 0.75 → 0.79; `blurry_01` 0.75 →
+  0.73; `dog_05` 0.75 → 0.73. None of the nine cross 0.60 in either
+  direction, so no `PhotoOutcome` changes — **said plainly because the
+  instruction was to say it plainly, not because it moves the verdict**:
+  the exact numbers `PhotoJudgeTests.cs` inlines as "Measured" are not a
+  bit-exact record of anything reproducible; they are one run, on one
+  machine, on one day (`sw_vers` here reports macOS 26.0.1, undocumented for
+  the original run), and Vision's own output is not pinned across machines
+  or OS builds. The categories and the threshold floor hold up under a
+  second, independent run; the individual literals do not.
+
+```
+$ cd tools/vision-probe && swiftc -O vision-probe.swift -o vision-probe
+$ ./vision-probe ../../fixtures/reference-photos > out.jsonl
+$ wc -l out.jsonl
+41 out.jsonl
+```
+
+**Still open, unchanged by any of this: VERIFY 1**, a real device run,
+owned by `60-shell-build/14-testflight`.

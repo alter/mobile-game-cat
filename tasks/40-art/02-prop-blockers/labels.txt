@@ -3,6 +3,6 @@ role:ART
 type:feature
 priority:P0
 status:done
-verify:pending
+verify:passed
 depends:40-art/01-props
 milestone:M4

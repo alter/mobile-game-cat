@@ -166,6 +166,20 @@ namespace CatShelter.View
             yield return null;      // let the busy state paint before Vision blocks
 
             var answer = Recognise(photo);
+            if (answer.Failed)
+            {
+                // 50-photo/05 VERIFY: Vision could not run at all - decode
+                // failure, not iOS, or the request itself threw. Not a
+                // judgement that there is no cat, so it does not get the "no
+                // cat in this one" copy; same honest message as a crop
+                // failure below, since neither is the player's doing.
+                Debug.LogWarning($"[CaptureScreen] vision failed: {answer.error}");
+                _message.text = Shell.Copy.Of("photo.our_fault");
+                Analytics.PhotoRejected();
+                SetBusy(false);
+                yield break;
+            }
+
             var best = answer.FoundAnimal ? answer.Best : default;
             var outcome = PhotoJudge.Judge(
                 answer.FoundAnimal ? best.identifier : null,

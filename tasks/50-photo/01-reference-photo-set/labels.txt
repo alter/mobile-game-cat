@@ -3,5 +3,5 @@ role:HUMAN
 type:chore
 priority:P0
 status:done
-verify:pending
+verify:failed
 milestone:M5

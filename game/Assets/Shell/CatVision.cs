@@ -26,6 +26,15 @@ namespace CatShelter.Shell
 
         public bool FoundAnimal => ok && detections != null && detections.Length > 0;
 
+        // 50-photo/05 VERIFY item: "found nothing" and "could not look" used
+        // to be the same thing to every caller — both left FoundAnimal false,
+        // and nothing read `ok` or `error`. They are different: this is not a
+        // judgement about the photo, and the player should not be told her
+        // cat wasn't recognised when the truth is the device couldn't run
+        // Vision at all (decode failure, empty bytes, not iOS, or
+        // handler.perform threw).
+        public bool Failed => !ok;
+
         // 50-photo/06 VERIFY item 2: this used to be detections[0] on the
         // strength of a comment ("plugin sorts by confidence") — true in
         // Plugins/iOS/CatVision.swift today, checked nowhere. Picking the max

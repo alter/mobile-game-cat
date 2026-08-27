@@ -16,6 +16,16 @@ namespace CatShelter.Shell
     /// Every path ends in exactly one callback — picked, cancelled, failed or
     /// unavailable — so the screen never sits in a loading state with nothing
     /// coming.
+    ///
+    /// <c>onFailed</c> carries a fixed lowercase reason code
+    /// ("unsupported"/"read_failed"/"save_failed"/"no_window"/"unavailable"),
+    /// never a sentence: task 60-shell-build/16's VERIFY found this class
+    /// exempted from <c>test_copy_table.py</c> on the strength of "failure
+    /// reasons handed to Copy.Of" — true, but the reasons themselves used to
+    /// be raw English (some from native Swift, one carrying a
+    /// system-language OS error string), which defeats a copy table on
+    /// arrival. The caller maps every code to one fixed, already-tabled
+    /// message; no reason string is ever displayed verbatim.
     /// </summary>
     public sealed class CatPicker : MonoBehaviour
     {
@@ -68,7 +78,7 @@ namespace CatShelter.Shell
 #if UNITY_IOS && !UNITY_EDITOR
             CatPicker_openGallery();
 #else
-            Instance.Fail("gallery is iOS-only");
+            Instance.Fail("unsupported");
 #endif
         }
 
@@ -79,7 +89,7 @@ namespace CatShelter.Shell
 #if UNITY_IOS && !UNITY_EDITOR
             CatPicker_openCamera();
 #else
-            Instance.Fail("camera is iOS-only");
+            Instance.Fail("unsupported");
 #endif
         }
 
@@ -115,14 +125,24 @@ namespace CatShelter.Shell
             }
             catch (Exception e)
             {
-                Fail($"could not read the picked photo: {e.Message}");
+                // e.Message is diagnostic only and must never reach the
+                // player: it is a .NET/OS message, not copy, and not
+                // English on every device.
+                Debug.LogWarning($"[CatPicker] read_failed: {e.Message}");
+                Fail("read_failed");
             }
         }
 
         private void OnPickCancelled(string _) => Fail("cancelled");
 
+        // reason is already a fixed code from CatPicker.swift ("read_failed",
+        // "save_failed", "no_window") — never a sentence; see the class
+        // summary above.
         private void OnPickFailed(string reason) => Fail(reason);
 
-        private void OnPickUnavailable(string what) => Fail($"{what} is not available");
+        // what is "camera" today and only ever a bare code, not prose; the
+        // caller maps every non-"cancelled" reason to one fixed message
+        // regardless of its exact value, so no sentence is built from it.
+        private void OnPickUnavailable(string what) => Fail("unavailable");
     }
 }

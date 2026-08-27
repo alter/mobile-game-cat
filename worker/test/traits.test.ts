@@ -186,6 +186,98 @@ describe("what reaches the model, and what comes back", () => {
 	});
 });
 
+// 50-photo/03: the schema and validate.py's rules are asked of the model,
+// not guaranteed by it — a model can return syntactically valid JSON that
+// still violates the enum, additionalProperties, or the cap maxItems cannot
+// express. Before src/validate.ts existed, index.ts parsed the model's JSON
+// and returned it as-is: every case below would have reached the game as a
+// 200, contradicting this task's own OUTCOME line ("never an out-of-enum
+// value"). Kept as its own describe block because it is a distinct claim
+// from "the request sent to the model looks right" above.
+describe("what the endpoint refuses even when the model's JSON parses", () => {
+	it("rejects an out-of-enum value with 502, not the value itself", async () => {
+		stubModel({
+			content: [{ type: "text", text: JSON.stringify({ ...GOOD_TRAITS, base_color: "orange" }) }],
+		});
+
+		const response = await worker.fetch(
+			post({ image_base64: ONE_PIXEL_JPEG_BASE64, device_id: "d1" }),
+			env(),
+		);
+
+		expect(response.status).toBe(502);
+		expect(JSON.stringify(await response.json())).not.toContain("orange");
+	});
+
+	it("rejects a field the schema does not declare", async () => {
+		stubModel({
+			content: [{ type: "text", text: JSON.stringify({ ...GOOD_TRAITS, breed: "maine coon" }) }],
+		});
+
+		const response = await worker.fetch(
+			post({ image_base64: ONE_PIXEL_JPEG_BASE64, device_id: "d1" }),
+			env(),
+		);
+
+		expect(response.status).toBe(502);
+	});
+
+	it("rejects white_markings past the cap — maxItems is not a supported keyword, so this is the check", async () => {
+		stubModel({
+			content: [{
+				type: "text",
+				text: JSON.stringify({ ...GOOD_TRAITS, white_markings: ["chest", "paws", "face", "chest"] }),
+			}],
+		});
+
+		const response = await worker.fetch(
+			post({ image_base64: ONE_PIXEL_JPEG_BASE64, device_id: "d1" }),
+			env(),
+		);
+
+		expect(response.status).toBe(502);
+	});
+
+	it("rejects repeated white_markings even under the cap", async () => {
+		stubModel({
+			content: [{ type: "text", text: JSON.stringify({ ...GOOD_TRAITS, white_markings: ["chest", "chest"] }) }],
+		});
+
+		const response = await worker.fetch(
+			post({ image_base64: ONE_PIXEL_JPEG_BASE64, device_id: "d1" }),
+			env(),
+		);
+
+		expect(response.status).toBe(502);
+	});
+
+	it("accepts every white_marking in the enum at once — the cap is inclusive, not one short", async () => {
+		stubModel({
+			content: [{ type: "text", text: JSON.stringify({ ...GOOD_TRAITS, white_markings: ["chest", "paws", "face"] }) }],
+		});
+
+		const response = await worker.fetch(
+			post({ image_base64: ONE_PIXEL_JPEG_BASE64, device_id: "d1" }),
+			env(),
+		);
+
+		expect(response.status).toBe(200);
+	});
+
+	it("accepts an empty white_markings — a cat with no white on it is not an error", async () => {
+		stubModel({
+			content: [{ type: "text", text: JSON.stringify({ ...GOOD_TRAITS, white_markings: [] }) }],
+		});
+
+		const response = await worker.fetch(
+			post({ image_base64: ONE_PIXEL_JPEG_BASE64, device_id: "d1" }),
+			env(),
+		);
+
+		expect(response.status).toBe(200);
+	});
+});
+
 // The tests above stub the limiter, so they prove the handler honours whatever
 // verdict it is given and passes the right key. They cannot prove the binding
 // is configured to the numbers the task asked for — that lives in

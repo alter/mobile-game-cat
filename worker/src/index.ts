@@ -12,6 +12,7 @@
  * player's cat would be a different product with a different privacy story.
  */
 import { TRAITS_SCHEMA } from "./schema";
+import { TraitsError, validateTraits } from "./validate";
 
 export interface Env {
 	/** wrangler secret put ANTHROPIC_API_KEY — never in the repo. */
@@ -143,12 +144,30 @@ export default {
 			return json({ error: "model returned no text" }, 502);
 		}
 
+		let parsed: unknown;
 		try {
 			// Parsed here so a malformed answer becomes a 502 rather than
 			// reaching the game as something it has to guess at.
-			return json(JSON.parse(text), 200);
+			parsed = JSON.parse(text);
 		} catch {
 			return json({ error: "model returned unparseable JSON" }, 502);
+		}
+
+		try {
+			// 50-photo/03: schema.json's enums and additionalProperties, plus
+			// the maxItems-shaped cap validate.ts enforces in their place —
+			// checked here, not just asked of the model, so an out-of-enum or
+			// over-capped response becomes a 502 rather than reaching the game
+			// as something it has to trust.
+			return json(validateTraits(parsed), 200);
+		} catch (error) {
+			if (error instanceof TraitsError) {
+				// The offending value stays server-side, not in the response —
+				// same rule as the model's own error text above: the game gets
+				// a status to fall back on, not detail.
+				return json({ error: "model returned traits outside the schema" }, 502);
+			}
+			throw error;
 		}
 	},
 };

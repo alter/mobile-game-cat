@@ -3,6 +3,6 @@ role:VIEW
 type:feature
 priority:P0
 status:done
-verify:pending
+verify:failed
 depends:50-photo/05-vision-plugin
 milestone:M5

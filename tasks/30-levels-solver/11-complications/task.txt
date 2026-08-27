@@ -1,4 +1,4 @@
-TASK: Three complications, one per room band
+TASK: One complication, introduced then combined
 
 GOAL
   Prove the rhythm this genre runs on - a new complication every so often, not

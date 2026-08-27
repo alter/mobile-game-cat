@@ -1,199 +1,227 @@
-# VERIFY — 20-rules-core/03-shelf-match
+# Independent verification, 2026-08-27
 
-Result: **failed** — item 1 is not fully covered: no unit test matches a triple
-across a slot-row boundary, although the test that claims to do so is named for
-it. The rule itself is correct when probed; what is missing is the test.
+**Verifier:** a fresh agent context. I wrote none of `game/Assets/Core/Shelf.cs`,
+none of `game/Assets/Tests/Core/BoardTests.cs`, none of `tools/solver/rules.py`,
+and none of `tools/tests/conformance_test.py`. I did not run a Unity build, the
+emulator, or `adb`. I ran `dotnet test build/core-tests/core-tests.csproj -v q
+--nologo` and `.venv/bin/python -m pytest tools/ -q` myself, and built two
+throwaway probes entirely outside this repository (`/tmp`-scoped, listed under
+"How to reproduce") to observe behaviour directly rather than trust either the
+old `VERIFY.md` in this directory or `NOTES.md`-style claims elsewhere.
 
-Verifier: an independent agent context, 2026-08-26, against `dev` at commit
-`27f9904`. It did **not** write `game/Assets/Core/Shelf.cs` or any other Core
-source, did **not** write `game/Assets/Tests/Core/BoardTests.cs`, and changed
-none of them during this check. It did not run the Unity editor and did not look
-at the shelf on screen. Its only writes were this file and `labels.txt`.
+**Provenance.** This file replaces an earlier `VERIFY.md` (2026-08-26, commit
+`27f9904`) that found `Match_CompletesAcrossRowBoundary` didn't actually cross
+a row — three copies placed into an empty shelf land in slots 0–2, all inside
+row 0. That finding was real; the fix (renaming the within-row test, writing a
+genuine boundary-spanning one) was applied the same day, but the fixing
+context could not sign off its own fix, so `verify:` stayed `pending`. This
+check re-examines the fixed state independently, and adds three things the
+2026-08-26 pass didn't cover: whether the task's own text still matches D16
+(decided the next day), whether capacity growth stays test-only per D4, and
+whether the Python mirror is actually compared on shelf mechanics.
 
-## Verdict per VERIFY item
+## Per-item verdict
 
 | # | Item | Result |
 |---|---|---|
-| 1 | Unit tests: match at a slot boundary, full shelf, match after a slot frees | **fail** — one of the three sub-cases is not tested |
-| 2 | A shelf grown by three accepts three more items | pass |
+| Task VERIFY 1 | match at a slot boundary, full shelf, match after a slot frees | **pass** — all three now real |
+| Task VERIFY 2 | a shelf grown by three accepts three more items | **pass** — true of the code, confirmed by direct probe |
+| D16 | does `03-shelf-match`'s own text still imply compaction/sorting? | **pass — never claimed it** |
+| D4 | `AddSlots`/`AddShelfSlots` called only from tests; the three booster sub-cases tested | **pass** |
+| Conformance | is shelf placement/matching inside the C#↔Python comparison? | **No — outcomes and counts only, not mechanics.** Proven by mutation, not inferred. |
 
-### 1. The three sub-cases — fail on the boundary case
+### Task VERIFY 1 — all three sub-cases now real
 
-| sub-case | test | line | real? |
-|---|---|---|---|
-| full shelf | `FullShelf_PlacementRefused` | `BoardTests.cs:203` | yes |
-| match after a slot frees | `Place_AfterMatchFreesSlots_ReusesFreeSlot` | `BoardTests.cs:166` | yes |
-| match at a slot boundary | `Match_CompletesAcrossRowBoundary` | `BoardTests.cs:180` | **no — it never crosses one** |
+Read `BoardTests.cs`'s current `ShelfTests` fixture directly:
 
-`Shelf.SlotsPerRow` is `3` (`game/Assets/Core/Shelf.cs:15`), so row 0 is slots
-0–2. `Shelf.TryPlace` always fills the leftmost free slot
-(`Shelf.cs:60`, `Array.IndexOf(_slots, null)`). The test places three `m` into an
-empty nine-slot shelf, so they land in slots 0, 1, 2 — entirely inside row 0.
-Its own comment (`BoardTests.cs:182`) claims "a triple spanning row 0 and row 1
-matches"; the code it runs does not span anything.
+- **Full shelf**: `FullShelf_PlacementRefused` (line 234) — fills all nine,
+  asserts `IsFull`, asserts a tenth is refused. Unchanged from the prior
+  check, still correct.
+- **Match after a slot frees**: `Place_AfterMatchFreesSlots_ReusesFreeSlot`
+  (line 166) — three `"x"` placed, the third completes and clears the match,
+  `Occupied` is 0, then `"y"` lands at slot 0. Unchanged, still correct.
+- **Match at a slot boundary** (line 193, now named
+  `Match_CompletesAcrossRowBoundary`): the fix from 2026-08-26 is real. It
+  fills slots 0–4 with `a,b,c,a,b`, **asserts the two `a` copies sit at
+  indices 0 and 3** (`Assert.That(occupied, Is.EqualTo(new[] { 0, 3 }))`)
+  before ever placing the third `a`, then places it and asserts all three `a`
+  are gone. This genuinely straddles `SlotsPerRow = 3`, unlike the version the
+  2026-08-26 check flagged.
 
-Measured by a probe over the same Core sources (output quoted in "How to
-reproduce", step 2):
+### Task VERIFY 2 — true of the code; no single committed test states it plainly
 
-```
-E1 before third copy: [m,m,.,.,.,.,.,.,.]  (SlotsPerRow=3)
-E2 occupied slot indices before the match: 0,1 -> rows 0
-E3 matched=m after: [.,.,.,.,.,.,.,.,.]
-```
-
-The rule the item is about does hold — the same probe builds a triple at slots
-2, 3 and 5, straddling the row-0/row-1 boundary, and it matches:
-
-```
-E4 before the third m: [x,y,m,m,z,.,.,.,.]
-E5 placed=True matched=m after: [x,y,.,.,z,.,.,.,.]
-E6 before: [f0,f1,f2,f3,f4,f5,m,m,.]
-E7 matched=m after: [f0,f1,f2,f3,f4,f5,.,.,.]
-```
-
-So the implementation is right and the committed test suite does not
-demonstrate it. The whole suite is green — `Passed! - Failed: 0, Passed: 60,
-Skipped: 0, Total: 60`, `ShelfTests` alone `Passed: 6` — which is exactly why
-this needed reading rather than counting. `Shelf.TryMatch` groups over all slots
-with no row arithmetic anywhere (`Shelf.cs:74-96`), which is consistent with the
-SCOPE line "Matching is NOT per row", but a test that asserts it is the thing
-item 1 asks for.
-
-Fix is three lines: place two filler items first, or assert the occupied slot
-indices, so the triple really lands across slot 3.
-
-### 2. A shelf grown by three accepts three more items — pass
-
-Probe output (same run, step 2):
+No test in the current suite grows a *full* shelf by exactly three and takes
+exactly three more, refusing a fourth — `AddSlots_GrowsCapacity_KeepsPlacedItems`
+(line 247) grows by **one** and accepts **one**; `Booster_ResumesAJammedBoard`
+grows by three but only takes **one** item afterward, because its point is
+resuming a jam, not saturating the new capacity. So I checked the literal
+claim myself, outside the repo:
 
 ```
-C1 capacity=9 occupied=9 isFull=True
-C2 place on full shelf = False
-C3 after AddSlots(3): capacity=12 accepted=3 occupied=12
-C4 fourth extra item accepted = False
+before: capacity=9 occupied=9 full=True
+  item 0 placed=True
+  item 1 placed=True
+  item 2 placed=True
+  item 3 placed=False
+after +3: capacity=12 accepted(of 4 tried)=3 occupied=12
 ```
 
-Nine distinct kinds fill the shelf, a tenth is refused, `AddSlots(3)` takes
-capacity to 12, exactly three further items are accepted and a fourth is
-refused. `Shelf.AddSlots` copies the existing contents into the wider array
-(`Shelf.cs:32-39`), so nothing placed is lost.
+Holds. `Shelf.AddSlots` is a plain array copy with no capacity-dependent
+branching (`Shelf.cs:32-39`), so this isn't surprising, but "shouldn't be
+surprising" is not the same as tested, and it wasn't, directly, anywhere.
 
-The committed test for this, `AddSlots_GrowsCapacity_KeepsPlacedItems`
-(`BoardTests.cs:216-227`), grows by **one** and accepts **one**, not three; and
-`Booster_ResumesAJammedBoard` (`BoardTests.cs:330`) grows by three but takes only
-one item afterwards. Item 2 is worded as an observation rather than as "a unit
-test exists", so the probe above satisfies it — but note that no committed test
-asserts the "+3 accepts 3" case either.
+### D16 — `03-shelf-match`'s own text never claimed compaction
+
+`task.txt`'s SCOPE and OUTCOME say nothing about slot order after a match —
+only "Shelf.TryPlace, Shelf.TryMatch across all nine slots" and "a single
+matching rule over all slots." Its CONTEXT, `cat-shelter-mvp.md` §3, is
+equally silent: "Three identical items on a shelf — they disappear, the slot
+frees up," nothing about the other slots shifting. Neither document was ever
+contradicted by D16; D16 settled a question this task's own text simply never
+raised. `Shelf.cs` itself now carries D16 verbatim in `TryMatch`'s XML doc
+remarks ("the shelf neither compacts nor sorts... DECISIONS.md D16"), so the
+decision is recorded where the behaviour lives, not just in `task.txt`. No
+correction needed here — reporting a clean result plainly, per the standing
+rule that one is worth as much as a finding.
+
+### D4 — capacity growth stays test-only, and the three sub-cases are real
+
+```
+$ grep -rn "AddShelfSlots" game/Assets
+$ grep -rn "\.AddSlots(" game/Assets
+```
+
+Every call site is `game/Assets/Tests/Core/{BoardTests,BoardSaveTests,SaveResumeTests}.cs`,
+plus the two method definitions themselves. `game/Assets/View/DebugGameView.cs:375`
+only *mentions* `Board.AddShelfSlots` in a comment explaining why the lose-screen
+booster button was removed (D4, revised 2026-08-27) — it does not call it.
+D4's three required agreements are each their own test in `BoardTests.cs`,
+read and confirmed correct:
+
+- `Booster_ResumesAJammedBoard` (442) — jammed board, `AddShelfSlots(3)`,
+  `IsOver` false, `Outcome` null, a further move succeeds.
+- `Booster_LeavesAWonBoardWon` (456) — won board, `AddShelfSlots(3)`, still
+  `IsOver`, still `Win`.
+- `Booster_StaysJammedWhenItOpensNoMove` (471) — jam where every remaining
+  item is permanently locked, `AddShelfSlots(3)`, still `IsOver`, still
+  `ShelfJammed`.
+
+### Conformance — outcomes and counts are compared, shelf mechanics are not
+
+`tools/tests/conformance_test.py` drives both engines through the same move
+scripts via `build/solver-bridge` and asserts three things per case:
+`outcome`, `occupied` (a **count**: `capacity - shelf.count(None)`), and
+`triples` (a **count**). It never serialises or compares the shelf array's
+actual contents or slot order on either side.
+
+**Mutation test, run outside the repository** (full recipe below): copied
+`tools/` and `build/solver-bridge/` to `/tmp`, changed Python's placement rule
+in the copy from leftmost-free (`self.shelf.index(None)`) to rightmost-free —
+a real, checkable divergence from C#'s `Array.IndexOf(_slots, null)`, which
+still stays unchanged and real. Confirmed the mutation actually changes
+behaviour first (placing `a,b,c` now lands them at slots `8,7,6` instead of
+`0,1,2`). Then ran the full conformance suite against the mutated copy:
+
+```
+....                                                                     [100%]
+4 passed in 4.62s
+```
+
+**All four tests still pass.** A C#/Python engine that disagree on which
+physical slot every item ends up in are indistinguishable to this harness, as
+long as they agree on the win/jam outcome and the final counts. That is a
+real, currently-true gap — not a defect in `03-shelf-match` (its own VERIFY
+items say nothing about Python), but a fact worth recording plainly: **shelf
+placement and matching mechanics are not part of what the two engines are
+checked to agree on — only their outcomes.**
 
 ## How to reproduce
 
-From a clean state — fresh clone, nothing exported by hand. Network is needed on
-the first run for the NuGet restore; no environment variable has to be set
-(`RollForward=Major` is in `build/core-tests/core-tests.csproj:12`).
-
 ```bash
-git clone <repo-url> /tmp/verify-03 && cd /tmp/verify-03
-git rev-parse --short HEAD          # expect 27f9904 for the numbers above
+# task VERIFY 1 and 2 — read the current tests
+sed -n '149,259p' game/Assets/Tests/Core/BoardTests.cs
 
-# step 1 — the suite is green, which is not by itself evidence for item 1
-dotnet test build/core-tests/core-tests.csproj -v q --nologo --filter "FullyQualifiedName~ShelfTests"
-dotnet test build/core-tests/core-tests.csproj -v q --nologo
-
-# step 2 — the probe, built outside the repo so nothing here is modified
-mkdir -p /tmp/verify-03-probe && cd /tmp/verify-03-probe
+# task VERIFY 2 — direct probe, outside the repo
+mkdir -p /tmp/shelf-probe-03 && cd /tmp/shelf-probe-03
 cat > probe.csproj <<'EOF'
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework>
     <LangVersion>9</LangVersion><RollForward>Major</RollForward>
-    <ImplicitUsings>disable</ImplicitUsings>
+    <ImplicitUsings>disable</ImplicitUsings><Nullable>enable</Nullable>
   </PropertyGroup>
-  <ItemGroup><Compile Include="/tmp/verify-03/game/Assets/Core/**/*.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="<repo>/game/Assets/Core/**/*.cs" /></ItemGroup>
 </Project>
 EOF
 cat > Program.cs <<'EOF'
-using System; using System.Linq; using CatShelter.Core;
-static class Probe {
-  static Item I(string kind, int id) => new Item(id, new ItemKind(kind, kind));
-  static string S(Shelf s) => "[" + string.Join(",", s.Slots.Select(x => x is null ? "." : x.Kind.Id)) + "]";
-  static void Main() {
-    var s = new Shelf();
-    s.TryPlace(I("m",1), out _); s.TryPlace(I("m",2), out _);
-    Console.WriteLine("E1 before third copy: " + S(s) + "  (SlotsPerRow=" + Shelf.SlotsPerRow + ")");
-    var used = s.Slots.Select((x,i)=>(x,i)).Where(p=>p.x!=null).Select(p=>p.i).ToArray();
-    Console.WriteLine("E2 occupied slot indices before the match: " + string.Join(",", used)
-      + " -> rows " + string.Join(",", used.Select(i => i / Shelf.SlotsPerRow).Distinct()));
-    s.TryPlace(I("m",3), out var mk);
-    Console.WriteLine("E3 matched=" + (mk?.Id ?? "null") + " after: " + S(s));
-
-    var t = new Shelf();
-    t.TryPlace(I("x",1), out _); t.TryPlace(I("y",2), out _);
-    t.TryPlace(I("m",3), out _); t.TryPlace(I("m",4), out _); t.TryPlace(I("z",5), out _);
-    Console.WriteLine("E4 before the third m: " + S(t));
-    bool ok = t.TryPlace(I("m",6), out var mk2);
-    Console.WriteLine("E5 placed=" + ok + " matched=" + (mk2?.Id ?? "null") + " after: " + S(t));
-
-    var u = new Shelf();
-    for (int i = 0; i < 6; i++) u.TryPlace(I("f"+i, i), out _);
-    u.TryPlace(I("m",10), out _); u.TryPlace(I("m",11), out _);
-    Console.WriteLine("E6 before: " + S(u));
-    u.TryPlace(I("m",12), out var mk3);
-    Console.WriteLine("E7 matched=" + (mk3?.Id ?? "null") + " after: " + S(u));
-
-    var sh = new Shelf();
-    for (int i=0;i<9;i++) sh.TryPlace(new Item(i, new ItemKind("k"+i,"k"+i)), out _);
-    Console.WriteLine("C1 capacity=" + sh.Capacity + " occupied=" + sh.Occupied + " isFull=" + sh.IsFull);
-    Console.WriteLine("C2 place on full shelf = " + sh.TryPlace(new Item(99,new ItemKind("z","z")), out _));
-    sh.AddSlots(3);
-    int accepted = 0;
-    for (int i=0;i<3;i++) if (sh.TryPlace(new Item(100+i,new ItemKind("n"+i,"n"+i)), out _)) accepted++;
-    Console.WriteLine("C3 after AddSlots(3): capacity=" + sh.Capacity + " accepted=" + accepted + " occupied=" + sh.Occupied);
-    Console.WriteLine("C4 fourth extra item accepted = " + sh.TryPlace(new Item(200,new ItemKind("q","q")), out _));
-  }
-}
+using System; using CatShelter.Core;
+static class Probe { static void Main() {
+  var s = new Shelf();
+  for (int i = 0; i < 9; i++) s.TryPlace(new Item(i, new ItemKind("k"+i,"k"+i)), out _);
+  s.AddSlots(3);
+  int accepted = 0;
+  for (int i = 0; i < 4; i++)
+    if (s.TryPlace(new Item(100+i, new ItemKind("n"+i,"n"+i)), out _)) accepted++;
+  Console.WriteLine("capacity=" + s.Capacity + " accepted(of 4)=" + accepted);
+} }
 EOF
-dotnet run --project probe.csproj
+dotnet run --project probe.csproj   # expect: capacity=12 accepted(of 4)=3
+
+# D4 — grep the real repo
+grep -rn "AddShelfSlots" game/Assets
+grep -rn "\.AddSlots(" game/Assets
+
+# conformance mutation test — outside the repo, nothing here modified
+mkdir -p /tmp/shelf-mut && cp -R tools /tmp/shelf-mut/tools
+mkdir -p /tmp/shelf-mut/build && cp -R build/solver-bridge /tmp/shelf-mut/build/solver-bridge
+rm -rf /tmp/shelf-mut/build/solver-bridge/{bin,obj}
+ln -s "$(pwd)/game" /tmp/shelf-mut/game
+python3 -c "
+path = '/tmp/shelf-mut/tools/solver/rules.py'
+t = open(path).read()
+old = 'self.shelf[self.shelf.index(None)] = item.kind'
+new = 'self.shelf[len(self.shelf) - 1 - self.shelf[::-1].index(None)] = item.kind'
+assert t.count(old) == 1
+open(path, 'w').write(t.replace(old, new))
+"
+cd /tmp/shelf-mut
+PYTHONPATH=/tmp/shelf-mut <repo>/.venv/bin/python -m pytest tools/tests/conformance_test.py -q
+# expect: 4 passed — despite the mutation
+
+# baseline sanity (unmutated, real repo)
+cd <repo> && .venv/bin/python -m pytest tools/tests/conformance_test.py -q   # 4 passed
+dotnet test build/core-tests/core-tests.csproj -v q --nologo                 # 152 passed
+.venv/bin/python -m pytest tools/ -q                                         # 149 passed
 ```
 
 ## What was not checked
 
-- The SCOPE line "AddSlots must not be called from the MVP lose screen". Nothing
-  under `game/Assets/Shell/` or `game/Assets/View/` was inspected for calls to
-  `Shelf.AddSlots` or `Board.AddShelfSlots`; that belongs to
-  `60-shell-build/07-lose-screen-fake-door`, whose own notes claim it, and this
-  verifier did not confirm it.
-- Matching more than one triple in a single call. `Shelf.TryMatch` returns after
-  the first triple (`Shelf.cs:91`) and its docstring argues one placement can
-  complete at most one triple; that argument was not tested against a shelf
-  seeded with six of a kind by some other route.
-- Tie-breaking when two kinds are both at three copies. `TryMatch` takes
-  whichever group `GroupBy` yields first; no requirement states what should
-  happen and no test pins it.
-- `Shelf.AddSlots(0)` and negative arguments. `Shelf.cs:35` throws for negative;
-  that line has `hits="0"` in the coverage report produced for `05-coverage`.
-- Capacity growth beyond one call, and whether capacity is persisted. Save and
-  resume are `60-shell-build`, not this task.
-- Whether "match at a slot boundary" was meant as "across a row boundary" is a
-  reading. This verifier took it from the test's own name and comment and from
-  the SCOPE line "Matching is NOT per row". Under a looser reading — any triple
-  anywhere — item 1 would pass. Either way the named test does not do what its
-  name and comment say.
+- **Whether the conformance gap is this task's problem to fix.** `03-shelf-match`'s
+  own VERIFY items say nothing about Python parity; `tools/solver/rules.py`
+  and `tools/tests/conformance_test.py` belong to the levels/solver side of
+  the tree (`30-levels-solver`), not to this task's SCOPE. This file reports
+  the gap because it was asked for, not because closing it belongs here.
+- **Whether the gap matters for anything the project currently measures.**
+  Win rate and jam rate depend only on availability and full-shelf timing,
+  not on which physical slot an item lands in, so the existing solver
+  measurements (`30-levels-solver/10-remeasure-curve-partial-info`) are not
+  obviously affected — not verified either way, out of scope here.
+- **Tie-breaking when two kinds reach three copies simultaneously.** Same gap
+  the 2026-08-26 check named: `TryMatch`'s `GroupBy` and `_try_match`'s dict
+  iteration both take "first kind encountered scanning from slot 0," and they
+  agree by construction, but no test on either side pins it.
+- **`Shelf.AddSlots(0)`** and other edge values — not re-checked; the prior
+  file already noted `Shelf.cs:35`'s negative-capacity guard has zero
+  coverage-report hits, and nothing here changed that.
+- **The Unity Editor / on-screen shelf.** No build, no emulator, per this
+  check's own constraints — Core-level behaviour only.
 
----
+## Verdict
 
-## What changed after this verification, 2026-08-26
-
-The finding was accurate: `Match_CompletesAcrossRowBoundary` placed three
-copies into an empty shelf, so they landed in slots 0–2 — inside row 0 — while
-its comment claimed a triple spanning rows 0 and 1. The rule itself held; the
-test for it did not exist.
-
-- That test is renamed `Match_CompletesWithinOneRow`, which is what it actually
-  does and is worth keeping.
-- A new `Match_CompletesAcrossRowBoundary` fills the slots between the copies
-  so they genuinely straddle the boundary: it asserts the two `a` copies sit at
-  slots 0 and 3 with `SlotsPerRow == 3` **before** placing the third, then that
-  all three leave the shelf together.
-
-84 tests pass. `verify` left **pending**: the context that wrote this test
-cannot sign it off.
+`verify:passed` for `20-rules-core/03-shelf-match` on its own stated VERIFY
+items, both of which hold against the current `Shelf.cs` and its tests,
+independently confirmed. `status:` stays `done` — nothing here requires
+moving it. The conformance-scope finding is real and worth a task somewhere
+in `30-levels-solver`, but it is not a failure of this task's own OUTCOME
+("shelf with variable capacity and a single matching rule over all slots"),
+which is what it is.

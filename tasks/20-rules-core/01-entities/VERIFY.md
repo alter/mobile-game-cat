@@ -1,6 +1,8 @@
 # VERIFY — 20-rules-core/01-entities
 
-Result: **failed** — item 3 does not hold.
+Result, as of the 2026-08-27 re-verification at the bottom of this file:
+**passed**. Item 3 (below) records the original failure and the fix that
+followed it; superseded, kept for the record.
 
 Verifier: an independent agent context, 2026-08-26, against `dev` at commit
 `27f9904`. It did **not** write `game/Assets/Core/*`, did **not** write
@@ -166,3 +168,255 @@ rejected, and rejection proven to happen before any `Board` exists.
 
 83 tests pass. `verify` is left **pending** rather than passed: the context that
 made this change cannot sign it off.
+
+---
+
+## Re-verification, 2026-08-27
+
+Verifier: independent QA context. Wrote none of `game/Assets/Core/*`,
+`game/Assets/Tests/Core/*`, `build/check-core-purity.sh`, this task's own
+`task.txt`, or any prior content in this file. Ran every command itself
+against the current tree rather than trusting the "what changed" note
+above; re-ran the full `dotnet test` twice after one run showed a single
+failure, per the brief for this pass (another agent is actively editing
+`Level.cs`/the solver bridge). Did **not** run the Unity editor, a Unity
+build, adb, or an emulator. Its only writes are to this file.
+
+**Note on the one inconsistent run.** The first `dotnet test` invocation in
+this pass reported `не пройдено 1, пройдено 155, всего 156` with no
+identifiable failing test name in the output. Re-run twice immediately
+after: `не пройдено 0, пройдено 156, всего 156` both times, stable. Read as
+a transient collision with the other agent's concurrent edit (a save
+mid-write, most likely), not a real regression — consistent with the
+warning given for this pass. Not investigated further per that same
+warning; flagged here rather than silently discarded.
+
+### Verdict per VERIFY item (task.txt)
+
+| # | Item | Result | Evidence |
+|---|---|---|---|
+| 1 | Project builds | **pass** | `dotnet build build/core-tests/core-tests.csproj -v q --nologo` → `Build succeeded`, 0 errors (via the full `dotnet test` runs below, which build first). |
+| 2 | `bash build/check-core-purity.sh` passes | **pass** | `Core is engine-free: OK`, exit 0, against the live tree. Also mutation-tested — see below. |
+| 3 | A level with a kind appearing four times is rejected at construction | **pass — fixed since the last verification** | Read `game/Assets/Core/Level.cs:41-53` directly: the constructor now counts kinds per pile and throws `ArgumentException` when a count is not divisible by three, and separately rejects duplicate item ids (`Level.cs:55-61`), both **before** `Number`/`RoomId`/`Pile` are even fully assigned in the old sense — the check runs inside the constructor body, so no `Level` instance escapes it. `game/Assets/Tests/Core/LevelTests.cs` carries 13 `[Test]`/`[TestCase]` attributes exercising this (counts of 1/2/4/5 rejected, triples accepted, duplicate ids rejected, rejection proven before any `Board` exists) and passes in the 156-test run below. |
+
+### The purity gate — read, then mutation-tested outside the repo
+
+`build/check-core-purity.sh` resolves its target from its own location
+(`ROOT="$(cd "$(dirname "$0")/.." && pwd)"`, `TARGET="$ROOT/game/Assets/Core"`),
+not from a hardcoded path — so copying the script alongside a copied `game/`
+tree makes it check the copy, not the real repository. Confirmed this is
+not "the shape of a check that passes because it looks in the wrong place"
+by doing exactly that:
+
+```
+$ SP=$(mktemp -d)
+$ mkdir -p "$SP/game/Assets/Core" "$SP/build"
+$ cp game/Assets/Core/Item.cs "$SP/game/Assets/Core/Item.cs"
+$ cp build/check-core-purity.sh "$SP/build/check-core-purity.sh"
+$ python3 -c "p='$SP/game/Assets/Core/Item.cs'; open(p,'w').write('using UnityEngine;\n'+open(p).read())"
+$ bash "$SP/build/check-core-purity.sh"; echo "exit=$?"
+ARCH VIOLATION — engine references under Assets/Core:
+/tmp/.../game/Assets/Core/Item.cs:1:using UnityEngine;
+exit=1
+```
+
+The script found the injected line, printed the exact offending path and
+line number, and exited non-zero — against the copy, confirmed by the
+printed path pointing at the sandbox, not the real repository (`git status`
+in the real repo showed no changes to `Item.cs` throughout). The check is
+real, not decorative. It is also backed structurally by
+`CatShelter.Core.asmdef`'s `"noEngineReferences": true` with an empty
+`"references"` array, which Unity itself enforces at the asmdef level
+independent of the grep script — two independent mechanisms, not one.
+
+**One gap the script itself does not close**, worth naming rather than
+leaving implicit: it greps only for the literal strings `using UnityEngine`
+and `UnityEngine.` — an engine reference spelled through a different route
+(a type alias, `global using`, or a fully-qualified `global::UnityEngine.X`
+without the literal substring `UnityEngine.` immediately preceding the
+member, or a reference to a different assembly Unity ships, like
+`UnityEditor` or `com.unity.*` packages under a different root namespace)
+would not be caught by this script — though `noEngineReferences` on the
+asmdef is the backstop for the packages case, since it forbids all
+references outright, not just `UnityEngine`-named ones. No such alias
+exists in the tree today (`grep -rn "UnityEditor\|global::" game/Assets/Core`
+→ no matches), so this is a theoretical gap, not a live one.
+
+### `.NET Standard 2.1` and `LangVersion` — checked against both toolchains directly, not inferred
+
+**LangVersion.** `build/core-tests/core-tests.csproj:9` sets
+`<LangVersion>9</LangVersion>`. `game/ProjectSettings/ProjectVersion.txt`
+pins the editor to `6000.3.22f1` (Unity 6.3 LTS, matching `DECISIONS.md`
+D13). Unity's own manual for that exact version —
+`https://docs.unity3d.com/6000.3/Documentation/Manual/csharp-compiler.html`,
+fetched 2026-08-27 — states plainly: *"C# compiler: Roslyn; C# language
+version: C# 9.0."* The two agree, sourced from Unity's own documentation
+for the pinned version, not inferred across versions.
+
+**`.NET Standard 2.1`.** `game/ProjectSettings/ProjectSettings.asset:875`
+reads `apiCompatibilityLevel: 6`. Unity's own enum source
+(`Editor/Mono/PlayerSettings.bindings.cs`, github.com/Unity-Technologies/UnityCsReference,
+fetched 2026-08-27) defines `NET_Standard_2_0 = 6` with `NET_Standard` as an
+alias for the same value (`NET_Standard = NET_Standard_2_0`); Unity's own
+scripting API page for `ApiCompatibilityLevel`
+(docs.unity3d.com/ScriptReference/ApiCompatibilityLevel.html, fetched
+2026-08-27) describes that value's meaning directly: *"NET_Standard;
+Profile that targets .NET Standard 2.1."* So the project setting, despite
+being internally numbered/named `NET_Standard_2_0`, targets .NET Standard
+2.1 by Unity's own description — a legacy-naming quirk, not a discrepancy.
+
+**Whether `core-tests.csproj`'s `net8.0` build is sufficient evidence of
+netstandard2.1 compatibility — checked directly, not just cross-referenced.**
+`net8.0` is a superset of the netstandard2.1 API surface, so a green
+`core-tests.csproj` build alone does not prove the code avoids every
+net8.0-only API. Rather than leave that as an open gap, compiled
+`game/Assets/Core/**/*.cs` directly against `netstandard2.1` in a throwaway
+project outside the repository:
+
+```
+$ SP=$(mktemp -d)/netstd-check && mkdir -p "$SP"
+$ cat > "$SP/netstd-check.csproj" <<'EOF'
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="/…/game/Assets/Core/**/*.cs" />
+  </ItemGroup>
+</Project>
+EOF
+$ cd "$SP" && dotnet build netstd-check.csproj -v q --nologo
+...
+    Предупреждений: 35
+    Ошибок: 0
+```
+
+Zero errors, 35 nullable-reference warnings (the same class the `net8.0`
+build already emits — none new). **The `netstandard2.1` claim in OUTCOME is
+directly confirmed**, not merely cross-referenced from documentation — this
+supersedes the previous verification's "not verified" note on this point.
+
+### Item 4 — what "entity" means here, and whether it held
+
+The original SCOPE names five types: **Item, Shelf, Level, Room, Board**
+(plus the two construction rules, covered above). `game/Assets/Core/` today
+holds those files plus ten more:
+`Analytics.cs, BoardSave.cs, Cat.cs, CatSave.cs, CatTraits.cs, GameSave.cs,
+PhotoOutcome.cs, PlayerProgress.cs, RoomPlan.cs, SaveResume.cs, TraitsRequest.cs`
+(eleven counting `ItemKind`/`PileEntry`/`GameOutcome`, which are companion
+types inside `Item.cs`/`Level.cs`/`Board.cs`, not separate files).
+
+**No `Room` type exists.** SCOPE names it explicitly; it was never built.
+`Level.RoomId` (a plain `string`) and `RoomPlan` (task `60-shell-build/02`,
+tracking which pile of which room and how far through it the player is)
+cover parts of what a `Room` entity would have, but neither is a `Room`.
+This is the one item in the original SCOPE that was simply never delivered
+— not drift into extra types, the opposite: a named type that is still
+missing eleven tasks later, papered over by adjacent types built for other
+purposes.
+
+**Every one of the ten additions carries an explicit task citation in its
+own doc comment** (`Analytics.cs` → `70-analytics/02`; `CatTraits.cs` →
+`cat-shelter-tech.md` §3; `PhotoOutcome.cs`/`PhotoJudge` → `50-photo/06`,
+with the comment arguing directly for Core: *"This is a rule, not
+presentation, so it lives here and is tested here"*; `Cat.cs`/`CatSave.cs`
+→ `50-photo/10`; `GameSave.cs`/`BoardSave.cs` → task `6.7`/`60-shell-build/08`;
+`SaveResume.cs` → `60-shell-build/08`, arguing *"deciding whether a save can
+be resumed is a rule, so it lives here rather than in the view"*;
+`PlayerProgress.cs` → tasks `6.2`/`6.2.1`; `RoomPlan.cs` →
+`60-shell-build/02`; `TraitsRequest.cs` → `50-photo/07`). None arrived
+silently. Judged against `ROLES.md`'s own charter for CORE — "rules engine,
+unit tests" — three are unambiguous fits (`PhotoOutcome`/`PhotoJudge`,
+`CatTraits`, the whole save/resume/progress family, which the project's own
+comments justify as rules about *what* can be resumed, not presentation).
+`Analytics` (protocol name constants + generic sink delegates) and
+`TraitsRequest` (a JSON-body encoder) are the two furthest from "rules
+engine" in the literal sense — both are still engine-free, tested, and each
+is justified in its own file specifically *as* a boundary decision (Analytics:
+"engine-free on purpose... lets Core stay engine-free," per
+`tasks/70-analytics/01-sdk-integration/NOTES.md`'s reading of it), not as
+an accident of where the author happened to be working.
+
+**`Cat` is the more interesting case.** It is not new scope invented later —
+`cat-shelter-mvp.md` §8, the exact section `01-entities/task.txt` cites as
+CONTEXT, lists `Cat name, traits{}, state(1..3), owned_items[]` as an
+entity from day one. `01-entities`'s own SCOPE simply never included it —
+an omission in the original task, not a decision to exclude it — and it was
+filled in eleven tasks later, under a different, real task number
+(`50-photo/10`), whose own `VERIFY.md` (`tasks/50-photo/10-skip-default-cat/VERIFY.md`
+item 4) already interrogated exactly this boundary question and left a
+recommendation on record rather than a silent shrug.
+
+**Verdict on item 4: `Core` is still what the task said it would be, in the
+sense that matters — engine-free, and every addition is deliberate and
+task-tracked, confirmed by reading each file rather than trusting a doc
+comment — but not in the literal sense of "the five named types plus
+nothing else," which was never realistic and the project itself stopped
+pretending to hold by task 2. The one real gap is negative, not additive:
+`Room` was promised and never built.**
+
+## How to reproduce
+
+From the current tree (not a fresh clone — another agent has uncommitted
+edits to `Level.cs`/the solver bridge during this pass; re-run if a result
+looks inconsistent):
+
+```sh
+dotnet test build/core-tests/core-tests.csproj -v q --nologo
+# -> пройдено 156, всего 156 (run at least twice if any run shows a failure)
+bash build/check-core-purity.sh; echo "exit=$?"
+# -> Core is engine-free: OK, exit=0
+.venv/bin/python -m pytest tools/ -q
+# -> 155 passed
+sed -n '41,61p' game/Assets/Core/Level.cs   # the two construction-time checks
+```
+
+Mutation test (purity gate), run outside the repository:
+
+```sh
+SP=$(mktemp -d)
+mkdir -p "$SP/game/Assets/Core" "$SP/build"
+cp game/Assets/Core/Item.cs "$SP/game/Assets/Core/Item.cs"
+cp build/check-core-purity.sh "$SP/build/check-core-purity.sh"
+python3 -c "p='$SP/game/Assets/Core/Item.cs'; open(p,'w').write('using UnityEngine;\n'+open(p).read())"
+bash "$SP/build/check-core-purity.sh"; echo "exit=$?"
+# -> ARCH VIOLATION ..., exit=1
+```
+
+`netstandard2.1` compile check, run outside the repository:
+
+```sh
+SP=$(mktemp -d)/netstd-check && mkdir -p "$SP"
+cat > "$SP/netstd-check.csproj" <<'EOF'
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>netstandard2.1</TargetFramework><LangVersion>9</LangVersion></PropertyGroup>
+  <ItemGroup><Compile Include="ABSOLUTE/PATH/TO/game/Assets/Core/**/*.cs" /></ItemGroup>
+</Project>
+EOF
+cd "$SP" && dotnet build netstd-check.csproj -v q --nologo
+# -> Ошибок: 0 (35 nullable warnings, same class as the net8.0 build)
+```
+
+## What was not checked
+
+- No Unity editor, no Unity build, no adb, no emulator — out of scope for
+  this pass per the brief.
+- Whether the Unity **editor's own** compile of `Core` (via the asmdef,
+  inside `Library/ScriptAssemblies`) actually agrees with the standalone
+  `netstandard2.1` throwaway build above — both target the same declared
+  API surface and the throwaway build's zero-error result is strong
+  evidence, but the editor's own Roslyn invocation was not run directly
+  (would require the Unity editor, out of scope here).
+- Whether an engine reference could evade `check-core-purity.sh` through a
+  route other than the literal strings it greps for (see "one gap the
+  script itself does not close" above) — reasoned about and checked that no
+  such route exists *today*, not proven impossible in general.
+- A full field-by-field comparison of `Item`/`Shelf`/`Level`/`Board` against
+  `cat-shelter-mvp.md` §8's entity list — only the two SCOPE-named
+  construction rules and the missing `Room` type were checked; individual
+  field names were not re-audited beyond what compiles and what the
+  existing 156 tests exercise.
+- The solver bridge and `Level.cs` were read, not modified, per the brief —
+  their correctness beyond the two rules named in VERIFY item 3 was not
+  independently re-derived in this pass.

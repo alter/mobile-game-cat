@@ -11,14 +11,30 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 COPY = ROOT / "game/Assets/Shell/Copy.cs"
 UI_DIRS = [ROOT / "game/Assets/View", ROOT / "game/Assets/Shell"]
+SWIFT_DIR = ROOT / "game/Assets/Plugins"
 
 # Files exempt from the no-literals rule, with the reason.
+#
+# CatPicker.cs was exempted here until 2026-08-27 for "failure reasons handed
+# to Copy.Of('capture.failed')" — true, but the reasons themselves were raw
+# English (some arriving from CatPicker.swift, one able to carry a
+# system-language OS error string), substituted straight into a tabled
+# template. That is exactly the leak this test exists to catch, and the
+# exemption hid it twice over: once here, and once by this file never having
+# scanned Swift at all (see SWIFT_EXEMPT below). CatPicker.cs now sends only
+# fixed lowercase reason codes and needs no exemption — its reason stopped
+# holding, so it was removed rather than reworded.
 EXEMPT = {
     "Copy.cs",            # the table itself
     "VisionSelfTest.cs",  # debug harness, never shown to a player
     "SaveFile.cs",        # log lines only
-    "CatPicker.cs",       # failure reasons handed to Copy.Of("capture.failed")
 }
+
+# Same idea, for game/Assets/Plugins/**/*.swift. Empty today: no native file
+# needs to hand the player a sentence, and none should — a reason a native
+# layer wants known should be a code, mapped to copy on the C# side of the
+# boundary, per CatPicker.cs's own class doc.
+SWIFT_EXEMPT = set()
 
 
 def keys() -> set[str]:
@@ -30,6 +46,12 @@ def sources():
         for path in sorted(directory.rglob("*.cs")):
             if path.name not in EXEMPT:
                 yield path, path.read_text()
+
+
+def swift_sources():
+    for path in sorted(SWIFT_DIR.rglob("*.swift")):
+        if path.name not in SWIFT_EXEMPT:
+            yield path, path.read_text()
 
 
 def strip_noise(text: str) -> str:
@@ -44,14 +66,36 @@ def test_the_table_is_not_empty_and_has_no_duplicate_keys():
     assert len(raw) == len(set(raw)), "a duplicate key silently wins or loses"
 
 
+# A sentence: two or more words, at least one space, starting with a capital.
+SENTENCE = re.compile(r'"[A-Z][a-z]+(?: [A-Za-z0-9â€™\'…,.!?%-]+){1,}"')
+
+
+def _sentence_literals(text):
+    return [m for m in SENTENCE.findall(strip_noise(text))
+            # names of things, not copy
+            if not re.match(r'"[A-Z][a-z]+ [A-Z]', m)]
+
+
 @pytest.mark.parametrize("path", [p for p, _ in sources()], ids=lambda p: p.name)
 def test_no_player_visible_english_outside_the_table(path):
-    # A sentence: two or more words, at least one space, starting with a capital.
-    sentence = re.compile(r'"[A-Z][a-z]+(?: [A-Za-z0-9â€™\'…,.!?%-]+){1,}"')
-    found = [m for m in sentence.findall(strip_noise(path.read_text()))
-             # names of things, not copy
-             if not re.match(r'"[A-Z][a-z]+ [A-Z]', m)]
+    found = _sentence_literals(path.read_text())
     assert not found, f"{path.name}: move these into Copy.cs -> {found}"
+
+
+@pytest.mark.parametrize("path", [p for p, _ in swift_sources()], ids=lambda p: p.name)
+def test_no_player_visible_english_in_swift(path):
+    # Task 60-shell-build/16 VERIFY: CatPicker.swift used to send prose
+    # ("could not save the picked image: ...") across UnitySendMessage,
+    # invisible to this file because it only ever scanned *.cs. A native
+    # layer should hand back a reason code, not a sentence — the C# side
+    # (Shell/CatPicker.cs) maps codes to Copy.cs keys, and never displays a
+    # native string verbatim.
+    found = _sentence_literals(path.read_text())
+    assert not found, (
+        f"{path.name}: this looks like prose crossing the native boundary "
+        f"-> {found}. Send a reason code instead and map it to a Copy.cs "
+        f"key on the C# side."
+    )
 
 
 # Keys are not always written next to Copy.Of: one call picks between two with
@@ -81,9 +125,12 @@ def test_every_declared_key_is_used():
 
 def test_the_copy_is_english():
     # Task 12-copy-english: zero non-English strings anywhere a player can see
-    # them. Cyrillic is the one that would actually turn up here.
+    # them. Cyrillic is the one that would actually turn up here. Swift is
+    # included: it can reach the player exactly as View/Shell can, over
+    # UnitySendMessage (60-shell-build/16 VERIFY).
     cyrillic = re.compile(r"[а-яА-ЯёЁ]")
-    for path, text in list(sources()) + [(COPY, COPY.read_text())]:
+    for path, text in (list(sources()) + list(swift_sources())
+                       + [(COPY, COPY.read_text())]):
         for line in text.splitlines():
             if line.strip().startswith("//"):
                 continue

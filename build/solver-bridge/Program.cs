@@ -51,6 +51,19 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
     string key = number.ToString();
     bool legalSequence = true;
     string error = "";
+    // One snapshot per move actually taken: item id (string, JSON object keys
+    // are strings) -> Board.IsRevealed(item) immediately after that move.
+    // D15 changed IsRevealed for locked items and nothing compared the two
+    // engines on it — outcome/occupied/triples all stayed the same either
+    // way, so a visibility-only divergence was invisible to this bridge.
+    // See tasks/DECISIONS.md D15 and tasks/30-levels-solver/11-complications.
+    var revealedTrace = new List<Dictionary<string, bool>>();
+    // One snapshot per move: the shelf's kind-or-null per slot, in slot
+    // order, including empty slots. D16 says the shelf neither compacts nor
+    // sorts — a gap stays exactly where it opened — which is a claim about
+    // slot position, not about counts, and "occupied"/"triples" alone cannot
+    // tell a leftmost-free-slot placement from a rightmost one.
+    var shelfTrace = new List<string?[]>();
     foreach (var move in scriptDoc.RootElement.GetProperty(key).EnumerateArray())
     {
         // a move may be a bare id or [id, "booster", extra]
@@ -81,6 +94,13 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
             error = $"illegal move {itemId}";
             break;
         }
+
+        var snapshot = new Dictionary<string, bool>();
+        foreach (var entry in entries)
+            snapshot[entry.Item.Id.ToString()] = board.IsRevealed(entry.Item);
+        revealedTrace.Add(snapshot);
+
+        shelfTrace.Add(board.Shelf.Slots.Select(s => s?.Kind.Id).ToArray());
     }
 
     results.Add(new Dictionary<string, object>
@@ -96,7 +116,9 @@ foreach (var levelEl in levelsDoc.RootElement.EnumerateArray())
         // left Python holding two items on every win and one triple short.
         ["occupied"] = board.Shelf.Occupied,
         ["triples"] = board.TriplesCompleted,
-        ["taken"] = board.TakenOrder.Count
+        ["taken"] = board.TakenOrder.Count,
+        ["revealed"] = revealedTrace,
+        ["shelf"] = shelfTrace
     });
 }
 

@@ -140,10 +140,16 @@ namespace CatShelter.View
             {
                 SetBusy(false);
                 // "cancelled" is not a failure and must not read as one: she
-                // changed her mind, which is allowed.
+                // changed her mind, which is allowed. Every other reason
+                // code (CatPicker.cs: "unsupported"/"read_failed"/
+                // "save_failed"/"no_window"/"unavailable") reduces to one
+                // honest message rather than being shown verbatim — a code
+                // is diagnostic, not copy, and one of them used to arrive
+                // from native Swift as a raw, sometimes system-language,
+                // sentence (60-shell-build/16 VERIFY).
                 _message.text = reason == "cancelled"
                     ? Shell.Copy.Of("capture.cancelled")
-                    : Shell.Copy.Of("capture.failed", reason);
+                    : Shell.Copy.Of("photo.our_fault");
             };
 
             if (fromCamera) CatPicker.CaptureWithCamera(picked, failed);

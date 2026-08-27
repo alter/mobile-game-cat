@@ -16,6 +16,17 @@ import PhotosUI
 // UnitySendMessage carries a string, and a JPEG written to the temporary
 // directory avoids inventing a second callback channel for binary data. Unity
 // reads it and deletes it.
+//
+// Task 60-shell-build/16 VERIFY finding: OnPickFailed/OnPickUnavailable used
+// to carry English sentences ("could not save the picked image: <system
+// error>"), which the C# side folded straight into a player-visible message.
+// That is prose crossing a native boundary into a project that keeps its
+// words in one table (Shell/Copy.cs) - untranslatable by construction, and
+// on a device set to another system language, `error.localizedDescription`
+// could hand back text in that language, not English. Every reason below is
+// now a fixed lowercase code, not a sentence; CatPicker.cs maps codes to
+// copy, never displays one verbatim. NOT COMPILED as part of this change -
+// verify with an iOS build.
 
 @_silgen_name("UnitySendMessage")
 private func UnitySendMessage(_ object: UnsafePointer<CChar>,
@@ -37,7 +48,7 @@ private func send(_ method: String, _ payload: String) {
 
 private func deliver(_ image: UIImage?) {
     guard let image = image, let jpeg = image.jpegData(compressionQuality: 0.95) else {
-        send("OnPickFailed", "could not read the picked image")
+        send("OnPickFailed", "read_failed")
         return
     }
     let path = NSTemporaryDirectory() + "catpick-\(UUID().uuidString).jpg"
@@ -45,7 +56,12 @@ private func deliver(_ image: UIImage?) {
         try jpeg.write(to: URL(fileURLWithPath: path))
         send("OnPicked", path)
     } catch {
-        send("OnPickFailed", "could not save the picked image: \(error.localizedDescription)")
+        // error.localizedDescription is deliberately not sent: it follows
+        // the device's system language, not the game's, and would land
+        // straight in a player-visible message. NSLog keeps it for whoever
+        // reads device console output; it never crosses the Unity boundary.
+        NSLog("[CatPicker] save_failed: \(error.localizedDescription)")
+        send("OnPickFailed", "save_failed")
     }
 }
 
@@ -82,7 +98,7 @@ private final class PickerDelegate: NSObject, PHPickerViewControllerDelegate,
 private func present(_ controller: UIViewController) {
     guard let root = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?
         .rootViewController else {
-        send("OnPickFailed", "no window to present from")
+        send("OnPickFailed", "no_window")
         return
     }
     root.present(controller, animated: true)

@@ -109,7 +109,15 @@ namespace CatShelter.Shell
                 ["capture.looking"] = "Looking…",
                 ["capture.colours"] = "Copying her colours…",
                 ["capture.cancelled"] = "No rush. Pick one whenever you like.",
-                ["capture.failed"] = "That did not work: {0}",
+                // "capture.failed" = "That did not work: {0}" lived here
+                // until 2026-08-27. It formatted a raw reason string from
+                // CatPicker.cs/CatPicker.swift straight into a sentence -
+                // untranslatable by construction, and on one path capable of
+                // embedding a system-language OS error (60-shell-build/16
+                // VERIFY). Picker failures now show "photo.our_fault"
+                // below, the same honest message the crop-failure path
+                // already used; an unused key is copy nobody sees that gets
+                // translated anyway.
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "No cat in this one. Try a photo where she fills more of the frame.",

@@ -59,12 +59,19 @@ def build_cases(rng):
         levels.append(_level_dict(level, case))
         scripts.append([[m] for m in sol.moves])
         state = new_state(level)
+        revealed_trace = []
+        shelf_trace = []
         for move in sol.moves:
             state.take(move)
+            revealed_trace.append(
+                {str(i.id): state.is_revealed(i) for i in level.pile})
+            shelf_trace.append(list(state.shelf))
         expected[str(case)] = {
             "outcome": outcome.value,
             "occupied": state.capacity - state.shelf.count(None),
             "triples": state.triples_completed,
+            "revealed": revealed_trace,
+            "shelf": shelf_trace,
         }
         made += 1
 
@@ -81,6 +88,8 @@ def build_cases(rng):
         # greedy anti-match order: always take an item whose kind has the
         # FEWEST copies on the shelf → maximises shelf spread
         script = []
+        revealed_trace = []
+        shelf_trace = []
         while not st.over:
             avail = st.available()
             if not avail:
@@ -93,6 +102,9 @@ def build_cases(rng):
             pick = avail[0]
             script.append([pick.id])
             st.take(pick.id)
+            revealed_trace.append(
+                {str(i.id): st.is_revealed(i) for i in level.pile})
+            shelf_trace.append(list(st.shelf))
         if st.over and st.outcome == Outcome.SHELF_JAMMED:
             case += 1
             levels.append(_level_dict(level, case))
@@ -101,6 +113,8 @@ def build_cases(rng):
                 "outcome": Outcome.SHELF_JAMMED.value,
                 "occupied": st.capacity - st.shelf.count(None),
                 "triples": st.triples_completed,
+                "revealed": revealed_trace,
+                "shelf": shelf_trace,
             }
             jam_made += 1
 
@@ -166,6 +180,37 @@ def test_csharp_and_python_agree(conformance_results):
         assert got["triples"] == exp["triples"], (
             f"case {key}: {exp['triples']} triples in python, "
             f"{got['triples']} in csharp")
+
+        # Outcome/occupied/triples all still agree even if the two engines
+        # disagree about which item is visible or which slot it sits in —
+        # both are D-decisions (D15: locked is seen, not hidden; D16: the
+        # shelf neither compacts nor sorts) that never showed up in a scalar
+        # summary. Compare every move, item by item and slot by slot.
+        exp_revealed, got_revealed = exp["revealed"], got["revealed"]
+        assert len(got_revealed) == len(exp_revealed), (
+            f"case {key}: python played {len(exp_revealed)} moves, "
+            f"csharp played {len(got_revealed)}")
+        for move_idx, (exp_snap, got_snap) in enumerate(
+                zip(exp_revealed, got_revealed)):
+            for item_id, exp_val in exp_snap.items():
+                got_val = got_snap.get(item_id)
+                assert got_val == exp_val, (
+                    f"case {key}, move {move_idx}, item {item_id}: "
+                    f"revealed python={exp_val} csharp={got_val}")
+
+        exp_shelf, got_shelf = exp["shelf"], got["shelf"]
+        assert len(got_shelf) == len(exp_shelf), (
+            f"case {key}: shelf trace length python={len(exp_shelf)} "
+            f"csharp={len(got_shelf)}")
+        for move_idx, (exp_row, got_row) in enumerate(zip(exp_shelf, got_shelf)):
+            assert len(got_row) == len(exp_row), (
+                f"case {key}, move {move_idx}: shelf capacity python="
+                f"{len(exp_row)} csharp={len(got_row)}")
+            for slot_idx, (exp_kind, got_kind) in enumerate(zip(exp_row, got_row)):
+                assert got_kind == exp_kind, (
+                    f"case {key}, move {move_idx}, slot {slot_idx}: "
+                    f"python={exp_kind!r} csharp={got_kind!r}")
+
         outcomes_seen.add(exp["outcome"])
 
     # acceptance: BOTH outcomes covered by the comparison
@@ -234,7 +279,12 @@ def test_booster_recovery_agrees(conformance_results):
 
 
 def test_locked_items_agree(conformance_results):
-    """A move on a locked item must be refused identically on both sides."""
+    """A move on a locked item must be refused identically on both sides,
+    and — D15 — its visibility while locked must match too. The whole point
+    of D15 was that a locked item is *seen*, not hidden; a bridge that only
+    compared outcome/occupied/triples could not have told the two engines
+    apart even if one still hid it. See tasks/DECISIONS.md D15.
+    """
     rng = random.Random(4242)
     from tools.solver.schema import LevelDef, PileItem
     # locked 'x' triple + one full 'a' triple: taking the a-triple unlocks x
@@ -255,13 +305,22 @@ def test_locked_items_agree(conformance_results):
     st = new_state(level)
     with pytest.raises(ValueError, match="locked"):
         st.take(1)
-    for id in (4, 5, 6):
-        st.take(id)
-    assert any(i.id == 1 for i in st.available())
-    st.take(1)
+    assert st.is_revealed(level.by_id()[1]) is True, (
+        "D15: a locked item must be visible even while it cannot be taken")
 
-    # csharp side — same script; the locked take is simply not in it
-    script = {"1": [[4], [5], [6], [1], [2], [3]]}
+    # Full script, matching the C# side exactly (below) so the two per-move
+    # traces line up move for move.
+    script_order = [4, 5, 6, 1, 2, 3]
+    revealed_trace = []
+    shelf_trace = []
+    for item_id in script_order:
+        st.take(item_id)
+        revealed_trace.append(
+            {str(i.id): st.is_revealed(i) for i in level.pile})
+        shelf_trace.append(list(st.shelf))
+
+    # csharp side — same script
+    script = {"1": [[n] for n in script_order]}
     with tempfile.TemporaryDirectory() as tmp:
         lv_path = Path(tmp) / "l.json"
         sc_path = Path(tmp) / "s.json"
@@ -273,6 +332,29 @@ def test_locked_items_agree(conformance_results):
              str(lv_path), str(sc_path), str(res_path)],
             check=True, capture_output=True)
         r = json.loads(res_path.read_text())[0]
+
+    got_revealed = r["revealed"]
+    assert len(got_revealed) == len(revealed_trace), (
+        f"move count mismatch: python={len(revealed_trace)} "
+        f"csharp={len(got_revealed)}")
+    for move_idx, (item_id, exp_snap, got_snap) in enumerate(
+            zip(script_order, revealed_trace, got_revealed)):
+        for iid, exp_val in exp_snap.items():
+            got_val = got_snap.get(iid)
+            assert got_val == exp_val, (
+                f"move {move_idx} (took item {item_id}): item {iid} "
+                f"revealed python={exp_val} csharp={got_val}")
+
+    got_shelf = r["shelf"]
+    assert len(got_shelf) == len(shelf_trace), (
+        f"shelf trace length python={len(shelf_trace)} "
+        f"csharp={len(got_shelf)}")
+    for move_idx, (item_id, exp_row, got_row) in enumerate(
+            zip(script_order, shelf_trace, got_shelf)):
+        for slot_idx, (exp_kind, got_kind) in enumerate(zip(exp_row, got_row)):
+            assert got_kind == exp_kind, (
+                f"move {move_idx} (took item {item_id}), slot {slot_idx}: "
+                f"python={exp_kind!r} csharp={got_kind!r}")
 
     assert r["legal"], r["error"]
     assert r["outcome"].lower() == "win"

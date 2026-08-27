@@ -187,6 +187,23 @@ namespace CatShelter.Shell
                 return;
             }
 
+            // The house map (60-shell-build/03), same convention: drop a
+            // `housemap.txt` beside the save.
+            //
+            // This branch was missing until 2026-08-28 and the screen was
+            // unreachable because of it. Its author was told not to touch this
+            // file and concluded that "self-contained via a flag file, like
+            // CoatGridView" needed no wiring — but CoatGridView is reached
+            // precisely because this method asks it. A `Requested` property
+            // that nothing calls is a door with no corridor to it, and the
+            // screen looked finished from every angle except running it.
+            if (CatShelter.View.HouseMapView.Requested)
+            {
+                if (GetComponent<CatShelter.View.HouseMapView>() == null)
+                    gameObject.AddComponent<CatShelter.View.HouseMapView>();
+                return;
+            }
+
             // Meet-your-cat (50-photo/09) reachable on its own, same
             // convention: drop a `meet.txt` beside the save. Whatever cat is
             // already saved is what she meets — an existing name comes back

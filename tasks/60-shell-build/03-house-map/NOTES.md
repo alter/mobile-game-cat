@@ -46,3 +46,26 @@ drawing thirty-six small files one at a time:
    full set of twelve must still read as "mostly unfinished" or "mostly
    done" in one glance once laid out together (QA check 3) - the thing this
    whole task exists to make visible.
+
+## The screen was unreachable until it was wired — 2026-08-28
+
+Built, verified, and impossible to open. `HouseMapView.Requested` reads a
+`housemap.txt` flag exactly as `CoatGridView.Requested` does, and its author
+concluded no wiring was needed because the pattern was already "present in
+GameBoot". It is present there in the sense that **GameBoot is what asks**:
+`CoatGridView` is reached because `OnEnable` tests its `Requested` property and
+adds the component. Nothing tested this one, so the property was a door with no
+corridor leading to it.
+
+Found by running the build rather than by reading it: the flag was on the
+device, the screen never appeared, and the board came up instead. Two builds
+were spent before the cause was looked for in the right place.
+
+**The coordination error was mine.** The author was told not to touch
+`GameBoot.cs` because another agent held it, and was invited to report any line
+it needed instead — which it did, saying none was needed. A file boundary drawn
+to prevent a collision also prevented the one line that made the work usable,
+and neither side noticed because the screen looked complete from every angle
+except running it.
+
+One branch added to `GameBoot.OnEnable`, beside the other three.

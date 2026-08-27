@@ -69,6 +69,12 @@ namespace CatShelter.Shell
                 // finished one, so it says that instead of counting again.
                 ["win.corner.body"] = "The kitten came over to look.",
                 ["win.next"] = "Next",
+                // 60-shell-build/06: captions for the room's before/after,
+                // shown on a room's last pile only. Room art itself does not
+                // exist yet (40-art/07 is todo) — see that task's NOTES.md
+                // for what stands in.
+                ["win.before"] = "Before",
+                ["win.after"] = "After",
 
                 // --- losing a pile -------------------------------------------
                 // No blame and no urgency: losing here is a setback of two
@@ -128,6 +134,11 @@ namespace CatShelter.Shell
                 // below, the same honest message the crop-failure path
                 // already used; an unused key is copy nobody sees that gets
                 // translated anyway.
+
+                // --- meeting the cat ------------------------------------------
+                ["meet.title"] = "Here she is",
+                ["meet.name_placeholder"] = "What's her name?",
+                ["meet.confirm"] = "That's her",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "No cat in this one. Try a photo where she fills more of the frame.",

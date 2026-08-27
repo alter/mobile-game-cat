@@ -65,6 +65,28 @@ namespace CatShelter.View
         private RoomPlan _plan;
         private PlayerProgress _progress;
 
+        // --- 60-shell-build/04: the cat on the board, whose pose follows
+        // PlayerProgress.CatState. No photo flow is wired into this view yet
+        // (50-photo/09 is todo, and nothing hands a saved Cat to GameBoot),
+        // so this is the fixed default coat CatTraits.Default already gives
+        // a player who skips the photo — "whatever cat was built" is, today,
+        // nobody's cat. Task 50-photo owns swapping this for the real one.
+        private static readonly CatTraits CatStateTraits = CatTraits.Default;
+        private VisualElement _catPortrait;
+        private Texture2D _catTexture;
+        private int _catTextureState = -1;
+
+        // --- 60-shell-build/06: the win screen's before/after, built once
+        // per room close from the props that room actually held. No room art
+        // exists yet (40-art/07 is todo), so a drawn dirty/clean pair is not
+        // available; this stands in with the real prop sprites of the room
+        // that just closed, scattered for "before" and lined up for "after".
+        private VisualElement _beforeAfter;
+        private VisualElement _beforeCollage;
+        private VisualElement _afterCollage;
+        private Label _beforeLabel;
+        private Label _afterLabel;
+
         private void OnEnable()
         {
             var uid = GetComponent<UIDocument>();
@@ -86,6 +108,9 @@ namespace CatShelter.View
             if (_pileArea == null)
                 throw new InvalidOperationException(
                     "DebugGame.uxml skeleton not found in UIDocument source");
+
+            BuildCatPortrait(gameRoot);
+            BuildBeforeAfter(gameRoot);
 
             _levels.Clear();
             var loaded = LevelAssets.LoadAll();
@@ -176,6 +201,7 @@ namespace CatShelter.View
 
             RenderPile();
             RenderShelf();
+            RenderCat();
         }
 
         private void RenderPile()
@@ -209,6 +235,47 @@ namespace CatShelter.View
 
                 _shelfArea.Add(slot);
             }
+        }
+
+        // =====================================================================
+        // 60-shell-build/04: cat states — the cat's pose on the board follows
+        // PlayerProgress.CatState, which changes only after the 4th and 8th
+        // completed room (Core/PlayerProgress.CatStateFor). Everything below
+        // this point until RenderPile/RenderShelf's counterpart section is
+        // this task's code; the before/after block further down belongs to
+        // 06-win-screen instead.
+        // =====================================================================
+
+        /// <summary>A small portrait, always on the board, in front of the
+        /// overlay so a room-clean card does not have to carry the pose
+        /// change — it is already visible in the room behind the card the
+        /// instant the boundary is crossed (task wording: "visible in the
+        /// room the transition happens in").</summary>
+        private void BuildCatPortrait(VisualElement gameRoot)
+        {
+            if (_catPortrait != null) return; // OnEnable can re-run; do not double-insert
+            _catPortrait = new VisualElement { name = "cat-portrait" };
+            _catPortrait.AddToClassList("game__cat");
+            gameRoot.Insert(gameRoot.IndexOf(_overlay), _catPortrait);
+        }
+
+        /// <summary>Rebuilds the cat texture only when her state actually
+        /// changed — CoatBuilder's pass walks every pixel of the silhouette,
+        /// and Render() runs on every tap.</summary>
+        private void RenderCat()
+        {
+            if (_catPortrait == null || _progress == null) return;
+            int state = _progress.CatState;
+            if (_catTexture != null && state == _catTextureState) return;
+
+            var baseArt = CoatBuilder.LoadBase(CatStateTraits, state);
+            if (baseArt == null) return; // art not shipped yet; portrait stays blank
+
+            var built = CoatBuilder.Build(baseArt, CatStateTraits, state);
+            if (_catTexture != null) UnityEngine.Object.Destroy(_catTexture);
+            _catTexture = built;
+            _catTextureState = state;
+            Paint(_catPortrait, _catTexture);
         }
 
         /// <summary>
@@ -358,6 +425,13 @@ namespace CatShelter.View
                 _progress.CompletePile(_level.PileIndex);
                 Analytics.LevelWin(_level.Number);
 
+                // 04-cat-states: Render() already drew this frame before
+                // Finish() ran (Take() draws, then judges), against the state
+                // from before this pile completed. Redraw the portrait now so
+                // the room behind the card already shows the new pose the
+                // instant the 4th or 8th room closes — not on the level after.
+                RenderCat();
+
                 // Task 6.11: the last pile of the last room ends the house, and
                 // it gets the ending screen rather than the ordinary win card
                 // followed by one. Reached by playing, shown once, and it does
@@ -381,6 +455,13 @@ namespace CatShelter.View
                         : Shell.Copy.Of("win.corner.body"),
                     Shell.Copy.Of("win.next"), () => { HideCard(); StartLevel(_levelIndex + 1); },
                     null, null);
+
+                // 06-win-screen: the before/after only for the room's last
+                // pile (VERIFY/SCOPE — not shown for a corner clear, which
+                // already has its own feedback). ShowCard above already hid
+                // it by default; this turns it back on for this one card.
+                if (lastPileOfRoom)
+                    ShowRoomTransformation(_level);
             }
             else
             {
@@ -409,6 +490,13 @@ namespace CatShelter.View
         {
             _overlayTitle.text = title;
             _overlayBody.text = body;
+
+            // 06-win-screen: every card hides the before/after by default;
+            // Finish() turns it back on right after this call, only for a
+            // room's last pile. Centralised here so the ordinary corner-win,
+            // lose, and house-complete cards never have to remember to hide it.
+            HideRoomTransformation();
+
             if (primaryText == null)
             {
                 // A card with nothing to press: the end of the house has
@@ -439,6 +527,131 @@ namespace CatShelter.View
 
         private void OnPrimary() { /* wired per-card via clickable */ }
         private void OnSecondary() { /* wired per-card via clickable */ }
+
+        // =====================================================================
+        // 60-shell-build/06: win screen before/after. Everything from here to
+        // the end of the class is this task's code; it shares the overlay
+        // card with the room-clean win text above but owns none of it.
+        //
+        // No room art exists (40-art/07-rooms is status:todo), so there is no
+        // dirty/clean frame pair to show. What stands in: the actual prop
+        // sprites the room that just closed was built from — scattered for
+        // "before", the same sprites lined up for "after". It is real data
+        // from the room (which kinds it held), drawn with real art (the
+        // shipped 30 props), not a placeholder image — but it is not the
+        // drawn room pair the task asks for either, and that gap belongs on
+        // record rather than papered over. See NOTES.md.
+        // =====================================================================
+
+        private const int MaxShownProps = 9;
+
+        private void BuildBeforeAfter(VisualElement gameRoot)
+        {
+            if (_beforeAfter != null) return; // OnEnable can re-run; do not double-insert
+            var card = gameRoot.Q("card");
+
+            _beforeAfter = new VisualElement { name = "before-after" };
+            _beforeAfter.AddToClassList("game__before-after");
+
+            var beforePane = MakeBeforeAfterPane("game__ba-pane--before",
+                out _beforeCollage, out _beforeLabel);
+            var afterPane = MakeBeforeAfterPane("game__ba-pane--after",
+                out _afterCollage, out _afterLabel);
+
+            _beforeAfter.Add(beforePane);
+            _beforeAfter.Add(afterPane);
+
+            // Between the title and the body: the spectacle comes first, the
+            // sentence explains it, same order as D8's "was — became" pitch.
+            card.Insert(card.IndexOf(_overlayTitle) + 1, _beforeAfter);
+
+            // Static captions, set once like every other label in this view
+            // (Copy.Of at build time, not per-frame).
+            _beforeLabel.text = Shell.Copy.Of("win.before");
+            _afterLabel.text = Shell.Copy.Of("win.after");
+
+            HideRoomTransformation();
+        }
+
+        private static VisualElement MakeBeforeAfterPane(string paneClass,
+            out VisualElement collage, out Label label)
+        {
+            var pane = new VisualElement();
+            pane.AddToClassList("game__ba-pane");
+            pane.AddToClassList(paneClass);
+
+            collage = new VisualElement();
+            collage.AddToClassList("game__ba-collage");
+
+            label = new Label();
+            label.AddToClassList("game__ba-label");
+
+            pane.Add(collage);
+            pane.Add(label);
+            return pane;
+        }
+
+        /// <summary>
+        /// Populates and shows the before/after for the room that just
+        /// closed, from the props that room actually held — gathered across
+        /// every pile of <paramref name="closedLevel"/>'s room, not just its
+        /// last one, so a four-pile room shows what the whole room was made
+        /// of. Capped and shuffled by a seed fixed to the room number: every
+        /// player sees the same room the same way, and the same room shows
+        /// the same set on a replay.
+        /// </summary>
+        private void ShowRoomTransformation(Level closedLevel)
+        {
+            var kinds = _levels.Where(l => l.RoomId == closedLevel.RoomId)
+                                .SelectMany(l => l.Pile)
+                                .Select(e => e.Item.Kind.Id)
+                                .Distinct()
+                                .OrderBy(id => id, StringComparer.Ordinal)
+                                .ToList();
+
+            if (kinds.Count > MaxShownProps)
+            {
+                var rng = new System.Random(RoomPlan.RoomNumber(closedLevel.RoomId));
+                kinds = kinds.OrderBy(_ => rng.Next())
+                             .Take(MaxShownProps)
+                             .OrderBy(id => id, StringComparer.Ordinal)
+                             .ToList();
+            }
+
+            _beforeCollage.Clear();
+            _afterCollage.Clear();
+
+            var scatter = new System.Random(RoomPlan.RoomNumber(closedLevel.RoomId));
+            foreach (var kindId in kinds)
+            {
+                var art = SpriteFor(kindId);
+                if (art == null) continue; // missing art stays missing, not a blank crash
+
+                // "Before": jumbled and overlapping, at odd angles — clutter.
+                var messy = new VisualElement();
+                messy.AddToClassList("game__ba-item");
+                messy.AddToClassList("game__ba-item--messy");
+                Paint(messy, art);
+                messy.style.left = scatter.Next(0, 82);
+                messy.style.top = scatter.Next(0, 82);
+                messy.style.rotate = new Rotate(new Angle(scatter.Next(-28, 28), AngleUnit.Degree));
+                _beforeCollage.Add(messy);
+
+                // "After": the same sprites, upright and in a tidy row — order.
+                var tidy = new VisualElement();
+                tidy.AddToClassList("game__ba-item");
+                tidy.AddToClassList("game__ba-item--tidy");
+                Paint(tidy, art);
+                _afterCollage.Add(tidy);
+            }
+
+            _beforeAfter.style.display = DisplayStyle.Flex;
+        }
+
+        private void HideRoomTransformation()
+        {
+            if (_beforeAfter != null) _beforeAfter.style.display = DisplayStyle.None;
+        }
 
         private void Update()
         {

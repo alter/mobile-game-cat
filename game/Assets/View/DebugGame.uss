@@ -203,3 +203,91 @@
     width: 26px;
     height: 26px;
 }
+
+/* 60-shell-build/04: the cat portrait, always on the board, top-right corner
+   so it never competes with the pile for attention. Its pose (CoatBuilder's
+   state 1/2/3) is set in code — this only places and frames it. */
+.game__cat {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 56px;
+    height: 56px;
+    background-color: #E8D9BD;
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    border-bottom-left-radius: 28px;
+    border-bottom-right-radius: 28px;
+}
+
+/* 60-shell-build/06: the win card's before/after. Two panes, side by side,
+   between the card title and its body. */
+.game__before-after {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.game__ba-pane {
+    align-items: center;
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.game__ba-collage {
+    width: 116px;
+    height: 116px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+/* "Before" reads as clutter: a muddier tone behind an overlapping scatter of
+   props. "After" reads as order: a lighter tone behind a tidy row — the same
+   colour language the pile (dirty) and the shelf (clean) already use
+   elsewhere in this file. */
+.game__ba-pane--before .game__ba-collage {
+    background-color: #B0A79B;
+}
+
+.game__ba-pane--after .game__ba-collage {
+    background-color: #F4EAD8;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: #C9A97C;
+    border-right-color: #C9A97C;
+    border-top-color: #C9A97C;
+    border-bottom-color: #C9A97C;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-top: 4px;
+    padding-left: 4px;
+}
+
+.game__ba-item {
+    width: 30px;
+    height: 30px;
+}
+
+.game__ba-item--messy {
+    position: absolute;
+}
+
+.game__ba-item--tidy {
+    width: 26px;
+    height: 26px;
+    margin-right: 2px;
+    margin-bottom: 2px;
+}
+
+.game__ba-label {
+    font-size: 12px;
+    color: #7C6A52;
+    -unity-font-style: bold;
+    margin-top: 4px;
+}

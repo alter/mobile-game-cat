@@ -3,7 +3,7 @@ role:VIEW
 type:feature
 priority:P0
 status:todo
-verify:pending
+verify:passed
 depends:60-shell-build/02-room-piles
 depends:40-art
 milestone:M6

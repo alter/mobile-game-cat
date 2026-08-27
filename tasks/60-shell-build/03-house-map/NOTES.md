@@ -16,3 +16,33 @@ not counted - a room brightens, the cat improves, objects appear - but all of
 that is visible only one room at a time without this screen. The map turns
 twelve separate improvements into one accumulating thing, which is what makes
 an unfinished set nag.
+
+## Placeholder art, and what the real art must preserve
+
+40-art/06-house-map has not delivered art yet (still `status:todo`), so
+`View/HouseMapView.cs` falls back to a painted placeholder for the background
+and all 36 cells, the same way `CoatBuilder.LoadBase` falls back when a coat
+texture is missing - one warning, not a hole in the screen.
+
+The placeholder tells the three states apart by silhouette, not shade:
+- dirty - a plain square, flat dark fill, no icon.
+- partial - a split tile: two halves across a hard vertical edge at 50%, no
+  gradient between them.
+- clean - a full circle (a different outline from the other two, not a
+  lighter square) with a small mark.
+
+art-prompts.md already commits the real art to lightness-only, hue-fixed
+tiles ("dark, halfway, light"), which is a narrower rule than the
+placeholder's shape trick and is not something this task is overriding. What
+the placeholder's choices point at, and what the real art has to keep, is
+two things art-prompts.md already says but that are easy to lose while
+drawing thirty-six small files one at a time:
+1. "partial" needs a **crisp boundary**, not a blend - at 256x256 (and
+   smaller once laid into the map), a soft gradient between lit and unlit
+   reads as one smudged tile, not "half done". The placeholder's hard edge
+   at 50% is standing in for that requirement, not inventing a new one.
+2. The three states of every one of the twelve rooms must stay orderable
+   dark-to-light with colour removed (40-art/06's own QA check 2) *and* the
+   full set of twelve must still read as "mostly unfinished" or "mostly
+   done" in one glance once laid out together (QA check 3) - the thing this
+   whole task exists to make visible.

@@ -87,3 +87,57 @@ mediocre.
 Nothing here should be generated without the owner asking. This file exists so
 that when images arrive, the order is already decided and nobody spends a day
 drawing the P2 set.
+
+---
+
+# Delivered 2026-08-28 — what arrived and what is still open
+
+105 files. Checked by measurement before being placed, not by reading the
+delivery note.
+
+| group | files | size | alpha | placed |
+|---|---|---|---|---|
+| rooms | 24 (12 pairs) | 1856×3328 | opaque, correct for a background | `Resources/Art/` |
+| house map | 37 (background + 12×3) | 928×1664 / 256×256 | opaque | `Resources/Art/` |
+| icons | 5 | 1328×1328 | opaque | `Assets/Art/icons/` — a player setting, not a runtime load |
+| share frame | 1 | 1328×1328 | opaque | `Assets/Art/` — P2, D8 |
+| cats | 3 | 1024×1024 | yes | **already in the repo, byte-identical** |
+| props | 32 | 256×256 | yes | **already in the repo, byte-identical** |
+| rewards | 2 | 1328×1328 | **no** | held in `Assets/Art/rewards-pending/`, see its README |
+
+**Rooms came in larger than specified and that is the right direction.**
+`art-brief.md` §5 worked out 1536×3072 as the next power of two above the worst
+case (1320×2868 on an iPhone 16 Pro Max). 1856×3328 clears it with room to
+spare. Nothing to fix.
+
+**The map names matched the code exactly** — `map_background` and
+`map_room_<nn>_<state>` — so `View/HouseMapView`, written hours earlier against
+nothing, loads the real art with no change at all. That is what the fallback
+was for.
+
+**The two rewards are the one defect** and it is a cut-out problem rather than a
+drawing one: fully opaque, so they would paste a white square over a room. Held
+out of `Resources/` on purpose. `game/Assets/Art/rewards-pending/README.md`
+carries the measurement and what would finish them.
+
+## What the delivery settled about the cat, which was the open question
+
+The delivery note asks the same question the project had been circling: are the
+coat masks needed? **No.** `View/CoatMasks` derives all nine from the silhouette
+at load time, and the note's own alternative — "by hand or by code over the
+finished base" — is the second one, already built and already looked at.
+
+Three of the note's requirements turned out to be already satisfied, arrived at
+independently:
+
+| the delivery asks | what the code does |
+|---|---|
+| outline not baked, applied over the tinted coat | `CoatBuilder.Outline`, 1.6% of width |
+| long fur by growing the silhouette, not texture | `CoatBuilder.Tufts`, strands along the contour normal |
+| ginger darkened about a quarter | **was not done** — corrected 28.08 to 186,108,52 from the delivery's measurement |
+
+And it settles the long-haired set: the note says three attempts failed and
+suggests that a shader approach makes the second silhouette set unnecessary.
+That approach is what is running. **Six silhouettes are not needed; three are
+enough.** `40-art/03`'s outstanding count of "3 of 6" should be read as complete
+unless someone decides tufts are not good enough on a device.

@@ -139,16 +139,22 @@ namespace CatShelter.Shell
                 root?.Clear();
             }
             // The capture screen replaces the board when asked for. It is not
-            // yet the game's first screen — that arrives with 09-meet-your-cat
-            // and 10-skip-default-cat, which decide what happens after a photo
-            // is accepted. Until then it is reachable for checking, by dropping
-            // a `capture.txt` next to the save.
+            // yet the game's first screen — that arrives with 10-skip-default-cat,
+            // which decides what happens with no photo at all. Until then it is
+            // reachable for checking, by dropping a `capture.txt` next to the save.
+            // A photo accepted here now leads straight into meet-your-cat
+            // (50-photo/09): traits in, her named cat out.
             if (CaptureRequested())
             {
                 var screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
                 screen.Build(uid.rootVisualElement);
                 screen.OnAccepted = photo => Report($"accepted a {photo.Length}-byte photo");
-                screen.OnCatReady = cat => Report($"cat ready ({cat.Origin}): {cat}");
+                screen.OnCatReady = traits =>
+                {
+                    Report($"cat ready ({traits.Origin}): {traits}");
+                    screen.Hide();
+                    ShowMeetYourCat(uid.rootVisualElement, traits);
+                };
 
                 // capture.txt may name a photo in the same folder: the pipeline
                 // then runs on it without anyone tapping, which is the only way
@@ -181,8 +187,40 @@ namespace CatShelter.Shell
                 return;
             }
 
+            // Meet-your-cat (50-photo/09) reachable on its own, same
+            // convention: drop a `meet.txt` beside the save. Whatever cat is
+            // already saved is what she meets — an existing name comes back
+            // pre-filled, which is the one thing a fresh capture run cannot
+            // exercise (there is never a prior save on that path).
+            if (CatShelter.View.MeetYourCatScreen.Requested)
+            {
+                if (GetComponent<CatShelter.View.MeetYourCatScreen>() == null)
+                {
+                    var saved = CatShelter.Core.CatSave.Read(CatShelter.Shell.CatSaveFile.Read());
+                    var traits = saved?.Traits ?? CatShelter.Core.CatTraits.Default;
+                    ShowMeetYourCat(uid.rootVisualElement, traits, saved?.Name);
+                }
+                return;
+            }
+
             if (GetComponent<DebugGameView>() == null)
                 gameObject.AddComponent<DebugGameView>();
+        }
+
+        /// <summary>
+        /// Build and show 50-photo/09, wired to persist the named cat
+        /// beside the board save the moment she confirms it.
+        /// </summary>
+        private void ShowMeetYourCat(VisualElement root, CatShelter.Core.CatTraits traits,
+                                     string initialName = null)
+        {
+            var screen = gameObject.AddComponent<CatShelter.View.MeetYourCatScreen>();
+            screen.Build(root, traits, initialName);
+            screen.OnNamed = cat =>
+            {
+                CatShelter.Shell.CatSaveFile.Write(CatShelter.Core.CatSave.Write(cat));
+                Report($"cat named: {cat.Name}");
+            };
         }
     }
 }

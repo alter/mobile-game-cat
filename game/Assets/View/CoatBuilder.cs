@@ -38,11 +38,20 @@ namespace CatShelter.View
         /// into the greyscale base, so its light and shadow survive.</summary>
         private static readonly Dictionary<string, Color> Coats = new()
         {
-            ["ginger"] = new Color(0.87f, 0.55f, 0.29f),
+            // Ginger darkened about a quarter on 2026-08-28, on the art
+            // delivery's own measurement rather than by eye: the house palette
+            // is warm and light, and a ginger cat dissolves into it — lightness
+            // difference 3 of 100 at the old 0.87,0.55,0.29. 186,108,52 raises
+            // it to 13 and the cat reads.
+            ["ginger"] = new Color(186f / 255f, 108f / 255f, 52f / 255f),
             ["grey"] = new Color(0.60f, 0.62f, 0.65f),
             ["black"] = new Color(0.28f, 0.26f, 0.26f),
             ["white"] = new Color(0.96f, 0.94f, 0.90f),
-            ["cream"] = new Color(0.90f, 0.82f, 0.66f),
+            // Cream is the other coat that warning names. Darkened by the same
+            // proportion rather than to a measured value, because the delivery
+            // measured ginger and not this one — worth re-checking against a
+            // real room rather than trusting the arithmetic.
+            ["cream"] = new Color(0.78f, 0.71f, 0.57f),
             ["brown"] = new Color(0.55f, 0.40f, 0.28f),
         };
 

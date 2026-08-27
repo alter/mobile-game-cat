@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CatShelter.Core;
 using NUnit.Framework;
@@ -74,6 +75,123 @@ namespace CatShelter.Core.Tests
         {
             while (p.CurrentRoom == room && !p.IsRoomDone(room))
                 p.CompletePile(p.CurrentPile);
+        }
+
+        // --- 60-shell-build/03: house map derivation --------------------
+
+        [Test]
+        public void PilesClearedIn_UntouchedRoom_IsZero()
+        {
+            var p = Make();
+            Assert.That(p.PilesClearedIn(5), Is.EqualTo(0));
+            Assert.That(p.PilesClearedIn(12), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void PilesClearedIn_CurrentRoom_TracksCursor()
+        {
+            var p = Make();          // room 3 has 3 piles
+            CompleteRoom(p, 1);
+            CompleteRoom(p, 2);
+            Assert.That(p.CurrentRoom, Is.EqualTo(3));
+            Assert.That(p.PilesClearedIn(3), Is.EqualTo(0));
+            p.CompletePile(0);
+            Assert.That(p.PilesClearedIn(3), Is.EqualTo(1));
+            p.CompletePile(1);
+            Assert.That(p.PilesClearedIn(3), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void PilesClearedIn_DoneRoom_IsFull()
+        {
+            var p = Make();
+            CompleteRoom(p, 1);
+            Assert.That(p.PilesClearedIn(1), Is.EqualTo(Curve[0]));
+        }
+
+        [Test]
+        public void PilesClearedIn_OutOfRange_IsZero()
+        {
+            var p = Make();
+            Assert.That(p.PilesClearedIn(0), Is.EqualTo(0));
+            Assert.That(p.PilesClearedIn(13), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void CellStateFor_UntouchedRoom_IsDirty()
+        {
+            var p = Make();
+            Assert.That(p.CellStateFor(9), Is.EqualTo(RoomCellState.Dirty));
+        }
+
+        [Test]
+        public void CellStateFor_PartlyCleared_IsPartial()
+        {
+            var p = Make();          // room 9 has 4 piles
+            for (int room = 1; room < 9; room++) CompleteRoom(p, room);
+            p.CompletePile(0);
+            p.CompletePile(1);
+            Assert.That(p.CellStateFor(9), Is.EqualTo(RoomCellState.Partial));
+        }
+
+        [Test]
+        public void CellStateFor_FinishedRoom_IsClean()
+        {
+            var p = Make();
+            CompleteRoom(p, 1);
+            Assert.That(p.CellStateFor(1), Is.EqualTo(RoomCellState.Clean));
+        }
+
+        [Test]
+        public void CellStateFor_SinglePileRoom_SkipsPartial()
+        {
+            // Room 1 holds exactly one pile: it can only be dirty or clean,
+            // never partial - clearing its only pile finishes it.
+            var p = Make();
+            Assert.That(p.CellStateFor(1), Is.EqualTo(RoomCellState.Dirty));
+            p.CompletePile(0);
+            Assert.That(p.CellStateFor(1), Is.EqualTo(RoomCellState.Clean));
+        }
+
+        [Test]
+        public void Restore_MatchesReplayedState()
+        {
+            var replayed = Make();
+            CompleteRoom(replayed, 1);
+            CompleteRoom(replayed, 2);
+            replayed.CompletePile(0); // room 3, pile 0 of 3
+
+            var restored = PlayerProgress.Restore(Curve, replayed.CurrentRoom,
+                replayed.CurrentPile, replayed.RoomsDone);
+
+            Assert.That(restored.CurrentRoom, Is.EqualTo(replayed.CurrentRoom));
+            Assert.That(restored.CurrentPile, Is.EqualTo(replayed.CurrentPile));
+            Assert.That(restored.RoomsDone, Is.EquivalentTo(replayed.RoomsDone));
+            for (int room = 1; room <= Curve.Length; room++)
+                Assert.That(restored.CellStateFor(room),
+                    Is.EqualTo(replayed.CellStateFor(room)), $"room {room}");
+        }
+
+        [Test]
+        public void Restore_FreshGame_IsAllDirty()
+        {
+            var restored = PlayerProgress.Restore(Curve, 1, 0, new List<int>());
+            for (int room = 1; room <= Curve.Length; room++)
+                Assert.That(restored.CellStateFor(room), Is.EqualTo(RoomCellState.Dirty));
+        }
+
+        [Test]
+        public void Restore_RejectsCursorOutsideRoomCount()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => PlayerProgress.Restore(Curve, 13, 0, new List<int>()));
+        }
+
+        [Test]
+        public void Restore_RejectsPileOutsideRoomSize()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => PlayerProgress.Restore(Curve, 1, 1, new List<int>())); // room 1 has 1 pile
         }
     }
 }

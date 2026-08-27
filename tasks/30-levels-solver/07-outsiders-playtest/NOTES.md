@@ -115,3 +115,34 @@ agreeing, each time.
 `make_playtest.py` also writes `hosted.html` — the same bytes without the
 document wrapper, for putting the prototype behind a link someone can open on
 their own phone. One generator, so the two cannot drift.
+
+## The kitten is in the build now, 2026-08-27 (evening)
+
+She sits above the board and changes pose as rooms are cleared: hunched for
+rooms 1–4, up and alert for 5–8, curled asleep for 9–12. Those two thresholds
+are the ones D8 names as the moments worth showing off, and the ones the game
+itself uses. The card that appears when a room is finished now says *"Котёнок
+изменился — посмотри на него"* at exactly those two crossings instead of the
+same "the kitten is better" every room.
+
+**Why this was worth adding to a gate about the loop.** The gate asks whether
+someone would keep playing. What they would keep playing *for* was, until now,
+a sentence in a dialog. A reward nobody can see is a reward that cannot be
+weighed, and answering "no" to a game whose payoff was never shown tells us
+less than the question deserves.
+
+**What is honest about it and what is not.** The three bases are used exactly
+as drawn — flat grey, three poses. What is **not** reproduced is the weathering
+the real game applies at runtime: `CoatBuilder` dulls and dirties state 1 and
+lifts it by state 3, so in the shipped game the change is grooming as well as
+posture. That code is C# and copying it into the generator would be inventing
+the look a second time, in a second language. So the prototype understates the
+transformation rather than overstating it, which is the safe direction for a
+gate: nobody will say yes because of a before/after this build does not show.
+
+Nothing was invented and nothing was generated. If better cat art arrives it
+drops into the same three filenames and the build picks it up.
+
+Page is 289 KB with all three states embedded (8–11 KB each). Regenerated and
+rechecked: `verify_playtest.py` still plays 37/37 to a win and drives 37/37
+into a jam, both engines agreeing.

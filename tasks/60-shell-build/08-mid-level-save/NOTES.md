@@ -113,3 +113,106 @@ done.
 
 The OUTCOME artefact this task names is not there. What is missing, what does
 exist, and why it matters: `tasks/AUDIT-2026-08-27.md`.
+
+---
+
+## The device half, done on Android, 2026-08-27
+
+The audit (`tasks/AUDIT-2026-08-27.md`, item 6) reopened this task because
+OUTCOME says a killed-and-reopened app "lands on the same position on device"
+and nothing on file showed that. It does now, on the Android emulator
+`catshelter-a35`, against the APK built the same evening by
+`build/headless-build.sh`.
+
+**A true kill, not a background.** The process id is the proof:
+
+```
+pid before:         7822
+adb shell am force-stop com.DefaultCompany.game
+pid after kill:     ''          <- gone
+adb shell am start -n com.DefaultCompany.game/com.unity3d.player.UnityPlayerGameActivity
+pid after relaunch: 8011        <- a different process
+```
+
+**The two screenshots are byte-identical.** `android-before-kill.png` was taken
+after three tiles were tapped; `android-after-relaunch.png` after the new
+process had drawn its first frame. Two separate `screencap` calls across a
+process death:
+
+```
+554ce728bc5337bffb617d9d5c24e1254c6e06a648c715e2dd2280f70861e88c  android-before-kill.png
+554ce728bc5337bffb617d9d5c24e1254c6e06a648c715e2dd2280f70861e88c  android-after-relaunch.png
+```
+
+Both read "Items left: 33" over the same pile, with the shelf holding a cutting
+board, a plate and a crate in the first three slots.
+
+**The save itself, read off the device verbatim** — no `run-as` needed, because
+`Application.persistentDataPath` on Android is
+`/sdcard/Android/data/com.DefaultCompany.game/files/`, which `adb shell cat`
+reaches on a release build. `90-android/11-save-parity` left this open believing
+it needed `run-as`; it does not.
+
+```
+catshelter-save-v1
+level 1 room_01 0
+shelf prop_board prop_plate prop_crate _ _ _ _ _ _ cap9
+triples 0
+taken 1 3 6
+```
+
+Three ids taken, three kinds on the shelf, capacity 9 — the whole board, which
+is what D12 asks for.
+
+**A corrupted save starts fresh instead of crashing.** The file was overwritten
+with `level 1 / room room_01 / this is not a save / <NUL><SOH>garbage` and the
+app relaunched: it came up alive (pid 8110) on a fresh board — "Items left: 36",
+empty shelf — in `android-corrupt-save.png`. That is the promise
+`Core/SaveResume` states in its own summary: *"Losing a pile is a setback; a
+crash on launch loses the player."*
+
+## Items 1 and 3, checked by reading rather than by running
+
+**Item 3 — a save on every move-completing path.** `DebugGameView.Take` is the
+only path a move can complete on, and `Save()` is its second-to-last statement
+(`DebugGameView.cs:310`), before the redraw. There is no `OnApplicationPause`
+or `OnApplicationQuit` in the file at all, which is the point of D12.
+`Finish()` then overwrites that save deliberately — a finished board is a dead
+end to resume into.
+
+**Item 1 — round trip and corruption.** `BoardSaveTests` covers the round trip
+and the two corrupt-snapshot cases; `SaveResumeTests` covers the layer above,
+including a loop that feeds every truncated prefix of a good save through
+`TryResume` and asserts none of them throws. The split is right: `BoardSave.Restore`
+fails loudly, `SaveResume.TryResume` catches it and returns null so the caller
+starts fresh.
+
+## What is still not proven, and it is not nothing
+
+An emulator is not a phone, and Android is not iOS. This task's GOAL is
+motivated by iOS specifically — "iOS kills backgrounded apps without warning" —
+and no iOS device run has happened. Under D17 there is no Apple account, so
+that half waits with `14-testflight`. What is shown here is that the mechanism
+survives a real process death and a corrupted file; what is not shown is that
+iOS behaves the same.
+
+## Verdict on the above: failed, and rightly — 2026-08-27
+
+An independent context re-ran the whole emulator experiment itself (its own
+move, its own force-stop, pids 8110 → 8243, byte-identical screenshots) and
+confirmed the mechanism is real. It still ruled item 2 **partial** and the task
+`verify:failed`, because `catshelter-a35` is an AVD and not hardware, and this
+task's GOAL is motivated by iOS specifically.
+
+That is the right call and worth leaving here so nobody repeats the emulator
+run expecting it to close the item. D17 makes Android co-equal work; it does
+not make an Android emulator a substitute for the iOS claim this OUTCOME
+makes. The item waits for `14-testflight` and a phone.
+
+**What the emulator run did buy**, and it is not nothing: the save format is
+now known to survive a true process death and a corrupted file, so if the iOS
+run ever fails it will fail for an iOS reason and not because the mechanism was
+never checked at all. It also retired a false blocker — `90-android/11` had
+recorded that reading the save needed `run-as`, which a release build refuses.
+It does not: `Application.persistentDataPath` on Android is under
+`/sdcard/Android/data/`, and plain `adb shell cat` reads it.

@@ -2,8 +2,8 @@ phase:shell
 role:CORE
 type:feature
 priority:P0
-status:in_progress
-verify:pending
+status:review
+verify:failed
 depends:20-rules-core/01-entities
 depends:20-rules-core/03-shelf-match
 milestone:M6

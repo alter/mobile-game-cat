@@ -61,6 +61,35 @@ if not levels:
 # this build deliberately leaves out.
 kinds = sorted({e["kind"] for lv in levels for e in lv["pile"]})
 
+def webp(source, side):
+    """One PNG from Art/, resized and base64'd as a WebP data URI."""
+    image = Image.open(source).convert("RGBA")
+    image.thumbnail((side, side), Image.LANCZOS)
+    buffer = io.BytesIO()
+    image.save(buffer, "WEBP", quality=82, method=6)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/webp;base64,{encoded}"
+
+
+# The cat, in her three states. She is the reward the whole game is about, and
+# a prototype that only prints "the kitten is better" in a card is not showing
+# it — this gate asks whether someone would keep playing, and what they would
+# keep playing FOR is on screen now.
+#
+# The bases are used exactly as drawn: flat grey, three poses — hunched, alert,
+# curled asleep. What is NOT reproduced here is the weathering the game applies
+# at runtime (CoatBuilder dulls and dirties state 1 and lifts it by state 3),
+# because that lives in C# and copying it into Python would be inventing a look
+# in a second place. So the change reads as posture, not as grooming, and the
+# real before/after is stronger than what this shows. Nothing is invented: if
+# better cat art arrives it drops into the same three filenames.
+CAT_PX = 240
+cats = {}
+for state in (1, 2, 3):
+    source = ART / f"cat_{state}_short_base.png"
+    if source.exists():
+        cats[str(state)] = webp(source, CAT_PX)
+
 sprites = {}
 for kind in kinds:
     source = ART / f"{kind}.png"
@@ -68,12 +97,7 @@ for kind in kinds:
         raise SystemExit(
             f"{kind} is named by a level but {source} does not exist — the "
             f"prototype would draw a blank tile and nobody would know why")
-    image = Image.open(source).convert("RGBA")
-    image.thumbnail((SPRITE_PX, SPRITE_PX), Image.LANCZOS)
-    buffer = io.BytesIO()
-    image.save(buffer, "WEBP", quality=82, method=6)
-    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-    sprites[kind] = f"data:image/webp;base64,{encoded}"
+    sprites[kind] = webp(source, SPRITE_PX)
 
 html = """<!DOCTYPE html>
 <html lang="ru">
@@ -88,6 +112,11 @@ html = """<!DOCTYPE html>
          display:flex; flex-direction:column; align-items:center; min-height:100vh;
          padding-bottom:14px; }
   h1 { font-size:17px; margin:12px 0 4px; font-weight:600; }
+  /* The cat sits above the board, changing pose as rooms are cleared. Fixed
+     height so the pile never shifts up and down under the player's finger
+     when she changes. */
+  #cat { width:96px; height:96px; margin:2px 0 0; background-repeat:no-repeat;
+         background-position:center bottom; background-size:contain; }
   #status { font-size:13px; margin-bottom:6px; opacity:.75; }
   #roombar { display:flex; gap:2px; width:340px; margin-bottom:10px; }
   .rseg { flex:1; min-width:0; height:6px; border-radius:3px; background:rgba(0,0,0,.12); }
@@ -137,6 +166,7 @@ html = """<!DOCTYPE html>
 </head>
 <body>
 <h1 id="title"></h1>
+<div id="cat"></div>
 <div id="status"></div>
 <div id="roombar"></div>
 <div id="pile"></div>
@@ -148,6 +178,7 @@ html = """<!DOCTYPE html>
 <script>
 const LEVELS = __LEVELS__;
 const SPRITES = __SPRITES__;
+const CATS = __CATS__;
 
 // --- rules: verify_playtest.py extracts this exact block and runs it in node ---
 // Mirror of Core/Board.cs and tools/solver/rules.py. No move limit (D1). No
@@ -193,6 +224,23 @@ function takeItem(level, state, item) {
 
 function spriteOf(kind) { return SPRITES[kind] ? `url(${SPRITES[kind]})` : "none"; }
 
+// The kitten's state follows completed ROOMS, not levels: rooms 1-4 hunched,
+// 5-8 up and alert, 9-12 curled and asleep. Those two thresholds are the ones
+// DECISIONS.md D8 names as the moments worth showing off, and the same ones
+// the game itself uses. Levels are free; rooms are the thing that costs
+// something to reach, so they are what the reward is tied to.
+function catState(roomIndex) {
+  if (roomIndex >= 8) return "3";
+  if (roomIndex >= 4) return "2";
+  return "1";
+}
+
+function renderCat(roomIndex) {
+  const el = document.getElementById("cat");
+  const art = CATS[catState(roomIndex)];
+  el.style.backgroundImage = art ? `url(${art})` : "none";
+}
+
 const ROOM_ORDER = [...new Set(LEVELS.map(l => l.roomId))];
 
 let levelIdx = 0, state = newState();
@@ -202,8 +250,10 @@ function startLevel(i) {
   levelIdx = i;
   state = newState();
   const L = LEVELS[i];
+  const roomIndex = ROOM_ORDER.indexOf(L.roomId);
   document.getElementById("title").textContent =
-    `Комната ${ROOM_ORDER.indexOf(L.roomId) + 1} из ${ROOM_ORDER.length} · завал ${L.pileIndex + 1}`;
+    `Комната ${roomIndex + 1} из ${ROOM_ORDER.length} · завал ${L.pileIndex + 1}`;
+  renderCat(roomIndex);
   renderRoomBar();
   render();
 }
@@ -234,7 +284,15 @@ function finishWin() {
   const next = LEVELS[levelIdx + 1];
   if (!next) return finalScreenAll();
   if (next.roomId !== L.roomId) {
-    return showCard(`<b>Комната чистая!</b><p>Котёнку лучше.</p>` +
+    // Crossing into a new cat state is the moment worth showing off (D8), so
+    // it gets its own line instead of the same "the kitten is better" every
+    // room. Without this the two transitions the whole reward loop is built
+    // around pass unremarked.
+    const grew = catState(ROOM_ORDER.indexOf(next.roomId))
+              !== catState(ROOM_ORDER.indexOf(L.roomId));
+    return showCard(`<b>Комната чистая!</b>` +
+      (grew ? `<p><b>Котёнок изменился — посмотри на него.</b></p>`
+            : `<p>Котёнку лучше.</p>`) +
       `<button class="act" onclick="nextLevel()">Дальше</button>`);
   }
   showCard(`<b>Угол убран!</b><p>В комнате ещё остался завал.</p>` +
@@ -349,7 +407,8 @@ out_dir = ROOT / "build" / "playtest"
 out_dir.mkdir(parents=True, exist_ok=True)
 page = (html
         .replace("__LEVELS__", json.dumps(levels, ensure_ascii=False))
-        .replace("__SPRITES__", json.dumps(sprites)))
+        .replace("__SPRITES__", json.dumps(sprites))
+        .replace("__CATS__", json.dumps(cats)))
 
 out = out_dir / "index.html"
 out.write_text(page)
@@ -363,7 +422,7 @@ head = page[page.index("<title>"):page.index("</head>")]
 body = page[page.index("<body>") + len("<body>"):page.index("</body>")]
 inner = f"{head.strip()}\n{body.strip()}\n"
 for required in ("<style>", "<script>", "const LEVELS", "const SPRITES",
-                 "<title>", "id=\"pile\""):
+                 "const CATS", "<title>", "id=\"pile\"", "id=\"cat\""):
     assert required in inner, f"{required} fell outside the extracted content"
 for forbidden in ("<!DOCTYPE", "<html", "<body", "</head", "</html"):
     assert forbidden not in inner, f"{forbidden} survived into the hosted copy"

@@ -467,6 +467,44 @@ simulator architecture to `ARM64` (the project default is `X86_64`, which
 on Apple Silicon would run under translation), builds, and then restores
 both settings — `ProjectSettings.asset` is left unchanged.
 
+### The active build target is not the same as BuildPlayer's argument
+
+Added 27 August 2026, after this cost a whole feature silently.
+
+`BuildPipeline.BuildPlayer(scenes, path, BuildTarget.Android, ...)` builds for
+Android. It does **not** make Android the *active* build target, and editor
+code that hooks the build is compiled against the active one. Unity packages
+guard their build callbacks with the platform define — `com.unity.mobile.notifications`
+opens its `AndroidNotificationPostProcessor` with `#if UNITY_ANDROID` — so when
+the project sits on iOS, that class does not exist, its
+`OnPostGenerateGradleAndroidProject` never runs, and nothing it is responsible
+for reaches the manifest.
+
+What that produced here: an APK carrying the notification Java classes in
+`classes.dex` and neither `android.permission.POST_NOTIFICATIONS` nor the
+`UnityNotificationManager` receiver in its manifest. The code shipped and could
+never deliver anything. The build reported `result=Succeeded`, exit code 0,
+zero errors, and there was nothing in the log to notice.
+
+So every build entry point in `game/Assets/Editor/BuildScript.cs` now calls
+`UseTarget` first, which switches the active target and throws if the switch
+fails. All three of them, not just Android: `build/headless-build.sh` builds
+Android and then iOS in one run, so without it the iOS build would inherit an
+Android editor and lose its own post-processors the same way.
+
+**The general rule, worth more than the incident:** any package that injects
+permissions, receivers, entitlements or gradle changes through an editor
+callback is silently skipped whenever the active target is not the one being
+built. A build that succeeds is not evidence that its manifest is right.
+
+To check a built APK rather than trust the log:
+
+```bash
+AAPT="/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/SDK/build-tools/36.0.0/aapt2"
+"$AAPT" dump permissions game/build/android/CatShelter.apk
+"$AAPT" dump xmltree game/build/android/CatShelter.apk --file AndroidManifest.xml | grep -A2 "E: receiver"
+```
+
 ### Running in the simulator — verified 26 August 2026
 
 The full path from source to a running app, no Xcode window involved:

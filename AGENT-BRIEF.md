@@ -377,7 +377,7 @@ console, because Unity's `Debug.Log` reaches neither a device nor a simulator:
 | file | written by | says |
 |---|---|---|
 | `errors.txt` | `Shell/DeviceLog` | every error and exception, including the ones Unity catches in `Awake`/`OnEnable` and only logs |
-| `boot-state.txt` | `GameBoot.BootState` | which screen branch ran, post-layout sizes of root/`game-root`/`pile`/first tile, and whether the coat read went through the GPU |
+| `boot-state.txt` | `GameBoot.BootState` | post-layout sizes of root/`game-root`/`pile`/first tile, and whether the coat read went through the GPU. **Written by the board branch only** so far — a flag-file screen leaves no boot-state, and extending it to the other branches is a loose end |
 | `screen-failure.txt` | `GameBoot.SafeBuild` | a screen that threw where it was built, with the stack |
 
 Read them before theorising. The iOS blank screen produced no exception at all

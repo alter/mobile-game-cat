@@ -285,6 +285,57 @@ together with the project, or references will shift for everyone else.
   roughly twice the genre median. The decision is made by a human in task 8.0,
   before spending money.
 
+## How to check a claim — added 2026-08-27, after ten of them fell in a day
+
+Thirty-one tasks marked done were checked against what they claimed. Ten
+failed. Not one was a broken feature: every failure was a document claiming
+more than could be shown, and in seven of the ten the code underneath was
+sound. The full record is `tasks/AUDIT-2026-08-27.md`. Three shapes recurred,
+and they are what to look for first.
+
+**A number nobody counted.** "48 plist keys" when there are 28. "No
+advertising strings in the APK" when `classes.dex` has four. "18 of 20 cats"
+from a program that was not in the repository. Every one was written by
+somebody who had done the work and believed it. The cure is not more care, it
+is re-deriving the number from the artefact rather than from the sentence
+about it — open the binary, count the keys, run the script.
+
+**A constant living in two places.** The pacing curve in Python and in C#. The
+traits schema in six places, two unguarded. The colour palette in Swift and in
+`CatTraits`. Each pair agreed the day it was written and nothing compared them
+after. When you write a value that already exists somewhere else, write the
+comparison in the same commit or expect the drift.
+
+**A guard that cannot fail.** The worst of the three, because it reads as
+safety. A coverage gate no script invoked. Cross-language checks that called
+`Assert.Ignore` when a path did not resolve. An analytics guard that counted a
+commented-out call as a call site. And the largest: the conformance suite
+between the two rule engines compared three scalars, so a decision could be
+reverted in one engine and not the other with all four tests still green.
+
+### The method that found all of them
+
+**Mutate the thing the guard is supposed to catch, and see whether it
+screams.** On a copy outside the repository, never on the tree. Break the
+invariant, run the check, and read the failure. If nothing fails, the guard is
+decoration and you have found something.
+
+Reading a test tells you what it was meant to do. Only breaking the code tells
+you what it does.
+
+Corollaries worth stating, because each cost something today:
+
+- A check that skips itself when it cannot find its input has stopped running.
+  Make it **fail** instead — a missing file is a finding.
+- A test that passes is not evidence that its name or its comment is true. Two
+  tests were found today whose names described states they never reached.
+- A build that succeeds is not evidence its output is right. An Android build
+  reported success for months while silently omitting every manifest entry its
+  packages were supposed to inject.
+- `verify:` is set by a context that wrote neither the code nor the tests, and
+  the reason is not procedural. It is the only reason those ten claims fell
+  instead of standing.
+
 ## When to stop and speak up
 
 - work runs into a HUMAN task — say plainly which one is needed

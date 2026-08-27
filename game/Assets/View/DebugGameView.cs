@@ -49,6 +49,11 @@ namespace CatShelter.View
         private Button _primaryButton;
         private Button _secondaryButton;
 
+        // Loaded once per kind and kept: a pile is 60 tiles and a room is
+        // redrawn on every move, so Resources.Load per tile per frame would be
+        // sixty lookups a tap.
+        private readonly Dictionary<string, Texture2D> _sprites = new();
+
         private readonly List<Level> _levels = new();
         private int _levelIndex;
         private RoomPlan _plan;
@@ -176,10 +181,31 @@ namespace CatShelter.View
 
                 var item = _board.Shelf.Slots[i];
                 if (item != null)
-                    slot.Add(MakeLabel(item.Kind.Id));
+                {
+                    var art = SpriteFor(item.Kind.Id);
+                    if (art != null) Paint(slot, art);
+                    else slot.Add(MakeLabel(item.Kind.Id));
+                }
 
                 _shelfArea.Add(slot);
             }
+        }
+
+        /// <summary>
+        /// The prop's art, by the kind id — level files name the sprite
+        /// directly (`prop_vase`), so there is no lookup table between what a
+        /// level says and what is drawn. Null when the file is missing, and
+        /// the tile then falls back to its old coloured square rather than
+        /// vanishing.
+        /// </summary>
+        private Texture2D SpriteFor(string kindId)
+        {
+            if (_sprites.TryGetValue(kindId, out var cached)) return cached;
+            var texture = Resources.Load<Texture2D>($"Art/{kindId}");
+            if (texture == null)
+                Debug.LogWarning($"[DebugGameView] no art for '{kindId}'");
+            _sprites[kindId] = texture;
+            return texture;
         }
 
         private VisualElement MakeTile(PileEntry entry, bool available)
@@ -194,14 +220,46 @@ namespace CatShelter.View
 
             if (!revealed)
             {
-                // D3: buried items hide their kind — blank tile, not faded
+                // D3: buried items hide their kind. prop_unknown is the drawn
+                // version of that — a covered shape, not a grey square.
                 tile.AddToClassList("game__tile--hidden");
+                Paint(tile, SpriteFor("prop_unknown"));
                 return tile;
             }
 
-            // Per-tile hue is genuinely one-off: computed from the kind id.
-            tile.style.backgroundColor = HueFor(entry.Item.Kind.Id);
-            tile.Add(MakeLabel(entry.Item.Kind.Id, locked ? "🔒" : null));
+            var art = SpriteFor(entry.Item.Kind.Id);
+            if (art != null)
+            {
+                Paint(tile, art);
+                // The lock goes OVER the prop, not instead of it: a locked
+                // item still has to be identifiable, or the player cannot tell
+                // which kind is the one being withheld (task 40-art/02). One
+                // element carries one background image, so the overlay is a
+                // child stretched across the tile.
+                //
+                // Unreachable as the rules stand: Board.IsRevealed counts a
+                // locked item as hidden, so the branch above returns first and
+                // this never runs - measured across all 37 levels, see
+                // DECISIONS.md D15. Kept, not deleted: it is what the tile
+                // should look like, and D15 is a decision waiting to be made,
+                // not a feature that was dropped.
+                if (locked)
+                {
+                    var overlay = new VisualElement();
+                    overlay.AddToClassList("game__tile-lock");
+                    Paint(overlay, SpriteFor("prop_locked"));
+                    overlay.pickingMode = PickingMode.Ignore;
+                    tile.Add(overlay);
+                }
+            }
+            else
+            {
+                // No art for this kind: the coloured square the game used
+                // before any of it existed, so a missing file is visible
+                // rather than invisible.
+                tile.style.backgroundColor = HueFor(entry.Item.Kind.Id);
+                tile.Add(MakeLabel(entry.Item.Kind.Id, locked ? "🔒" : null));
+            }
 
             if (available && !locked)
                 tile.RegisterCallback<ClickEvent>(_ => Take(entry.Item.Id));
@@ -209,6 +267,17 @@ namespace CatShelter.View
                 tile.AddToClassList("game__tile--dim");
 
             return tile;
+        }
+
+        private static void Paint(VisualElement element, Texture2D art)
+        {
+            if (art == null) return;
+            element.style.backgroundImage = new StyleBackground(art);
+            // The props are drawn on a transparent square with their own
+            // margin, so scale-to-fit keeps every prop the same size on the
+            // board regardless of its shape.
+            element.style.backgroundColor = Color.clear;
+            element.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
         }
 
         private static Label MakeLabel(string kindId, string overrideText = null)

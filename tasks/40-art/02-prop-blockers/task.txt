@@ -27,7 +27,8 @@ SCOPE
 
 OUTCOME
   2 PNGs, prop_unknown.png and prop_locked.png, 256x256, same frame/alpha
-  rules as the 30 props, under game/Assets/Art.
+  rules as the 30 props, under game/Assets/Resources/Art (see 40-art/01 for
+  why Resources).
 
 VERIFY (QA)
   1. Both files present, 256x256, clean alpha.
@@ -35,6 +36,16 @@ VERIFY (QA)
      is under there" without naming an object.
   3. prop_locked composited over any one of the 30 props: prop underneath
      still identifiable through the overlay.
+     Blocked as written: the rules make a locked item hidden, so the overlay
+     is never on screen at all - see tasks/DECISIONS.md D15, which has the
+     count (visible in 0 of the 16 levels that carry a lock) and the choice
+     that has to be made. Check 3 cannot pass until that is settled.
+
+     Note: the view draws it as an overlay ON TOP of the prop's own tile
+     (DebugGameView.MakeTile, class game__tile-lock), not in place of it, so
+     this check is about the drawing's transparency, not the code. Measured
+     2026-08-27: 25% of the image fully transparent, 16% partly - it is a
+     drape over the item, not an opaque replacement.
 
 ROLE
   ART, QA

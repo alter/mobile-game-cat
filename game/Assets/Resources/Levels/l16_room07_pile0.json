@@ -5,270 +5,283 @@
   "pile": [
     {
       "id": 1,
-      "kind": "prop_03",
+      "kind": "prop_board",
       "blocked_by": []
     },
     {
       "id": 2,
-      "kind": "prop_05",
+      "kind": "prop_keys",
       "blocked_by": []
     },
     {
       "id": 3,
-      "kind": "prop_04",
+      "kind": "prop_sack",
       "blocked_by": []
     },
     {
       "id": 4,
-      "kind": "prop_06",
+      "kind": "prop_fork",
       "blocked_by": []
     },
     {
       "id": 5,
-      "kind": "prop_07",
+      "kind": "prop_board",
       "blocked_by": []
     },
     {
       "id": 6,
-      "kind": "prop_07",
+      "kind": "prop_sack",
       "blocked_by": []
     },
     {
       "id": 7,
-      "kind": "prop_03",
+      "kind": "prop_board",
       "blocked_by": []
     },
     {
       "id": 8,
-      "kind": "prop_03",
+      "kind": "prop_board",
       "blocked_by": []
     },
     {
       "id": 9,
-      "kind": "prop_07",
+      "kind": "prop_keys",
+      "blocked_by": []
+    },
+    {
+      "id": 10,
+      "kind": "prop_board",
       "blocked_by": [
-        1,
         6
       ]
     },
     {
-      "id": 10,
-      "kind": "prop_02",
-      "blocked_by": [
-        3
-      ]
-    },
-    {
       "id": 11,
-      "kind": "prop_01",
+      "kind": "prop_lamp",
       "blocked_by": []
     },
     {
       "id": 12,
-      "kind": "prop_04",
-      "blocked_by": [
-        3
-      ]
+      "kind": "prop_sack",
+      "blocked_by": []
     },
     {
       "id": 13,
-      "kind": "prop_00",
+      "kind": "prop_bottle",
       "blocked_by": [
-        7
+        3,
+        4
       ]
     },
     {
       "id": 14,
-      "kind": "prop_06",
-      "blocked_by": []
+      "kind": "prop_bottle",
+      "blocked_by": [
+        4,
+        8
+      ]
     },
     {
       "id": 15,
-      "kind": "prop_06",
+      "kind": "prop_keys",
       "blocked_by": []
     },
     {
       "id": 16,
-      "kind": "prop_03",
-      "blocked_by": []
+      "kind": "prop_mirror",
+      "blocked_by": [
+        1
+      ]
     },
     {
       "id": 17,
-      "kind": "prop_00",
+      "kind": "prop_sack",
       "blocked_by": []
     },
     {
       "id": 18,
-      "kind": "prop_07",
+      "kind": "prop_mirror",
       "blocked_by": []
     },
     {
       "id": 19,
-      "kind": "prop_02",
+      "kind": "prop_lamp",
       "blocked_by": []
     },
     {
       "id": 20,
-      "kind": "prop_03",
-      "blocked_by": []
-    },
-    {
-      "id": 21,
-      "kind": "prop_01",
-      "blocked_by": [
-        11,
-        13
-      ]
-    },
-    {
-      "id": 22,
-      "kind": "prop_00",
-      "blocked_by": []
-    },
-    {
-      "id": 23,
-      "kind": "prop_04",
-      "blocked_by": []
-    },
-    {
-      "id": 24,
-      "kind": "prop_05",
-      "blocked_by": []
-    },
-    {
-      "id": 25,
-      "kind": "prop_01",
-      "blocked_by": []
-    },
-    {
-      "id": 26,
-      "kind": "prop_01",
-      "blocked_by": []
-    },
-    {
-      "id": 27,
-      "kind": "prop_02",
+      "kind": "prop_lamp",
       "blocked_by": [
         11
       ]
     },
     {
-      "id": 28,
-      "kind": "prop_04",
-      "blocked_by": [
-        7
-      ]
-    },
-    {
-      "id": 29,
-      "kind": "prop_05",
+      "id": 21,
+      "kind": "prop_board",
       "blocked_by": []
     },
     {
+      "id": 22,
+      "kind": "prop_bottle",
+      "blocked_by": []
+    },
+    {
+      "id": 23,
+      "kind": "prop_fork",
+      "blocked_by": [
+        8
+      ]
+    },
+    {
+      "id": 24,
+      "kind": "prop_scissors",
+      "blocked_by": []
+    },
+    {
+      "id": 25,
+      "kind": "prop_scissors",
+      "blocked_by": []
+    },
+    {
+      "id": 26,
+      "kind": "prop_mirror",
+      "blocked_by": [
+        8,
+        17
+      ]
+    },
+    {
+      "id": 27,
+      "kind": "prop_scissors",
+      "blocked_by": []
+    },
+    {
+      "id": 28,
+      "kind": "prop_bottle",
+      "blocked_by": []
+    },
+    {
+      "id": 29,
+      "kind": "prop_lamp",
+      "blocked_by": [
+        20
+      ]
+    },
+    {
       "id": 30,
-      "kind": "prop_02",
+      "kind": "prop_mirror",
       "blocked_by": []
     },
     {
       "id": 31,
-      "kind": "prop_06",
+      "kind": "prop_lamp",
       "blocked_by": []
     },
     {
       "id": 32,
-      "kind": "prop_05",
+      "kind": "prop_mirror",
       "blocked_by": []
     },
     {
       "id": 33,
-      "kind": "prop_05",
+      "kind": "prop_fork",
       "blocked_by": []
     },
     {
       "id": 34,
-      "kind": "prop_02",
-      "blocked_by": []
-    },
-    {
-      "id": 35,
-      "kind": "prop_00",
+      "kind": "prop_scissors",
       "blocked_by": [
-        16
+        11
       ]
     },
     {
-      "id": 36,
-      "kind": "prop_07",
+      "id": 35,
+      "kind": "prop_bottle",
       "blocked_by": []
     },
     {
+      "id": 36,
+      "kind": "prop_sack",
+      "blocked_by": [
+        17,
+        7
+      ]
+    },
+    {
       "id": 37,
-      "kind": "prop_01",
+      "kind": "prop_lamp",
       "blocked_by": []
     },
     {
       "id": 38,
-      "kind": "prop_00",
+      "kind": "prop_sack",
       "blocked_by": [
-        4
+        13
       ]
     },
     {
       "id": 39,
-      "kind": "prop_07",
-      "blocked_by": [
-        9,
-        5
-      ]
-    },
-    {
-      "id": 40,
-      "kind": "prop_01",
+      "kind": "prop_scissors",
       "blocked_by": []
     },
     {
+      "id": 40,
+      "kind": "prop_keys",
+      "blocked_by": [
+        20,
+        28
+      ]
+    },
+    {
       "id": 41,
-      "kind": "prop_06",
+      "kind": "prop_fork",
       "blocked_by": []
     },
     {
       "id": 42,
-      "kind": "prop_04",
+      "kind": "prop_mirror",
       "blocked_by": []
     },
     {
       "id": 43,
-      "kind": "prop_02",
-      "blocked_by": []
+      "kind": "prop_bottle",
+      "blocked_by": [
+        18,
+        14
+      ]
     },
     {
       "id": 44,
-      "kind": "prop_05",
-      "blocked_by": []
+      "kind": "prop_fork",
+      "blocked_by": [
+        30,
+        3
+      ]
     },
     {
       "id": 45,
-      "kind": "prop_03",
+      "kind": "prop_keys",
       "blocked_by": []
     },
     {
       "id": 46,
-      "kind": "prop_06",
+      "kind": "prop_scissors",
       "blocked_by": [
-        12
+        28,
+        15
       ]
     },
     {
       "id": 47,
-      "kind": "prop_00",
-      "blocked_by": []
+      "kind": "prop_fork",
+      "blocked_by": [
+        19
+      ]
     },
     {
       "id": 48,
-      "kind": "prop_04",
-      "blocked_by": [
-        31
-      ]
+      "kind": "prop_keys",
+      "blocked_by": []
     }
   ]
 }

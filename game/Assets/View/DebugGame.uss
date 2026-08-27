@@ -38,7 +38,12 @@
     max-width: 360px;
 }
 
-/* The shelf sits at the bottom, one row, never wraps. */
+/* The shelf sits at the bottom, one row, never wraps.
+   Sized to fit: nine slots at 44px plus their margins came to about 502
+   units against a 390-unit panel (Shell/PanelSettings.asset), so the two end
+   slots were cut off the screen — visible in every iOS screenshot until
+   2026-08-27. The slot is 32 wide now, and shrinks further rather than
+   overflowing on a narrower phone. */
 .game__shelf {
     flex-direction: row;
     justify-content: center;
@@ -48,18 +53,22 @@
     border-top-right-radius: 10px;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
-    padding-top: 8px;
-    padding-bottom: 8px;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
     margin-top: 12px;
 }
 
 .game__slot {
-    width: 44px;
-    height: 44px;
-    margin-left: 3px;
-    margin-right: 3px;
+    width: 32px;
+    height: 32px;
+    /* Unity defaults flex-shrink to 0, unlike the web: without this the row
+       overflows the screen instead of giving way. */
+    flex-shrink: 1;
+    min-width: 0;
+    margin-left: 2px;
+    margin-right: 2px;
     background-color: #F4EAD8;
     border-left-width: 2px;
     border-right-width: 2px;
@@ -177,4 +186,14 @@
     border-top-width: 0;
     border-bottom-width: 0;
     min-width: 200px;
+}
+
+/* The lock overlay covers its tile exactly; the prop under it still shows
+   through the transparent parts of the drawing (task 40-art/02). */
+.game__tile-lock {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
 }

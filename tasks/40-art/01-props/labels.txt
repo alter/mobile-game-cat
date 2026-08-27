@@ -2,7 +2,7 @@ phase:art
 role:ART
 type:feature
 priority:P0
-status:todo
+status:done
 verify:pending
 depends:00-validate-demand/03-art-prompt-props
 milestone:M4

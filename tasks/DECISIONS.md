@@ -434,3 +434,42 @@ UXML/USS, scenes built by code — that shape exists precisely so an agent never
 to touch scene YAML.
 
 </content>
+
+## D15. The lock is invisible today — a question for the owner, 2026-08-27
+
+**Not decided.** This entry records a contradiction found while wiring the art
+in, with the numbers behind it. Whoever owns the design decides; nothing in the
+rules was changed.
+
+**The contradiction.** `Board.IsRevealed` (`game/Assets/Core/Board.cs:85-91`)
+returns false for a locked item — being locked makes an item *hidden*, on top of
+D3's rule that a buried item hides its kind. The test
+`PartialInformationTests.LockedItem_IsNotRevealed` pins that behaviour, so it is
+deliberate, not an accident.
+
+The consequence is that complication 3.11 never appears on screen. A locked item
+is drawn exactly like a buried one — the same drape — so a player meets a tile
+that will not be taken and is given no reason why. Task `40-art/02-prop-blockers`
+asks for the opposite in as many words: "prop_locked composited over any one of
+the 30 props: prop underneath still identifiable through the overlay." One of
+the two documents is wrong.
+
+**Measured, not guessed.** Across the 37 shipped levels: 16 carry a locked kind.
+Playing each greedily to the end, the lock is visible **0 times out of 16** as
+the rules stand. Removing the `&& !IsLockedByComplication(item)` clause from
+`IsRevealed` — changing nothing else — it becomes visible in **16 of 16**, first
+appearing on move 0 or 1. So the mechanic is currently either fully invisible or
+fully visible; there is no middle setting to tune.
+
+**What is already built either way.** `DebugGameView.MakeTile` draws
+`prop_locked` as a child element over the prop's own sprite (class
+`game__tile-lock`), so the moment the clause goes, the art is correct with no
+further work. Until then that branch is unreachable and the drawing ships unused.
+
+**The choice.**
+- Keep the rule: 3.11 is a difficulty knob the player never sees as one, and
+  `40-art/02` should drop its overlay requirement.
+- Drop the clause: the player sees which kind is being withheld and can plan
+  around it. `LockedItem_IsNotRevealed` and D3's wording need revising, and the
+  0.0 +/- 1.2 pp win-rate finding from `30-levels-solver/10` would want a rerun,
+  since it measured a rule nobody could see.

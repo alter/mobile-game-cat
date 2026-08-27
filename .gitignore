@@ -22,3 +22,6 @@ fixtures/reference-photos/*.jpg
 # Worker dependencies and local wrangler state
 worker/node_modules/
 worker/.wrangler/
+
+# IL2CPP scratch space, written during an Android build
+game/.utmp/

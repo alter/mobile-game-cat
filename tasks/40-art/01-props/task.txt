@@ -19,11 +19,20 @@ SCOPE
     this set and must not share its palette rule.
 
 OUTCOME
-  30 PNGs prop_<name>.png, 256x256, transparent alpha, uniform frame, plus
-  contact-sheet.png, under game/Assets/Art.
+  30 PNGs prop_<name>.png, 256x256, transparent alpha, uniform frame, under
+  game/Assets/Resources/Art, plus contact-sheet.png under game/Assets/Art.
+
+  Resources, not plain Assets: the view loads a prop by name at runtime
+  (Resources.Load<Texture2D>($"Art/{kind}")), and only Resources can be read
+  that way. The shipped levels do the same as the 37 level JSONs already in
+  Resources/Levels. The contact sheet is a review artefact, never loaded by
+  the game, so it stays out of Resources - anything in there ships in the
+  build whether it is used or not.
 
 VERIFY (HUMAN)
   1. All 30 files present, 256x256, clean alpha - checked by QA, not ART.
+     Done 2026-08-27: 32 files (30 + the two from 40-art/02), all 256x256
+     RGBA with real transparency.
   2. Contact sheet reviewed by someone other than the author: reads as one
      set, not a mismatched pile.
   3. Outsider shown any 10 of the 30 shrunk to 52px: confident yes that they

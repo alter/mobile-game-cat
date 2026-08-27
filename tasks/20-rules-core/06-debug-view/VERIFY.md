@@ -88,6 +88,25 @@ print("smallest hue gaps:", [(round(g, 2), a, b) for g, a, b in gaps[:3]])
 EOF
 ```
 
+## Update, 2026-08-27: the colour argument above is obsolete
+
+The art arrived, and the tiles are no longer coloured rectangles. Two of the
+supporting facts above no longer describe the build:
+
+- Kind ids are the prop names now — `prop_vase`, `prop_book` and so on, thirty
+  of them, ten drawn per level — not `prop_00` … `prop_09`. The levels were
+  regenerated (`tools/solver/generate.py`, `PROPS`), so a level file names the
+  sprite the view loads and there is no table in between.
+- `HueFor` is no longer what a player sees. `DebugGameView.MakeTile` paints the
+  tile with `Resources.Load<Texture2D>($"Art/{kind}")`; the hue function is kept
+  only as the fallback when a kind has no file, so a missing sprite is visible
+  rather than invisible. The golden-angle hue arithmetic above therefore
+  answers nothing about the current build, including the colour-vision concern
+  under "What was not checked" — thirty drawn objects are told apart by shape.
+
+Both human items still stand, and item 2 is now the easier question: ten
+drawings of household objects, not ten shades of the same colour.
+
 ## What was not checked
 
 - Item 1 in full: nothing was played, on any device or in any editor. No build

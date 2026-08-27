@@ -122,6 +122,9 @@ namespace CatShelter.Shell
         private void OnEnable()
         {
             var uid = GetComponent<UIDocument>();
+            // Both screens live in this panel, so the inset is applied once
+            // here rather than by each screen.
+            if (GetComponent<SafeArea>() == null) gameObject.AddComponent<SafeArea>();
             if (uid.rootVisualElement == null)
             {
                 // No UXML assigned: build a bare root so DebugGameView can

@@ -40,6 +40,23 @@ _items_for_level = items_for_room
 LOCKED_KIND_FROM_ROOM = 9
 LOCKED_TRIPLE_THRESHOLD = 2
 
+# The props that exist as art, in game/Assets/Resources/Art. Levels name these
+# directly rather than prop_00..prop_09, so a level file says what is in the
+# pile and the view loads the sprite by that name — one name instead of two and
+# a lookup table between them.
+#
+# A pile uses ten of the thirty, drawn per level, so rooms differ from each
+# other: with one fixed set of ten, every room in the house held the same
+# clutter.
+PROPS = (
+    "prop_ball", "prop_board", "prop_book", "prop_bottle", "prop_box",
+    "prop_candle", "prop_casket", "prop_clock", "prop_cloth", "prop_comb",
+    "prop_crate", "prop_fork", "prop_frame", "prop_hanger", "prop_jar",
+    "prop_keys", "prop_lamp", "prop_mirror", "prop_mitten", "prop_pillow",
+    "prop_plate", "prop_rug", "prop_sack", "prop_scarf", "prop_scissors",
+    "prop_spool", "prop_suitcase", "prop_tray", "prop_vase", "prop_yarn",
+)
+
 
 def generate_level(rng: random.Random, number: int = 1,
                    item_count: int = 30, kind_count: int | None = None,
@@ -61,7 +78,10 @@ def generate_level(rng: random.Random, number: int = 1,
         item_count += 3 - item_count % 3
     if kind_count is None:
         kind_count = max(1, round(item_count / 3 / 2))
-    kinds = [f"prop_{i:02d}" for i in range(kind_count)]
+    if kind_count > len(PROPS):
+        raise ValueError(
+            f"{kind_count} kinds asked for, only {len(PROPS)} props are drawn")
+    kinds = rng.sample(PROPS, kind_count)
 
     # expand kinds into a multiset of exactly item_count entries
     pool: list[str] = []

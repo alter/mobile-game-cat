@@ -3,6 +3,6 @@ role:TOOLS
 type:research
 priority:P0
 status:done
-verify:pending
+verify:passed
 depends:30-levels-solver/09-hidden-kinds
 milestone:M3

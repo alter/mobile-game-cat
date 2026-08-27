@@ -5,6 +5,17 @@
 # (task 20-rules-core/05-coverage), then the Unity builds (Android APK, iOS
 # Xcode project), then the signing/.ipa stage.
 #
+# The Android .aab (BuildScript.BuildAndroidBundle) is deliberately NOT built
+# here: this script's job, stated above, is one APK for local install plus
+# the iOS project — a second full Android build just to produce a Play
+# bundle nobody uploads from a headless dev run would double this stage's
+# time for no reader of this script. The .aab matters once there is
+# somewhere to upload it, at 90-android/13-internal-testing (needs the Play
+# account) — that is where a build-and-check-the-bundle stage belongs.
+# build/check-android-manifest.py itself is not APK-specific: it takes any
+# .apk path, including a universal one bundletool builds from an .aab, so
+# reuse it there rather than writing a second check.
+#
 # Signing is not possible right now: there is no Apple Developer Program
 # account and no team ID (tasks/DECISIONS.md, decision D17). This script does
 # not fake a signed .ipa. Unless --no-sign is passed, it reaches the signing
@@ -164,6 +175,18 @@ if [ ! -f "$APK" ]; then
   exit 1
 fi
 echo "Android APK: $APK ($(du -h "$APK" | cut -f1))"
+
+# ---------------------------------------------------------------------------
+stage "Android manifest carries what every integrated package needs (task 90-android/02)"
+# "The build succeeded" and "the file exists" (the check just above) are both
+# blind to the 2026-08-27 defect: BuildTarget.Android was passed to
+# BuildPlayer without making Android the active target, so the notification
+# package's editor callback never ran, and the APK shipped with the Java
+# classes but neither the permission nor the receiver they need. This reads
+# the built APK's manifest with aapt2 and fails the whole build if it is
+# missing anything a currently-integrated package (game/Packages/manifest.json)
+# is known to inject.
+"$PYTEST_BIN" build/check-android-manifest.py --apk "$APK"
 
 # ---------------------------------------------------------------------------
 stage "Unity iOS Xcode project (BuildScript.BuildIOSXcodeProject)"

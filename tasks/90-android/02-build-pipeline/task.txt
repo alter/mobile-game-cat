@@ -37,6 +37,13 @@ VERIFY (NATIVE)
   2. `aapt dump badging` on the .apk shows the expected package name, version
      and minimum API level.
   3. The build log contains no `error CS`, and the run exits 0.
+  4. `build/check-android-manifest.py --apk <apk>` passes: the built APK's
+     manifest (aapt2) carries every entry a currently-integrated Android
+     package (game/Packages/manifest.json) is known to inject. Added
+     2026-08-27 after a build that satisfied VERIFY 1-3 while shipping
+     notification classes with neither the permission nor the receiver they
+     need — a defect none of the first three items could see. Wired into
+     `build/headless-build.sh` as a stage that fails the build.
 
 ROLE
   NATIVE

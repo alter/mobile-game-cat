@@ -16,8 +16,13 @@ SCOPE
   + Upload the .ipa from 13-headless-build to App Store Connect.
   + Create an internal testing group, invite at least 3 people.
   + Complete the App Privacy ("nutrition label") declaration for photo
-    collection - required regardless of the fact the photo is not stored
-    server-side, per the App Privacy rules.
+    collection - required because the cropped photo is shared with a
+    third-party processor (Anthropic) for trait extraction and retained
+    there for up to 30 days by default (not indefinitely, not used for
+    training - corrected 2026-08-27, sourced in
+    tasks/00-validate-demand/01-market-scan/legal-risk.md §3). That is
+    still "collection" under Apple's App Privacy rules regardless of
+    retention length; the declaration must not say "not stored."
   − Not external/public TestFlight testers or Beta App Review - internal
     testing only for this milestone.
   − Not the App Store Connect record/tax/banking setup itself - that is

@@ -366,9 +366,16 @@ per slice) and noise in the metrics mean that at ~100 installs only rough
 totals are reliable, and any segmentation may simply not be shown at all.
 
 **Anthropic API — tolerable.** The integration is a single POST request via
-plain `fetch()` in one function; data (photos) isn't stored on Anthropic's
-side — nothing to take, and in this sense there's no data lock-in at all.
-Moving to a different provider means rewriting one function (endpoint,
+plain `fetch()` in one function. **Corrected 2026-08-27:** this used to say
+photos "aren't stored on Anthropic's side," which doesn't hold — standard
+API accounts retain inputs/outputs for up to 30 days by default
+(privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data,
+updated 2026-07-01, retrieved 2026-08-27; full sourcing in
+`tasks/00-validate-demand/01-market-scan/legal-risk.md` §3). The lock-in
+verdict is unaffected: nothing the app relies on lives at Anthropic past
+that window, there is no export the project would ever need to make, and in
+that sense there's still no data lock-in. Moving to a different provider
+means rewriting one function (endpoint,
 authorization, the shape of the JSON schema), not the project's
 architecture. A hard spending ceiling exists and is configurable in the
 console — the promise "you won't be silently overcharged" is backed by

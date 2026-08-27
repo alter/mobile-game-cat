@@ -23,7 +23,13 @@ SCOPE
     packages rather than written by us.
   + AD_ID explicitly absent, and a check that no dependency puts it back.
   + The Play Data Safety answers drafted from the same table, since they must
-    match it.
+    match it - including that the cropped cat photo is shared with a
+    third-party processor (Anthropic) for trait extraction and retained
+    there for up to 30 days by default, not used for training by default,
+    and not "not collected" (corrected 2026-08-27; sourced in
+    tasks/00-validate-demand/01-market-scan/legal-risk.md §3, which also
+    covers what this means for "data linked to the user" and "data used for
+    tracking").
   - Not the ATT equivalent: Android has none, and D9's rule is already
     "request nothing".
   - Not the store listing.

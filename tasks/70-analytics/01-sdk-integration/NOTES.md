@@ -275,3 +275,220 @@ it here.
 - https://www.gameanalytics.com/trust/terms — fetched 2026-08-27, page dated 2025-10-29 (§5.5.2–5.5.3, free-trial card clause)
 - https://docs.gameanalytics.com/event-tracking-and-integrations/sdks-and-collection-api/game-engine-sdks/unity/configuration — fetched 2026-08-27 (advertising-id tracking wording)
 - https://github.com/GameAnalytics/GA-SDK-ANDROID — `GA/aar/gameanalytics.aar`, downloaded and inspected directly 2026-08-27 (manifest + `classes.jar` contents, quoted above)
+
+---
+
+# Built: everything that needs no account, 2026-08-27
+
+Follows straight from the research above — the only human step is a signup,
+so everything up to that step is built now. No Unity build was run (another
+agent may need the toolchain); what that leaves unvalidated is called out
+below rather than guessed at.
+
+## 1. Package added, version checked against the live registry
+
+`game/Packages/manifest.json` now carries the scoped registry and the
+dependency:
+
+```json
+"scopedRegistries": [
+  { "name": "package.openupm.com", "url": "https://package.openupm.com",
+    "scopes": ["com.gameanalytics"] }
+],
+"dependencies": {
+  "com.gameanalytics.sdk": "8.1.0",
+  ...
+```
+
+`8.1.0` is not carried over from the knowledge doc by assumption — checked
+live, today, against the actual registry Unity's Package Manager talks to for
+this scoped registry (not just GitHub's release page):
+
+```
+$ curl -s "https://package.openupm.com/com.gameanalytics.sdk" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+print('dist-tags:', d.get('dist-tags'))
+print('has 8.1.0:', '8.1.0' in d['versions'])
+"
+dist-tags: {'latest': '8.1.0', 'patch@7.3.8': '7.3.8'}
+has 8.1.0: True
+```
+
+Cross-checked against `https://api.github.com/repos/GameAnalytics/GA-SDK-UNITY/releases/latest`
+→ `"tag_name": "8.1.0"`, `"published_at": "2026-08-21T09:06:31Z"` — same
+version, still current five days later.
+
+## 2. The real sink, wired behind Core/Analytics without Core learning what GameAnalytics is
+
+New file: `game/Assets/Shell/GameAnalyticsSink.cs`. `Core/Analytics.cs` is
+untouched — it still only knows `Action<string, double, string>` /
+`Action<string, int, string>`, exactly as `Analytics.Configure`'s signature
+already required. `GameBoot.cs` now reads:
+
+```csharp
+var (designSink, progressionSink) =
+    GameAnalyticsSink.TryConfigure(gameObject);
+Core.Analytics.Configure(designSink, progressionSink);
+```
+
+replacing the old `Configure(null, null)`. `check-core-purity.sh` still
+passes because `GameAnalyticsSink` lives in `Assets/Shell`, not `Assets/Core`
+— confirmed below, not asserted.
+
+**What `GameAnalyticsSink.TryConfigure` does**, reading the real
+`GA-SDK-UNITY` source (`GameAnalytics.cs`, `Setup/Settings.cs`, both
+downloaded and read directly, not guessed from the docs):
+
+- Reads `analytics-keys.txt` beside the save via `Application.persistentDataPath`
+  — game key on line 1, secret key on line 2 — the same try/catch-and-silently-
+  return-nothing idiom `GameBoot.CaptureRequested`/`CaptureStub` use for
+  `capture.txt` and `EveningReminder` uses for `notify-in-seconds.txt`. Missing
+  file, short file, or a blank line → returns `(null, null)`, identical to
+  today's `Configure(null, null)`. No exception path logs anything — the
+  common case (no file yet) touches no `Debug.Log` call at all, so nothing
+  repeats every launch.
+- If both keys are present: finds or adds the iOS platform entry on
+  `GameAnalyticsSDK.GameAnalytics.SettingsGA` (`Settings.AddPlatform` and
+  `Settings.UpdateKeys` are plain public/static methods, not editor-gated —
+  confirmed by reading `Setup/Settings.cs` directly), injects the two keys
+  into the **in-memory** settings singleton via `Settings.UpdateKeys(index,
+  gameKey, secretKey)` — this never writes to the `.asset` file on disk, so
+  no key is ever serialised anywhere in the repo — sets `InfoLogBuild = true`
+  (SCOPE's "debug logging enabled," already the SDK's own default, set
+  explicitly so intent doesn't ride on a default that could change), calls
+  `GameAnalyticsSDK.GameAnalytics.EnableAdvertisingIdTracking(false)`, adds
+  exactly one `GameAnalyticsSDK.GameAnalytics` component to the `GameBoot`
+  GameObject if one isn't already there, then calls
+  `GameAnalyticsSDK.GameAnalytics.Initialize()`.
+- **No call to `RequestTrackingAuthorization` anywhere in this file, or
+  anywhere else in the project** — grepped after writing it:
+
+```
+$ grep -rn "RequestTrackingAuthorization" game/Assets
+game/Assets/Shell/GameAnalyticsSink.cs:109:                // RequestTrackingAuthorization; call
+game/Assets/Shell/GameAnalyticsSink.cs:112:                // file contains no call to RequestTrackingAuthorization
+```
+
+Both hits are inside comments (the two lines quoted in §3 below) — there is
+no line anywhere in the project that actually calls
+`RequestTrackingAuthorization(...)`, confirmed by reading both matches.
+
+  The comment above the `EnableAdvertisingIdTracking(false)` call quotes D9
+  directly: *"ATT is deliberately not requested... The dialog costs installs
+  and we use nothing behind it."*
+
+- Translates Core's raw progression names (`"level_start"`/`"level_win"`/
+  `"level_fail"`, from `AnalyticsEventNames`) into
+  `GameAnalyticsSDK.GAProgressionStatus.Start/Complete/Fail` — that mapping
+  has to live here, in Shell, because it is GameAnalytics-shaped and Core
+  must not know it exists. Design events pass straight through
+  (`NewDesignEvent(name)` / `NewDesignEvent(name, value)`) since Core's
+  design names are already the exact colon-hierarchical strings GameAnalytics
+  expects (`"app:open"`, etc.).
+- If `SettingsGA` turns out to be null (the package's own `Settings.asset`
+  scaffold isn't there — see §4 below) even though keys were supplied, it
+  logs one warning and returns `(null, null)` rather than guessing at how to
+  create that asset from a build.
+
+## 3. `EnableAdvertisingIdTracking(false)` before `Initialize()`, never `RequestTrackingAuthorization`
+
+Both requirements hold in the code as written — `EnableAdvertisingIdTracking(false)`
+is the line immediately before the `AddComponent`/`Initialize()` sequence,
+and the grep above is the check that the forbidden call is absent project-wide,
+not just in the new file.
+
+## 4. The keys are the human step — what I could not do without one, and what I could not validate without Unity
+
+**What genuinely needs the owner, and cannot be automated:** creating the
+GameAnalytics account and a game inside it, to get the Game Key and Secret
+Key. Nothing above invents or stores either string. `grep -rn` for the words
+"gamekey\|secretkey\|game_key\|secret_key" with an actual value attached
+finds nothing in this diff — only the parsing code, never a value.
+
+**One thing this pass could not build, and says so rather than guessing:**
+GameAnalytics's own `InitAPI()` (`GameAnalytics.cs`) does
+`Resources.Load("GameAnalytics/Settings", ...)` in a real build, and only
+auto-creates the asset via `#if UNITY_EDITOR` — i.e. **only inside the Unity
+Editor**, the first time something touches `GameAnalytics.SettingsGA`. There
+is currently no `Assets/Resources/GameAnalytics/Settings.asset` in this
+repo (checked: `find game/Assets -ipath "*GameAnalytics*Settings*"` → nothing),
+because creating one correctly means either running the Unity Editor once
+(out of scope for this pass — no Unity build was run) or hand-writing a
+Unity `ScriptableObject` `.asset` YAML file referencing a `MonoScript` GUID
+that only exists once the package has actually been resolved into
+`Library/PackageCache` — which also needs Unity to run. Hand-writing that
+GUID without having seen it would be exactly the kind of guessing the task
+said not to do, so it was not attempted.
+
+**Consequence, stated plainly:** the very first time anyone opens this
+project in the Unity Editor after this package resolves, `Settings.asset`
+gets created empty (no keys, per §1's read of `InitAPI`) automatically — that
+is expected, not a bug, and needs no manual step beyond opening the project.
+Until that first Editor open happens, `GameAnalyticsSink.TryConfigure` would
+find `SettingsGA == null` even if `analytics-keys.txt` existed, log the one
+warning described in §2, and stay in no-op mode — so the "no key, no Unity
+Editor run yet" state is safe, but so is "key present, no Editor run yet" —
+neither throws, neither spams a log.
+
+**Also not validated, for the same reason:** whether
+`game/Assets/Shell/GameAnalyticsSink.cs` actually compiles once Unity
+resolves `com.gameanalytics.sdk` — every API surface used
+(`GameAnalytics.SettingsGA`, `Settings.AddPlatform`, `Settings.UpdateKeys`,
+`Settings.InfoLogBuild`, `GameAnalytics.EnableAdvertisingIdTracking`,
+`GameAnalytics.Initialize`, `GameAnalytics.NewDesignEvent`,
+`GameAnalytics.NewProgressionEvent`, `GAProgressionStatus`) was checked
+against the actual current SDK source (`GameAnalytics.cs`,
+`Setup/Settings.cs`, both downloaded from
+`github.com/GameAnalytics/GA-SDK-UNITY` at `master` and read directly, not
+guessed from the docs), so the signatures should match — but nothing here
+substitutes for an actual Editor compile, which this pass was told not to
+run.
+
+## What was checked, green
+
+```
+$ bash build/check-core-purity.sh
+Core is engine-free: OK
+
+$ dotnet test build/core-tests/core-tests.csproj -v q --nologo
+...
+Пройден!   : не пройдено     0, пройдено   152, пропущено     0, всего   152, длительность 267 ms. - core-tests.dll (net8.0)
+```
+
+152 passing, same count the rule names — unaffected, since nothing under
+`Assets/Core` changed.
+
+## The owner's one-minute instruction
+
+1. Go to `https://www.gameanalytics.com/`, click sign up, and create a free
+   account (no card — checked live today, §2 of the research section above).
+2. Create one game entry for CatShelter (the dashboard asks for a name and a
+   genre; anything reasonable is fine, it's editable later).
+3. Open that game's **Settings** in the dashboard. Copy the **Game Key** and
+   the **Secret Key** — two short hex-looking strings, both on the same
+   settings page.
+4. On the test device (or the simulator's container), create a file named
+   `analytics-keys.txt` next to the save file
+   (`Application.persistentDataPath` — the same folder `capture.txt` and
+   `notify-in-seconds.txt` already go in), two lines:
+   ```
+   <game key>
+   <secret key>
+   ```
+5. Relaunch the app. That's the whole instruction — nothing else changes,
+   nothing to rebuild, no code to touch. The next launch after that file
+   exists is what `00-att-silent-check` needs to look at the GameAnalytics
+   dashboard for.
+
+## Status
+
+Everything buildable without an account is done: package declared at a
+version checked live, the sink wired behind `Core/Analytics` with `Core`
+unchanged, `EnableAdvertisingIdTracking(false)` in place with D9's reasoning
+in the comment, `RequestTrackingAuthorization` absent (grepped), no key of
+any kind committed, the no-key behaviour identical to today's
+`Configure(null, null)` (checked by reading the early-return paths, not
+assumed), tests green, purity check green. `status:` moves to `review`.
+`verify:` untouched — this pass did not run a device build, and VERIFY 1 and
+2 in `task.txt` both need one.

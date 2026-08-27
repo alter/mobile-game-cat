@@ -290,9 +290,28 @@ One schema limitation that has to be worked around in our own code:
 `maxItems` isn't supported, so the length of `white_markings` is trimmed
 in the handler.
 
-What comes back is about 100 bytes. The photo isn't stored either by us or
-by the vendor: "Image uploads are ephemeral and not stored beyond the
-duration of the API request."
+What comes back is about 100 bytes. The photo isn't stored by us — only the
+trait set is kept.
+
+**Correction, 2026-08-27.** This used to also claim the vendor doesn't store
+it either, quoting "Image uploads are ephemeral and not stored beyond the
+duration of the API request." That exact sentence is not on any current
+Anthropic page (checked live, 2026-08-27) and the claim was wrong. What
+Anthropic's privacy center actually says: standard API accounts have inputs
+and outputs auto-deleted within **30 days** of receipt or generation
+(privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data,
+"last updated" 2026-07-01, retrieved 2026-08-27); retained data is not used
+to train models **by default**, without the customer's express permission
+(privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training,
+retrieved 2026-08-27); true zero-retention exists only as a separate,
+opt-in "Zero Data Retention" arrangement, "subject to Anthropic's approval"
+through Anthropic's sales team
+(privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to,
+updated 2026-06-09, retrieved 2026-08-27) — which this project, on the
+standard self-serve account (DECISIONS.md D11), does not have. So: **not
+stored by us; retained by the vendor for up to 30 days by default; not used
+for training by default.** Full sourcing and the App Store/Play Store
+consequences: `tasks/00-validate-demand/01-market-scan/legal-risk.md` §3.
 
 **Cost — calculated, not estimated.** An image costs
 `⌈width / 28⌉ × ⌈height / 28⌉` visual tokens; for 512×512 that's 361

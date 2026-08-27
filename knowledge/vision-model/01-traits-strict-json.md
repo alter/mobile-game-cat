@@ -24,9 +24,16 @@ intermediary node `POST /traits` (`/tools/traits`).
    `⌈width / 28⌉ × ⌈height / 28⌉`. For 512×512 that is 361 tokens.
 6. The image should be placed **before** the text in the message content —
    a direct recommendation of the documentation.
-7. Snapshots are not stored on Anthropic's side: "Image uploads are ephemeral and not
-   stored beyond the duration of the API request." This backs up the promise that "the snapshot
-   isn't stored anywhere."
+7. **Corrected 2026-08-27.** This entry used to claim snapshots aren't stored on Anthropic's
+   side at all, quoting a sentence that is not on any current Anthropic page. What's actually
+   true: standard API accounts retain inputs/outputs for up to **30 days** by default, not used
+   for training without express permission; true zero-retention needs a separate, opt-in "Zero
+   Data Retention" enterprise agreement this project doesn't have
+   ([retention](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data),
+   updated 2026-07-01; [training](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training);
+   [ZDR](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to),
+   updated 2026-06-09; all retrieved 2026-08-27). Full sourcing:
+   `tasks/00-validate-demand/01-market-scan/legal-risk.md` §3.
 8. The model does not process indecent images that violate the acceptable-use
    policy. This is an additional, but **not the primary**, safeguard —
    the primary one remains on-device Apple Vision.
@@ -486,3 +493,6 @@ by eye, not by test.
 - [Pricing — platform.claude.com](https://platform.claude.com/docs/en/about-claude/pricing)
 - [Coordinates and bounding boxes](https://platform.claude.com/docs/en/build-with-claude/vision-coordinates)
 - [Messages API — create](https://platform.claude.com/docs/en/api/messages/create)
+- [How long do you store my organization's data? — privacy.claude.com](https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-my-organization-s-data)
+- [Is my data used for model training? — privacy.claude.com](https://privacy.claude.com/en/articles/7996868-is-my-data-used-for-model-training)
+- [Zero data retention agreements — privacy.claude.com](https://privacy.claude.com/en/articles/8956058-i-have-a-zero-data-retention-agreement-with-anthropic-what-products-does-it-apply-to)

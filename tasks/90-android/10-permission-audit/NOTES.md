@@ -113,6 +113,8 @@ N: android=http://schemas.android.com/apk/res/android (line=2)
 | item | who added it | what player action needs it | what breaks without it |
 |---|---|---|---|
 | `android.permission.POST_NOTIFICATIONS` | `com.unity.mobile.notifications` package, wired for the evening reminder in `90-android/09-notifications` (`Shell/EveningReminder.cs`) | On API 33+, the system prompt fires when the reminder is scheduled after level 2 (per `09`'s own verify log: no dialog before that point) | No reminder can be posted on API 33+; below 33 the permission is granted automatically and this line is moot |
+| `android.permission.INTERNET` | `com.gameanalytics.sdk`, added 2026-08-27 (`70-analytics/01-sdk-integration`); declared in the SDK's own AAR manifest, verified by unpacking it | Nothing a player does directly — the SDK posts the nine measurement events to `api.gameanalytics.com`. Raises no prompt: a normal, non-dangerous permission granted at install | No event ever leaves the device, so three of the four go/no-go metrics produce nothing — and silently, which is why `70-analytics/00-att-silent-check` exists |
+| `android.permission.ACCESS_NETWORK_STATE` | `com.gameanalytics.sdk`, same source and date | None. The SDK checks connectivity before attempting a send, so it can queue rather than fail | Events would be attempted with no connection and dropped rather than queued; no prompt either way |
 | `com.DefaultCompany.game.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (self-declared `<permission>` + matching `<uses-permission>`) | AndroidX Core / Unity manifest merger, not written by us | Nothing a player does — this is a signature-level permission the app defines on itself so its own dynamically-registered (`registerReceiver`), non-exported broadcast receiver is provably owned by this app on the pre-Tiramisu compat path. Standard boilerplate wherever `androidx.core` registers a receiver at runtime | The receiver registration this backs would be less strict about who can deliver to it pre-API 33; it raises no user-visible prompt either way |
 | `<uses-feature glEsVersion=0x00030000>` | Unity engine, from the Graphics API setting (OpenGL ES 3.0) | Every player, implicitly — engine minimum | App would not render; not filterable by `required`, glEsVersion is always load-bearing |
 | `<uses-feature android.hardware.vulkan.version required=false>` | Unity engine default | None — explicitly optional | Nothing; kept `false` so Play does not hide the app from devices without Vulkan |
@@ -120,6 +122,14 @@ N: android=http://schemas.android.com/apk/res/android (line=2)
 | `activity com.unity3d.player.UnityPlayerGameActivity` | Unity engine, the app's only entry point | Every launch | The app; this is the LAUNCHER activity |
 | `receiver com.unity.androidnotifications.UnityNotificationManager` (`exported=false`) | `com.unity.mobile.notifications`, same feature as the permission above | Fires the scheduled `AlarmManager` broadcast that posts the reminder | The reminder notification never appears even if permission was granted |
 | `provider androidx.startup.InitializationProvider` (`exported=false`) → `EmojiCompatInitializer`, `ProcessLifecycleInitializer` | `androidx.startup`, pulled in transitively by the notifications package (`androidx.emoji2` for notification text rendering, `androidx.lifecycle` for the process-lifecycle awareness the alarm/receiver plumbing uses) | None directly — internal plumbing, non-exported, requests nothing at runtime | Notification text could lose emoji rendering support and the lifecycle-aware scheduling path used by `09` would need another mechanism |
+
+**Two rows added 2026-08-27, after a re-verification failed this audit for their
+absence.** The narration in §4 predicted `INTERNET` and `ACCESS_NETWORK_STATE`
+would appear once the analytics package landed, and said so honestly — but the
+package landed the same day and the table itself was never updated, so the
+deliverable described a binary two builds old while the prose around it did
+not. Confirmed against the current APK: `aapt2 dump permissions` lists four
+`uses-permission` lines, and all four now have a row.
 
 That accounts for every line in both dumps. Nothing is left unexplained.
 

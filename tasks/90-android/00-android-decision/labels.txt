@@ -3,6 +3,6 @@ role:HUMAN
 type:decision
 priority:P2
 status:done
-verify:pending
+verify:failed
 depends:80-live-validation/03-decision
 milestone:M9

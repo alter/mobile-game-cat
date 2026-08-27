@@ -119,3 +119,51 @@ grep -n "AdSupport.framework\|AppTrackingTransparency.framework" game/build/ios/
   checked only for existence (`find … -iname "*.entitlements"` — none found,
   no `CODE_SIGN_ENTITLEMENTS` in the pbxproj) and not examined further, since
   SCOPE's "entitlement" concern is satisfied by there being none at all.
+
+## Re-verification of the correction, 2026-08-27
+
+**Verifier: a fresh context, not the one that wrote the `verify:failed`
+verdict above and not the coordinator, who wrote the correction and cannot
+rule on it.** Wrote none of `NOTES.md`'s correction, `DeviceSettings.mm`,
+`Preprocessor.h`, or `90-android/10-permission-audit/NOTES.md`. No Unity
+build, no `xcodebuild`, no adb, no simulator.
+
+| # | Question | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Is the corrected count (28) right? | **Yes** | `plutil -p ... \| grep -cE '^  "'` → 28; `PlistBuddy -c Print` top-level count → 28 independently. Both agree with each other and with the correction; neither reaches 48 by any grouping. |
+| 2 | Did the correction fix the reasoning, or only the number? | **Only the number — the missing inventory is still missing** | The correction states 28 keys, 1 permission, and asserts "27 non-permission keys... were never inventoried, so the conclusion was reached rather than demonstrated" — naming its own gap precisely — but then does not close it: `NOTES.md`'s corrected text still gives only the aggregate split (28/1), with no row or list classifying the 27 individually. The itemized read-every-key inventory exists only in the earlier `verify:failed` document's own item 8, not in the corrected `NOTES.md`. The correction repeats the original's shape (a conclusion asserted, not demonstrated) at a now-accurate number. |
+| 3 | Do all four parts of the `DeviceSettings.mm`/`UNITY_USES_IAD` claim hold, checked broadly? | **Yes, including under a wider search than the claim itself used** | `grep -rl "ASIdentifierManager"` / `"ATTrackingManager"` over the **entire** `game/build/ios/CatShelter/` tree, and `grep -rlaI` (binary-aware) to rule out a `.a`/`.framework` silently skipped by text grep — both return only `DeviceSettings.mm`. Its three `#if UNITY_USES_IAD ... #endif` blocks (lines 9-67, 73-89, 125-127) contain every `ASIdentifierManager`/`ATTrackingManager` reference in the file. `Preprocessor.h:206`: `#define UNITY_USES_IAD 0`, sole definition, no pbxproj override. All four parts hold. **Adjacent finding, not a refutation:** `strings` on Unity's own prebuilt `Libraries/libiPhone-lib.a` (not gated by `UNITY_USES_IAD`, a separate mechanism) shows `Application_CUSTOM_RequestAdvertisingIdentifierAsync` / `UnityEngine.Application::RequestAdvertisingIdentifierAsync` unconditionally present — a different Unity API than the one NOTES checked. No project C# calls it (`grep -rn "RequestAdvertisingIdentifierAsync" game/Assets game/Packages` → empty), so it stays unreachable too, but NOTES's specific claim never looked at this path — it is narrowly true, not the whole story of "can this binary reach an identifier at all." |
+| 4 | Is the Android comparison fair? | **Fair in substance; overstated in confidence** | The underlying difference is real and correctly characterised: Android's `AndroidAdvertisingIdHelper` is unconditionally compiled Java bytecode in `classes.dex` (confirmed there by `strings` on the actual built APK in `90-android/10-permission-audit/NOTES.md`'s own correction), dormant only pending a linked GMS artifact; iOS's equivalent is excluded by the C preprocessor before compilation, which is a categorical, deterministic exclusion, not a probabilistic one — a fair asymmetry to draw. But `NOTES.md`'s iOS correction states "the advertising-identifier path is **compiled out**" as settled fact, without the hedge the earlier `verify:failed` document carried ("I did not compile the project to confirm... this is the ceiling of what a static check can confirm"). The Android correction verified its claim against a compiled artifact (`classes.dex` from a built APK); the iOS correction verifies its claim from source and a `#define` alone, never compiling. Given how `#if 0` exclusion works, this is very likely still correct — but it is asserted with more certainty than its own evidence, gathered the same way, technically established. |
+
+**Verdict: `verify:passed`.** The number that failed the audit is now right,
+confirmed independently by two methods. The new claim about the
+advertising-identifier path is correct on every part checked, including
+under a search broader than the one the claim itself used. The Android
+comparison's direction is sound. Two caveats are recorded, not fail
+conditions: the 27-key inventory the original failure implicitly asked for
+still doesn't exist as a list, only as a number; and the iOS "compiled out"
+line is stated more confidently than an uncompiled, source-only check
+strictly proves. `status:` stays `done` — unchanged, correctly.
+
+### How to reproduce
+
+```sh
+plutil -p game/build/ios/CatShelter/Info.plist | grep -cE '^  "'
+/usr/libexec/PlistBuddy -c "Print" game/build/ios/CatShelter/Info.plist | grep -cE '^    [A-Za-z]'
+grep -rl "ASIdentifierManager\|ATTrackingManager" game/build/ios/CatShelter/
+grep -rlaI "ASIdentifierManager\|ATTrackingManager" game/build/ios/CatShelter/
+grep -n "#if\|#endif" game/build/ios/CatShelter/Classes/Unity/DeviceSettings.mm
+grep -n "UNITY_USES_IAD" game/build/ios/CatShelter/Classes/Preprocessor.h
+strings game/build/ios/CatShelter/Libraries/libiPhone-lib.a | grep -i advertisingidentifier
+grep -rn "RequestAdvertisingIdentifierAsync" game/Assets game/Packages
+```
+
+### What was not checked (this pass)
+
+- No compiled iOS binary was inspected (constraint) — item 4's confidence
+  caveat follows directly from this.
+- Did not re-derive the Android `classes.dex` finding first-hand; took
+  `90-android/10-permission-audit/NOTES.md`'s own reproduction as read.
+- Did not attempt to classify all 27 non-permission plist keys myself to
+  fill the gap noted in item 2 — flagging the gap is this pass's job, not
+  closing it.

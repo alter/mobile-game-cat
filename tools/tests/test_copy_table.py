@@ -78,11 +78,54 @@ def test_the_table_is_not_empty_and_has_no_duplicate_keys():
 # A sentence: two or more words, at least one space, starting with a capital.
 SENTENCE = re.compile(r'"[A-Z][a-z]+(?: [A-Za-z0-9â€™\'…,.!?%-]+){1,}"')
 
+# 60-shell-build/16 VERIFY, 2026-08-27: a sentence split across "+"-joined
+# literals reads as one player-visible string but not one literal, so
+# SENTENCE above — which only ever looks inside a single "..." — cannot see
+# it once no individual fragment happens to open with a capital letter
+# ("Could" + " not read the picked image..." was the proof). This closes
+# that one shape: two or more PLAIN literals chained with "+".
+#
+# Deliberately narrow. `(?<!\$)` excludes C# interpolated strings (`$"..."`)
+# on purpose — nearly every diagnostic Debug.Log/NSLog line in this codebase
+# is built that way (VisionSelfTest.cs, EveningReminder.cs, CoatBuilder.cs),
+# and running the same check on those would flag routine log-message
+# assembly as if it were copy, which is exactly the kind of false alarm that
+# gets a check turned off rather than heeded. It also means the *joined*
+# text has to pass the same bar as a single literal always did — a
+# concatenated file path, JSON fragment or format string will not, in
+# general, read as a capitalised multi-word sentence, so this is the same
+# threshold as before, applied to one more shape of literal, not a looser
+# threshold applied to everything.
+#
+# Known, named limit, not chased further here: string interpolation
+# (`$"...{x}..."` in C#, `"...\(x)..."` in Swift) can build a sentence the
+# same way and is invisible to both checks. Closing that — or concatenation
+# built through a variable instead of inline — is not a regex problem
+# anymore; it needs either a linter with real syntax understanding or an
+# architectural rule that all player-visible text is constructed by exactly
+# one call (`Copy.Of`), so there is only one place to check in the first
+# place. Naming that is the honest stopping point for a source-text scan.
+PLAIN_LITERAL = r'(?<!\$)"(?:[^"\\]|\\.)*"'
+CONCAT_CHAIN = re.compile(rf'{PLAIN_LITERAL}(?:\s*\+\s*{PLAIN_LITERAL})+')
+
+
+def _concatenated_sentences(text: str) -> list[str]:
+    found = []
+    for chain in CONCAT_CHAIN.finditer(text):
+        pieces = re.findall(r'"((?:[^"\\]|\\.)*)"', chain.group(0))
+        joined = '"' + "".join(pieces) + '"'
+        if SENTENCE.fullmatch(joined) and not re.match(r'"[A-Z][a-z]+ [A-Z]', joined):
+            found.append(chain.group(0))
+    return found
+
 
 def _sentence_literals(text):
-    return [m for m in SENTENCE.findall(strip_noise(text))
+    stripped = strip_noise(text)
+    found = [m for m in SENTENCE.findall(stripped)
             # names of things, not copy
             if not re.match(r'"[A-Z][a-z]+ [A-Z]', m)]
+    found += _concatenated_sentences(stripped)
+    return found
 
 
 @pytest.mark.parametrize("path", [p for p, _ in sources()], ids=lambda p: p.name)

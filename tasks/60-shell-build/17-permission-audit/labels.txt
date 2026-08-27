@@ -3,7 +3,7 @@ role:NATIVE
 type:chore
 priority:P1
 status:done
-verify:failed
+verify:passed
 depends:50-photo/05-vision-plugin
 depends:60-shell-build/09-notification
 milestone:M6

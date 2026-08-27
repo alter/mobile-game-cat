@@ -131,3 +131,67 @@ Unity headers in scope. The app bundle is at
 Not checked: that the picker still *works* — the simulator has no camera, and
 `50-photo/05-vision-plugin` records that the real Vision plugin fails on the
 simulator anyway. This closes "does it compile", not "does it behave".
+
+### The concatenation blind spot — found, then fixed after the `verify:passed` above
+
+**This landed after the re-verification that passed the task, so that
+verdict did not cover it.** The re-verification's own mutation testing found
+that `test_copy_table.py`'s scanner requires a literal to open with
+`"[A-Z]`, so `"Could" + " not read the picked image, please try again"`
+passes silently — no fragment alone looks like a sentence. Nothing shipped
+used this shape; it was a property of the checker, not a live leak.
+
+**Fixed.** `_sentence_literals` now also joins chains of two or more plain
+`"..." + "..."` literals and tests the *joined* text against the same
+`SENTENCE` bar as a single literal always had to clear — not a looser bar,
+the same one, applied to one more shape.
+
+Deliberately excludes `$"..."` interpolated strings (C#): most diagnostic
+`Debug.Log`/`NSLog` lines in this codebase (`VisionSelfTest.cs`,
+`EveningReminder.cs`, `CoatBuilder.cs`) are built that way, and scanning
+them would flag routine log assembly as if it were copy — the kind of false
+alarm that gets a check switched off, which this project has now watched
+happen conceptually twice today.
+
+Proved both ways, on copies outside the repo:
+
+```
+baseline (real CatPicker.swift):      1 passed, 9 deselected
+mutated ("Could" + " not read..."):   FAILED — CatPicker.swift: this looks
+  like prose crossing the native boundary -> ['"Could" + " not read the
+  picked image, please try again"']
+```
+
+And the real tree, unaffected — no genuine `"lit" + "lit"` concatenation
+exists anywhere in the scanned files today, confirmed by grep before
+writing the fix, not assumed:
+
+```
+.venv/bin/python -m pytest tools/tests/test_copy_table.py -q   -> 28 passed
+.venv/bin/python -m pytest tools/ -q                           -> 156 passed
+dotnet test build/core-tests/core-tests.csproj -v q --nologo    -> 169 passed
+```
+
+**The same shape, checked elsewhere, in one sentence each:**
+
+- `test_analytics_call_sites.py` does not have it and could not — it matches
+  `Analytics\.Helper\s*\(` against call-site *syntax*, not a string literal,
+  and a method call cannot be split across a `+` the way a string can.
+- `test_no_secrets.py` does have it, and it plausibly matters more there:
+  its `SOURCE_LITERAL` pattern stops at the first closing quote, so
+  `gameKey = "abcdefghij" + "klmnopqrst"` would only ever see `"abcdefghij"`
+  (10 characters, under `MIN_KEY_LENGTH`) and never the 20-character whole —
+  a credential split in two evades it today. Not fixed here (out of this
+  task's touch-scope); reported as a fourth blind spot alongside the three
+  `test_no_secrets.py` already names in its own docstring.
+
+**The honest limit, named rather than chased further.** This closes plain
+`+`-concatenation, the shape actually demonstrated. It does not, and by
+construction cannot, close string interpolation (`$"...{x}..."` in C#,
+`"...\(x)..."` in Swift) built to read as a sentence, or a sentence
+assembled across separate statements/variables. Closing those is not a
+regex-over-source problem anymore — it needs either a linter with real
+syntax understanding or an architectural rule that all player-visible text
+is built by exactly one call (`Copy.Of`), so there is only ever one place to
+check. Naming that boundary is the stopping point for this pass, not a gap
+to keep patching with more regex.

@@ -1,98 +1,153 @@
-# Independent verification, 2026-08-27
+# Independent verification, 2026-08-27 (second pass)
 
-**Verifier:** a fresh agent context, invoked specifically to check this
-document. I wrote none of `NOTES.md`, none of the Android build pipeline
-(`90-android/02-build-pipeline`), none of the picker plugin (which does not
-exist), and none of `60-shell-build/17-permission-audit` (the iOS document
-this one compares against). I did **not** run `adb`, did not touch the
-Android emulator, did not run a Unity build, and did not install the APK on
-a device — all off-limits per the instructions I was given, and VERIFY item
-3 (install-time dialog behaviour) is explicitly left unchecked below for
-that reason. I re-ran `aapt2` and `strings`/`unzip` myself against the
-already-built `.apk` rather than trusting the quoted output in `NOTES.md`.
+**Verifier:** fresh context, wrote none of `NOTES.md` (original audit,
+author's correction, or coordinator's corroboration), none of the Android
+build pipeline, and made no build-script fix that put any permission in the
+manifest — unlike the coordinator's corroboration, which explicitly recuses
+itself from the permission-list item for exactly that reason. No adb,
+no emulator, no Unity build. Re-ran `aapt2 dump permissions`/`dump xmltree`
+and `unzip`+`strings` against the `.apk` on disk myself rather than trusting
+either quoted transcript.
 
 ## Per-item verdict
 
-| # | Claim checked | Verdict | Evidence |
-|---|---|---|---|
-| 1 | `aapt2 dump permissions` output, as quoted | **Pass** | Re-ran verbatim; byte-for-byte identical 4-line output (below). |
-| 2 | `aapt2 dump xmltree` output, as quoted | **Pass, with a fidelity caveat** | Content (permissions, features, components, `exported` flags, SDK levels) matches exactly. The quoted version reformats each Unity `meta-data` element onto one line (`name=... value=...`); the raw tool emits `name` and `value` as two separate `A:` attribute lines. No fact is changed or hidden, but it is not a literal paste of the command's output as VERIFY 1's wording ("pasted whole") implies — see reproduction command below to see the difference yourself. |
-| 3 | min/target/compile SDK = 25/36/36, matching `02-build-pipeline/NOTES.md`'s `aapt dump badging` reading | **Pass** | `uses-sdk` element confirms 25/36; `02-build-pipeline/NOTES.md:23` reads `targetSdkVersion: 36`, `sdkVersion: 25` — no drift. |
-| 4 | Permission/component table: every dump line justified, `exported` flags correct | **Pass** | All 8 distinct items (2 permission lines, 3 `uses-feature`, activity, receiver, provider) map to a table row with correct `exported`/`required` values. The claim "accounts for every line in both dumps" is a small overstatement — `meta-data`, `layout`, `intent-filter`, `supports-screens` and `uses-sdk` entries (Unity boilerplate, no privacy/permission weight) are not individually itemized — but nothing privacy-relevant is missing, and VERIFY 1 as literally worded (the *permissions* dump) is fully matched. |
-| 5 | `CAMERA`/`READ_EXTERNAL_STORAGE`/`READ_MEDIA_IMAGES` absent because `04-picker-plugin` is unbuilt | **Pass** | `tasks/90-android/04-picker-plugin/labels.txt` → `status:todo`. `find game/Assets/Plugins -iname "*android*"` → no output; `ls game/Assets/Plugins` shows only `iOS`/`iOS.meta`. Claim is accurate and appropriately conservative. |
-| 6 | `AD_ID` / advertising-id absent from `Assets` and the merged manifest (VERIFY 2, literal scope) | **Pass** | `grep -rn "AD_ID"`, `grep -rin "advertisingId\|AdvertisingId"`, `grep -rn "EnableAdvertisingIdTracking"` over `game/Assets` — all empty. `strings` over the extracted `AndroidManifest.xml` for `AD_ID`/`advertising` — empty. |
-| 7 | **"`strings` over the built APK for AD_ID/advertising returns nothing"** — the NOTES' own broader claim, beyond VERIFY 2's scope | **FAIL** | False as stated. `strings` on `classes.dex` (unzipped from the same `.apk`) matches `advertising` four times: `Lcom/unity3d/player/AndroidAdvertisingIdHelper;`, the string literal `com.google.android.gms.ads.identifier.AdvertisingIdClient`, `getAdvertisingIdInfo`, `nativeOnAndroidAdvertisingIdResult`. See reproduction below. `AD_ID` itself (the permission string) is genuinely absent everywhere I looked, including `classes.dex` — that half of the claim holds. |
-| 8 | Judgement on item 7's finding: does it change the "no dependency puts it back" conclusion? | **Qualified pass, noted as a gap** | The four strings are Unity's own `AndroidAdvertisingIdHelper`, part of the base Android player Unity ships in *every* build (present regardless of GameAnalytics), which reflectively probes for the GMS `AdvertisingIdClient` class at runtime (`Class.forName`-style string, not a compiled class reference — I confirmed `Lcom/google/android/gms/ads/identifier/AdvertisingIdClient;`, the compiled-class form, is **absent** from `classes.dex`). With no GMS ads-identifier artifact linked and no `AD_ID` permission declared, this call would fail closed (caught `ClassNotFoundException`) today. So the *practical* conclusion — no advertising ID is collected today — still holds, but NOTES' explanation ("not because the Android side skipped D9's rule, but because GameAnalytics is not integrated") is incomplete: dormant, GMS-capable code already ships from the engine itself, independent of GameAnalytics, and the audit's own "check that no dependency puts it back" (task SCOPE) did not look inside the compiled binary for this. |
-| 9 | Comparison table vs `60-shell-build/17-permission-audit/NOTES.md`, and the "sharpest claim" (clean manifest = incomplete feature, not platform virtue) | **Pass, fair** | iOS NOTES: 48 plist keys, one permission (`NSCameraUsageDescription`, from `50-photo/08`). Android NOTES: one permission (`POST_NOTIFICATIONS`, from `90-android/09-notifications`, itself `status:done, verify:passed`). The document's own conclusion — that the apparent Android/iOS parity is an artefact of `04-picker-plugin` being `status:todo`, not a real platform difference — is stated plainly and is correct per the check above. It does not overclaim credit for Android; if anything it undercuts its own headline number, which is the right instinct. One accuracy note: the iOS document itself is still `verify:pending` (`60-shell-build/17-permission-audit/labels.txt`), so the comparison is against an unverified baseline — worth knowing, not a defect in this document. |
+| # | Item | Result |
+|---|---|---|
+| 1 | correction's binary claim (`AdvertisingIdClient` as string vs class descriptor) | **pass** — reproduced independently |
+| 2 | NOTES accounts for the APK having moved; re-run instruction overtaken | **partial — narration is honest, the deliverable table is not updated** |
+| 3 | corroboration's recusal recorded and its evidence reproducible | **pass** |
+| 4 | is the audit accurate about the binary that exists today | **no — fail** |
 
-## Overall verdict: **verify:failed**
+### 1. The binary claim
 
-Items 1–6 and 9 hold up under independent re-checking. Item 7 is a specific,
-sourced, false factual claim in the document ("returns nothing" when it does
-not), and item 8 shows the SCOPE requirement it was meant to satisfy ("a
-check that no dependency puts it back") was not actually exercised against
-the compiled APK, only against source and the manifest. This is the exact
-failure shape `tasks/README.md`'s verify rule exists for — a specific quoted
-result that does not reproduce. The fix is cheap (correct the sentence,
-either narrowing it to "Assets and the manifest" to match VERIFY 2's literal
-wording, or acknowledging the `AndroidAdvertisingIdHelper` string and
-explaining why it is dormant) but it has not been made, so I am not signing
-this off as passed. `status:` is left at `review` — not moved to `done`.
+`unzip -oq CatShelter.apk classes.dex AndroidManifest.xml`, then:
+`strings classes.dex | grep -i advertising` → 7 lines including
+`.AdvertisingIdClient`, `/Lcom/unity3d/player/AndroidAdvertisingIdHelper;`,
+`9com.google.android.gms.ads.identifier.AdvertisingIdClient`,
+`Dcom.google.android.gms.ads.identifier.internal.IAdvertisingIdService`,
+`getAdvertisingIdInfo`, `getAdvertisingInfoObject`,
+`nativeOnAndroidAdvertisingIdResult` (two more than either the correction or
+the corroboration quoted — `.AdvertisingIdClient` and
+`getAdvertisingInfoObject` — consistent with GameAnalytics's own reflective
+probe, not a contradiction of either). The deciding line:
+`strings classes.dex | grep -c "Lcom/google/android/gms/ads/identifier/AdvertisingIdClient;"`
+→ **0**. The GMS type appears only as a string (reflection target), never as
+a compiled class descriptor. `strings AndroidManifest.xml | grep -i
+"ad_id\|advertising"` → empty. This matches both the correction and the
+corroboration exactly: `AD_ID` absent, advertising-ID access dormant and
+reflective, not linked.
+
+### 2. Has the APK moved, and does NOTES account for it
+
+It has moved twice since the original audit. `game/build/android/
+CatShelter.apk` is now 27,988,228 bytes (NOTES.md's original pass measured
+27,850,892), and `aapt2 dump permissions` today returns **four**
+`uses-permission` lines, not two:
+
+```
+android.permission.INTERNET
+android.permission.ACCESS_NETWORK_STATE
+android.permission.POST_NOTIFICATIONS
+com.DefaultCompany.game.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+```
+
+`INTERNET` and `ACCESS_NETWORK_STATE` are new — exactly what NOTES.md's
+correction §4 predicted GameAnalytics would add, and exactly what the
+coordinator's corroboration already confirmed by quoting the same
+`aapt2 dump permissions` output. So the narrative is honest and current:
+correction §4 says this audit "must be re-run" and correctly forecasts what
+would change; the corroboration confirms the forecast came true.
+
+**What is missing:** the actual re-run. The task's OUTCOME is "a table in
+this directory listing every permission and feature in the .apk with its
+justification" — that is the `## Every permission, every declared
+component` table in the main body of `NOTES.md`, not the dated correction
+prose beneath it. That table still lists only two permission-shaped rows
+(`POST_NOTIFICATIONS`, the self-referential receiver permission) and has no
+row for `INTERNET` or `ACCESS_NETWORK_STATE` — the "who added it / what
+player action needs it / what breaks without it" columns the task format
+requires are simply absent for two permissions that are in the shipped
+binary today. `xmltree` confirms no other structural change: same one
+activity, one receiver, one provider (the `androidx.startup` provider's two
+`meta-data` children are unchanged — GameAnalytics did not add its own
+entries there in this build), so filling the table needs exactly two new
+rows, sourced from `70-analytics/01-sdk-integration/NOTES.md`'s own
+GameAnalytics manifest reading (§3 of the correction) — not new
+investigation, just transcription that has not been done yet.
+
+### 3. The corroboration's recusal
+
+Recorded verbatim: *"This is corroboration, not a verdict, and the reason is
+a conflict of interest. `POST_NOTIFICATIONS` is in that manifest because of
+a build-script fix I made today... I am not an independent judge of the
+permission-list item... The advertising-identifier findings I had no hand
+in, and they hold."* Its quoted evidence (`aapt2 dump permissions` four
+lines; the five `advertising` strings; the class-descriptor count of `0`)
+reproduces byte-for-byte against the live APK, confirmed above. No number of
+the coordinator's was wrong.
+
+### 4. Overall
+
+The AD_ID/advertising-identifier defect that failed the first VERIFY.md is
+correctly corrected and independently reproducible — that part of the
+document is trustworthy and does not need re-litigating. But the binary
+underneath the audit changed a second time, and while the dated notes
+narrate that change accurately and even predicted it in advance, **the
+audit's own deliverable — the permission table — was never updated to match
+the binary that exists right now.** Task VERIFY item 1 ("`aapt dump
+permissions` output pasted whole, every line matched to a row") fails
+against today's APK: two of its four lines have no row. The document is
+honest about being stale (it says so, twice, in its own words) but honesty
+about staleness is not the same as the table being current.
 
 ## How to reproduce
-
-All commands below run from a clean checkout with nothing exported by hand,
-against the already-built `game/build/android/CatShelter.apk` (no build,
-no adb, no emulator required).
 
 ```bash
 AAPT2=/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/SDK/build-tools/36.0.0/aapt2
 APK=game/build/android/CatShelter.apk
 
-# item 1 — short permissions dump
 "$AAPT2" dump permissions "$APK"
+# -> INTERNET, ACCESS_NETWORK_STATE, POST_NOTIFICATIONS, DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+# NOTES.md's main table has rows for only the latter two.
 
-# item 2 — full manifest tree, literal tool output (compare to NOTES.md's reformatting)
-"$AAPT2" dump xmltree "$APK" --file AndroidManifest.xml
+"$AAPT2" dump xmltree "$APK" --file AndroidManifest.xml \
+  | grep -n "uses-permission\|uses-feature\|receiver\|provider\|E: activity\|uses-sdk"
+# same components as NOTES.md's original dump, plus the two new uses-permission lines
 
-# items 5–6 — source-level and manifest-level AD_ID/advertising check
-grep -rn "AD_ID" game/Assets
-grep -rin "advertisingId\|AdvertisingId" game/Assets
-grep -rn "EnableAdvertisingIdTracking" game/Assets
-find game/Assets/Plugins -iname "*android*"
-cat tasks/90-android/04-picker-plugin/labels.txt
-
-# items 7–8 — the binary-level check NOTES.md's "strings over the APK" claim needed
-mkdir -p /tmp/apk_extract && unzip -oq "$APK" -d /tmp/apk_extract
-strings /tmp/apk_extract/classes.dex | grep -i "ad_id"          # empty — AD_ID itself is absent
-strings /tmp/apk_extract/classes.dex | grep -i "advertising"    # NOT empty — contradicts NOTES.md
-strings /tmp/apk_extract/classes.dex | grep "Lcom/google/android/gms/ads/identifier"  # empty — no compiled GMS class, reflection-only
-strings /tmp/apk_extract/AndroidManifest.xml | grep -i "ad_id\|advertising"  # empty — the manifest itself is clean
-
-# item 3 — SDK-level cross-check
-grep -n "sdkVersion\|targetSdkVersion" tasks/90-android/02-build-pipeline/NOTES.md
+rm -rf /tmp/apk_check && mkdir -p /tmp/apk_check
+unzip -oq "$APK" classes.dex AndroidManifest.xml -d /tmp/apk_check
+cd /tmp/apk_check
+strings classes.dex | grep -i "ad_id"                                              # empty
+strings classes.dex | grep -i "advertising"                                        # 7 lines, reflection strings only
+strings classes.dex | grep -c "Lcom/google/android/gms/ads/identifier/AdvertisingIdClient;"  # 0 — not a linked class
+strings AndroidManifest.xml | grep -i "ad_id\|advertising"                         # empty
 ```
 
 ## What was not checked
 
-- **VERIFY item 3 of `task.txt`** ("a clean install raises no permission
-  dialog until the player presses the button that needs one") — requires an
-  install and a tap-through on a device or emulator. Off-limits under this
-  verification's own constraints (no adb, no emulator) exactly as it was
-  off-limits to the original author. Still open; needs the NATIVE context
-  that owns the emulator.
-- Whether `04-picker-plugin`, once built, actually avoids `CAMERA`/storage
-  permissions in practice — can't be checked before it exists.
-- The `manifest.json` / Unity package manifest package list (analogous to
-  the two packages the iOS audit found and removed) — NOTES.md correctly
-  marks this out of this task's stated SCOPE, and I did not pull it in
-  either; flagged in both documents as a follow-up, not a gap in this
-  verification.
-- Whether the `libil2cpp.so` / `libunity.so` native libraries (44 MB / 17 MB
-  of the APK) contain further advertising-related strings — I checked
-  `classes.dex`, `resources.arsc` and `AndroidManifest.xml` only, the three
-  places a manifest-permission audit would plausibly look; the native
-  libraries are Unity engine binaries out of scope for a permission/manifest
-  audit and were not scanned.
-- Signing/certificate details of the APK — irrelevant to this task's SCOPE
-  and not examined.
+- VERIFY item 3 of `task.txt` (install-time permission-dialog behaviour) —
+  needs adb/emulator, off-limits here as it was to every prior context.
+- Items 1, 3, 5, 6, 8, 9 of the first `VERIFY.md`'s table (SDK levels,
+  picker-plugin absence, source-level `AD_ID` grep, iOS comparison) — not
+  re-run; nothing in this pass gives reason to doubt them, and the binary
+  change under review here (INTERNET/ACCESS_NETWORK_STATE, GameAnalytics
+  strings) does not touch any of them.
+- Whether `libil2cpp.so`/`libunity.so` carry further advertising strings —
+  out of scope for a manifest/component audit, as the first VERIFY.md
+  already noted.
+- Whether the `androidx.startup` provider gains GameAnalytics `meta-data`
+  children in a later build — checked only against today's APK, where it
+  has not.
+
+## Verdict
+
+`verify: failed`. Not for the AD_ID claim — that is fixed and reproduces
+cleanly — but because the audit's own OUTCOME, the permission table, does
+not describe the binary that exists today: it is missing rows for
+`INTERNET` and `ACCESS_NETWORK_STATE`, both present in the current
+`CatShelter.apk` and both already explained (source: GameAnalytics's AAR
+manifest, per `70-analytics/01-sdk-integration/NOTES.md` §3, already quoted
+inside this document's own correction). The fix is two rows in an existing
+table, already sourced — not new investigation.
+
+`status:` left at `review`, unchanged.

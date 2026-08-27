@@ -50,7 +50,7 @@ namespace CatShelter.Shell
             }
         }
 
-        private static CatShelter.Shell.VisionAnswer? CaptureStub()
+        private static Core.VisionAnswer? CaptureStub()
         {
             try
             {
@@ -62,15 +62,15 @@ namespace CatShelter.Shell
                 var confidence = float.Parse(parts[2],
                     System.Globalization.CultureInfo.InvariantCulture);
                 if (parts[1] == "none")
-                    return new VisionAnswer { ok = true, detections = new AnimalBox[0] };
-                return new VisionAnswer
+                    return new Core.VisionAnswer { ok = true, detections = new Core.AnimalBox[0] };
+                return new Core.VisionAnswer
                 {
                     ok = true,
                     imageWidth = 512,
                     imageHeight = 512,
                     detections = new[]
                     {
-                        new AnimalBox
+                        new Core.AnimalBox
                         {
                             identifier = parts[1], confidence = confidence,
                             x = 0, y = 0, width = 400, height = 400,

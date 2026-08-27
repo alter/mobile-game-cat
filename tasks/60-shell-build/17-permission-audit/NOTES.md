@@ -148,3 +148,42 @@ binary can but does not" are different answers, and iOS gets the stronger one.
 **Re-check both when `70-analytics/01-sdk-integration` lands.** Adding any SDK
 can change this, and `UNITY_USES_IAD` is decided by what Unity finds in the
 scripts, so it is not a constant.
+
+### The correction above was itself overstated — 2026-08-27, later
+
+An independent re-verification passed this task and made a fair criticism of
+the correction I wrote: it asserted "the advertising-identifier path is
+compiled out of the iOS build" as settled fact, having checked **source**,
+while the Android side reached its parallel conclusion from a **built**
+`classes.dex`. Different standards of evidence for the same claim on two
+platforms. It also found something the correction never examined: Unity's
+prebuilt `libiPhone-lib.a` contains a different advertising-identifier native
+symbol regardless of any preprocessor flag.
+
+Checked at the binary level, which is what should have been done first:
+
+```
+strings -a  game/build/ios-sim/.../game.app/game        | grep -ci advertis   -> 0
+nm -a       game/build/ios-sim/.../game.app/game        | grep -ci ASIdentifierManager -> 0
+strings -a  game/build/ios/CatShelter/Libraries/libiPhone-lib.a | grep -ci "ASIdentifierManager|advertisingIdentifier" -> 5
+```
+
+**So the accurate statement, replacing the one above.** The compiled *app*
+binary carries no advertising-identifier symbol at all — verified on the
+simulator build, which is the only one this project has ever produced. Unity's
+prebuilt static library, which the **device** project links, does carry five
+such symbols; nothing calls them, `UNITY_USES_IAD` is 0, and no C# call site
+exists, so they are dormant in the same sense Android's are.
+
+That makes the two platforms **closer than the correction claimed**, not
+identical. iOS: absent from the app binary, present in a linked prebuilt
+archive. Android: present in `classes.dex` as reflection targets, with the GMS
+class itself unlinked. Neither can reach the identifier today. The store
+declarations should be written from that, not from "iOS cannot and Android
+can".
+
+**And the correction did not close the gap it named.** It said the original
+audit's 27 non-permission keys were never inventoried, and then did not
+inventory them either — the same shape at an accurate number. That inventory
+exists only inside the earlier failed VERIFY.md and should be moved here by
+whoever next touches this task.

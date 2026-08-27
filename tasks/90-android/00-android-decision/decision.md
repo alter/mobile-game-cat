@@ -60,3 +60,24 @@ the verification wait, and access to real Android phones.
 
 `go`, with 01 as the real technical gate: if ML Kit cannot do stage one, stop
 and bring the finding back rather than reaching for a bundled model.
+
+---
+
+## Correction, added 2026-08-27, not a re-decision
+
+This file is not being reopened — the `go` above still stands, and nothing
+below changes it. What changed is *why* it stands.
+
+The reasoning above (idle capacity while iOS is blocked) is what the owner
+gave at the time and is left exactly as recorded. But `DECISIONS.md` D17,
+also dated 2026-08-27, records that the owner separately decided the game
+targets **both** Apple and Android — not iOS-first-Android-second — on
+grounds that have nothing to do with idle capacity or with this file's cost
+table. `90-android/NOTES.md` already says this in as many words: "its `done`
+rests on D17 now, not on the reasoning inside it."
+
+So: a reader relying on this file alone would not know that its own argument
+has been superseded as the operative justification. It has been. The `go`
+this phase runs on today is D17's, not this file's — this file's honest
+contribution is the day-cost table and the "what would have to be true for
+this to be wrong" section, both of which still hold on their own terms.

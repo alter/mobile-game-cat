@@ -65,9 +65,14 @@ NAME_RE = "|".join(SECRET_NAMES)
 DATA_ASSIGN = re.compile(
     r'["\']?(' + NAME_RE + r')["\']?\s*[:=]\s*["\']?([^"\'\s,}\]<]+)', re.IGNORECASE)
 
-# Source: only a quoted literal counts, never an expression.
+# Source: only a quoted literal counts, never an expression — but a chain of
+# adjacent literals joined by `+` is still a literal, and splitting one is the
+# obvious way past a check that reads the first fragment only. Found by the
+# same mutation that found it in test_copy_table.py, 2026-08-27.
 SOURCE_LITERAL = re.compile(
-    r'["\']?(' + NAME_RE + r')["\']?\s*[:=]\s*["\']([^"\']+)["\']', re.IGNORECASE)
+    r'["\']?(' + NAME_RE + r')["\']?\s*[:=]\s*'
+    r'((?:["\'][^"\']*["\']\s*\+\s*)*["\'][^"\']*["\'])', re.IGNORECASE)
+_PIECE = re.compile(r'["\']([^"\']*)["\']')
 
 DATA_SUFFIXES = {".asset", ".json", ".jsonc", ".txt", ".plist", ".yaml", ".yml",
                  ".xml", ".env", ".cfg", ".ini", ".properties"}
@@ -118,6 +123,11 @@ def test_no_credential_value_is_tracked():
         except OSError:
             continue
         for name, value in pattern.findall(text):
+            # A source match may be several literals joined by `+`; test what
+            # they spell, not the first piece. Data matches are single values
+            # and pass through unchanged.
+            if pattern is SOURCE_LITERAL and "+" in value:
+                value = "".join(_PIECE.findall(value))
             if _looks_like_a_key(value):
                 offenders.append(f"{path.relative_to(ROOT)}: {name} = {value!r}")
     assert not offenders, ("a credential value appears in a tracked file:\n  "
@@ -132,6 +142,21 @@ def test_the_guard_would_notice_a_real_key(tmp_path):
     assert not _looks_like_a_key("string;")
     assert not _looks_like_a_key("test-key-not-a-real-one")
     assert not _looks_like_a_key("")
+
+
+def test_a_key_split_across_literals_is_still_a_key():
+    """The blind spot a verifier demonstrated on 2026-08-27, now closed.
+
+    `gameKey = "abcdefghij" + "klmnopqrst"` used to be read as a ten-character
+    fragment, under MIN_KEY_LENGTH, and passed. What the concatenation spells
+    is what a credential is.
+    """
+    joined = SOURCE_LITERAL.findall('gameKey = "5f2c1ab9d34e" + "47f0a1b8c7d6e5f40312";')
+    assert joined, "the chained-literal pattern no longer matches"
+    name, value = joined[0]
+    spelled = "".join(_PIECE.findall(value))
+    assert spelled == "5f2c1ab9d34e47f0a1b8c7d6e5f40312"
+    assert _looks_like_a_key(spelled)
 
 
 def test_the_settings_asset_is_ignored():

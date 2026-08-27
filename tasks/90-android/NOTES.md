@@ -81,3 +81,45 @@ empty frames 0/5. Two hours of work that can save the phase.
 `00` and `12` are the owner's. `12` starts the day `00` says go, because
 identity verification takes days that do not shrink with effort — the same
 mistake the iOS side is currently paying for.
+
+---
+
+## The gating rationale changed on 2026-08-27 — read this before the section above
+
+`DECISIONS.md` D17: the owner decided that the game targets **both Apple and
+Android**, and that the accounts — the provider spend cap and the Apple
+Developer Program — are deferred "much later".
+
+**The objection recorded above still stands, but its reason is now different.**
+It used to be "Android is the second wave, per cat-shelter-tech.md — only once
+install counts run into the thousands". That premise is gone: Android is a
+target, not a port. What holds the phase is no longer *iOS first*, it is
+**gates first** — none of the three has passed, and `30-levels-solver/07` is
+the only one that can even be run while there are no accounts.
+
+**Two consequences worth stating plainly, because they cut opposite ways.**
+
+*Against starting:* the anti-pattern in GOAL.md is unchanged. Building either
+platform further before five people have played costs the same whichever store
+it is aimed at.
+
+*For remembering it exists:* **Android is the cheaper platform to test on.** No
+$99, no review queue, no team ID, and the emulator takes an APK today —
+`60-shell-build/08-mid-level-save` was proved on it on 27.08 after sitting
+unproven for want of an iPhone. When the accounts question reopens, that
+asymmetry is worth weighing rather than defaulting to iOS because the code
+happened to be written there first.
+
+**And one gap D17 opened that nobody had written down.**
+`Shell/EveningReminder.cs` is entirely inside `#if UNITY_IOS && !UNITY_EDITOR`.
+On Android the evening reminder does not exist at all — not stubbed, not
+degraded, absent. That is `09-notifications` in this phase, and it is the only
+mechanism in the MVP built to cause a return. While Android was a second wave
+that was fine; with Android a target, metric 3 would be measured on one
+platform that nudges players and one that does not, which makes the number a
+comparison of platforms rather than of the game.
+
+`00-android-decision` is also superseded in substance: it was written to be
+decided on gate-3 numbers, its own text records that there are none, and the
+owner has since decided on other grounds. It is not reopened here — but its
+`done` rests on D17 now, not on the reasoning inside it.

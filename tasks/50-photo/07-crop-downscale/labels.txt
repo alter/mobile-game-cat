@@ -2,7 +2,7 @@ phase:photo
 role:NATIVE
 type:feature
 priority:P0
-status:review
-verify:pending
+status:done
+verify:passed
 depends:50-photo/05-vision-plugin
 milestone:M5

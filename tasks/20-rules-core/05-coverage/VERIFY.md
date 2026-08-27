@@ -1,248 +1,161 @@
 # VERIFY — 20-rules-core/05-coverage
 
-Result: **failed** — both VERIFY items. No command in the repository produces a
-coverage report at all, and there is no CI step to lower a threshold in.
+Result: **passed** — both VERIFY items.
 
-Verifier: an independent agent context, 2026-08-26, against `dev` at commit
-`27f9904`. It did **not** write `build/coverage-summary.py`, did **not** write
-`build/core-tests/core-tests.csproj`, did **not** write any Core source or test,
-and changed none of them during this check. It did not add `coverlet.collector`
-to the repository — the measurement below was made from a project outside the
-repo, precisely so the repo's own broken state stayed visible. Its only writes
-were this file and `labels.txt`.
+Verifier: an independent agent context, 2026-08-27, against `dev` at commit
+`e0e949f`. It did **not** write `build/coverage-summary.py`, did **not** write
+`build/core-tests/core-tests.csproj` or `coverage.runsettings`, did **not**
+write `build/headless-build.sh`, and did **not** write any Core source or
+test. It changed none of them during this check — only read them and ran
+them. Its only writes are this file and `labels.txt`. It reused an existing
+`.venv` already present in the working tree rather than creating a fresh one
+(see "How to reproduce" for the from-scratch equivalent) and ran everything
+from the existing working tree rather than a fresh `git clone`, noted under
+"What was not checked".
 
 ## Verdict per VERIFY item
 
 | # | Item | Result |
 |---|---|---|
-| 1 | Coverage report shows line rate at or above 90% on Core | **fail** — no report can be produced from a clean checkout |
-| 2 | Lowering the threshold in CI and reverting proves the step actually fails | **fail** — there is no CI |
+| 1 | Coverage report shows line rate at or above 90% on Core | **pass** — 94.4% (592/627), reproduced below |
+| 2 | Lowering the threshold in CI and reverting proves the step actually fails | **pass** — gate exits 1 above the line rate, 0 below it, and is a real stage inside `build/headless-build.sh` that stops the script |
 
-### 1. No coverage report — fail
+## What was checked
 
-`build/coverage-summary.py:7` reads `TestResults/*/coverage.cobertura.xml`, i.e.
-it expects `dotnet test --collect:"XPlat Code Coverage"`. That collector ships in
-the `coverlet.collector` NuGet package. `build/core-tests/core-tests.csproj:19-24`
-references four packages — `Microsoft.NET.Test.Sdk`, `NUnit`,
-`NUnit3TestAdapter`, `Newtonsoft.Json` — and `coverlet.collector` is not among
-them. In a fresh clone with a scrubbed environment:
+**1. The report and the number.** `dotnet test build/core-tests/core-tests.csproj --settings build/core-tests/coverage.runsettings --results-directory TestResults` (run fresh, `TestResults/` deleted first) passed 137/137 tests and wrote
+`TestResults/4c917d81-.../coverage.cobertura.xml`. `.venv/bin/python build/coverage-summary.py --min 90` read that file and printed:
 
 ```
-Data collection : Unable to find a datacollector with friendly name 'XPlat Code Coverage'.
-Data collection : Could not find data collector 'XPlat Code Coverage'
-Passed!  - Failed: 0, Passed: 60, Skipped: 0, Total: 60 - core-tests.dll (net8.0)
+TOTAL Core: 592/627 = 94.4%  (uncovered methods listed above)
 ```
+exit code `0`. 94.4% ≥ 90%, so item 1 holds. `build/coverage-summary.py:20-26` filters classes to `name.startswith("CatShelter.Core")` and excludes `CatShelter.Core.Tests`, and `build/core-tests/coverage.runsettings:14-15` applies the same `Include`/`Exclude` at the coverlet-collector level — the double filter that fixes the defect the 2026-08-26 `VERIFY.md` found (test code inflating the count to 97%). `build/core-tests/core-tests.csproj:29-32` now references `coverlet.collector` 6.0.2 with a comment explaining why (`XPlat Code Coverage` silently wrote no report at all without it — the exact prior failure).
 
-`TestResults/` is left empty (`find TestResults -type f` returns nothing), and
-the summary script then exits 1 with its own message:
+**2. The gate, both directions, raw output:**
 
 ```
-no coverage.cobertura.xml found under TestResults/
+$ .venv/bin/python build/coverage-summary.py --min 95
+[... 21 uncovered-method lines ...]
+TOTAL Core: 592/627 = 94.4%  (uncovered methods listed above)
+FAIL: line rate 94.4% is below the required 95.0%
+$ echo $?
+1
 ```
 
-That is the exact failure mode the `tasks/README.md` rule was written against:
-the report ran ahead of the check. `reviews/2026-08-24-m2-m3.md:19` records
-"Core coverage 91% | 90.9% by lines" for a tree that had 23 tests; that number
-cannot be reproduced today by any command in the repository.
-
-**What the real number is.** Reconstructed out-of-tree — a `net8.0` project in a
-temp directory compiling the same two globs as `core-tests.csproj` plus
-`coverlet.collector` 6.0.2, with `IncludeTestAssembly=true` (needed because Core
-is compiled *into* the test assembly rather than referenced as a project), run
-against a fresh clone at `27f9904`, all 60 tests green:
-
-| class | lines covered | rate |
-|---|---|---|
-| `CatShelter.Core.Analytics` | 43/46 | 93.5% |
-| `CatShelter.Core.AnalyticsEventNames` | 6/6 | 100.0% |
-| `CatShelter.Core.Board` | 80/90 | 88.9% |
-| `CatShelter.Core.BoardSave` | 34/36 | 94.4% |
-| `CatShelter.Core.BoardSnapshot` | 18/18 | 100.0% |
-| `CatShelter.Core.GameSave` | 85/89 | 95.5% |
-| `CatShelter.Core.Item` | 10/12 | 83.3% |
-| `CatShelter.Core.ItemKind` | 6/8 | 75.0% |
-| `CatShelter.Core.Level` | 14/16 | 87.5% |
-| `CatShelter.Core.PileEntry` | 7/7 | 100.0% |
-| `CatShelter.Core.PlayerProgress` | 35/38 | 92.1% |
-| `CatShelter.Core.SavedGame` | 21/27 | 77.8% |
-| `CatShelter.Core.Shelf` | 46/48 | 95.8% |
-| **production Core total** | **405/441** | **91.8%** |
-
-So the 90% target is in fact met — 91.8% — but item 1 says "coverage report
-shows", and no report exists. `Board` itself is at 88.9% and `SavedGame` at
-77.8%, both below the threshold; the task asks for the figure on Core as a
-whole, which passes.
-
-**A second defect in the tooling.** `build/coverage-summary.py:13` filters on
-`name.startswith("CatShelter.Core")`, which also matches the test namespace
-`CatShelter.Core.Tests`. Run against the same report, the script counts test
-methods as covered production code and prints:
-
 ```
-TOTAL Core: 1049/1086 = 97%
-```
-
-97% instead of 91.8%. Had the collector been present, the script would have
-overstated coverage by 5.2 points.
-
-### 2. No CI step — fail
-
-There is no continuous-integration configuration in the repository at all:
-
-```
-$ git ls-files | grep -icE "^\.github|^\.gitlab|Jenkinsfile|azure-pipelines|Makefile|justfile|\.circleci"
+$ .venv/bin/python build/coverage-summary.py --min 90
+[... same 21 lines ...]
+TOTAL Core: 592/627 = 94.4%  (uncovered methods listed above)
+$ echo $?
 0
 ```
 
-`build/` contains `check-core-purity.sh`, `coverage-summary.py`,
-`core-tests/`, `solver-bridge/` and `playtest/` — no build or CI driver.
-`coverage-summary.py` has no threshold and no non-zero exit on a low number: its
-only `sys.exit` is the missing-file message at line 9, and the last statement is
-a `print` (line 24). The only script in the tree that fails a build on a gate is
-`build/check-core-purity.sh:12`, which is about engine references, not coverage.
+A gate never seen failing is not a gate — this one was, deliberately, at a threshold (95) picked above the measured 94.4%, and it failed with the exact message `coverage-summary.py:42` produces (`sys.exit` on a low rate).
 
-The task's SCOPE line "+ A CI step that fails the build below the threshold" is
-therefore not implemented, and item 2 — "lowering the threshold and reverting
-proves the step actually fails" — has nothing to lower.
+**3. Where the gate lives, and that it is real.** `build/headless-build.sh:119-120`:
+```
+stage "coverage gate (>= 90% on Core, task 20-rules-core/05-coverage)"
+"$PYTEST_BIN" build/coverage-summary.py --min 90
+```
+runs bare (not wrapped in an `if`) under `set -euo pipefail` (line 20) and `trap on_error ERR` (line 50), so any non-zero exit here trips `on_error`, prints `== STAGE FAILED: ... ==`, and exits the whole script with that code. This is not a line that always passes — it is the same mechanism that gates every other stage in the file (core-purity, C# tests, Python tests). To confirm the mechanism itself, not just that `coverage-summary.py` returns 1, an isolated bash snippet reproducing the exact same `set -euo pipefail` / `trap on_error ERR` / bare-stage-call pattern was run with `--min 95`:
+```
+$ bash -c 'set -euo pipefail; STAGE="(none)"; on_error(){ local c=$?; echo "== STAGE FAILED: $STAGE (exit $c) ==" >&2; exit "$c"; }; trap on_error ERR; STAGE="fake coverage gate"; .venv/bin/python build/coverage-summary.py --min 95 >/dev/null; STAGE="stage after the gate"; echo "THIS LINE MUST NOT PRINT if the gate really stops the build"'
+FAIL: line rate 94.4% is below the required 95.0%
+== STAGE FAILED: fake coverage gate (exit 1) ==
+$ echo $?
+1
+```
+The line after the gate never printed — the pattern used in the real script genuinely halts, not merely logs.
+
+**4. Full stage, `--tests-only`:**
+
+```
+$ ./build/headless-build.sh --tests-only
+== STAGE: core-purity check ==
+Core is engine-free: OK
+
+== STAGE: C# tests (dotnet test, Core) ==
+Пройден!   : не пройдено     0, пройдено   137, ... - core-tests.dll (net8.0)
+
+== STAGE: Python tests (pytest, tools/) ==
+144 passed in 5.86s
+
+== STAGE: coverage gate (>= 90% on Core, task 20-rules-core/05-coverage) ==
+TOTAL Core: 592/627 = 94.4%  (uncovered methods listed above)
+
+== --tests-only: skipping Unity build stages and the signing stage ==
+$ echo $?
+0
+```
+All four stages ran in order, including the coverage gate at its default `--min 90`, and the whole script exited 0.
+
+**5. The system-python trap is real, not hypothetical.** Running the summary script under the Homebrew `python3` (no `.venv`) on this machine:
+```
+$ python3 -c "import xml.etree.ElementTree as ET; ET.parse('x')"
+...ImportError: dlopen(.../pyexpat...): Symbol not found: _XML_SetAllocTrackerActivationThreshold
+```
+confirms `headless-build.sh:97-114`'s stated reason for requiring `.venv/bin/python3` (or `$PYTHON`) is accurate on this machine, not a guess.
+
+## Judgment on "enforced by the build"
+
+OUTCOME says "threshold enforced by the build", not "enforced by CI" — and this project has no hosted CI server anywhere (`tasks/AUDIT-2026-08-27.md` item 1, `git ls-files | grep -icE '^\.github|^\.gitlab|Jenkinsfile|azure-pipelines|\.circleci'` → 0, unchanged today). `build/headless-build.sh` is the project's only build, by the same project's own naming (task `60-shell-build/13-headless-build`). Run today, it genuinely stops — proven above in both a raw-script direction and an isolated reproduction of its exact trap mechanism. On the literal wording of OUTCOME and VERIFY item 2 (which also says "in CI" while none exists), I judge this **satisfied, not merely approximated**: the gate is a real, working stage of the one build this project has, and it fails when it should and only when it should.
+
+That said, there is a real limit worth stating plainly so it is not mistaken for more than it is: nothing in this repository *invokes* `headless-build.sh` automatically. There is no pre-push hook, no branch protection, nothing that stops a human or an agent from committing a coverage regression without ever running this script. "Enforced by the build" is true in the sense that running the build enforces it; it is not true in the sense of "cannot be bypassed" — that would need a hook or a hosted runner, neither of which exists or was promised by this OUTCOME. I am not failing the item over this, because OUTCOME does not ask for un-bypassable enforcement, but a reader should not infer more automation than exists.
 
 ## How to reproduce
 
-From a clean state — fresh clone, nothing exported by hand. Network is needed
-for the NuGet restore.
+From a clean checkout — nothing exported by hand, no `.venv` assumed to pre-exist (a clean checkout has none: `.gitignore:8` excludes it):
 
 ```bash
 git clone <repo-url> /tmp/verify-05 && cd /tmp/verify-05
-git rev-parse --short HEAD          # expect 27f9904 for the numbers above
+git rev-parse --short HEAD          # expect e0e949f for the numbers in this file
 
-# item 1 — the repo's own coverage path, which does not work
-cd /tmp/verify-05/build/core-tests
-dotnet test core-tests.csproj --nologo --collect:"XPlat Code Coverage" 2>&1 \
-  | grep -i "data collect"
-find TestResults -type f          # empty
-python3 ../coverage-summary.py; echo "exit=$?"   # "no coverage.cobertura.xml found"
+# .NET SDK must already be on PATH (this check used dotnet 10.0.400,
+# core-tests.csproj rolls forward from its declared net8.0 — see
+# core-tests.csproj:10-12). Python venv must be created first — a clean
+# checkout has neither .venv nor a working system python3 (pyexpat is broken
+# under this machine's Homebrew Python 3.14):
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
-# item 2 — no CI to lower a threshold in
-cd /tmp/verify-05
-git ls-files | grep -icE "^\.github|^\.gitlab|Jenkinsfile|azure-pipelines|Makefile|justfile|\.circleci"
-grep -n "exit\|threshold" build/coverage-summary.py
+# the gate directly, both directions
+rm -rf TestResults
+dotnet test build/core-tests/core-tests.csproj --nologo \
+  --settings build/core-tests/coverage.runsettings --results-directory TestResults
+.venv/bin/python build/coverage-summary.py --min 95   # expect FAIL, exit 1
+.venv/bin/python build/coverage-summary.py --min 90    # expect TOTAL line + exit 0
 
-# the real coverage figure, measured outside the repo so the repo stays untouched.
-# The symlink is needed because HeadlessRunTests walks up from the assembly
-# location looking for game/Assets/Resources/Levels (LevelLoader.cs:66-74);
-# without it four tests fail and the figure is understated.
-mkdir -p /tmp/verify-05-cov/cov && ln -sfn /tmp/verify-05/game /tmp/verify-05-cov/game
-cd /tmp/verify-05-cov/cov
-cat > cov.csproj <<'EOF'
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework><LangVersion>9</LangVersion>
-    <Nullable>enable</Nullable><ImplicitUsings>disable</ImplicitUsings>
-    <RollForward>Major</RollForward><IsPackable>false</IsPackable>
-    <NoWarn>CS8600;CS8603;CS8604;CS8625</NoWarn>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="/tmp/verify-05/game/Assets/Core/**/*.cs" />
-    <Compile Include="/tmp/verify-05/game/Assets/Tests/Core/**/*.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <PackageReference Include="NUnit" Version="4.2.2" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="coverlet.collector" Version="6.0.2" />
-  </ItemGroup>
-</Project>
-EOF
-cat > cov.runsettings <<'EOF'
-<?xml version="1.0" encoding="utf-8"?>
-<RunSettings><DataCollectionRunSettings><DataCollectors>
-  <DataCollector friendlyName="XPlat code coverage">
-    <Configuration><Format>cobertura</Format><IncludeTestAssembly>true</IncludeTestAssembly></Configuration>
-  </DataCollector>
-</DataCollectors></DataCollectionRunSettings></RunSettings>
-EOF
-dotnet test cov.csproj -v q --nologo --collect:"XPlat Code Coverage" --settings cov.runsettings
-
-# the repo's script, which over-counts by including CatShelter.Core.Tests:
-python3 /tmp/verify-05/build/coverage-summary.py     # prints "TOTAL Core: ... = 97%"
-
-# production-only figure, the 91.8% quoted above:
-python3 - <<'EOF'
-import glob, xml.etree.ElementTree as ET
-f = sorted(glob.glob("TestResults/*/coverage.cobertura.xml"))[-1]
-c_, t_ = 0, 0
-for c in ET.parse(f).getroot().iter("class"):
-    n = c.get("name") or ""
-    if not n.startswith("CatShelter.Core") or ".Tests" in n: continue
-    lines = c.find("lines")
-    if lines is None: continue
-    cov = sum(1 for l in lines if l.get("hits") != "0"); tot = len(list(lines))
-    print(f"{n}: {cov}/{tot} = {100*cov/tot:.1f}%"); c_ += cov; t_ += tot
-print(f"production Core: {c_}/{t_} = {100*c_/t_:.1f}%")
-EOF
+# the whole gated build
+./build/headless-build.sh --tests-only   # expect exit 0, four stages, coverage gate included
 ```
 
 ## What was not checked
 
-- Branch coverage. Only line coverage was measured, which is what the task asks
-  for. The task's GOAL adds "with every termination branch reached" — that was
-  **not** verified in general. One counter-example was found while checking
-  `04-outcomes`: `Board.cs:128` has `condition-coverage="0% (0/2)"` and
-  `Board.cs:126,128-131,133-134` have `hits="0"`, so the win/jam decision inside
-  the refused-placement block is a termination branch that is never reached.
-- Coverage measured the way the project actually ships. The figures above come
-  from a `net8.0` build of the same sources, not from Unity's
-  `com.unity.testtools.codecoverage` under IL2CPP; the two need not agree.
-- Whether `IncludeTestAssembly=true` distorts the production-class figures. It
-  is required here because Core is compiled into the test assembly, and the
-  per-class filter excludes `CatShelter.Core.Tests`, but no cross-check against
-  a project-reference layout was done.
-- The working tree, as opposed to commit `27f9904`. While this check ran,
-  another context added `game/Assets/Core/SaveResume.cs` and
-  `game/Assets/Tests/Core/SaveResumeTests.cs`, still untracked. Measured over
-  the working tree the suite is 72 tests and production Core is 444/479 =
-  92.7%; every figure in this file is the clean-clone one, 60 tests and
-  405/441 = 91.8%, so that the reproduce recipe above matches it. The untracked
-  work was not reviewed.
-- Historical claims were not re-derived. `reviews/2026-08-24-m2-m3.md:19` says
-  90.9%; that tree had 23 tests against today's 60 and a smaller Core, and no
-  attempt was made to reproduce it at that commit.
-- No fix was applied. Adding `coverlet.collector` to
-  `build/core-tests/core-tests.csproj` and correcting the namespace filter in
-  `build/coverage-summary.py:13` are the obvious repairs, plus some script that
-  exits non-zero below 90; all three are out of this verifier's scope.
-
----
-
-## What changed after this verification, 2026-08-26
-
-The failure above was accurate and has been acted on by the context that owns
-the build (not by this verifier):
-
-- `build/core-tests/core-tests.csproj` now references `coverlet.collector`, so
-  a coverage run actually writes `TestResults/*/coverage.cobertura.xml`.
-- `build/core-tests/coverage.runsettings` (new) sets `IncludeTestAssembly`,
-  because Core and its tests compile into one assembly here and coverlet
-  otherwise skips it — the first report produced had zero classes in it.
-- `build/coverage-summary.py` now excludes `CatShelter.Core.Tests.*` from the
-  total. Counting test code as covered code inflated the first number produced
-  (97% including tests, 92.7% without), which is exactly the way this gate
-  could have been passed while measuring nothing.
-- The same script takes `--min` and exits 1 below it, which is the CI step
-  VERIFY item 2 asks for.
-
-Current numbers, reproducible from a clean checkout:
-
-```
-dotnet test build/core-tests/core-tests.csproj \
-  --settings build/core-tests/coverage.runsettings --results-directory TestResults
-python build/coverage-summary.py --min 90
-```
-
-- 83 tests pass, line rate on Core **94.3%** (462/490), exit code 0.
-- `python build/coverage-summary.py --min 99` prints the shortfall and exits 1,
-  which is item 2's "lowering the threshold proves the step actually fails",
-  run in the direction that does not require breaking anything.
-
-`verify` is left **pending**, not passed: the context that fixed the tooling
-cannot also sign it off. A third context should re-run the two commands above.
+- **Branch coverage.** GOAL says "every termination branch reached"; only line
+  coverage is measured and gated (OUTCOME/SCOPE only say "line rate" and
+  "threshold" — branch coverage is not in VERIFY's two items either). The
+  cobertura report from this run still shows a zero-hit branch:
+  `Board.cs:136` (`condition-coverage="0% (0/2)"`, `hits="0"`) — the same
+  defensive win/jam branch flagged in `20-rules-core/04-outcomes/VERIFY.md`,
+  documented in `Board.cs:125-134` as unreachable by construction. Not a
+  failure of this task's VERIFY items, but the GOAL sentence about branches
+  is not enforced by anything in this repository.
+- **A fresh `git clone`.** This check ran in the existing working tree
+  (`git status --porcelain -- tasks/20-rules-core/05-coverage/` was clean
+  before this file was written), reusing the `.venv` already present rather
+  than building one from scratch. The "How to reproduce" commands above were
+  not executed in an actual `/tmp` clone; they were assembled from the exact
+  commands that were run in place, plus the documented `.venv` setup.
+- **Automatic invocation.** Nothing was checked or found that runs
+  `build/headless-build.sh` on a schedule, on push, or via any hook — see
+  "Judgment" above. If nobody runs the script, the gate does not fire.
+- **Whether 90% is the right number**, or whether `IncludeTestAssembly=true`
+  in `coverage.runsettings` distorts the production-class figures compared to
+  a project-reference layout. Neither was re-litigated; both were already
+  covered by the 2026-08-26 verification of this same task.
+- **Unity/IL2CPP coverage.** The measured 94.4% comes from a `net8.0` console
+  build of the same sources (`core-tests.csproj`), not from Unity's own
+  `com.unity.testtools.codecoverage` inside the editor or an IL2CPP build;
+  the two are not guaranteed to agree.
+- **The Unity build and signing stages of `headless-build.sh`.** Only
+  `--tests-only` was run. The Android/iOS build stages and the signing stage
+  were not exercised — they are out of this task's scope (task
+  `60-shell-build/13-headless-build` and `/14-testflight` own those).

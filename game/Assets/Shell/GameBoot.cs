@@ -166,6 +166,16 @@ namespace CatShelter.Shell
                 return;
             }
 
+            // The coat harness (60-shell-build/18) replaces the board when
+            // asked for, same as the capture screen: drop a `coat.txt` beside
+            // the save. A checking tool, not a screen in the game.
+            if (CatShelter.View.CoatGridView.Requested)
+            {
+                if (GetComponent<CatShelter.View.CoatGridView>() == null)
+                    gameObject.AddComponent<CatShelter.View.CoatGridView>();
+                return;
+            }
+
             if (GetComponent<DebugGameView>() == null)
                 gameObject.AddComponent<DebugGameView>();
         }

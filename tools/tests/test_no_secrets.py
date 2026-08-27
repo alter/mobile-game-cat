@@ -16,6 +16,38 @@ value under a credential-shaped name; source files are scanned only for a
 that cries wolf on ordinary source is a test somebody deletes. The risk this
 is written against is a key sitting in a settings asset or a config file, and
 that is what it catches.
+
+**This is "the two known paths are covered", not "a key can never reach a
+commit" — say so plainly rather than let the stronger claim stand.**
+Confirmed blind spots, 2026-08-27 re-verification of `70-analytics/01-sdk-integration`
+(each checked directly against this file's own regex/predicate, not assumed):
+
+- **A file extension in neither `DATA_SUFFIXES` nor `SOURCE_SUFFIXES`.** A
+  key pasted into a `.md`, `.gradle`, `.kt`, `.strings`, `.xcconfig`, `.pbxproj`
+  or `.meta` file is invisible to both patterns — the value is never even
+  read by a scan. Widening either list trades this for more false positives
+  and is a real tradeoff, not a bug to silently patch here.
+- **A value split across a literal line break.** `\s*` between the field
+  name and `[:=]` matches a newline, so `gameKey:\n  <value>` is still found
+  — but the value's own character class (`[^"\'\s,}\]<]+`) stops at the
+  first whitespace, so a key wrapped across two lines is truncated to
+  whatever precedes the break. A short first fragment (e.g. 8 characters)
+  falls under `MIN_KEY_LENGTH` and is missed entirely; a long one may
+  accidentally still trip the length check on the fragment alone, which is
+  luck, not coverage.
+- **A credential-shaped value with no digit.** `_looks_like_a_key` requires
+  `any(c.isdigit() for c in v)`; a 30+ character, alnum-dense value that
+  happens to be all letters (a real possibility for some base64 alphabets on
+  short samples) passes through unflagged by design.
+
+None of these are hypothetical: each was planted in a tracked, `git add -f`'d
+copy of `game/Assets/Resources/GameAnalytics/Settings.asset` and confirmed
+either caught or missed, then reverted immediately. The two paths this
+project has actually built — `analytics-keys.txt` and the SDK's settings
+asset — are covered by `test_the_keys_file_is_ignored` /
+`test_the_settings_asset_is_ignored` plus the content scan below. A third,
+not-yet-built path carrying a key in one of the shapes above would not be
+caught by this file.
 """
 import re
 import subprocess

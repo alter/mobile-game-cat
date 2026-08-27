@@ -89,3 +89,25 @@ there and so is the receiver.
 Worth remembering beyond notifications: **any** Unity package that injects
 manifest entries, permissions or gradle changes through an editor callback was
 silently skipped by every Android build this project has made until today.
+
+### The guard checked by the coordinator, 2026-08-27
+
+Run against the real artefact and against a missing one, because a check that
+passes when its input is absent is the failure mode this whole guard exists to
+prevent:
+
+```
+build/check-android-manifest.py --apk game/build/android/CatShelter.apk
+  carries all 4 expected manifest contribution(s) from 2 package(s). OK   exit 0
+
+build/check-android-manifest.py --apk /tmp/does-not-exist.apk
+  no such file                                                            exit 1
+```
+
+The second line is the one worth having. `headless-build.sh` already asserts
+the APK exists before reaching this stage, so the guard would not normally meet
+a missing file — but "would not normally" is how the coverage gate nobody
+invoked stayed green for weeks.
+
+Not a verdict: I made the `UseTarget` fix this stage was built to protect, so
+the `verify:` on this task stays where the independent verifier put it.

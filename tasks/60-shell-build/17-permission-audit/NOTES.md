@@ -93,3 +93,58 @@ kind of thing that arrives with a dependency and changes this table.
 
 `verify` stays `pending`: the context that removed the packages should not also
 sign off that removing them was right.
+
+---
+
+## Corrected after an independent check failed it — 2026-08-27
+
+`VERIFY.md` failed this audit today on its central number, and the failure was
+right. Both corrections below were re-checked by hand before being written
+here.
+
+**The key count was wrong.** This note said 48 keys with one of them a
+permission. The built `game/build/ios/CatShelter/Info.plist` has **28**
+top-level keys:
+
+```
+$ plutil -p game/build/ios/CatShelter/Info.plist | grep -cE '^  "'
+28
+$ grep -c UsageDescription game/build/ios/CatShelter/Info.plist
+1
+```
+
+**The one-permission conclusion holds exactly** — a single
+`NSCameraUsageDescription`, no `NSPhotoLibraryUsageDescription`, no
+`UIBackgroundModes`, no entitlements file. That was the point of the audit and
+it survives. But it was true beside a number that was never checked, and the
+27 non-permission keys it was implicitly counting were never inventoried, so
+the conclusion was reached rather than demonstrated.
+
+**And the audit never asked the question that matters most.** It listed what
+the plist declares. It did not look for anything compiled into the project that
+could reach for an identifier without appearing in the plist at all. The answer
+is favourable and is worth having on the record:
+
+```
+game/build/ios/CatShelter/Classes/Preprocessor.h:206:#define UNITY_USES_IAD 0
+game/build/ios/CatShelter/Classes/Unity/DeviceSettings.mm:9:#if UNITY_USES_IAD
+```
+
+`DeviceSettings.mm` is the only file in the generated project mentioning
+`ASIdentifierManager` or `ATTrackingManager`, and every one of its three uses
+sits inside `#if UNITY_USES_IAD`, which Unity sets to `0` because it detects no
+iAd use in the scripts. So the advertising-identifier path is **compiled out**
+of the iOS build.
+
+**That is a real difference from Android, in iOS's favour.** On Android the
+same helper is unconditionally present: `strings` over `classes.dex` finds
+`AdvertisingIdClient` and `getAdvertisingIdInfo` in every build regardless of
+what the game does (`90-android/10-permission-audit/VERIFY.md`). Present but
+dormant there, absent here. D9's rule — never request ATT, always
+`EnableAdvertisingIdTracking(false)` — is unaffected either way, but a store
+privacy declaration is not: "the binary cannot reach the identifier" and "the
+binary can but does not" are different answers, and iOS gets the stronger one.
+
+**Re-check both when `70-analytics/01-sdk-integration` lands.** Adding any SDK
+can change this, and `UNITY_USES_IAD` is decided by what Unity finds in the
+scripts, so it is not a constant.

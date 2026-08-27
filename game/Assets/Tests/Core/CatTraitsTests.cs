@@ -81,8 +81,16 @@ namespace CatShelter.Core.Tests
             var schemaPath = Path.GetFullPath(Path.Combine(
                 TestContext.CurrentContext.TestDirectory,
                 "..", "..", "..", "..", "..", "tools", "traits", "schema.json"));
-            if (!File.Exists(schemaPath))
-                Assert.Ignore($"schema not reachable from here: {schemaPath}");
+            // Fail, not Assert.Ignore. This used to skip itself when the path
+            // did not resolve, which means the one check standing between the
+            // game's vocabulary and the Worker's could quietly stop running
+            // while the suite still reported green — the same shape of defect
+            // as the coverage gate nobody invoked (tasks/AUDIT-2026-08-27.md,
+            // item 4). A missing schema is a finding, not a reason to pass.
+            Assert.That(File.Exists(schemaPath), Is.True,
+                $"tools/traits/schema.json not found at {schemaPath} — either the "
+                + "repository layout moved or this walk-up is wrong, and this "
+                + "cross-language check is not running.");
 
             var json = File.ReadAllText(schemaPath);
             foreach (var pair in CatTraits.Allowed)

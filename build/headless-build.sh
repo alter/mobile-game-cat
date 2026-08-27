@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+# Headless build entry point — task 60-shell-build/13-headless-build.
+#
+# Stages, in order: core-purity check, C# tests, Python tests, coverage gate
+# (task 20-rules-core/05-coverage), then the Unity builds (Android APK, iOS
+# Xcode project), then the signing/.ipa stage.
+#
+# Signing is not possible right now: there is no Apple Developer Program
+# account and no team ID (tasks/DECISIONS.md, decision D17). This script does
+# not fake a signed .ipa. Unless --no-sign is passed, it reaches the signing
+# stage and exits non-zero, naming the missing APPLE_TEAM_ID and the task
+# that closes this (60-shell-build/14-testflight).
+#
+# Usage: build/headless-build.sh [--tests-only] [--no-sign] [-h|--help]
+#   --tests-only  run core-purity + C# tests + Python tests + coverage gate,
+#                 skip both Unity build stages and the signing stage entirely.
+#   --no-sign     run everything including the Unity builds, but skip the
+#                 signing/.ipa stage instead of failing on it.
+#   -h, --help    print this usage line and exit 0.
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 [--tests-only] [--no-sign] [-h|--help]"
+  echo "  --tests-only  run only core-purity, C# tests, Python tests, coverage gate"
+  echo "  --no-sign     run the Unity builds but skip the signing/.ipa stage"
+  echo "  -h, --help    show this message"
+}
+
+TESTS_ONLY=0
+NO_SIGN=0
+for arg in "$@"; do
+  case "$arg" in
+    --tests-only) TESTS_ONLY=1 ;;
+    --no-sign) NO_SIGN=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "unknown argument: $arg" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+STAGE="(none)"
+on_error() {
+  local code=$?
+  echo "" >&2
+  echo "== STAGE FAILED: ${STAGE} (exit ${code}) ==" >&2
+  exit "$code"
+}
+trap on_error ERR
+
+stage() {
+  STAGE="$1"
+  echo ""
+  echo "== STAGE: ${STAGE} =="
+}
+
+# Run a dotnet command, retrying once after 30s if it hits the file-lock
+# errors dotnet throws when another process is also building (MSB3021,
+# MSB3027, "being used by another process").
+run_dotnet() {
+  local out
+  if out=$("$@" 2>&1); then
+    echo "$out"
+    return 0
+  fi
+  if echo "$out" | grep -qE "MSB3021|MSB3027|being used by another process"; then
+    echo "$out"
+    echo "[headless-build] dotnet hit a file lock, waiting 30s and retrying once..." >&2
+    sleep 30
+    "$@"
+    return $?
+  fi
+  echo "$out"
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+stage "core-purity check"
+build/check-core-purity.sh
+
+# ---------------------------------------------------------------------------
+stage "C# tests (dotnet test, Core)"
+rm -rf "$ROOT/TestResults"
+run_dotnet dotnet test build/core-tests/core-tests.csproj \
+  --nologo \
+  --settings build/core-tests/coverage.runsettings \
+  --results-directory TestResults
+
+# ---------------------------------------------------------------------------
+stage "Python tests (pytest, tools/)"
+PYTEST_BIN="${PYTHON:-python3}"
+if [ -z "${PYTHON:-}" ] && [ -x "$ROOT/.venv/bin/python3" ]; then
+  PYTEST_BIN="$ROOT/.venv/bin/python3"
+fi
+
+# A clean checkout has no .venv, and this falls back to the system python —
+# which on this machine cannot do either job: no pytest, and a pyexpat that
+# cannot parse the cobertura report the coverage gate reads. Both would fail
+# further down with an error about something else entirely. The OUTCOME of
+# 60-shell-build/13 says "from a clean checkout", so say plainly what is
+# missing and how to fix it, before spending a test run finding out.
+if ! "$PYTEST_BIN" -c "import pytest, xml.parsers.expat" >/dev/null 2>&1; then
+  echo "" >&2
+  echo "$PYTEST_BIN cannot run this stage: it needs pytest and a working" >&2
+  echo "xml.parsers.expat (the coverage gate below parses cobertura XML)." >&2
+  echo "" >&2
+  echo "  python3 -m venv .venv && .venv/bin/pip install -r requirements.txt" >&2
+  echo "" >&2
+  echo "or point the script at an interpreter that has them:" >&2
+  echo "" >&2
+  echo "  PYTHON=/path/to/python3 $0 $*" >&2
+  exit 1
+fi
+
+"$PYTEST_BIN" -m pytest tools/tests -q
+
+# ---------------------------------------------------------------------------
+stage "coverage gate (>= 90% on Core, task 20-rules-core/05-coverage)"
+"$PYTEST_BIN" build/coverage-summary.py --min 90
+
+if [ "$TESTS_ONLY" -eq 1 ]; then
+  echo ""
+  echo "== --tests-only: skipping Unity build stages and the signing stage =="
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+stage "locate Unity editor"
+if [ -n "${UNITY_PATH:-}" ]; then
+  UNITY="$UNITY_PATH"
+else
+  # Newest installed editor by version-sorted directory name.
+  shopt -s nullglob
+  candidates=(/Applications/Unity/Hub/Editor/*/Unity.app/Contents/MacOS/Unity)
+  shopt -u nullglob
+  if [ "${#candidates[@]}" -eq 0 ]; then
+    echo "No Unity editor found under /Applications/Unity/Hub/Editor/*/Unity.app," >&2
+    echo "and \$UNITY_PATH is not set. Install Unity via Unity Hub, or set" >&2
+    echo "UNITY_PATH=/path/to/Unity.app/Contents/MacOS/Unity" >&2
+    exit 1
+  fi
+  IFS=$'\n' sorted=($(printf '%s\n' "${candidates[@]}" | sort -V))
+  unset IFS
+  UNITY="${sorted[-1]}"
+fi
+if [ ! -x "$UNITY" ]; then
+  echo "Unity editor not executable at: $UNITY" >&2
+  exit 1
+fi
+echo "Using Unity editor: $UNITY"
+
+# ---------------------------------------------------------------------------
+stage "Unity Android build (BuildScript.BuildAndroidPlayer)"
+APK="$ROOT/game/build/android/CatShelter.apk"
+rm -f "$APK"
+"$UNITY" -batchmode -nographics -quit -projectPath "$ROOT/game" \
+  -executeMethod BuildScript.BuildAndroidPlayer \
+  -logFile "$ROOT/game/build/android-build.log"
+if [ ! -f "$APK" ]; then
+  echo "Android build reported success but the expected .apk is missing:" >&2
+  echo "  $APK" >&2
+  echo "See log: $ROOT/game/build/android-build.log" >&2
+  exit 1
+fi
+echo "Android APK: $APK ($(du -h "$APK" | cut -f1))"
+
+# ---------------------------------------------------------------------------
+stage "Unity iOS Xcode project (BuildScript.BuildIOSXcodeProject)"
+IOS_PROJECT="$ROOT/game/build/ios/CatShelter/Unity-iPhone.xcodeproj"
+rm -rf "$IOS_PROJECT"
+"$UNITY" -batchmode -nographics -quit -projectPath "$ROOT/game" \
+  -executeMethod BuildScript.BuildIOSXcodeProject \
+  -logFile "$ROOT/game/build/ios-build.log"
+if [ ! -d "$IOS_PROJECT" ]; then
+  echo "iOS build reported success but the expected Xcode project is missing:" >&2
+  echo "  $IOS_PROJECT" >&2
+  echo "See log: $ROOT/game/build/ios-build.log" >&2
+  exit 1
+fi
+echo "iOS Xcode project: $IOS_PROJECT"
+
+# ---------------------------------------------------------------------------
+if [ "$NO_SIGN" -eq 1 ]; then
+  echo ""
+  echo "== --no-sign: skipping the signing/.ipa stage =="
+  exit 0
+fi
+
+stage "sign and produce .ipa"
+if [ -z "${APPLE_TEAM_ID:-}" ]; then
+  echo "" >&2
+  echo "Cannot produce a signed .ipa: APPLE_TEAM_ID is not set." >&2
+  echo "There is no Apple Developer Program account and no team ID yet —" >&2
+  echo "see tasks/DECISIONS.md, decision D17. Closing this is the job of" >&2
+  echo "task 60-shell-build/14-testflight, not this script." >&2
+  echo "Run with --no-sign to build without attempting to sign, or set" >&2
+  echo "APPLE_TEAM_ID once the account exists." >&2
+  exit 1
+fi
+
+# Deliberately no xcodebuild archive/export here yet: that path has never
+# been exercised (no team ID to exercise it with) and belongs to
+# 60-shell-build/14-testflight once APPLE_TEAM_ID is real.
+echo "APPLE_TEAM_ID is set but the archive/export path is not implemented yet" >&2
+echo "(see 60-shell-build/14-testflight)." >&2
+exit 1

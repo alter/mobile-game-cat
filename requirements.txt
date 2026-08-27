@@ -1,0 +1,20 @@
+# Python needed outside the Unity project: the solver, the level generator and
+# the playtest build. Created 2026-08-27 because build/headless-build.sh
+# promises to run "from a clean checkout" (60-shell-build/13) and had no way to
+# say what a clean checkout is missing.
+#
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+#
+# Tested on Python 3.11.13 with pytest 9.1.1 and Pillow 12.3.0. Floors rather
+# than pins: nothing here is version-sensitive, and a pin would rot unnoticed
+# on a three-week prototype.
+#
+# Note on the system interpreter: Homebrew's python3 on this machine has a
+# pyexpat that cannot parse the cobertura report build/coverage-summary.py
+# reads, so the venv is not optional even where pytest happens to be present.
+
+pytest>=8.0
+
+# build/playtest/make_playtest.py: resizes the 30 prop sprites and encodes
+# them as WebP data URIs.
+Pillow>=10.0

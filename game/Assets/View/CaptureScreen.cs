@@ -35,6 +35,23 @@ namespace CatShelter.View
         /// </summary>
         public Func<byte[], CatTraits> AskWorker;
 
+        /// <summary>
+        /// Identifies this device to the Worker's rate limit (worker/src/index.ts
+        /// keys on device_id, not IP). No source for a real one exists in the
+        /// shipping app yet — wiring one up belongs to 08's HTTP call, not this
+        /// screen. Left empty, TraitsRequest falls back to the same
+        /// "anonymous" the Worker itself would choose.
+        /// </summary>
+        public string DeviceId = "";
+
+        /// <summary>
+        /// Task 50-photo/07: the exact JSON body POST /traits expects for the
+        /// most recently accepted photo — built the moment the crop succeeds,
+        /// so it exists before 08 has an HTTP client to send it with. Null
+        /// until a photo is accepted.
+        /// </summary>
+        public string LastTraitsRequestJson { get; private set; }
+
         /// <summary>Injected so a test can drive the pipeline without a device.</summary>
         public Func<byte[], VisionAnswer> Recognise = bytes => CatVision.Recognise(bytes);
         public Func<byte[], AnimalBox, byte[]> Crop = (bytes, box) => CatPhoto.Prepare(bytes, box);
@@ -173,6 +190,21 @@ namespace CatShelter.View
 
             Analytics.PhotoUploaded();
             OnAccepted?.Invoke(prepared);
+
+            try
+            {
+                LastTraitsRequestJson = TraitsRequest.BuildJson(prepared, DeviceId);
+            }
+            catch (ArgumentException e)
+            {
+                // Should not happen: Crop already enforces the same ceiling
+                // TraitsRequest checks (Shell.CatPhoto.MaxBytes ==
+                // TraitsRequest.MaxPreEncodeBytes). Logged rather than thrown,
+                // because a malformed request body must not break the
+                // fallback pipeline below.
+                Debug.LogWarning($"[CaptureScreen] could not build traits request: {e.Message}");
+                LastTraitsRequestJson = null;
+            }
 
             CatTraits traits = null;
             if (AskWorker != null)

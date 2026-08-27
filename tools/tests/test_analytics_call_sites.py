@@ -37,9 +37,33 @@ def calls_of(helper: str) -> list[str]:
     return [f"{path.name}" for path, text in sources() if pattern.search(text)]
 
 
+# Declared, deliberately not called yet. The entry carries the reason, so a
+# dormant event cannot be confused with a call site someone deleted by accident
+# — which is the whole point of the test above it.
+DORMANT = {
+    "booster:tap":
+        "the lose-screen offer was removed on 2026-08-27 (D4 revised): a tap on "
+        "a free button measures 'do you want to not lose', not willingness to "
+        "pay. The event comes back with the button, once there is a price.",
+}
+
+
 @pytest.mark.parametrize("event,helper", sorted(NINE.items()))
 def test_every_event_has_a_call_site(event, helper):
+    if event in DORMANT:
+        assert not calls_of(helper), (
+            f"{event} is listed as dormant but something calls "
+            f"Analytics.{helper} — remove it from DORMANT")
+        return
     assert calls_of(helper), f"{event}: nothing calls Analytics.{helper}"
+
+
+def test_dormant_events_are_still_declared():
+    # A dormant event that quietly leaves Analytics.cs is a hole in the funnel
+    # nobody notices until the metric is wanted.
+    declared = set(re.findall(r'public const string \w+ = "([^"]+)"', CORE.read_text()))
+    for event in DORMANT:
+        assert event in declared, f"{event} is dormant but no longer declared"
 
 
 def test_the_surface_is_exactly_nine():

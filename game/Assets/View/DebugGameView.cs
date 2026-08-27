@@ -367,7 +367,13 @@ namespace CatShelter.View
             else
             {
                 Analytics.LevelFail(_level.Number);
-                // D4: fake door — count intent, grant nothing. AddSlots is NOT called.
+                // The "one more shelf" fake door was removed on 2026-08-27 —
+                // D4 revised. It offered something, refused it, and measured a
+                // tap on a FREE button, which answers "do you want to not
+                // lose" (everyone does) rather than "would you pay". The
+                // annoyance was real and the number was not going to decide
+                // anything. Analytics.BoosterTap and Board.AddShelfSlots both
+                // stay: the button comes back when there is a price on it.
                 ShowCard(Shell.Copy.Of("lose.title"),
                     Shell.Copy.Of("lose.body", _levelIndex),
                     Shell.Copy.Of("lose.replay"), () =>
@@ -375,12 +381,7 @@ namespace CatShelter.View
                         HideCard();
                         StartLevel(_levelIndex);   // replay the lost level
                     },
-                    Shell.Copy.Of("lose.booster"), () =>
-                    {
-                        Analytics.BoosterTap();     // counted...
-                        _overlayBody.text = Shell.Copy.Of("lose.booster.soon");  // ...stub shown...
-                        _secondaryButton.SetEnabled(false); // ...level stays lost.
-                    });
+                    null, null);
             }
         }
 

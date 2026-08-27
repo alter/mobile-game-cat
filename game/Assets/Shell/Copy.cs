@@ -76,8 +76,11 @@ namespace CatShelter.Shell
                 ["lose.title"] = "Shelf jammed",
                 ["lose.body"] = "Levels finished: {0}.\n\nWould you keep playing if this were the real game?",
                 ["lose.replay"] = "Replay",
-                ["lose.booster"] = "One more shelf",
-                ["lose.booster.soon"] = "Coming soon.",
+                // "One more shelf" / "Coming soon." lived here until
+                // 2026-08-27. The offer is gone until there is a price behind
+                // it (D4); the wording is kept in that decision, not here,
+                // because an unused key is copy nobody sees that gets
+                // translated anyway.
 
                 // --- the end of the house ------------------------------------
                 // An honest stop, not a teaser: no waitlist, no purchase, no

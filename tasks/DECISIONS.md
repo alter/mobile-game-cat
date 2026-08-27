@@ -158,6 +158,38 @@ door is unchanged.
 outsiders in the playtest gate jam every other run, this reopens — decided on
 people, not on simulation.
 
+### Revised 2026-08-27: the door is closed until there is a price behind it
+
+**Decided by the owner**, who hit the jam in play and asked the obvious
+question: why offer something and then refuse it. The button and its two
+strings are gone from the lose screen. `Analytics.BoosterTap` and
+`Board.AddShelfSlots` both stay — the offer returns when it can charge for
+itself; the call-site test now lists `booster:tap` as dormant, with the reason,
+so a missing call site still fails for every other event.
+
+**Why the fake door did not earn its annoyance.** Two reasons, and the second
+is the one that matters.
+
+A fake door is worth its cost when building the real thing is expensive and the
+demand is unclear. Building this one is a single call: `Board.AddShelfSlots`
+has existed since 2026-08-26 and grows the shelf and resumes a jammed board.
+There was no expense to avoid.
+
+And the button was **free**. What it measured was a tap on a costless offer to
+not lose — a question whose answer is known before it is asked. Metric four is
+willingness to pay, and no free tap is evidence about that. So the number was
+never going to decide anything, while the irritation of being offered a way out
+and refused it was entirely real. Measured on the first person to play the
+build: one for one.
+
+**What this costs.** Metric four now has no instrument at all in the MVP, and
+it needs one before any monetisation decision — measured on live people with a
+real price, not simulated and not free. That is the work this decision defers,
+and it should not be quietly forgotten.
+
+**Unchanged:** granting the booster free still takes the win rate from 72% to
+95%, so when it returns it is three slots, once per level, and priced.
+
 ---
 
 ## D5. No energy or lives gate — 2026-08-25

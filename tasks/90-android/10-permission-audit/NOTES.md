@@ -361,3 +361,44 @@ first since it is the one gaining a new dependency (§4).
 so this needs re-checking on iOS too the next time any package is added
 there, for the same reason as here: what Unity compiles in depends on what it
 finds in the project, not on what this document assumed.
+
+---
+
+## Corroborated from the binary, by the coordinator — 2026-08-27
+
+Every claim in the correction above was re-derived independently from the APK
+on disk. Commands and raw results:
+
+```
+aapt2 dump permissions game/build/android/CatShelter.apk
+  android.permission.INTERNET
+  android.permission.ACCESS_NETWORK_STATE
+  android.permission.POST_NOTIFICATIONS
+  com.DefaultCompany.game.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION   (+ the matching <permission>)
+
+unzip classes.dex && strings classes.dex | grep -i advertising
+  Lcom/unity3d/player/AndroidAdvertisingIdHelper;
+  com.google.android.gms.ads.identifier.AdvertisingIdClient
+  com.google.android.gms.ads.identifier.internal.IAdvertisingIdService
+  getAdvertisingIdInfo
+  nativeOnAndroidAdvertisingIdResult
+
+strings classes.dex | grep -c "Lcom/google/android/gms/ads/identifier/AdvertisingIdClient;"
+  0
+```
+
+The last line is the one that decides it. The GMS class appears only as a
+**string** — a reflection target — and never as a compiled class descriptor
+(`L...;`). So the capability is reachable by name and not linked: dormant, as
+the correction says, and not absent, as the original audit said. `AD_ID` is
+absent from the manifest.
+
+**This is corroboration, not a verdict, and the reason is a conflict of
+interest.** `POST_NOTIFICATIONS` is in that manifest because of a build-script
+fix I made today (`BuildScript.UseTarget`, `90-android/02-build-pipeline`), so
+I am not an independent judge of the permission-list item — I am the reason one
+of its entries exists. The advertising-identifier findings I had no hand in,
+and they hold.
+
+`verify:` stays where the verifier left it. A context with no part in today's
+build changes should rule on the whole.

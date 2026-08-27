@@ -64,6 +64,37 @@ namespace CatShelter.View
         /// little fuller. Negative narrows.</summary>
         private static readonly float[] Waist = { 0f, -0.15f, 0f, +0.05f };
 
+        /// <summary>Logged once, not once per frame: a fallback nobody sees
+        /// is a fallback nobody fixes, and one repeated every frame is noise
+        /// nobody reads.</summary>
+        private static readonly HashSet<string> _warned = new();
+
+        /// <summary>
+        /// The silhouette for these traits: <c>cat_&lt;state&gt;_&lt;fur&gt;_base</c>.
+        ///
+        /// Only the short-haired column was drawn (40-art/03 delivered three of
+        /// six), so a long-haired cat falls back to the short-haired art and
+        /// says so. Visible, not silent — the player's cat being the wrong coat
+        /// length is a real difference to them, and it should read as missing
+        /// art rather than as a decision.
+        /// </summary>
+        public static Texture2D LoadBase(CatTraits traits, int state)
+        {
+            if (traits == null) throw new ArgumentNullException(nameof(traits));
+            state = Mathf.Clamp(state, 1, 3);
+
+            var wanted = $"Art/cat_{state}_{traits.FurLength}_base";
+            var art = Resources.Load<Texture2D>(wanted);
+            if (art != null) return art;
+
+            var fallback = $"Art/cat_{state}_short_base";
+            if (_warned.Add(wanted))
+                Debug.LogWarning($"[CoatBuilder] no {wanted}, using {fallback} — " +
+                                 "long-haired cats render short until 40-art/03 " +
+                                 "delivers the other three silhouettes");
+            return Resources.Load<Texture2D>(fallback);
+        }
+
         /// <summary>
         /// Build the cat. <paramref name="state"/> is 1..3.
         /// Returns a new readable texture; the caller owns it.
@@ -77,9 +108,14 @@ namespace CatShelter.View
             int w = baseCoat.width, h = baseCoat.height;
             var px = ReadPixels(baseCoat);
 
+            // Masks come from the silhouette itself (CoatMasks), so they line
+            // up exactly, and a hand-drawn file replaces any of them the moment
+            // one exists — see MaskOf.
+            var masks = CoatMasks.Build(px, w, h, seed: baseCoat.name.GetHashCode());
+
             px = Reshape(px, w, h, Waist[state]);
             px = Weather(px, w, h, Neglect[state], seed: 5);
-            px = Tint(px, traits);
+            px = Tint(px, traits, masks, baseCoat.name);
             px = Outline(px, w, h, Mathf.RoundToInt(w * 0.016f));
 
             var result = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: false)
@@ -357,9 +393,25 @@ namespace CatShelter.View
         /// cannot find eyes. This needs 40-art/04's eyes mask; until then every
         /// player's cat has the dark eyes the silhouette was drawn with.
         /// </summary>
-        private static Color32[] Tint(Color32[] px, CatTraits traits)
+        private static Color32[] Tint(Color32[] px, CatTraits traits,
+                                      Dictionary<string, float[]> masks, string baseName)
         {
             var coat = Coats.TryGetValue(traits.BaseColor, out var c) ? c : Color.white;
+            var eye = Eyes.TryGetValue(traits.EyeColor, out var e) ? e : Color.white;
+
+            // The pattern is a darker shade of the same coat, not a second
+            // colour: a ginger tabby is ginger with darker ginger stripes.
+            var pattern = traits.Pattern == "solid"
+                ? null
+                : MaskOf(masks, baseName, $"pattern_{traits.Pattern}");
+
+            var markings = new List<float[]>();
+            foreach (var marking in traits.WhiteMarkings)
+            {
+                var m = MaskOf(masks, baseName, $"mark_{marking}");
+                if (m != null) markings.Add(m);
+            }
+            var eyeMask = MaskOf(masks, baseName, CoatMasks.Eyes);
 
             for (int i = 0; i < px.Length; i++)
             {
@@ -373,14 +425,66 @@ namespace CatShelter.View
                 if (px[i].a < 200) continue;
 
                 float v = (px[i].r + px[i].g + px[i].b) / 765f;   // 0..1 lightness
+                var target = coat;
+
+                if (pattern != null && pattern[i] > 0.01f)
+                    target = Color.Lerp(coat, coat * 0.55f, Mathf.Clamp01(pattern[i]));
+
+                float white = 0f;
+                foreach (var m in markings)
+                    white = Mathf.Max(white, Mathf.Clamp01(m[i]));
+                if (white > 0.01f)
+                    target = Color.Lerp(target, White, white * 0.92f);
+
+                // Eyes last and flat: they are the one part that is not fur, so
+                // they take their colour rather than a shaded version of it.
+                if (eyeMask != null && eyeMask[i] > 0.5f)
+                {
+                    px[i] = new Color32(
+                        (byte)(eye.r * 255f), (byte)(eye.g * 255f), (byte)(eye.b * 255f), px[i].a);
+                    continue;
+                }
+
+                // White fur is light fur, not the coat's own shading in white:
+                // multiplying a white marking by the greyscale value gave grey
+                // paws, which is what the pattern grid showed. The shading is
+                // compressed instead of applied at full depth, so the marking
+                // keeps its modelling and still reads as white.
+                float shade = Mathf.Lerp(v * 1.35f, 0.62f + v * 0.48f, white);
 
                 px[i] = new Color32(
-                    (byte)Mathf.Clamp(coat.r * 255f * v * 1.35f, 0, 255),
-                    (byte)Mathf.Clamp(coat.g * 255f * v * 1.35f, 0, 255),
-                    (byte)Mathf.Clamp(coat.b * 255f * v * 1.35f, 0, 255),
+                    (byte)Mathf.Clamp(target.r * 255f * shade, 0, 255),
+                    (byte)Mathf.Clamp(target.g * 255f * shade, 0, 255),
+                    (byte)Mathf.Clamp(target.b * 255f * shade, 0, 255),
                     px[i].a);
             }
             return px;
+        }
+
+        private static readonly Color White = new(0.97f, 0.96f, 0.93f);
+
+        /// <summary>
+        /// A mask by name: the drawn file if one was ever added to
+        /// Resources/Art, otherwise the one computed from the silhouette.
+        ///
+        /// This is the runtime choice task 18 asks for. It means the 27 masks
+        /// of 40-art/04 can be drawn one at a time, whenever any of them is
+        /// worth drawing, and each one improves the game the moment it lands —
+        /// no code changes, no all-or-nothing milestone.
+        /// </summary>
+        private static float[] MaskOf(Dictionary<string, float[]> computed,
+                                      string baseName, string maskName)
+        {
+            var drawn = Resources.Load<Texture2D>($"Art/{baseName}_{maskName}");
+            if (drawn != null)
+            {
+                var px = ReadPixels(drawn);
+                var m = new float[px.Length];
+                for (int i = 0; i < px.Length; i++)
+                    m[i] = px[i].r / 255f;      // white where the mask applies
+                return m;
+            }
+            return computed.TryGetValue(maskName, out var c) ? c : null;
         }
 
         // ---------------------------------------------------------------

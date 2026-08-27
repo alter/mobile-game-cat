@@ -37,18 +37,56 @@ cat: the deep shadow beneath a curled body is darker than an eye. The tint is
 removed. Every player's cat has the dark eyes the silhouette was drawn with
 until `40-art/04` supplies an eyes mask — which is what that mask is for.
 
-## Not done, and the task is not closed
+## The masks: computed, not drawn — added later the same day
 
-- **`fur_length` is ignored.** The task requires it to pick the silhouette and
-  to fall back to short-haired with one logged line when the long-haired file
-  is missing. Nothing reads the field yet.
-- **Mask mode is not written.** Only the no-masks path exists. The task asks
-  for both, chosen at runtime by whether the mask texture loads.
-- **`pattern` is not applied.** Every cat is solid. Procedural stripes over a
-  body this size read as noise, and a wrong pattern is worse than none when the
-  point is "that looks like my cat". This waits for the masks rather than being
-  faked.
-- **`white_markings` is not applied**, same reason.
+`CoatMasks` derives all nine from the silhouette. 40-art/04 forbids generating
+them, and for a good reason — a model asked for "the same cat but striped"
+draws a different cat, and a mask one pixel off its base is worse than none.
+Deriving them from the base has neither problem: the base is the input, so
+alignment is exact by construction.
 
-So a player whose cat is a long-haired ginger tabby with white paws currently
-gets a short-haired solid ginger. The colour is right and the rest is missing.
+| mask | how |
+|---|---|
+| eyes | a pair of dark blobs at the same height on the head, found not drawn |
+| pointed | distance from the body's centre — ears, muzzle, paws, tail are the far parts, which is what pointed means |
+| paws | the bottom of the figure |
+| face, chest | ellipses placed from the eyes and the head box |
+| tuxedo | chest plus paws, which is what a tuxedo is |
+| bicolor, calico | value noise, a few large zones or more small ones |
+| tabby | near-vertical wavy stripes, denser along the back |
+
+Two of the three cats have their eyes shut, so their eye mask comes out empty —
+correct, there is nothing to colour, and it means one mask was needed where the
+task budgeted three.
+
+**A drawn file always wins.** `CoatBuilder.MaskOf` looks for
+`Art/<base>_<mask>.png` before using the computed one, so the 27 masks can be
+drawn one at a time, whenever any single one is worth drawing, and each lands
+as an improvement with no code change.
+
+**The weak one is tabby.** Real stripes follow the animal; these follow the
+frame. It reads as a striped cat rather than as a photograph of one, and on the
+sleeping silhouette the stripes run the wrong way across a curled body. Three
+hand-drawn stripe masks would replace it and nothing else has to change.
+
+## Three more defects the grid caught
+
+**Freckles instead of patches.** Bicolor and calico came out as speckle because
+the noise scale was inverted — the count is patches across the frame, so fewer
+means larger. Bicolor is 4, calico is 7.
+
+**Rectangles instead of anatomy.** Chest and face were axis-aligned boxes and
+looked it: a bib and a stripe across the muzzle. Ellipses placed from the eye
+positions instead.
+
+**Grey paws.** A white marking multiplied by the greyscale value is not white,
+it is grey — the shading has to be compressed rather than applied at full
+depth, or every white sock comes out dirty.
+
+## Not done
+
+- **Mask mode for hand-drawn files is written but never exercised**: no drawn
+  mask exists to load, so that path has not run once.
+- The long-haired fallback logs and works, but there is no long-haired art to
+  fall back *from*, so it has only been exercised in the direction that is
+  missing.

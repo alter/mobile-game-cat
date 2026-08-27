@@ -35,14 +35,16 @@ namespace CatShelter.View
             title.style.marginBottom = 8;
             root.Add(title);
 
-            // One row per coat colour, one column per state.
-            foreach (var colour in CatTraits.Allowed["base_color"])
+            // One row per pattern, one column per state — the colour is fixed
+            // to ginger because it is the pattern that needs looking at, and
+            // six colours by six patterns is a wall nobody reads.
+            foreach (var pattern in CatTraits.Allowed["pattern"])
             {
                 var row = new VisualElement();
                 row.style.flexDirection = FlexDirection.Row;
                 row.style.alignItems = Align.Center;
 
-                var label = new Label(colour);
+                var label = new Label(pattern);
                 label.style.fontSize = 10;
                 label.style.width = 46;
                 label.style.color = (Color)new Color32(0x7C, 0x6A, 0x52, 0xFF);
@@ -50,13 +52,13 @@ namespace CatShelter.View
 
                 for (int state = 1; state <= 3; state++)
                 {
-                    var traits = new CatTraits(colour, "solid", "short", "amber",
-                                               new[] { "chest" });
+                    var traits = new CatTraits("ginger", pattern, "short", "green",
+                                               new[] { "chest", "paws" });
                     var cell = new VisualElement();
                     cell.style.width = 96;
                     cell.style.height = 96;
 
-                    var art = Resources.Load<Texture2D>($"Art/cat_{state}_short_base");
+                    var art = CoatBuilder.LoadBase(traits, state);
                     if (art != null)
                     {
                         var built = CoatBuilder.Build(art, traits, state);

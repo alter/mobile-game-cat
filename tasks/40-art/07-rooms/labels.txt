@@ -2,7 +2,7 @@ phase:art
 role:ART
 type:feature
 priority:P0
-status:todo
+status:review
 verify:pending
 depends:00-validate-demand/05-room-dirty-clean
 milestone:M4

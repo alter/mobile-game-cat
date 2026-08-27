@@ -113,3 +113,33 @@ so the page now matches the image instead of fighting it.
 
 None of the three blocks the screen from doing its job, which is showing twelve
 rooms in three states derived from one source.
+
+## Both platforms, same screen — 2026-08-28
+
+`ios-house-map-real-art.png` is the same screen on the iOS simulator (iPhone 17,
+1206×2622) beside `android-house-map-real-art.png` on Android (1080×2340). The
+layout is identical in structure, the notch is respected, and the proportional
+sizing that fixed Android needed nothing further for a different aspect ratio —
+which is the point of having done it in percentages.
+
+Route to it on iOS: `xcrun simctl get_app_container booted com.DefaultCompany.game data`
+and drop `housemap.txt` into its `Documents/`, which is where
+`Application.persistentDataPath` lands on iOS. Same flag, different folder.
+
+## The placement is wrong, and the screenshot shows it
+
+The owner pointed this out and both screenshots confirm it: **room 9 is plainly
+an attic** — sloped ceiling, dormer window — and it sits in the fifth row of a
+numbered grid, in the middle of the house. Room 2 is as plainly a kitchen and
+sits under the roof.
+
+A house map whose rooms are not where they belong in the house is a numbered
+list drawn on a picture of a house. The grid was the placeholder's logic
+surviving into the real art, and nobody looked at what the twelve rooms
+actually *are* until the pictures existed.
+
+`tasks/40-art/06-house-map/ROOM-PLACEMENT.md` is being written now: what each
+of the twelve rooms is, which floor it belongs on, and coordinates relative to
+the house's own bounding box — which is **x 6–93%, y 9–92%** of
+`map_background.png`, measured, not the whole file. Percentages against the
+file would place every room about 7% too far up and left.

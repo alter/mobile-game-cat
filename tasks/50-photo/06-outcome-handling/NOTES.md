@@ -81,3 +81,29 @@ file. **`60-shell-build/14-testflight` owns closing this** — it is the task
 already named in both `05` and `08` as where a real device run happens, and
 this task adds nothing new to that queue, only makes explicit that it is
 also what `06`'s own reachability claim is waiting on.
+
+---
+
+## The last closeable quarter of the failing verdict, fixed after the verdict — 2026-08-28
+
+`VERIFY.md` failed this task on four grounds; three were closed same-day
+(`PhotoMessages` moved to `Core.PhotoMessageKey` and tested, `Best` made to
+sort defensively, the reachability gap written up above). The fourth stood
+until now: `VisionAnswer` and `AnimalBox` had zero test coverage in either
+language, because they lived in `Shell/CatVision.cs`, which `dotnet test`
+does not compile.
+
+That reason no longer holds. Both types were plain data — `[Serializable]`
+is `System.SerializableAttribute`, not Unity's, and neither struct touched
+`UnityEngine` anywhere. Moved to `Core/VisionAnswer.cs`; `Shell/CatVision.cs`
+keeps only what genuinely cannot move — the `DllImport`, the pointer
+marshalling, `Application.platform`. `build/check-core-purity.sh` still
+passes. `Core/VisionAnswer.cs`, `game/Assets/Tests/Core/VisionAnswerTests.cs`
+(8 new tests: `Best` on an unsorted list, on one detection, on an empty list
+— throws, pinned — and the three `Failed`/`FoundAnimal` states kept
+mutually exclusive) and three call sites (`GameBoot.cs`, `VisionSelfTest.cs`,
+`CatPhoto.cs`) updated to reference the moved types. `dotnet test`: 169 → 177.
+
+This fix came **after** the verdict above, not as part of it — this section
+records that ordering, it does not change the verdict. `verify:failed`
+stays; a different context rules on whether the file is now closed.

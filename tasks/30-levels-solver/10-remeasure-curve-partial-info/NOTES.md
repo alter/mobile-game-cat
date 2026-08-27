@@ -135,3 +135,67 @@ against 79%. It was caught only because the number disagreed with an earlier
 C# probe and the disagreement was chased rather than explained away. Ties now
 return every equally-good move and the caller picks among them at random, which
 is what a player who cannot see item ids does.
+
+---
+
+# Re-measured 2026-08-27, because D15 asked for it
+
+D15 (a locked item is seen, not hidden) closes with *"The number is not wrong,
+it is about a different game. Rerun it before quoting it again."* Done, same
+seed `20260826`, same 400 games per band and 200 games per shipped level as the
+26.08 run, so the two are directly comparable.
+
+## Generated bands
+
+| pile size | open at once | shelf-only | reachable-aware, hidden | visible | price of hiding |
+|---|---|---|---|---|---|
+| 36 | 16.7 (was 17.0) | 98.0% (98.0) | 99.2% (99.0) | 99.8% (98.8) | 0.6 pp (-0.2) |
+| 48 | 24.6 (24.2) | 83.8% (87.0) | 94.2% (96.5) | 94.2% (96.5) | 0.0 pp (0.0) |
+| 60 | 28.3 (28.1) | 71.5% (69.5) | 90.0% (89.8) | 89.8% (91.0) | -0.2 pp (1.2) |
+
+## The 37 shipped levels
+
+| band | shelf-only | reachable-aware |
+|---|---|---|
+| 36 items (9 levels) | 96.2% (74.5–100), was 97.2% | 98.2% (84.5–100), was 98.4% |
+| 48 items (12) | 87.5% (67.5–99.5), was 83.4% | 96.0% (85.5–100), was 95.1% |
+| 60 items (16) | 63.0% (36.5–77.5), was 64.4% | 87.1% (62.0–99.5), was 90.8% |
+
+Hardest for a realistic player, and the three worth a human's eye if the
+playtest reports frustration: `l34_room12_pile0` 62.0%, `l32_room11_pile2`
+66.5%, `l35_room12_pile1` 77.0%. The level the 26.08 note called "the hardest
+in the game", `l24_room09_pile2`, now wins 68.5% / 86.5% and is mid-pack — the
+levels themselves were reshipped since.
+
+## D15 cannot have moved any of these numbers, and that is the finding
+
+**The simulation never modelled the channel D15 changed.** `measure.py` calls
+`is_revealed` nowhere — grep it. A policy is handed the *reachable* items as
+`(id, kind)` pairs, and a locked item is not reachable, so whether a locked
+item shows its kind was invisible to the simulated player before D15 and is
+invisible after it. The "hidden versus visible" columns are two policies with
+different information about *remaining copies*, not the revealed flag.
+
+So D15's worry — "a player who can see which kind is withheld can plan around
+it, and the levels may now be easier than they were measured to be" — is about
+a human's information channel that no run of this script has ever exercised.
+The rerun D15 asked for is done and the correct answer is: **this instrument
+cannot answer that question, in either direction.** `07-outsiders-playtest`
+can; a simulation cannot. D15's caution should be read as "unmeasured", not as
+"measured and pending".
+
+## What did move, then
+
+The generator and the shipped levels, not the rules. `open at once` shifts
+17.0 → 16.7 and 24.2 → 24.6 on a fixed seed, which can only mean the generated
+levels differ; `tools/solver/generate.py` last changed in `bff0de2` (props
+renamed, so kind ids and therefore tie-breaking changed) and the 37 levels were
+reshipped after the 26.08 measurement. Movements of 1–4 pp with no single
+attributable cause, in both directions.
+
+**Every conclusion of the 26.08 note survives.** Hiding is still noise (0.6 /
+0.0 / -0.2 pp). The one habit — noticing which kinds are most open — is still
+worth about 18 pp at 60 items (71.5% → 90.0%). And the metric-4 problem is
+unchanged and slightly worse: averaged over all 37 levels the realistic player
+wins 92.7% of attempts, so roughly one attempt in fourteen ends in a jam and
+the lose-screen denominator stays thin. See `80-live-validation/00-thresholds`.

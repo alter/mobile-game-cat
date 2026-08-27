@@ -10,8 +10,12 @@ CONTEXT
 
 SCOPE
   + GameOutcome.Win, GameOutcome.ShelfJammed.
-  + Win is checked BEFORE jam: an emptied pile is a win even if the shelf filled
-    on the same move.
+  + Win is checked BEFORE jam. Note what this does and does not buy: the two
+    can never contend for the same move, because a pile carries every kind in
+    multiples of three and TryMatch removes each triple as it forms, so the
+    shelf is empty exactly when the pile is. The ordering is correct and also
+    vacuous. What is reachable, and what the tests pin, is the near miss - a
+    final placement into the shelf's last free slot that matches on the way in.
   - No OutOfMoves. A move takes exactly one item, winning needs exactly as many
     moves as there are items, so any limit is either unreachable or makes the
     level unwinnable.
@@ -21,8 +25,18 @@ OUTCOME
 
 VERIFY (ARCH)
   1. One unit test per outcome.
-  2. A test for the boundary case: last item empties the pile and fills the
-     shelf - result is Win.
+  2. A test for the reachable boundary between the two: the final placement
+     takes the shelf's LAST free slot and completes a triple on the way in -
+     result is Win, not a jam.
+  3. A test pinning why the two outcomes can never compete for one move: at a
+     win the shelf is empty. If a future rule lets a pile hold a kind in
+     non-triples, this test fails and the ordering becomes a live question.
+
+  Item 2 was reworded and item 3 added, 27.08.2026. Item 2 used to read "last
+  item empties the pile AND fills the shelf - result is Win", which VERIFY.md
+  proved unsatisfiable: the state cannot occur and the branch it aimed at
+  (Board.cs:120-130) is unreachable. The old verdict stands as written - it is
+  the criterion that was wrong, not the verification.
 
 ROLE
   CORE

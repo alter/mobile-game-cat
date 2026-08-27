@@ -119,7 +119,20 @@ namespace CatShelter.Core
 
             if (!Shelf.TryPlace(entry.Item, out var matchedKind))
             {
-                // shelf full: the win still wins, otherwise it's a jam
+                // Unreachable under the present rules, and kept deliberately.
+                // A placement is only refused by a full shelf, and the game
+                // ends the moment a shelf fills (line 137) or the pile empties
+                // (line 143), so no take is ever attempted against a full one —
+                // 40 000 random games never reached this branch, see
+                // tasks/20-rules-core/04-outcomes/VERIFY.md.
+                //
+                // It stays because the item is already in _taken by this point:
+                // falling through instead would leave it neither in the pile
+                // nor on the shelf, losing it silently. An outcome here is the
+                // safe failure. The task's OUTCOME used to claim this branch
+                // protected the win/jam ordering — it does not and cannot; the
+                // reachable ordering is at 137-147, pinned by
+                // FinalPlacementTakesTheLastSlotAndMatches_IsAWin_NotAJam.
                 if (_taken.Count == _entries.Count)
                 {
                     Finish(GameOutcome.Win);

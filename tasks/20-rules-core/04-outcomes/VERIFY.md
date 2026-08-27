@@ -229,3 +229,219 @@ either, for the same reason.
 2 around a state that exists — the jam side of the same branch is the real
 boundary — and rewriting an acceptance criterion is a human's call, not an
 agent's (`tasks/README.md`, "criteria are not fitted to the result").
+
+---
+
+# Re-verification, 2026-08-27 — the rewritten criteria
+
+Result: **passed** — VERIFY items 1, 2 and 3 as they now stand in `task.txt`
+are all satisfied by committed tests, and the tests reach the states their
+names claim.
+
+Verifier: a second independent agent context, 2026-08-27, against `dev` at
+commit `2bdc8e9`. It did **not** write `game/Assets/Core/Board.cs`,
+`game/Assets/Core/Shelf.cs`, `game/Assets/Core/Level.cs` or any other Core
+source; did **not** write `game/Assets/Tests/Core/BoardTests.cs`; did **not**
+reword `task.txt`; and modified none of those files during this check — the
+mutation experiment below was run on a **copy** outside the repository. It did
+not write the earlier verdict in this file either. It did not run the Unity
+editor, did not build for a device and did not play the game. Its only writes
+were this section and `labels.txt`.
+
+## Verdict per VERIFY item
+
+| # | Item (current wording) | Test | Result |
+|---|---|---|---|
+| 1 | One unit test per outcome | `Win_PileCleared` (`BoardTests.cs:275`), `ShelfJammed_UnmatchedKindsFillTheShelf` (`BoardTests.cs:354`) | pass |
+| 2 | Final placement takes the shelf's LAST free slot and completes a triple on the way in → Win, not a jam | `FinalPlacementTakesTheLastSlotAndMatches_IsAWin_NotAJam` (`BoardTests.cs:309`) | pass |
+| 3 | A test pinning that at a win the shelf is empty | `AtAWin_TheShelfIsEmpty_WhichIsWhyTheOutcomesCannotCompete` (`BoardTests.cs:334`) | pass, with a caveat below |
+
+### 1 — pass
+
+`Win_PileCleared` has been renamed and now claims only what it does. Its peak
+occupancy is 2 of 12 slots (measured, step 2 of the probe below); the old name
+`..._EvenWhenLastTakeFillsShelf`, which the previous verdict caught as a false
+claim, is gone and the comment at `BoardTests.cs:278-281` records why.
+
+`ShelfJammed_UnmatchedKindsFillTheShelf` was traced take by take, not merely
+run. It reaches a genuinely full, genuinely unmatchable shelf:
+
+```
+J take#8 id=8 occ=8/9 over=False outcome=
+J take#9 id=11 occ=9/9 over=True outcome=ShelfJammed
+```
+
+Five kinds hold two copies each on nine slots — no triple exists — and the jam
+fires at `Board.cs:150-153`. The inline comment "(15 slots needed) jams at slot
+ten" is loose prose: it jams on take **nine**, when the ninth item fills the
+ninth slot. The comment is wrong, the assertion is right; not grounds to fail.
+
+### 2 — pass, and the test reaches the state its name claims
+
+Traced against the real `Board`, showing shelf occupancy *before* each take
+(`lastFreeSlotTaken` means occupancy was capacity − 1, so the placement took
+the only remaining slot):
+
+```
+P1 take id=1 occBefore=0/3 lastFreeSlotTaken=False occAfter=1 over=False outcome=
+P1 take id=2 occBefore=1/3 lastFreeSlotTaken=False occAfter=2 over=False outcome=
+P1 take id=3 occBefore=2/3 lastFreeSlotTaken=True  occAfter=0 over=False outcome=
+P1 take id=4 occBefore=0/3 lastFreeSlotTaken=False occAfter=1 over=False outcome=
+P1 take id=5 occBefore=1/3 lastFreeSlotTaken=False occAfter=2 over=False outcome=
+P1 take id=6 occBefore=2/3 lastFreeSlotTaken=True  occAfter=0 over=True  outcome=Win
+```
+
+The final take (id 6) goes into slot index 2 of a three-slot shelf — the last
+free slot, the shelf is momentarily full inside `Shelf.TryPlace`
+(`Shelf.cs:62-68`) — `TryMatch` then removes the triple, and the pile-empty
+check at `Board.cs:156-159` returns `Win`. That is exactly the state item 2
+names. Unlike the test the previous verdict struck down, this one does not pass
+for a different reason than its name suggests.
+
+**The criterion is falsifiable, not fitted to the code.** Tested by mutation on
+a copy of the Core sources in a scratch directory (the repository was not
+touched): `Board.TakeItem` was changed to judge fullness at the moment of
+placement instead of after the match —
+
+```csharp
+bool fullOnPlacement = Shelf.Occupied + 1 == Shelf.Capacity;   // added
+...
+if (fullOnPlacement && _taken.Count != _entries.Count)         // was: Shelf.IsFull && ...
+```
+
+and the same scenario then produces:
+
+```
+M1 (mutated Board, boundary test scenario) outcome=ShelfJammed over=True
+M2 (mutated Board, item-3 test scenario)  outcome=Win occ=0
+```
+
+So a plausible reordering of the win/jam decision turns this scenario into a
+jam on a winning move and the test fails. A criterion fitted to whatever the
+code happens to do could not be broken by a mutation of that code; this one is.
+
+### 3 — pass, with a recorded caveat
+
+`AtAWin_TheShelfIsEmpty_WhichIsWhyTheOutcomesCannotCompete` reaches what it
+says: nine items in three kinds on a four-slot shelf end in `Win` with an empty
+shelf.
+
+```
+P2 outcome=Win occAtEnd=0 peakBetweenTakes=2 cap=4
+```
+
+The literal demand of item 3 — a test pinning that at a win the shelf is empty
+— is met, and the reasoning behind it holds independently: `Level` rejects any
+pile whose kind count is not a multiple of three (`Level.cs:49-52`) and
+`Shelf.TryMatch` removes each triple as it forms (`Shelf.cs:85-107`), so every
+kind's shelf count is 0 mod 3 — zero — when the pile empties.
+
+Caveat, recorded rather than waived: item 3's second sentence promises that
+"if a future rule lets a pile hold a kind in non-triples, this test fails". It
+would not. The test builds its own pile in triples, so loosening `Level`'s
+validation leaves it green. As a tripwire the test is weaker than the criterion
+claims; the invariant is pinned for one fixed pile, not as a property. A
+property-style check over random piles (the shape of the probe in the previous
+verdict) would deliver what the sentence promises. This does not sink item 3,
+whose requirement is the assertion itself, but the sentence overstates the
+test's reach and should not be quoted as if the tripwire existed.
+
+## Is the rewritten item 2 a legitimate correction?
+
+**Legitimate correction, not a criterion fitted to the result.** Three reasons,
+in order of weight:
+
+1. The old wording named a state the rules make impossible — proven above in
+   this file by structure and by 40 000 random games, and independently
+   re-derived here from `Level.cs:49-52` and `Shelf.cs:85-107`. A criterion that
+   no correct implementation can satisfy is a defect in the criterion. Removing
+   it is not lowering a bar; it is deleting a bar that stood in mid-air.
+2. The replacement is falsifiable by the mutation shown above. `GOAL.md`'s
+   anti-pattern is "fitting thresholds to the result already obtained" — a
+   criterion that cannot fail. This one fails against a one-line reordering of
+   `Board.TakeItem`, which is the very bug the task's OUTCOME says must not
+   recur.
+3. The rewrite is declared, dated and reasoned in `task.txt:36-39`, the old
+   verdict was left standing in this file, and `Board.cs:122-135` now states
+   plainly that the branch it kept is unreachable and why it is kept anyway
+   (the item is already in `_taken`, so falling through would lose it). That is
+   `GOAL.md`'s "say so; do not leave it in the code", honoured.
+
+The one thing the rewrite does concede: the ordering site at `Board.cs:136-142`
+remains dead code that no test can reach, and the OUTCOME line "the ordering bug
+cannot recur" is now carried by `Board.cs:150-159` alone. `Board.cs` says so
+itself. That is a documented boundary, not a hidden one.
+
+## How to reproduce
+
+From a clean state — fresh clone, nothing exported by hand. Network is needed
+on the first run for the NuGet restore.
+
+```bash
+git clone <repo-url> /tmp/verify-04b && cd /tmp/verify-04b
+git rev-parse --short HEAD          # expect 2bdc8e9 for the numbers below
+
+dotnet test build/core-tests/core-tests.csproj -v q --nologo \
+  --filter "FullyQualifiedName~OutcomeTests"
+dotnet test build/core-tests/core-tests.csproj -v q --nologo
+```
+
+Raw output of both, this machine, 2026-08-27 (the filtered run repeated with
+`DOTNET_CLI_UI_LANGUAGE=en` for a legible line; the localised run above it is
+the same result):
+
+```
+Тестовый запуск для /Users/rdolgov/workflow/git/mobile-game-cat/build/core-tests/bin/Debug/net8.0/core-tests.dll (.NETCoreApp,Version=v8.0)
+Общее количество тестовых файлов (1), соответствующих указанному шаблону.
+
+Пройден!   : не пройдено     0, пройдено     9, пропущено     0, всего     9, длительность 9 ms. - core-tests.dll (net8.0)
+```
+
+```
+Test run for /Users/rdolgov/workflow/git/mobile-game-cat/build/core-tests/bin/Debug/net8.0/core-tests.dll (.NETCoreApp,Version=v8.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     9, Skipped:     0, Total:     9, Duration: 9 ms - core-tests.dll (net8.0)
+```
+
+Full suite, no filter:
+
+```
+Тестовый запуск для /Users/rdolgov/workflow/git/mobile-game-cat/build/core-tests/bin/Debug/net8.0/core-tests.dll (.NETCoreApp,Version=v8.0)
+Общее количество тестовых файлов (1), соответствующих указанному шаблону.
+
+Пройден!   : не пройдено     0, пройдено   123, пропущено     0, всего   123, длительность 257 ms. - core-tests.dll (net8.0)
+```
+
+(9 in `OutcomeTests`, 123 in the whole Core suite. The previous verdict recorded
+7 and 60 at commit `27f9904`; the growth is the two tests added for items 2 and
+3 plus other tasks' tests committed since.)
+
+The `P*`, `J` and `M*` lines quoted above come from two small probe programs
+compiled outside the repository — one including
+`game/Assets/Core/**/*.cs` directly, one including a **copy** of those sources
+with the single mutation shown in section 2. Both were built in a scratch
+directory; no file in this repository was modified by them. The probe pattern,
+including the `.csproj`, is the one written down in the previous verdict's
+"How to reproduce", step 2.
+
+## What was not checked
+
+- The two other VERIFY sections of this task's SCOPE — "No OutOfMoves" was
+  confirmed only as "the enum still has exactly two members"
+  (`Board.cs:8-19`, pinned by `OutcomesAreTwoAndDistinct`); no search was made
+  for a move counter reintroduced elsewhere.
+- Whether the outcomes are distinguishable **to a player**. Nothing under
+  `game/Assets/View/` or `game/Assets/Shell/` was read or run, no build was
+  played.
+- Agreement with the Python rules mirror `tools/solver/rules.py`. The Python
+  suite was not run here; that is `30-levels-solver/01-rules-in-solver`.
+- Coverage. No cobertura report was produced this time, so the claim that
+  `Board.cs:136-142` is still unhit rests on the reachability argument and on
+  the previous verdict's report, not on a fresh measurement.
+- The other 114 tests in the suite were run but not read. Only the
+  `OutcomeTests` fixture was audited line by line.
+- Mutation testing was applied to exactly one mutation, aimed at item 2. The
+  item-1 and item-3 tests were not mutation-tested; `M2` above shows the item-3
+  test is insensitive to that particular mutation, which is expected — it pins a
+  different invariant — but no mutation was found that does break it.

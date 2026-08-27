@@ -272,15 +272,17 @@ namespace CatShelter.Core.Tests
             new(7, "room_1", 0, pile);
 
         [Test]
-        public void Win_PileCleared_EvenWhenLastTakeFillsShelf()
+        public void Win_PileCleared()
         {
-            // 12 items in 4 kinds, 8-slot shelf: the pile empties while the
-            // shelf holds 8 unmatched — win is checked before any jam.
+            // 12 items in 4 kinds on a roomy shelf: every triple matches as it
+            // forms and the emptied pile is a win. The name used to promise
+            // "even when the last take fills the shelf" and the body never
+            // filled anything — peak occupancy here is two of twelve slots.
+            // See VERIFY.md in tasks/20-rules-core/04-outcomes.
             var entries = new List<PileEntry>();
             for (int kind = 0; kind < 4; kind++)
                 for (int i = 0; i < 3; i++)
                     entries.Add(E(kind * 3 + i + 1, $"kind{kind}"));
-            // shuffle deterministically so blockers don't hide the point
             var board = new Board(L(entries.ToArray()), shelfCapacity: 12);
             foreach (var e in entries)
                 board.TakeItem(e.Item.Id);
@@ -289,11 +291,90 @@ namespace CatShelter.Core.Tests
             Assert.That(board.Outcome, Is.EqualTo(GameOutcome.Win));
         }
 
+        // ---- the boundary between the two outcomes --------------------------
+        // The task's original acceptance asked for "the last item empties the
+        // pile AND fills the shelf → Win". That state cannot occur: a pile
+        // holds every kind in multiples of three and TryMatch removes each
+        // triple as it completes, so the shelf is empty exactly when the pile
+        // is. The two outcomes never compete for the same move, and the
+        // ordering branch at Board.cs:120-130 is unreachable — proven by
+        // 40 000 random games in tasks/20-rules-core/04-outcomes/VERIFY.md.
+        //
+        // What IS reachable, and what these two tests pin, is the near miss:
+        // the final placement takes the shelf's last free slot and matches on
+        // the way in. Move the fullness check ahead of the match and this
+        // reads as a jam on a winning move.
+
+        [Test]
+        public void FinalPlacementTakesTheLastSlotAndMatches_IsAWin_NotAJam()
+        {
+            // capacity 3, two kinds of three: every third take lands in the
+            // last free slot and completes a triple on the way in.
+            var entries = new List<PileEntry>();
+            for (int kind = 0; kind < 2; kind++)
+                for (int i = 0; i < 3; i++)
+                    entries.Add(E(kind * 3 + i + 1, $"kind{kind}"));
+            var board = new Board(L(entries.ToArray()), shelfCapacity: 3);
+
+            board.TakeItem(1);
+            board.TakeItem(2);
+            Assert.That(board.Shelf.Occupied, Is.EqualTo(2), "shelf one short of full");
+            board.TakeItem(3);   // fills the third slot, matches, empties it
+            Assert.That(board.IsOver, Is.False, "a matched shelf is not a jam");
+            Assert.That(board.Shelf.Occupied, Is.EqualTo(0));
+
+            board.TakeItem(4);
+            board.TakeItem(5);
+            board.TakeItem(6);   // same again, and this one empties the pile
+
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.Win));
+        }
+
+        [Test]
+        public void AtAWin_TheShelfIsEmpty_WhichIsWhyTheOutcomesCannotCompete()
+        {
+            // The structural reason item 2 of the old acceptance was
+            // unsatisfiable: a win leaves the shelf empty, so "empties the pile
+            // AND fills the shelf" is 0 == capacity.
+            var entries = new List<PileEntry>();
+            for (int kind = 0; kind < 3; kind++)
+                for (int i = 0; i < 3; i++)
+                    entries.Add(E(kind * 3 + i + 1, $"kind{kind}"));
+            var board = new Board(L(entries.ToArray()), shelfCapacity: 4);
+            foreach (var e in entries)
+                board.TakeItem(e.Item.Id);
+
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.Win));
+            Assert.That(board.Shelf.Occupied, Is.EqualTo(0));
+            Assert.That(board.Shelf.IsFull, Is.False);
+        }
+
+        [Test]
+        public void PileHoldsEveryKindInTriples_WhichIsWhatMakesTheAboveTrue()
+        {
+            // The actual tripwire. The test above builds its own triple pile,
+            // so it can never catch a loosened invariant — this one can. Should
+            // Level ever accept a kind in non-triples, a win could strand
+            // leftovers on the shelf, the two outcomes would start competing
+            // for the same move, and Board.cs:120-130 would stop being dead.
+            var entries = new List<PileEntry>
+            {
+                E(1, "kind0"), E(2, "kind0"),   // two, not three
+                E(3, "kind1"), E(4, "kind1"), E(5, "kind1"),
+            };
+
+            var ex = Assert.Throws<ArgumentException>(
+                () => L(entries.ToArray()));
+            Assert.That(ex!.ParamName, Is.EqualTo("pile"));
+        }
+
         [Test]
         public void ShelfJammed_UnmatchedKindsFillTheShelf()
         {
-            // 5 kinds × 3 = 15 items on a nine-slot shelf: taking one of each
-            // of five kinds (15 slots needed) jams at slot ten.
+            // 5 kinds × 3 = 15 items on a nine-slot shelf. Taking one of each
+            // kind, then a second of four of them, fills all nine slots with
+            // nothing matched: the jam lands on the ninth take, not the tenth,
+            // because the ninth is the one that fills the shelf.
             var entries = new List<PileEntry>();
             for (int kind = 0; kind < 5; kind++)
                 for (int i = 0; i < 3; i++)

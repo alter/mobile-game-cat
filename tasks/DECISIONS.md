@@ -519,6 +519,17 @@ played: a player who can see which kind is withheld can plan around it, and the
 levels may now be easier than they were measured to be. The number is not
 wrong, it is about a different game. Rerun it before quoting it again.
 
+**Rerun 2026-08-27 — and the cost above is unmeasured, not measured.** The
+numbers were re-taken on the same seed and are in
+`30-levels-solver/10-remeasure-curve-partial-info/NOTES.md`; they moved 1–4 pp
+in both directions, from generator drift and reshipped levels. But **D15 cannot
+have moved them at all**: `tools/solver/measure.py` never calls `is_revealed`.
+Its policies are handed the *reachable* items, and a locked item is not
+reachable, so whether it shows its kind was outside the simulation before this
+decision and is outside it after. The paragraph above describes a real risk to
+a human player and an instrument that cannot see it. Only
+`30-levels-solver/07-outsiders-playtest` can, and it has not been run.
+
 ## D16. The shelf does not compact and does not sort — 2026-08-27
 
 **Decided by the owner**, after seeing it in play and asking whether the gaps

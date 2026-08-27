@@ -14,10 +14,12 @@ SCOPE
   + Five people with nothing invested in the project play the debug build,
     ten minutes each, plain rectangles, no art.
   + One question, answered in writing: would they keep playing.
-  + build/playtest/index.html must reflect the CURRENT rules before the
-    session: no move limit (D1), current pile-size curve (04). It is stale
-    today - it still embeds `movesLimit` and a 35% opacity "blocked" convention
-    (see NOTES.md) and must be regenerated from the shipped levels first.
+  + build/playtest/index.html must embed the CURRENT shipped levels before the
+    session. Regenerated and checked 27.08.2026 - see NOTES.md, "The prototype
+    is current again". Do it again if the levels are reshipped before the
+    session:
+      .venv/bin/python build/playtest/make_playtest.py
+      .venv/bin/python build/playtest/verify_playtest.py   # must end 37/37
   - Not a judgment by anyone who built the game - see ROLES.md, HUMAN section.
   - Not hidden kinds or complications (09, 11) - this gate runs on the visible
     pile, per the milestone's stated order (3.7 before 3.9-3.12).

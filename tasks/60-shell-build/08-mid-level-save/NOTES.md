@@ -106,3 +106,10 @@ beyond what's needed to resume the current board") and it belongs with
 `02-room-piles`. Consequence today: quitting on the win card and reopening lands
 on the next level, which is right, but nothing remembers how many rooms are
 done.
+
+---
+
+## status:done → in_progress, 2026-08-27
+
+The OUTCOME artefact this task names is not there. What is missing, what does
+exist, and why it matters: `tasks/AUDIT-2026-08-27.md`.

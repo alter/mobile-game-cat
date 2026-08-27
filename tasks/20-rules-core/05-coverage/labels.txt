@@ -2,7 +2,7 @@ phase:core
 role:CORE
 type:chore
 priority:P0
-status:done
+status:in_progress
 verify:pending
 depends:20-rules-core/04-outcomes
 milestone:M2

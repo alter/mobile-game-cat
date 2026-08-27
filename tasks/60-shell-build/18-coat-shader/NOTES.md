@@ -90,3 +90,62 @@ depth, or every white sock comes out dirty.
 - The long-haired fallback logs and works, but there is no long-haired art to
   fall back *from*, so it has only been exercised in the direction that is
   missing.
+
+---
+
+# Looking at the grid properly, 2026-08-27 (evening)
+
+`grid-2026-08-27.png` is now in this directory — the Android emulator at
+1080×2340, all six patterns against all three states, ginger, green eyes,
+markings chest+paws. VERIFY item 5 asks for the picture rather than the
+sentence; here it is. Everything below is read off that picture.
+
+**It contradicts what this note said earlier, and what
+`40-art/04-cat-layers` was told on the strength of it.** The claim was that
+tabby is the one weak mask. That is not what the grid shows.
+
+| row | what the picture actually shows |
+|---|---|
+| solid | correct |
+| tabby | **works, on all three states** — including the sleeping cat, where the stripes were predicted to run the wrong way |
+| bicolor | one large dark patch on the standing cat; on sitting and sleeping, near-indistinguishable from solid |
+| calico | a dark blotch on the sitting cat's shoulder, almost nothing on the other two |
+| tuxedo | **cannot be judged from this grid at all** — see below |
+| pointed | slightly darker extremities on the sitting cat, effectively invisible on the other two |
+
+## The harness was asking the wrong question
+
+Every row was rendered with markings `{chest, paws}`. A tuxedo *is* a white
+chest and white paws, so the tuxedo row was being compared against five other
+cats already wearing one. Worse, the same white bib and socks sat on top of
+every pattern and dominated the cell, so the pattern underneath went unread.
+
+`CoatGridView` now renders the pattern rows with **no markings**, and gives
+markings their own row on a solid cat. The picture attached here was taken
+before that change and is kept as the record of what was actually seen; a
+fresh run is needed before anyone decides which masks to draw.
+
+## What the picture does establish, and what it does not
+
+Established, from this run: six colours are distinct and none is flat (item 1
+of VERIFY); procedural mode draws every pattern without throwing or rendering
+blank, because no drawn mask exists and this is that path (item 3); the eyes
+are green where the eyes are open and correctly absent on the two states whose
+eyes are shut.
+
+Not established: item 2 (a white cat with all three markings, judged by
+someone other than the author — this grid is ginger with two markings); item 4
+in the direction that matters, since there is no long-haired art to fall back
+*from*; and mask mode, which has still never loaded a file because no drawn
+mask exists.
+
+## Two markings look wrong, and this is the honest finding
+
+On the **sleeping** cat the white chest lands as a circle on the flank — the
+cat is curled, and the geometry that places a chest on a standing animal has
+nothing to attach to. On the **sitting** cat the white paws spread into a
+broad band along the bottom that merges with the tail. On the standing cat
+both are right.
+
+So the masks worth drawing, in order, are the markings on the two non-standing
+states — not the stripes. `40-art/04-cat-layers` has been corrected.

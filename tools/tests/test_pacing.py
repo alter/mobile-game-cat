@@ -114,3 +114,25 @@ def test_shipped_files_agree_with_their_own_filenames():
         assert level["number"] == seq, name
         assert level["room_id"] == f"room_{room:02d}", name
         assert level["pile_index"] == pile, name
+
+
+def test_csharp_mirror_of_the_curve_still_agrees():
+    """The curve is written twice, in two languages. Compare them.
+
+    tools/solver/pacing.py generates and ships the levels; View/LevelAssets.cs
+    decides which files the game loads. Nothing linked the two, so a change to
+    one would silently leave the other loading a different set — the game
+    asking for l38 that was never shipped, or never asking for l37 that was.
+    Found by the audit of 2026-08-27 (tasks/AUDIT-2026-08-27.md, item 7).
+    """
+    source = (Path(__file__).resolve().parents[2]
+              / "game/Assets/View/LevelAssets.cs").read_text()
+    match = re.search(r"PilesPerRoom\s*=\s*\{([^}]*)\}", source)
+    assert match, "PilesPerRoom literal not found in View/LevelAssets.cs"
+    csharp = tuple(int(n) for n in re.findall(r"\d+", match.group(1)))
+
+    assert csharp == PILES_PER_ROOM, (
+        f"View/LevelAssets.cs has {csharp}, tools/solver/pacing.py has "
+        f"{PILES_PER_ROOM} — the game and the generator disagree on how many "
+        f"levels exist")
+    assert sum(csharp) == TOTAL_LEVELS

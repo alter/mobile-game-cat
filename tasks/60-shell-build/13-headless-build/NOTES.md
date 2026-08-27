@@ -21,3 +21,10 @@ status:todo → done, 26.08.2026 — метка отставала от reposito
 тот же, кто правил сборочный сценарий, а по правилу независимости
 (tasks/README.md) подписывать свою работу нельзя. Открытым остаётся запуск
 на устройстве.
+
+---
+
+## status:done → in_progress, 2026-08-27
+
+The OUTCOME artefact this task names is not there. What is missing, what does
+exist, and why it matters: `tasks/AUDIT-2026-08-27.md`.

@@ -25,3 +25,10 @@ VERIFY names PlayMode tests that tap the control and walk on to
 What is verified today: the traits are constant and complete
 (`Tests/Core/CatTraitsTests.cs`), and the button is on screen. Tapping it is
 for `14-testflight`.
+
+---
+
+## status:done → in_progress, 2026-08-27
+
+The OUTCOME artefact this task names is not there. What is missing, what does
+exist, and why it matters: `tasks/AUDIT-2026-08-27.md`.

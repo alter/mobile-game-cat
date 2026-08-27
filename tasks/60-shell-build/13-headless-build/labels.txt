@@ -2,7 +2,7 @@ phase:shell
 role:NATIVE
 type:feature
 priority:P0
-status:done
+status:in_progress
 verify:pending
 depends:10-accounts/03-xcode
 depends:10-accounts/04-unity

@@ -98,6 +98,16 @@ namespace CatShelter.Shell
                     "All twelve of them, and one kitten who no longer has anywhere " +
                     "to hide her finds.\n\nThat is as far as this house goes for now.",
 
+                // --- levels missing or broken ---------------------------------
+                // Shipped level data is gated before release (test_ship_levels.py,
+                // HeadlessRunTests): this should never fire. It exists as the
+                // floor under that gate — an honest stop instead of the blank
+                // screen a malformed or missing file used to leave behind
+                // (Core/LevelLoadPolicy, task 30-levels-solver/06).
+                ["levels.unavailable.title"] = "Something is missing",
+                ["levels.unavailable.body"] =
+                    "The rooms could not be loaded this time. Please reinstall or try again later.",
+
                 // --- the photo screen ----------------------------------------
                 ["capture.title"] = "Show us your cat",
                 ["capture.hint"] = "A photo where she fills most of the frame works best.",

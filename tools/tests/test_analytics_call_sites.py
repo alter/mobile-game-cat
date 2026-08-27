@@ -32,9 +32,25 @@ def sources() -> list[tuple[Path, str]]:
     return [(p, p.read_text()) for d in CALLER_DIRS for p in d.rglob("*.cs")]
 
 
+def strip_comments(text: str) -> str:
+    # A call site named only in a comment is not a call site. Found live in
+    # 60-shell-build/07's VERIFY, 2026-08-27: DebugGameView.cs explains why
+    # Analytics.BoosterTap and Board.AddShelfSlots stay unused in a comment
+    # right next to the lose card, and calls_of() searched raw text — so a
+    # future comment that happened to spell "Analytics.BoosterTap(" with the
+    # parenthesis would have counted as a real call, silently defeating the
+    # DORMANT check below, or (the opposite failure) a real call site
+    # commented out during a rewrite would have kept passing as if it were
+    # still live. Mirrors test_copy_table.py's strip_noise.
+    text = re.sub(r"//.*", "", text)
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return text
+
+
 def calls_of(helper: str) -> list[str]:
     pattern = re.compile(rf"Analytics\.{helper}\s*\(")
-    return [f"{path.name}" for path, text in sources() if pattern.search(text)]
+    return [f"{path.name}" for path, text in sources()
+            if pattern.search(strip_comments(text))]
 
 
 # Declared, deliberately not called yet. The entry carries the reason, so a

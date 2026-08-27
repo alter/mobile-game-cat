@@ -3,6 +3,6 @@ role:NATIVE
 type:feature
 priority:P0
 status:done
-verify:pending
+verify:failed
 depends:50-photo/01-reference-photo-set
 milestone:M5

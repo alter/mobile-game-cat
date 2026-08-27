@@ -86,3 +86,63 @@ Remaining for verify:passed (HUMAN gate 3.7 / metric 4):
 - Analytics.BoosterTap() fires; event name "booster:tap" pinned per DECISIONS.md.
 - HUMAN gate 3.7 / metric 4 NOT executed — requires 5 outsiders. Leave verify:pending.
 - verify:passed по HEADLESS-BUILD (сборка происходит без ошибок); verify:pending по iOS-запуску на устройстве до проверки человеком
+
+---
+
+## 2026-08-27 — task.txt rewritten after D4's revision; VERIFY.md found it stale
+
+Everything above this line describes the fake door as it stood through
+2026-08-27 — the button, the "Coming soon" stub, the metric-4 measurement it
+was built to produce. `DECISIONS.md` D4 was revised the same day ("the door
+is closed until there is a price behind it"): the owner hit the jam in
+play, asked why the game offers something and then refuses it, and the
+button and both its strings came out of the lose screen entirely.
+`Analytics.BoosterTap` and `Board.AddShelfSlots` stayed in `Core`, declared
+and dormant, for when a real, priced booster ships.
+
+`task.txt` was not updated when that happened. An independent verification
+pass (`VERIFY.md`, same day) found the gap and named it precisely: SCOPE
+still promised the button and the stub, VERIFY item 1 still described
+tapping a button that no longer exists, OUTCOME still claimed the screen
+"records intent to pay" — false, per D4's own text ("metric four now has no
+instrument at all in the MVP"). The verdict was `verify:failed`, not on the
+code (which matches D4 exactly) but on the task's own description of
+itself: *"a stale task is not a documentation problem, it is an instruction
+to undo a decision"* — a reader building this task cold, without also
+reading `DECISIONS.md`, would rebuild the exact fake door the owner had
+just removed.
+
+**Fixed.** `task.txt` now describes the screen as it exists — a count and a
+Replay button, nothing offered — with the original 2026-08-25 version kept
+verbatim at the bottom of the file under "As originally written," rather
+than deleted. Both decisions (build the fake door; then remove it) are real
+and both are now visible in one place, matching how `DECISIONS.md` D4
+itself keeps its own superseded numbers on the record instead of editing
+them away. `task.txt` now also points explicitly at
+`tasks/80-live-validation/00-thresholds/NOTES.md` ("Metric four lost its
+instrument, 2026-08-27"), so finishing this task no longer implies metric 4
+is instrumented.
+
+**On the task's name.** `07-lose-screen-fake-door` and the `TASK:` line
+("Lose screen - 'one more shelf' fake door") both now name something that
+is only half true — there is a lose screen, but no fake door remains on it.
+Not renamed, per instruction: the directory name is load-bearing (every
+cross-reference to this task elsewhere in `tasks/`, `DECISIONS.md` D4, and
+`80-live-validation/00-thresholds/NOTES.md` uses it), and the git history
+under it is the actual record of the fake door as a real, measured, later-
+reversed decision — the same reason the original SCOPE/OUTCOME text was
+kept rather than deleted, above. The name is a label for *what this task is
+the history of*, not a live description of the screen; read `task.txt`'s
+current GOAL/SCOPE/OUTCOME for that, not the directory name.
+
+**One distinction worth being explicit about, since VERIFY item 3 now
+depends on it:** "zero call sites" for `Analytics.BoosterTap` means zero
+*executable* calls — the explanatory comment at the lose-card call site in
+`DebugGameView.cs` that names both `Analytics.BoosterTap` and
+`Board.AddShelfSlots` in prose is not a call site and must not be treated
+as satisfying or violating this check. `tools/tests/test_analytics_call_sites.py`
+used to be unable to tell the difference (its `calls_of()` searched raw
+text, so a call site sitting only inside a comment — e.g. wrapped in
+`// TODO:` — read as "called"); that gap was closed the same day this note
+was written, in the same pass — see the test file's own history for the
+mutation that proved it.

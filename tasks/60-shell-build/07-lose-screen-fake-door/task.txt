@@ -1,43 +1,96 @@
 TASK: Lose screen - "one more shelf" fake door
 
 GOAL
-  Measure willingness to pay to be rescued from a jam, without granting the
-  rescue. Metric 4 (tapped "one more shelf") is the only gate-3 signal that a
-  screen in this milestone directly produces.
+  Show a lose screen on a jam that tells the truth: a count of levels
+  finished, and a way to try again - nothing offered that will not be
+  granted.
+
+  This was not always the goal. As built through 2026-08-27, this screen
+  also carried a fake "one more shelf" offer meant to measure willingness
+  to pay (metric 4) without granting the rescue. DECISIONS.md D4 was
+  revised on 2026-08-27 and removed that offer entirely: a tap on a free
+  button answers "do you want to not lose", which everyone does, and is not
+  evidence anyone would pay. Both decisions are real and both are recorded
+  in D4, not summarised here - read the whole entry, not just its ending.
 
 CONTEXT
-  cat-shelter-mvp.md section 6 (the fake door, why the booster is not real,
-  the four-booster measurement table)
-  tasks/DECISIONS.md (booster: what capacity growth is for, once-per-level
-  rule, the "one more shelf" naming)
+  cat-shelter-mvp.md section 4/6 (why a jam is not punishment, the tone
+    rule for losing - a fact, not a reproach)
+  tasks/DECISIONS.md D4, the whole entry, including "Revised 2026-08-27:
+    the door is closed until there is a price behind it"
+  tasks/80-live-validation/00-thresholds/NOTES.md, "Metric four lost its
+    instrument, 2026-08-27" - what D4's revision costs downstream, and the
+    three options on record for replacing the instrument before any
+    monetisation decision. This task does not solve that; it only must not
+    be read as if the instrument still exists.
 
 SCOPE
   + Shown on GameOutcome.ShelfJammed.
-  + Button reads "one more shelf" (not "+3 slots" or "+1 slot" - spreadsheet
-    language does not belong in a game about tidying a home).
-  + Tap is counted and fires an analytics hook (event name/shape left to
-    70-analytics; this task only calls the hook).
-  + Tapping shows a "coming soon" stub. The level stays lost. Replay is
-    offered.
-  − `Shelf.AddSlots` must NEVER be called from this screen or anywhere in the
-    MVP. This is not an oversight to fix later - it is the point of the
-    task. See NOTES.md for what happens to win rate if it is (72% -> 95%).
-  − Not the eventual real booster (3 slots, once per level) - that ships
-    post-MVP, after gate 3, per DECISIONS.md.
+  + Shows a count of levels finished so far ("Levels finished: {0}.") and a
+    Replay button that restarts the same lost level. No blame, no counting
+    of days or attempts missed beyond that one number - a fact, not a
+    reproach.
+  − No offer, no booster button, no "coming soon" stub. These existed from
+    2026-08-25 to 2026-08-27 (the task as originally written, below) and
+    were removed by DECISIONS.md D4's revision.
+  − `Shelf.AddSlots` and `Board.AddShelfSlots` must NEVER be called from
+    this screen or anywhere in the MVP. `Analytics.BoosterTap` and
+    `Board.AddShelfSlots` both stay in `Core` - declared, tested, and
+    unreachable (`tools/tests/test_analytics_call_sites.py`'s `DORMANT`
+    entry pins this down and fails if either silently disappears or
+    silently starts firing) - ready for when a real, priced booster ships.
+  − Not the eventual real booster (3 slots, once per level, priced) - that
+    ships post-MVP, after gate 3, per DECISIONS.md D4.
+  − Not a replacement instrument for metric 4. Dropping it from gate 3,
+    pricing the booster for real, or asking publishers instead of
+    measuring - that choice belongs to `tasks/80-live-validation/00-thresholds`,
+    not here.
 
 OUTCOME
-  A lose screen that offers a credible rescue, records intent to pay, and
-  never rescues anyone in this build.
+  A lose screen that states a fact (levels finished) and offers only a
+  replay - no rescue, real or fake, and no analytics event fires from it.
+  Metric 4 has no instrument in this build; that gap is tracked, not
+  solved, by `tasks/80-live-validation/00-thresholds`.
 
 VERIFY (QA)
-  1. PlayMode: reaching ShelfJammed shows the screen; tapping the button
-     shows the stub, replays the same (lost) level, and the analytics hook
-     fires exactly once per tap.
-  2. Grep across `Assets/Shell` and `Assets/View` for `AddSlots` - zero call
-     sites outside of unit tests.
+  1. PlayMode: reaching ShelfJammed shows the screen with the
+     levels-finished count and a Replay button only - no second button, no
+     stub. Tapping Replay restarts the same (lost) level.
+  2. Grep across `Assets/Shell` and `Assets/View` for `AddSlots` - zero
+     call sites outside of unit tests.
+  3. Grep across `Assets/Shell` and `Assets/View` for `Analytics.BoosterTap`
+     - zero real call sites (comments explaining why it is dormant do not
+     count - see the note on that distinction in NOTES.md).
+     `tools/tests/test_analytics_call_sites.py` passes, confirming
+     `booster:tap` stays declared and dormant rather than either silently
+     firing or silently disappearing.
 
 ROLE
   VIEW
 
 DEPENDS
   20-rules-core/03-shelf-match
+
+---
+
+## As originally written, 2026-08-25 - kept for the record, not current
+
+The task below was superseded by DECISIONS.md D4's 2026-08-27 revision.
+Nothing in this section describes the screen as it exists today; see above.
+
+> GOAL
+>   Measure willingness to pay to be rescued from a jam, without granting
+>   the rescue. Metric 4 (tapped "one more shelf") is the only gate-3
+>   signal that a screen in this milestone directly produces.
+>
+> SCOPE
+>   + Button reads "one more shelf" (not "+3 slots" or "+1 slot" -
+>     spreadsheet language does not belong in a game about tidying a
+>     home).
+>   + Tap is counted and fires an analytics hook.
+>   + Tapping shows a "coming soon" stub. The level stays lost. Replay is
+>     offered.
+>
+> OUTCOME
+>   A lose screen that offers a credible rescue, records intent to pay,
+>   and never rescues anyone in this build.

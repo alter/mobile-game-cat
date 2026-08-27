@@ -17,8 +17,12 @@ namespace CatShelter.View
     /// - buried kinds hide what they are (D3) and render as prop_unknown;
     /// - locked kinds are SEEN (D15) with a rope badge in the tile corner, and
     ///   ignore taps until unlocked (3.11);
-    /// - the lose screen offers "one more shelf" but NEVER calls Shelf.AddSlots —
-    ///   the booster is a fake door in the MVP (D4).
+    /// - the lose screen shows only a levels-finished count and Replay; the
+    ///   "one more shelf" fake-door offer it carried until 2026-08-27 was
+    ///   removed when D4 was revised — a tap on a free rescue was not
+    ///   evidence anyone would pay, so the offer is gone until it can
+    ///   charge for itself (full reasoning at the lose-card call site
+    ///   below, and in DECISIONS.md D4 and 60-shell-build/07's NOTES.md).
     /// Styling lives in DebugGame.uss; inline styles only for the per-tile
     /// sprite, and for the colour fallback when a kind has no art file.
     /// </summary>
@@ -84,7 +88,21 @@ namespace CatShelter.View
                     "DebugGame.uxml skeleton not found in UIDocument source");
 
             _levels.Clear();
-            _levels.AddRange(LevelAssets.LoadAll().OrderBy(l => l.Number));
+            var loaded = LevelAssets.LoadAll();
+            if (!loaded.CanStart)
+            {
+                // Every room came back incomplete — LevelAssets already
+                // logged which ones and why (Core.LevelLoadPolicy,
+                // 30-levels-solver/06). There is nothing safe to hand
+                // RoomPlan, so an honest stop replaces the blank screen this
+                // used to leave behind when LoadAll threw here, uncaught,
+                // before _plan/_progress ever existed.
+                ShowCard(Shell.Copy.Of("levels.unavailable.title"),
+                    Shell.Copy.Of("levels.unavailable.body"),
+                    null, null, null, null);
+                return;
+            }
+            _levels.AddRange(loaded.Levels);
             _plan = new RoomPlan(_levels);
             _progress = new PlayerProgress(_plan.PilesPerRoomInOrder());
             if (!Resume())
@@ -424,7 +442,10 @@ namespace CatShelter.View
 
         private void Update()
         {
-            // R for replay, N for next — quick manual testing on desktop builds.
+            // R for replay, N for next — quick manual testing on desktop
+            // builds. No-op on the "levels unavailable" card: _plan is null
+            // there (OnEnable returned before building one).
+            if (_plan == null) return;
             if (Input.GetKeyDown(KeyCode.R)) StartLevel(_levelIndex);
             if (Input.GetKeyDown(KeyCode.N)) StartLevel(_levelIndex + 1);
         }

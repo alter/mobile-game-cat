@@ -66,3 +66,41 @@ No error screen appears on any of them, which is what the task asks for.
 VERIFY 1 wants the Worker's domain blocked on a device. There is no Worker and
 no device yet, so what was exercised is the same branch by the same route —
 the call is absent rather than blocked.
+
+## Fixed, 2026-08-27 — the uncaught-exception path an independent VERIFY.md found
+
+`CaptureScreen.Handle` wrapped the Worker call in `try/catch` but not the
+three lines below it: `CatTraits.FromColourOnly(colour)` throws
+`ArgumentException` for any base colour outside the six-name palette, and
+nothing caught it. Confirmed by mutation, outside the repo: it throws
+uncaught, which stops the coroutine before `OnCatReady` fires — worse than
+the error screen this task exists to avoid, since the player sees nothing
+at all rather than something.
+
+**Guarded.** `CaptureScreen.cs` now wraps the colour-only branch too and
+falls back to `CatTraits.Default` on any `ArgumentException`, logging the
+rejected colour. Same shape as the Worker's own catch three lines above it.
+
+**Caused by**: `CatColour.swift`'s `palette` and `CatTraits.Allowed["base_color"]`
+are two copies of one set of six names with nothing keeping them in sync —
+the same shape as the Worker-schema drift `CatTraitsTests` already guards.
+Added `Tests/Core/CatColourPaletteParityTests.cs`: reads the Swift file,
+extracts the palette names by regex, and asserts they equal
+`CatTraits.Allowed["base_color"]` as sets — fails (not `Assert.Ignore`) if
+the file can't be found, matching the rule the project settled on today.
+
+Proved it can fail: added a seventh colour to a Swift copy outside the repo.
+The test failed with:
+
+> CatColour.swift's palette and CatTraits.Allowed["base_color"] have
+> drifted: a name only one side knows about is exactly what makes
+> CatTraits.FromColourOnly throw.
+
+`dotnet test build/core-tests/core-tests.csproj -v q --nologo`: 161 passed, 0
+failed. `.venv/bin/python -m pytest tools/ -q`: 156 passed, 0 failed (counts
+moved from other agents' concurrent work this session; no failures either
+side). `build/check-core-purity.sh`: engine-free, OK.
+
+`verify:` is left `failed` — the finding that earned it is fixed, but the
+fix itself has not been independently checked, per the same rule that
+applies to everyone else's fixes in this tree.

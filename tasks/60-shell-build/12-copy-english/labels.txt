@@ -3,7 +3,7 @@ role:VIEW
 type:chore
 priority:P0
 status:done
-verify:pending
+verify:passed
 depends:60-shell-build/03-house-map
 depends:60-shell-build/06-win-screen
 depends:60-shell-build/07-lose-screen-fake-door

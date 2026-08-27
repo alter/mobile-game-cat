@@ -25,3 +25,17 @@ worker/.wrangler/
 
 # IL2CPP scratch space, written during an Android build
 game/.utmp/
+
+# Analytics keys never enter the repository. Two paths could carry them and
+# both are closed here; tools/tests/test_no_secrets.py enforces it regardless,
+# because a gitignore rule only helps for files nobody has added yet.
+#
+# 1. The out-of-band file the game reads them from, beside the save.
+analytics-keys.txt
+# 2. The GameAnalytics SDK's own settings asset. Its `SettingsGA` getter
+#    creates Assets/Resources/GameAnalytics/Settings.asset the first time
+#    anything touches it inside the Editor, it holds gameKey/secretKey as
+#    serialized fields, and the SDK ships an Inspector tab inviting a person
+#    to type keys straight into it.
+game/Assets/Resources/GameAnalytics/
+game/Assets/Resources/GameAnalytics.meta

@@ -531,3 +531,43 @@ verifier's list.
 
 `90-android/10-permission-audit` must be re-run against this build: it examined
 the pre-package APK and its permission table is now one build out of date.
+
+### The key-leak path the verification failed on is closed — 2026-08-27
+
+`VERIFY.md` failed this task because a key could still reach a commit, and the
+mechanism was established from the SDK's own source rather than guessed: the
+`SettingsGA` getter calls `InitAPI()` the moment anything touches it inside the
+Editor — which `GameAnalyticsSink.Configure` does — and `InitAPI()` creates
+`Assets/Resources/GameAnalytics/Settings.asset` with `AssetDatabase.CreateAsset`.
+That asset holds `gameKey` and `secretKey` as serialized fields and the SDK
+ships an Inspector tab inviting a person to type keys into it. Nothing ignored
+it.
+
+**Two things now stand in the way, and the second is the one that matters.**
+
+*A .gitignore rule* for `game/Assets/Resources/GameAnalytics/` and for
+`analytics-keys.txt`. Necessary and not sufficient: an ignore rule protects a
+file nobody has added yet, and does nothing about `git add -f` or about a rule
+written after the file was already tracked.
+
+*A test over the tracked tree*, `tools/tests/test_no_secrets.py`. It asks git
+what is tracked and looks for a credential-shaped **value** under a
+credential-shaped **name** — in data files by assignment, in source files only
+as a quoted literal. It also asserts both ignore rules are actually in effect,
+because an ignore rule nobody checks is an ignore rule that gets deleted.
+
+**Scope chosen deliberately, and the reasoning belongs here.** Source code
+assigns from variables constantly — `gameKey = lines[0]` is correct code — so
+scanning source for assignments would fail on the very file that reads the keys
+safely, and a test that cries wolf is a test somebody switches off. What it
+hunts is a long, dense, digit-bearing literal: a real key. Deliberate stubs
+that say so in their own text (`test-key-not-a-real-one`) are exempt by that
+text rather than by a growing list of file paths.
+
+**Proven able to fail**, which is the point. A planted asset
+(`gameKey: 5f2c1ab9d34e47f0a1b8c7d6e5f40312`) added with `git add -f` fails the
+test; removed, the suite returns to green at 149 Python tests.
+
+What this does **not** close: an Editor open still creates the asset, so
+whoever first opens this project in Unity will find an untracked file there.
+That is now the intended state rather than an accident.

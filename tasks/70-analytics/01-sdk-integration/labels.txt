@@ -3,6 +3,6 @@ role:VIEW
 type:feature
 priority:P1
 status:review
-verify:pending
+verify:failed
 depends:70-analytics/00-att-silent-check
 milestone:M7

@@ -266,16 +266,24 @@ namespace CatShelter.View
         {
             if (_catPortrait == null || _progress == null) return;
             int state = _progress.CatState;
-            if (_catTexture != null && state == _catTextureState) return;
+            // The recorded state is the one last *attempted*, not last built. A
+            // coat that failed will fail again for the same reason, and the old
+            // `_catTexture != null` guard would have retried a whole-silhouette
+            // pass on every tap for a picture that is not going to appear.
+            if (_catTextureState == state) return;
 
             var baseArt = CoatBuilder.LoadBase(CatStateTraits, state);
             if (baseArt == null) return; // art not shipped yet; portrait stays blank
 
-            var built = CoatBuilder.Build(baseArt, CatStateTraits, state);
+            var built = CoatBuilder.TryBuild(baseArt, CatStateTraits, state);
             if (_catTexture != null) UnityEngine.Object.Destroy(_catTexture);
+            // Null when the coat could not be built: own nothing, and paint the
+            // untinted silhouette. `baseArt` is the Resources asset itself, so
+            // destroying it on the next state change would take the art out of
+            // the game for the rest of the run.
             _catTexture = built;
             _catTextureState = state;
-            Paint(_catPortrait, _catTexture);
+            Paint(_catPortrait, built != null ? built : baseArt);
         }
 
         /// <summary>

@@ -104,25 +104,38 @@ namespace CatShelter.View
                     (Color)new Color32(0x55, 0x49, 0x38, 0xFF);
             }
 
-            // Three across, four down, inside the house rather than beside it.
-            var grid = new VisualElement();
-            grid.style.flexDirection = FlexDirection.Row;
-            grid.style.flexWrap = Wrap.Wrap;
-            grid.style.width = Length.Percent(52);
-            // An explicit height, because a child's percentage height resolves
-            // against its parent and an auto-height parent gives it nothing —
-            // which is exactly what happened on the first run: the twelve cells
-            // collapsed to thumbnails a few pixels tall.
-            grid.style.height = Length.Percent(52);
-            grid.style.marginTop = Length.Percent(14);
-            grid.style.justifyContent = Justify.Center;
-            grid.style.alignContent = Align.Center;
-            background.Add(grid);
+            // The rooms are placed where they belong in the house, not in a
+            // numbered grid. Two earlier versions laid twelve cells out as a
+            // flex-wrap grid, which put the attic — sloped ceiling and dormer
+            // window, unmistakable once the art existed — in the middle of the
+            // house and the kitchen under the roof. A map whose rooms are not
+            // where they are in the building is a numbered list drawn on a
+            // picture of a house. See tasks/40-art/06-house-map/ROOM-PLACEMENT.md
+            // for what each room is and how the coordinates were measured.
+            //
+            // `houseBox` is the load-bearing part. The background paints with
+            // ScaleToFit, so the drawn house is letterboxed inside this element
+            // and a percentage of the element is *not* a percentage of the
+            // picture — on a tall screen the difference is most of the gap that
+            // made the old grid drift over the roofline. The box is therefore
+            // sized from the image's own aspect ratio when the layout resolves,
+            // and every cell is a percentage of that box.
+            var houseBox = new VisualElement();
+            houseBox.style.position = Position.Absolute;
+            houseBox.pickingMode = PickingMode.Ignore;
+            background.Add(houseBox);
+
+            var artWidth = backgroundArt != null ? backgroundArt.width : 0;
+            var artHeight = backgroundArt != null ? backgroundArt.height : 0;
+            background.RegisterCallback<GeometryChangedEvent>(_ =>
+                FitToPicture(background, houseBox, artWidth, artHeight));
 
             for (int room = 1; room <= pilesPerRoom.Count; room++)
             {
                 var state = progress.CellStateFor(room);
-                grid.Add(Cell(room, state));
+                var cell = Cell(room, state);
+                Place(cell, room);
+                houseBox.Add(cell);
             }
 
             root.Add(background);
@@ -165,6 +178,144 @@ namespace CatShelter.View
                 // an unreadable save.
                 return new PlayerProgress(pilesPerRoom);
             }
+        }
+
+        /// <summary>
+        /// <summary>
+        /// Where each room sits inside the house, as percentages of the house's
+        /// own bounding box: centre x, centre y, width, height.
+        ///
+        /// Indexed by room number, so entry 0 is room 1. Measured from the art
+        /// rather than chosen: `map_background.png` is 928×1664 and the painted
+        /// house occupies x 6–93%, y 9–92% of it, which is the box these
+        /// percentages are relative to. Full detail and the row-by-row scan
+        /// behind the roof line are in tasks/40-art/06-house-map/ROOM-PLACEMENT.md.
+        ///
+        /// The first version of this table came from the identification pass
+        /// and was measured against the file, but its rows were 12% apart with
+        /// cells 16% tall — so every cell overlapped the two beside it, and the
+        /// columns ran out over the painted frame. The numbers below are the
+        /// corrected ones, taken from a row-by-row scan of the silhouette:
+        /// the house is centred on local x 50.5%, its walls stand at local x
+        /// 10.9%–90.1% from local y 34% down, and above that the roof narrows —
+        /// at local y 12% the interior is only about a third of the width.
+        /// Rows are 11% apart and cells 10% tall, which is what leaves a gap
+        /// between them, and a cell is near enough square (17% × 10% of a box
+        /// 807×1381) that its number sits on the picture rather than beside it.
+        ///
+        /// Two things in here are not arbitrary and should not be "tidied":
+        ///
+        /// **The top two rows are single-column.** A scan across the background
+        /// shows the silhouette reaching its full 640px wall width only at
+        /// about 38% down the file; above that it is roof slope. Rooms 09 (the
+        /// attic) and 12 (the reading nook) are the only two rooms drawn with a
+        /// sloped ceiling, and they are the two placed there. Ten rooms below,
+        /// two under the roof — nothing dropped.
+        ///
+        /// **Room 10 takes the right-hand column.** It is a balcony, the one
+        /// room with an outdoor view, so it sits against open air rather than
+        /// boxed between two interiors.
+        /// </summary>
+        private static readonly float[][] Placements =
+        {
+            new[] { 35.0f, 85.0f, 17f, 10f }, // 01 entry hall
+            new[] { 65.0f, 85.0f, 17f, 10f }, // 02 kitchen
+            new[] { 35.0f, 63.0f, 17f, 10f }, // 03 living room
+            new[] { 65.0f, 41.0f, 17f, 10f }, // 04 bedroom
+            new[] { 65.0f, 52.0f, 17f, 10f }, // 05 bedroom
+            new[] { 35.0f, 41.0f, 17f, 10f }, // 06 study
+            new[] { 65.0f, 74.0f, 17f, 10f }, // 07 bathroom
+            new[] { 35.0f, 74.0f, 17f, 10f }, // 08 pantry
+            new[] { 50.5f, 17.0f, 17f, 10f }, // 09 attic — under the roof
+            new[] { 65.0f, 63.0f, 17f, 10f }, // 10 balcony — outer column
+            new[] { 35.0f, 52.0f, 17f, 10f }, // 11 corridor
+            new[] { 50.5f, 28.5f, 17f, 10f }, // 12 reading nook — under the roof
+        };
+
+        /// <summary>
+        /// Position one cell inside the house box from <see cref="Placements"/>.
+        ///
+        /// A room with no entry — a level file with more than twelve rooms in
+        /// it — is laid along the base rather than dropped, so it is visible
+        /// and obviously unplaced instead of silently missing. The map is drawn
+        /// of this house, and this house has twelve rooms.
+        /// </summary>
+        private static void Place(VisualElement cell, int room)
+        {
+            float cx, cy, w, h;
+            if (room >= 1 && room <= Placements.Length)
+            {
+                var p = Placements[room - 1];
+                cx = p[0]; cy = p[1]; w = p[2]; h = p[3];
+            }
+            else
+            {
+                cx = 8f + (room - Placements.Length - 1) * 12f;
+                cy = 97f; w = 10f; h = 6f;
+            }
+
+            cell.style.position = Position.Absolute;
+            // The cell was built for a flex row and carries 4px of margin on
+            // every side. Absolute placement is exact, and a margin would move
+            // it off the mark it was measured onto.
+            cell.style.marginLeft = 0;
+            cell.style.marginRight = 0;
+            cell.style.marginTop = 0;
+            cell.style.marginBottom = 0;
+            cell.style.left = Length.Percent(cx - w / 2f);
+            cell.style.top = Length.Percent(cy - h / 2f);
+            cell.style.width = Length.Percent(w);
+            cell.style.height = Length.Percent(h);
+        }
+
+        /// <summary>
+        /// Size the house box to the part of the element the picture actually
+        /// covers, then inset it to the painted house within that picture.
+        ///
+        /// ScaleToFit letterboxes: the image keeps its aspect ratio and the
+        /// leftover is empty element. Percentages of the element therefore drift
+        /// from percentages of the image by however much letterboxing there is,
+        /// and that drift is what put cells over the roofline on a 1080×2340
+        /// phone. Recomputed on every geometry change, so a rotation or a
+        /// different screen is the same code path rather than a new bug.
+        ///
+        /// With no background art the element is a plain painted panel and
+        /// there is nothing to letterbox against, so the box is the element.
+        /// </summary>
+        private static void FitToPicture(VisualElement background, VisualElement houseBox,
+                                         int artWidth, int artHeight)
+        {
+            var r = background.contentRect;
+            if (r.width <= 0f || r.height <= 0f) return;
+
+            float pictureLeft = 0f, pictureTop = 0f;
+            float pictureWidth = r.width, pictureHeight = r.height;
+            if (artWidth > 0 && artHeight > 0)
+            {
+                var scale = Mathf.Min(r.width / artWidth, r.height / artHeight);
+                pictureWidth = artWidth * scale;
+                pictureHeight = artHeight * scale;
+                pictureLeft = (r.width - pictureWidth) * 0.5f;
+                pictureTop = (r.height - pictureHeight) * 0.5f;
+            }
+
+            // The painted house fills the picture: `map_background.png` was
+            // cropped on 28.08 from the delivered 928×1664 to the 807×1381 the
+            // house actually occupies. It arrived sitting on a white rectangle
+            // that showed as a white card behind the map, on a cream screen.
+            // The uncropped file is kept at Art/delivery-originals/ — outside
+            // Resources, so it is not loaded — and these four numbers are what
+            // the crop was taken from, left here so it can be undone.
+            //
+            // Cropping rather than insetting also means the house is as large
+            // as the screen allows instead of 87% of it.
+            const float BoxLeft = 0f, BoxRight = 1f;
+            const float BoxTop = 0f, BoxBottom = 1f;
+
+            houseBox.style.left = pictureLeft + pictureWidth * BoxLeft;
+            houseBox.style.top = pictureTop + pictureHeight * BoxTop;
+            houseBox.style.width = pictureWidth * (BoxRight - BoxLeft);
+            houseBox.style.height = pictureHeight * (BoxBottom - BoxTop);
         }
 
         /// <summary>

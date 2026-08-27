@@ -1,0 +1,103 @@
+using UnityEngine;
+
+namespace CatShelter.Shell
+{
+    /// <summary>
+    /// Every error and exception the run produces, written to a file the phone
+    /// will give back.
+    ///
+    /// This exists because of a day spent staring at a black screen. On 28.08
+    /// the board and meet-your-cat both rendered as an empty panel on the iOS
+    /// simulator while the house map rendered correctly, and there was no way
+    /// to find out why: Unity's Debug.Log reaches neither a device nor a
+    /// simulator console, so the only account of the failure was written to a
+    /// surface nobody can read. Two rounds of guessing followed, and guessing
+    /// is what happens when the evidence is unreachable.
+    ///
+    /// <see cref="GameBoot.SafeBuild"/> covers a screen that throws where it is
+    /// called. It cannot cover the more common case: Unity catches exceptions
+    /// thrown inside Awake, OnEnable, Start and Update itself, logs them, and
+    /// returns normally to the caller — so the component is added, the screen
+    /// is empty, and nothing is thrown for anyone to catch. This hook sees
+    /// those, because it sees the log rather than the call.
+    ///
+    /// Deliberately not a general logging facility. It records errors,
+    /// assertions and exceptions, and nothing else — a run's ordinary chatter
+    /// would bury the one line that matters and fill a player's device for no
+    /// one's benefit.
+    /// </summary>
+    public static class DeviceLog
+    {
+        /// <summary>
+        /// Where the errors go, beside the save. `adb pull` on Android,
+        /// `simctl get_app_container` on iOS, and the same relative path in an
+        /// iTunes file share if it ever comes to that.
+        /// </summary>
+        public const string FileName = "errors.txt";
+
+        /// <summary>
+        /// A stuck update loop can throw sixty times a second. Past this many
+        /// entries the file stops growing: whatever went wrong is already in
+        /// there several hundred times over, and a log that fills the device is
+        /// its own bug.
+        /// </summary>
+        private const int MaxEntries = 200;
+
+        private static bool _attached;
+        private static int _written;
+        private static string _path;
+
+        /// <summary>
+        /// Start recording. Safe to call more than once — the second call does
+        /// nothing rather than doubling every line.
+        /// </summary>
+        public static void Attach()
+        {
+            if (_attached) return;
+            _attached = true;
+
+            try
+            {
+                _path = System.IO.Path.Combine(Application.persistentDataPath, FileName);
+                // Each run starts clean. The interesting failure is the one
+                // happening now, and a file that accumulates every run's errors
+                // makes the reader work out which lines are this run's.
+                if (System.IO.File.Exists(_path)) System.IO.File.Delete(_path);
+            }
+            catch (System.Exception)
+            {
+                _path = null;
+                return;
+            }
+
+            Application.logMessageReceived += OnLog;
+        }
+
+        /// <summary>Stop recording. Used by the tests; nothing in the game calls it.</summary>
+        public static void Detach()
+        {
+            if (!_attached) return;
+            Application.logMessageReceived -= OnLog;
+            _attached = false;
+            _written = 0;
+        }
+
+        private static void OnLog(string message, string stackTrace, LogType type)
+        {
+            if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert)
+                return;
+            if (_path == null || _written >= MaxEntries) return;
+
+            _written++;
+            try
+            {
+                System.IO.File.AppendAllText(_path, $"{type}: {message}\n{stackTrace}\n");
+            }
+            catch (System.Exception)
+            {
+                // A log that throws while recording a throw helps nobody.
+                _path = null;
+            }
+        }
+    }
+}

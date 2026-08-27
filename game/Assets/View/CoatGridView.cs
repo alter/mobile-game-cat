@@ -53,6 +53,20 @@ namespace CatShelter.View
             root.Add(gap);
 
             root.Add(Row("marks", "solid", new[] { "chest", "paws", "face" }));
+
+            // A grid of 27 identical untinted silhouettes is a confusing sight
+            // with no explanation attached. If any coat failed to build, the
+            // reason goes on the screen — this harness is only ever looked at
+            // by someone checking, and the console they would otherwise read is
+            // not available on a device.
+            if (CoatBuilder.LastFailure != null)
+            {
+                var why = new Label($"coat not built — {CoatBuilder.LastFailure}");
+                why.style.marginTop = 10;
+                why.style.whiteSpace = WhiteSpace.Normal;
+                why.style.color = new Color(0.60f, 0.20f, 0.16f);
+                root.Add(why);
+            }
         }
 
         private static VisualElement Row(string label, string pattern,
@@ -79,8 +93,12 @@ namespace CatShelter.View
                 var art = CoatBuilder.LoadBase(traits, state);
                 if (art != null)
                 {
-                    var built = CoatBuilder.Build(art, traits, state);
-                    cell.style.backgroundImage = new StyleBackground(built);
+                    // Untinted silhouette when the coat cannot be built, so a
+                    // harness whose whole job is showing 27 coats does not come
+                    // up blank without saying why — CoatBuilder.LastFailure is
+                    // shown once at the foot of the grid.
+                    var built = CoatBuilder.TryBuild(art, traits, state);
+                    cell.style.backgroundImage = new StyleBackground(built != null ? built : art);
                     cell.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
                 }
                 else

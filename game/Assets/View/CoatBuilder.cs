@@ -139,16 +139,165 @@ namespace CatShelter.View
         }
 
         /// <summary>
-        /// Pixels of a texture that was imported without Read/Write enabled —
-        /// which every texture in this project is, and should stay: marking
-        /// them readable keeps a second copy in memory for the whole run, for
-        /// the sake of one pass at load.
+        /// What stopped the last <see cref="TryBuild"/>, or null if none has
+        /// failed. The coat harness shows it, so a checker reads the reason on
+        /// the screen instead of guessing at an empty square.
+        /// </summary>
+        public static string LastFailure { get; private set; }
+
+        /// <summary>
+        /// True when the last pixel read went through the GPU rather than
+        /// straight from memory. Reported in `boot-state.txt`, because the blit
+        /// path is the one that blanks the iOS simulator and the first attempt
+        /// at avoiding it failed silently — the direct read threw on a
+        /// compressed texture and the fallback quietly did the harmful thing
+        /// again. A path this consequential should not be invisible.
+        /// </summary>
+        public static bool LastReadWasBlit { get; private set; }
+
+        /// <summary>Why the direct read was not used, when it was not.</summary>
+        public static string LastReadNote { get; private set; }
+
+        /// <summary>
+        /// <see cref="Build"/> that cannot take a screen down with it. Returns
+        /// null when the coat could not be built; the caller then paints the
+        /// untinted silhouette, which it must **not** destroy — that texture is
+        /// the Resources asset itself, not a copy.
         ///
-        /// The blit goes through the GPU, so it works on any texture whatever
-        /// the import settings, including anything delivered later.
+        /// This exists because of a real failure, not as a precaution. On 28.08
+        /// the board and meet-your-cat both came up as a black screen on the
+        /// iOS simulator, while the house map — the one screen that builds no
+        /// coat — rendered correctly on the same run. An exception inside Build
+        /// aborted the calling Build(parent, …) before its root was ever added
+        /// to the panel, so one image failing erased twelve tiles, a progress
+        /// bar and a name field. A cat that will not tint should cost a tint.
+        ///
+        /// The reason is written to `coat-failure.txt` beside the save as well
+        /// as logged, because Unity's Debug.Log reaches neither a device nor a
+        /// simulator console: a log-only record of a device-only failure is no
+        /// record at all.
+        /// </summary>
+        /// <summary>
+        /// Skip the coat entirely: drop a `nocat.txt` beside the save.
+        ///
+        /// A diagnostic switch, in the same style as `housemap.txt` and
+        /// `coat.txt`, and it earned its place. On 28.08 the board and
+        /// meet-your-cat drew nothing on the iOS simulator while the house map
+        /// drew correctly, with no exception, a fully laid-out tree, a cream
+        /// background on the right element and a 52×52 tile carrying its
+        /// texture — every measurement said the screen was fine and the screen
+        /// was blank. The one thing the two blank screens share and the working
+        /// one does not is this class, which reads its pixels back through a
+        /// temporary RenderTexture. This flag is what tells the difference
+        /// between "the coat is the cause" and "the coat is a coincidence"
+        /// without rebuilding twice to find out.
+        /// </summary>
+        public static bool Skipped
+        {
+            get
+            {
+                try
+                {
+                    return System.IO.File.Exists(System.IO.Path.Combine(
+                        Application.persistentDataPath, "nocat.txt"));
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+        }
+
+        public static Texture2D TryBuild(Texture2D baseCoat, CatTraits traits, int state)
+        {
+            if (Skipped)
+            {
+                LastFailure = "skipped by nocat.txt";
+                return null;
+            }
+
+            try
+            {
+                return Build(baseCoat, traits, state);
+            }
+            catch (Exception e)
+            {
+                LastFailure = $"{e.GetType().Name}: {e.Message}";
+                if (_warned.Add("coat-build-failure"))
+                {
+                    Debug.LogWarning($"[CoatBuilder] coat not built ({LastFailure}); " +
+                                     "painting the untinted silhouette instead");
+                    try
+                    {
+                        System.IO.File.AppendAllText(
+                            System.IO.Path.Combine(Application.persistentDataPath,
+                                                   "coat-failure.txt"),
+                            $"{LastFailure}\n{e.StackTrace}\n");
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Pixels of a texture, straight from memory when it was imported
+        /// Read/Write enabled, and through the GPU when it was not.
+        ///
+        /// The three cat silhouettes are now imported readable, and the reason
+        /// is not tidiness. The blit path below **stops the iOS simulator from
+        /// drawing anything at all** for the rest of the run: on 28.08 the
+        /// board and meet-your-cat rendered as a blank screen there while the
+        /// house map — the one screen that builds no coat — rendered
+        /// correctly. Nothing threw; the tree was laid out, the background
+        /// colour resolved cream and a 52×52 tile carried its texture. Every
+        /// measurement said the screen was fine and the screen was blank.
+        /// Skipping this one function through `nocat.txt` brought the whole
+        /// board back, which is the controlled experiment that settled it:
+        /// binding a temporary RenderTexture during OnEnable leaves the
+        /// simulator's Metal target somewhere the camera never recovers from.
+        ///
+        /// Reading a readable texture costs 4 MB of resident memory per cat
+        /// silhouette — 12 MB for the three — which the earlier version of this
+        /// comment argued was not worth "one pass at load". It is worth it. A
+        /// screen that does not draw costs everything.
+        ///
+        /// The blit stays as the fallback because it works on any texture
+        /// whatever its import settings, including art delivered later that
+        /// nobody remembered to mark, and because it is fine everywhere except
+        /// this one simulator. Anything reaching it should expect a blank
+        /// screen there and nowhere else.
         /// </summary>
         private static Color32[] ReadPixels(Texture2D source)
         {
+            if (source.isReadable)
+            {
+                try
+                {
+                    var direct = source.GetPixels32();
+                    LastReadWasBlit = false;
+                    return direct;
+                }
+                catch (Exception e)
+                {
+                    // Readable is not the whole story: GetPixels32 throws on a
+                    // compressed format, which is what every texture in this
+                    // project is by default and what sent this straight back to
+                    // the blit on the first attempt at the fix — same blank
+                    // screen, and silently, because the fallback swallowed it.
+                    // The three cat silhouettes are imported uncompressed for
+                    // exactly this reason (textureCompression: 0 in their meta).
+                    LastReadNote = $"{source.name}: {e.GetType().Name}";
+                }
+            }
+            else
+            {
+                LastReadNote = $"{source.name}: not readable";
+            }
+
+            LastReadWasBlit = true;
             var rt = RenderTexture.GetTemporary(
                 source.width, source.height, 0,
                 RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);

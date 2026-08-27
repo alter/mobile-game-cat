@@ -143,3 +143,58 @@ of the twelve rooms is, which floor it belongs on, and coordinates relative to
 the house's own bounding box — which is **x 6–93%, y 9–92%** of
 `map_background.png`, measured, not the whole file. Percentages against the
 file would place every room about 7% too far up and left.
+
+## The rooms are now where they are in the house — 2026-08-28
+
+`ios-house-map-placed.png` and `android-house-map-placed.png` are the same
+screen on both platforms after the fix. Room 09, the attic, is under the roof.
+Room 12, the reading nook — the second sloped-ceiling room, which nobody had
+noticed was one — is under the roof beside it. The kitchen and the entry hall
+are on the ground floor. Compare with `*-house-map-real-art.png` beside them,
+where the attic sits in the middle of the house because the cells were laid out
+by number.
+
+Three things were wrong and all three are fixed:
+
+**1. The grid.** Twelve cells in a flex-wrap grid is a numbered list drawn on a
+picture of a house. `HouseMapView.Placements` now carries a measured position
+per room; `tasks/40-art/06-house-map/ROOM-PLACEMENT.md` says what each of the
+twelve rooms is and how the coordinates were derived.
+
+**2. Percentages of the element are not percentages of the picture.** The
+background paints with ScaleToFit, which letterboxes: the drawn house occupies
+only part of the element, and how much depends on the screen's aspect ratio.
+Placing cells as a percentage of the element therefore drifts by however much
+letterboxing there is — which is most of what put cells over the roofline on a
+1080×2340 phone. `HouseMapView.FitToPicture` sizes a house box to the letterboxed
+image rect on every geometry change, and the cells are percentages of that.
+
+**3. The white card.** The delivered background sat on an opaque white
+rectangle, which showed as a white card behind the map on a cream screen.
+`map_background.png` is now trimmed to the painted house and its corners made
+transparent; the uncropped original is kept at
+`game/Assets/Art/delivery-originals/`.
+
+### Two columns, not three, and that is the answer
+
+Earlier notes list "two columns instead of three" as a defect. It is not. A
+row-by-row scan of the background shows the walls standing at local x
+10.9%–90.1% and the interior recess narrower still; three columns of room art
+inside that would be about 90px wide on a 1080 phone. Two columns in the body
+and one under the roof is what the house has room for.
+
+### The trap the crop set, and how it cost two builds
+
+Cropping the background to 807×1381 made it non-power-of-two, and Unity's
+importer rescales such textures to the *nearest* power of two per axis —
+807→1024 and 1381→1024. The house came out square. `nPOTScale: 0` on that one
+file fixes it.
+
+Setting the same flag on the 24 room backgrounds (1856×3328, equally NPOT) took
+the APK from 45 MB to **133 MB**: an NPOT texture loses its compressed format,
+and 24 room images at 1856×3328 uncompressed is 240 MB of textures against 58 MB
+compressed. Those 24 files are back on `nPOTScale: 1` because no screen loads
+them yet. **Whoever wires `60-shell-build/02-room-piles` has to decide this
+properly** — either accept the slight aspect change from 1856×3328 → 2048×4096,
+or re-export the rooms at a power-of-two size, or pay the size. Do not simply
+copy the flag across.

@@ -89,8 +89,11 @@ namespace CatShelter.View
             var art = CoatBuilder.LoadBase(traits, State);
             if (art != null)
             {
-                var built = CoatBuilder.Build(art, traits, State);
-                portrait.style.backgroundImage = new StyleBackground(built);
+                // Untinted silhouette rather than no screen at all: this is the
+                // moment she meets her cat, and a coat that will not build must
+                // not cost her the name field with it.
+                var built = CoatBuilder.TryBuild(art, traits, State);
+                portrait.style.backgroundImage = new StyleBackground(built != null ? built : art);
             }
 
             // TextField has no built-in placeholder on the UI Toolkit version

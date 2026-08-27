@@ -363,3 +363,45 @@ challenge something already decided, not before every task.
 The previous flat list required 20 thousand tokens for the sake of one table
 row: 154 lines of tasks for 962 lines of explanations. Now a single task costs
 about a thousand tokens.
+
+## Run it on both platforms, and read the file it leaves
+
+Added 2026-08-28 after the game was found to be **completely blank on iOS** —
+every screen that built a coat drew nothing, and had done since the coat shader
+landed, because nobody had run it there. Android was checked; iOS was assumed.
+Two platforms means two runs, and the second is not optional.
+
+Three files beside the save now answer "why is the screen wrong" without a
+console, because Unity's `Debug.Log` reaches neither a device nor a simulator:
+
+| file | written by | says |
+|---|---|---|
+| `errors.txt` | `Shell/DeviceLog` | every error and exception, including the ones Unity catches in `Awake`/`OnEnable` and only logs |
+| `boot-state.txt` | `GameBoot.BootState` | which screen branch ran, post-layout sizes of root/`game-root`/`pile`/first tile, and whether the coat read went through the GPU |
+| `screen-failure.txt` | `GameBoot.SafeBuild` | a screen that threw where it was built, with the stack |
+
+Read them before theorising. The iOS blank screen produced no exception at all
+and every size and colour measured correct; the cause was found by a controlled
+experiment (`nocat.txt`, which skips the coat) and not by reasoning.
+
+Pulling them:
+
+```bash
+# iOS simulator
+D=$(xcrun simctl get_app_container booted com.DefaultCompany.game data)
+cat "$D/Documents/boot-state.txt"
+
+# Android
+ADB=/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb
+"$ADB" exec-out run-as com.DefaultCompany.game cat files/boot-state.txt
+```
+
+Two things that cost a build each and are easy to repeat:
+
+- **The Android entry point is `BuildScript.BuildAndroidPlayer`**, not
+  `BuildAndroid` — the latter takes arguments and Unity refuses it with
+  "Only methods with 0 arguments are supported", exit code 0, no APK.
+- **`xcodebuild` needs an absolute `-project` path.** Run from the wrong
+  working directory it builds the device project into the simulator's
+  DerivedData, reports `** BUILD SUCCEEDED **`, and produces no `game.app`
+  where you expect one.

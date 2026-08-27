@@ -2,8 +2,16 @@
 
 `python tools/photoset/build_reference_set.py` writes
 `fixtures/reference-photos/` and its `manifest.json`. Rebuilt from scratch it
-produces the same 38 files, because every image is addressed by (dataset,
+produces the same 41 files, because every image is addressed by (dataset,
 split, row index) rather than by a URL.
+
+**Corrected 2026-08-27.** This sentence said "38" — a leftover from before
+the set widened (task.txt's amendment: 40 files and two `ofphoto` shots
+became 41 and three). 41 is the number actually on disk: counted directly
+(`ls fixtures/reference-photos/*.jpg`), matched against `manifest.json`'s own
+`images` field and `by_category` sum, and confirmed by an independent
+`VERIFY.md` that hashed all 41 files against the manifest with zero
+mismatches.
 
 | category | asked | built | source |
 |---|---|---|---|
@@ -92,3 +100,15 @@ it answers 429 to nearly every anonymous call regardless of pacing. The builder
 reads the datasets' parquet files over HTTP range requests instead, pulling
 only the row groups it needs — a few megabytes out of 330, and no request
 budget at all.
+
+## The licence question, 2026-08-27
+
+"Under their own licences," above, was never actually checked. An
+independent `VERIFY.md` in this directory did: `microsoft/cats_vs_dogs`'s
+Hugging Face card lists "License: unknown," and `rafaelpadilla/coco2017`
+licenses only its annotations, not the underlying Flickr-sourced images.
+Full sourcing, what that does and doesn't permit, what depends on it, and
+why it blocks nothing today: `tasks/00-validate-demand/01-market-scan/legal-risk.md`
+§5. Not fixed here because it isn't a code question — it's what a person
+decides if and when an image from this set is ever shown outside the
+project.

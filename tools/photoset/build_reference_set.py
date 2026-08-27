@@ -1,4 +1,4 @@
-"""Task 50-photo/01: assemble the 40-image reference set from open datasets.
+"""Task 50-photo/01: assemble the 41-image reference set from open datasets.
 
 Sources, chosen for provenance rather than size:
 
@@ -14,10 +14,13 @@ Blurry images are not a separate source. Every downloaded cat is scored by the
 variance of its Laplacian and the lowest scorers become the blurry category —
 so the amount of blur is a number in the manifest, not an opinion.
 
-What this cannot fetch: the two photographs-of-a-photograph. No public set
+What this cannot fetch: the three photographs-of-a-photograph. No public set
 contains them, because they exist in the task precisely to find out what Vision
-does with a case nobody has documented. Shoot two by hand — a cat on a screen,
-a cat on a print.
+does with a case nobody has documented. Shoot by hand, one per capture mode —
+ordinary photo, portrait mode, a frame lifted from video (`ofphoto_01/02/03`;
+see `01-reference-photo-set/NOTES.md`). Corrected 2026-08-27: this used to say
+"two... a cat on a screen, a cat on a print" — stale against `WANTED["ofphoto"]
+= 3` below, and no print shot exists in the set yet either.
 
 Images are written to the output folder and listed in `manifest.json` with the
 dataset, the row index, the SHA-256 and the sharpness score. The download URLs

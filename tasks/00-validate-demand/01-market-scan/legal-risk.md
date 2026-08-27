@@ -224,3 +224,51 @@ risk, separate from anything about the cat photo itself.
   risk, separate from the UGC question above.
 - Who owns correcting `cat-shelter-tech.md` §3's quote and updating the two
   downstream tasks that currently repeat "not stored server-side."
+- Whether the reference photo set's dataset licences need resolving before
+  any accuracy number built on it is ever shown outside the project. See §5.
+
+---
+
+## 5. The reference photo set's licences — an open question, not a code fix
+
+`50-photo/01-reference-photo-set` builds its 41 images from two Hugging Face
+datasets. Its own `NOTES.md` and the root `.gitignore` both say the images
+come "under their own licences" and neither names one. Checked live,
+2026-08-27:
+
+- `huggingface.co/datasets/microsoft/cats_vs_dogs` (retrieved 2026-08-27):
+  the dataset card states **"License: unknown."**
+- `huggingface.co/datasets/rafaelpadilla/coco2017` (retrieved 2026-08-27):
+  "Licensing Information — the annotations in this dataset belong to the
+  COCO Consortium and are licensed under a Creative Commons Attribution 4.0
+  License." That licenses the **bounding boxes**, not the photographs. COCO's
+  images are individually Flickr-sourced, each under its original uploader's
+  own licence — this dataset card grants nothing over the pixels.
+
+**What this does and does not permit.** Neither page grants a documented
+right to redistribute or publish the underlying photographs. Nothing here
+says the images cannot be used this way either — "unknown" and "annotations
+only" are gaps, not prohibitions, and this project has not researched
+per-image Flickr licences to close them either way.
+
+**What actually depends on it.** The set is never committed
+(`fixtures/reference-photos/*.jpg` is gitignored) and never ships inside the
+app — it exists on a dev machine to tune one confidence threshold and produce
+accuracy tables like `05-vision-plugin/NOTES.md`'s "18 of 20 cats, 5 of 5
+dogs, 0.70 mean confidence." Nobody outside the project has seen an image
+from it. So this is a question about **evidence, not distribution**: the
+numbers themselves — 18/20, 0.70, the reference-set counts — are free to
+quote anywhere, because a number carries no licence. The images that
+produced them are a different matter. The trigger is specific: the day one
+of these photographs, or a crop/screenshot containing one, appears in
+anything shown outside this project — an investor deck, a publisher pitch,
+a blog post, an App Store screenshot, a support ticket — the licence
+question stops being theoretical and needs a real answer, per image if
+necessary, or the affected image swapped for one with clean provenance.
+
+**Blocks nothing today.** No image has left the project; the numbers built
+on the set can be quoted freely. This is a gate on *future* external use of
+the images themselves, recorded now so it isn't rediscovered under time
+pressure later.
+
+Cross-referenced from `50-photo/01-reference-photo-set/NOTES.md`.

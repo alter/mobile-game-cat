@@ -63,13 +63,35 @@ three and to anything delivered later, and the source files stay clean.
 - The eyes are drawn dark. Until `40-art/04` supplies an eyes mask there is
   nothing for `eye_color` to tint, so every player's cat has dark eyes.
 
-## Still needed from a person — not performed, not simulated
+## Items 2 and 3 — answered by the owner, 2026-08-27
 
-2. All three shown to an outsider: "is this one cat, or different cats?" Only
-   "one cat" passes. Record the answer verbatim.
-3. The same or a second outsider confirms the three read worse-to-better
-   **unprompted** — with the coat and body unchanged between states, this is the
-   item most likely to fail, and the one worth doing first.
+**Item 2, one cat or different cats: PASS.** Answer: "да".
+
+**Item 3, do the three read worse-to-better: PASS on the letter, FAIL on the
+intent.** Answer, verbatim: "да, но дело в том что коту становится лучше не как
+будто он из подвала вылез, а как будто голодного кота покормили".
+
+That distinction is the whole arc. The game is twelve rooms long and its
+payment to the player is that the cat was *rescued*; a cat that reads as merely
+*fed* pays a smaller reward for the same work. The reason is measurable and was
+already noted above before the answer came in: the three files differ by pose
+and face while the body and the coat are identical between them. Being fed is a
+change of face. Being rescued is a change of coat and frame, and none was drawn.
+
+**Consequence: state 1 needs redrawing; states 2 and 3 stand.** State 1 carries
+the whole "before" — matted fur in tufts, a thin frame, a dull coat — and it is
+the only one of the three where the brief's own wording was not met. The other
+two are the "after" and they are right.
+
+It must be regenerated **from one of the existing three as a reference image**,
+not from a fresh prompt, or the result is a different cat and item 2 stops
+passing. This is the same rule that governs the long-haired variants
+(`art-prompts.md` §4).
+
+Note also that the owner is the sole respondent here and is not an outsider.
+For a decision this size that is enough — the arc either reads or it does not,
+and it did not. If the redraw is contested later, ask someone who has not seen
+the code.
 
 ## How to reproduce the numbers
 

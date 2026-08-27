@@ -129,6 +129,8 @@ html = """<!DOCTYPE html>
   button.act.quiet { background:none; color:var(--ink); opacity:.6; text-decoration:underline; }
   textarea { width:100%; height:70px; margin-top:10px; font-size:14px; font-family:inherit;
              border-radius:8px; border:1px solid rgba(0,0,0,.2); padding:6px; }
+  #who { width:100%; margin-top:8px; font-size:14px; font-family:inherit;
+         border-radius:8px; border:1px solid rgba(0,0,0,.2); padding:8px; }
   #answercopy { font-size:12px; text-align:left; white-space:pre-wrap; margin-top:10px;
                 background:rgba(0,0,0,.05); border-radius:8px; padding:8px; }
 </style>
@@ -262,20 +264,30 @@ function askQuestion() {
     `<button class="act quiet" onclick="hideCard()">Ещё поиграю</button>`);
 }
 
+// The five fields below are the ones answers.md asks for, in its order, so a
+// reply pastes straight into the gate's own form instead of being retyped —
+// and retyping is where a "yes, but…" quietly becomes a "yes". Three of the
+// five the page fills in itself: the date, whether the shelf ever jammed, and
+// how far they got. Only the name and the sentence need a person.
 function questionForm() {
   return `<p><b>Сыграл бы ты дальше, если бы это была настоящая игра?</b></p>` +
     `<textarea id="answer" placeholder="Да или нет и пара слов почему"></textarea>` +
+    `<input id="who" placeholder="Как тебя записать — имя или инициалы">` +
     `<button class="act" onclick="sendAnswer()">Отправить письмом</button>` +
     `<button class="act quiet" onclick="showAnswerText()">Показать текст, чтобы скопировать</button>` +
     `<div id="answercopy" style="display:none"></div>`;
 }
 
 function answerText() {
-  const text = document.getElementById("answer")?.value || "(пусто)";
-  return `Сыграл бы дальше: ${text}\\n` +
-    `Разобрано завалов: ${cleared} из ${LEVELS.length}\\n` +
-    `Дошёл до завала №: ${levelIdx + 1}\\n` +
-    `Полка переполнялась: ${jams}`;
+  const said = document.getElementById("answer")?.value.trim() || "(пусто)";
+  const who = document.getElementById("who")?.value.trim() || "(не назвался)";
+  const today = new Date().toISOString().slice(0, 10);
+  return `- who: ${who}\\n` +
+    `- date played: ${today}\\n` +
+    `- would they keep playing: ${said}\\n` +
+    `- in their own words: ${said}\\n` +
+    `- did they lose a level: ${jams > 0 ? "да, " + jams : "нет"}\\n` +
+    `- разобрано завалов: ${cleared} из ${LEVELS.length}, дошёл до №${levelIdx + 1}`;
 }
 
 function sendAnswer() {

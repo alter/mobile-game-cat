@@ -116,6 +116,32 @@ the acceptance criterion asked for agreement on every outcome. Both times the
 work was formally finished and factually not. "From a clean state" and "what was
 not checked" are written against those two incidents.
 
+## The status:done rule — added 2026-08-27
+
+`status:done` means **the artefact named in OUTCOME exists**, not "the work
+looks finished". If OUTCOME names a file, the file is on disk; if it names a
+count, the count matches; if it names a signed build or a screenshot, that
+thing is there to open.
+
+This is a separate rule from `verify:` because in practice `done` is what
+people read. An audit of all 31 tasks carrying `status:done` without
+`verify:passed` (`tasks/AUDIT-2026-08-27.md`) found twenty true, seven partial,
+three waiting on a person, and one whose deliverable did not exist at all. The
+task that triggered the audit was a gate marked `done` over five blank answer
+forms.
+
+**Where the failures clustered, and that is the whole lesson.** Every one was a
+task whose OUTCOME requires something **outside the repository**: a signed
+build, a phone in someone's hand, a CI runner, a call to a service with no
+account. Those are exactly the tasks an agent cannot finish, and exactly the
+ones where a false `done` costs most, because everything downstream assumes
+them.
+
+So: **an OUTCOME naming an artefact outside the repository is not closed by the
+context that did the work.** Leave it `in_progress` with a note saying what is
+missing. A truthful `in_progress` is worth more than a `done` that has to be
+audited later — the task stays visible, which is the entire point of the label.
+
 ## The independence rule
 
 `verify:passed` is set by a context that wrote neither the code nor the tests.

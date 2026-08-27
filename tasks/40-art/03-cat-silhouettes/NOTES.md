@@ -39,3 +39,57 @@ room first, derive the dirty one by editing that same image (or generating
 with it as a reference) - two independent prompts produce two different
 rooms, which is exactly the failure mode section 5 of art-prompts.md warns
 against for rooms.
+
+---
+
+## VERIFY item 1, measured — 2026-08-27
+
+The one item on this task that needs no outsider, checked by reading the files
+rather than looking at them.
+
+| file | size | max chroma over opaque pixels | mean |
+|---|---|---|---|
+| `cat_1_short_base.png` | 1024×1024 | 7 / 255 | 2.74 |
+| `cat_2_short_base.png` | 1024×1024 | 9 / 255 | 4.72 |
+| `cat_3_short_base.png` | 1024×1024 | 8 / 255 | 2.02 |
+
+**Greyscale: passes.** "No hue in the fur" holds in substance — the largest
+departure from R=G=B anywhere in any file is 9 levels out of 255, scattered as
+noise rather than sitting as a tint on any region. Nothing a person could see,
+and nothing that would survive the tint the coat shader multiplies over it.
+
+**A false defect I nearly filed.** The first measurement counted pixels with
+chroma above 6 and reported that `cat_2` was 3.01% "hued" against ~0% for the
+other two — which reads as one file being coloured when the others are not.
+The threshold was one step below the maximum value present, so it was counting
+the top of the noise floor and nothing else. Recorded because this is the
+second time today a count was one sentence away from being reported as a
+finding; the other is in `90-android/09-notifications/NOTES.md`.
+
+**Size: passes.** All three are 1024×1024, the size this task was corrected to
+on 27.08 after art-brief.md section 5 reworked the dimensions.
+
+**Count: fails, and this is the real gap.** The OUTCOME asks for **6** files —
+three states × two fur lengths — and three exist. There is no long-haired set.
+`View/CoatBuilder.LoadBase` already falls back to the short-haired base and
+logs it once, so a long-haired cat renders rather than breaking; but a player
+whose photo says "long" gets a short-haired cat, and the fallback has only ever
+been exercised in the direction where the file is missing.
+
+## The sheet for items 2 and 3 is ready
+
+`outsider-sheet.png` in this directory: the three states side by side at about
+200 logical points each, on the game's own background, with **no labels, no
+numbers and no captions** — nothing that hints which is meant to look worse.
+That is deliberate: item 3 asks whether an outsider reads the progression
+*unprompted*, and a sheet that labels them answers its own question.
+
+Show it and ask, in this order:
+1. "Is this one cat, or different cats?" — only "one cat" passes item 2.
+2. "Which of these looks like it is doing better?" — item 3 passes if they
+   order them without being told there is an order.
+
+Record the answers verbatim in `VERIFY.md`, including the words used. Per
+`ROLES.md` and this task's own `role:HUMAN`, an agent neither performs nor
+simulates this: the whole point is a judgement by someone with nothing invested
+in the answer.

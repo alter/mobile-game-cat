@@ -145,3 +145,45 @@ entrants than a web crawl has indexed yet).
 - **Not a go/no-go call.** That decision belongs to
   `tasks/00-validate-demand/09-go-no-go`, per task.txt's stated scope
   boundary.
+
+## 2026-08-27 — follow-up: is the Secret Cat Forest precedent solid, and what actually stands in the way
+
+The §2 finding above reported a fan-group thread as the closest precedent to
+this project's "it's her cat, from her photo" premise, and as one studio's
+account of pulling that exact feature back over trademark concerns. That
+claim was checked against a primary source, and the surrounding legal/policy
+ground was mapped. Full detail, with every quote sourced and dated, is in
+`legal-risk.md` in this same directory. Summary:
+
+- **The precedent does not hold up.** It traces to one sentence from a fan
+  group *moderator* — not IDEASAM staff — with no date, no link, and no
+  corroboration found anywhere, including IDEASAM's own site and the game's
+  community wiki. Treat it as an unverified anecdote, not evidence against
+  the premise.
+- **Apple's and Google's UGC moderation rules (1.2 / the UGC policy) almost
+  certainly don't apply** to the photo capture feature as designed: both
+  platforms define UGC as content visible to other users, and per D8 the
+  cat photo is never shown to anyone but the player who took it.
+- **A real correction is needed**, and it isn't the trademark story:
+  `cat-shelter-tech.md` §3 quotes Anthropic as saying photo uploads are
+  "ephemeral and not stored beyond the duration of the API request." That
+  exact sentence could not be found anywhere on Anthropic's current sites.
+  What Anthropic's privacy center currently states (retrieved 2026-08-27) is
+  that standard API accounts retain inputs/outputs for **up to 30 days**;
+  true zero-retention is an opt-in enterprise arrangement reached by
+  contacting Anthropic sales, not the default. Anthropic does not use
+  retained data for training without express permission, so that risk holds
+  up — but "not stored" does not, and the same "not stored server-side"
+  phrasing already sits in `tasks/60-shell-build/14-testflight/task.txt` and
+  is implied in `tasks/90-android/10-permission-audit/task.txt`; both need
+  the corrected wording before their privacy declarations are filled in.
+- Real, unglamorous constraints that do apply regardless: privacy-policy
+  links, camera/photo purpose strings, and the App Store/Play Store privacy
+  disclosures naming Anthropic as a data processor — see `legal-risk.md` §2
+  for citations. Google Play's Photo and Video Permissions policy (in force
+  since 2025-01-22) is a real constraint the project already designs around
+  correctly, per the picker-plugin choice named in
+  `tasks/90-android/10-permission-audit/task.txt`.
+
+See `legal-risk.md` for the full sourcing, every search run, and the plain
+list of real constraints vs. myths vs. open decisions.

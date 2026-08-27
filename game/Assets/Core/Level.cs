@@ -59,6 +59,82 @@ namespace CatShelter.Core
                     throw new ArgumentException(
                         $"duplicate item id {entry.Item.Id}", nameof(pile));
             }
+
+            // The two checks below existed in tools/solver/schema.py from the
+            // start and never here — found on 2026-08-27 while verifying
+            // 05-ship-37-levels. The comment above cites the Python side as the
+            // reason this class validates at all, and then validated less than
+            // it did. A level is data read from disk at runtime, so the engine
+            // that plays it is the one that has to refuse a bad one; the solver
+            // refusing it in a tool nobody runs on a player's phone is no help.
+            foreach (var entry in Pile)
+            {
+                foreach (var blocker in entry.BlockedBy)
+                {
+                    if (blocker == entry.Item.Id)
+                        throw new ArgumentException(
+                            $"item {entry.Item.Id} blocks itself", nameof(pile));
+                    if (!ids.Contains(blocker))
+                        throw new ArgumentException(
+                            $"item {entry.Item.Id}: blocked_by {blocker} does not exist",
+                            nameof(pile));
+                }
+            }
+
+            RejectCycles();
+        }
+
+        /// <summary>
+        /// A `blocked_by` edge points at what lies on top, so the relation has
+        /// to be acyclic. A cycle leaves every item in it permanently
+        /// unavailable, and the board would sit with no legal move and no
+        /// outcome — the same hang <see cref="Board"/> guards against for
+        /// locked items, arriving instead through a malformed file.
+        ///
+        /// Iterative rather than recursive: a pile is 36 to 60 items today, but
+        /// this is fed by JSON from disk, and a long chain in a hand-edited file
+        /// should raise an exception rather than overflow the stack.
+        /// </summary>
+        private void RejectCycles()
+        {
+            var byId = new Dictionary<int, PileEntry>();
+            foreach (var entry in Pile) byId[entry.Item.Id] = entry;
+
+            const int Visiting = 0, Done = 1;
+            var mark = new Dictionary<int, int>();
+
+            foreach (var start in Pile)
+            {
+                if (mark.ContainsKey(start.Item.Id)) continue;
+
+                var stack = new Stack<(int Id, int Next)>();
+                mark[start.Item.Id] = Visiting;
+                stack.Push((start.Item.Id, 0));
+
+                while (stack.Count > 0)
+                {
+                    var (id, next) = stack.Pop();
+                    var blockers = byId[id].BlockedBy;
+                    if (next >= blockers.Count)
+                    {
+                        mark[id] = Done;
+                        continue;
+                    }
+                    stack.Push((id, next + 1));
+
+                    var child = blockers[next];
+                    if (mark.TryGetValue(child, out var seen))
+                    {
+                        if (seen == Visiting)
+                            throw new ArgumentException(
+                                $"cycle in blocked_by, reached again at item {child}",
+                                nameof(Pile));
+                        continue;
+                    }
+                    mark[child] = Visiting;
+                    stack.Push((child, 0));
+                }
+            }
         }
     }
 

@@ -64,16 +64,25 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
-        public void CircularBlock_NothingInCycleAvailable()
+        public void CircularBlock_IsRefusedWhenTheLevelIsBuilt()
         {
-            var board = new Board(MakeLevel(
+            // This used to build the cyclic level and assert that Board simply
+            // reported nothing in the cycle as available — tolerance, in depth.
+            // Since 2026-08-27 `Level` refuses a cycle outright, matching
+            // tools/solver/schema.py, which has rejected one since the start;
+            // the asymmetry was found while verifying 05-ship-37-levels.
+            //
+            // So the old assertion now describes a state that cannot be
+            // reached: a cyclic Level cannot be constructed, therefore no Board
+            // can hold one. Rather than delete the case, it asserts the
+            // stronger guarantee that replaced it. Board's own "no move exists"
+            // handling is unaffected and still reachable through locked items,
+            // which PartialInformationTests.EveryRemainingItemLocked_EndsAsJam_NotAHang covers.
+            var ex = Assert.Throws<ArgumentException>(() => MakeLevel(
                 Entry(1, "a", 2),
                 Entry(2, "b", 1),
                 Entry(3, "c")));
-            var ids = board.GetAvailable().Select(i => i.Id).ToList();
-            Assert.That(ids, Has.Member(3));
-            Assert.That(ids, Has.No.Member(1));
-            Assert.That(ids, Has.No.Member(2));
+            Assert.That(ex!.Message, Does.Contain("cycle"));
         }
 
         [Test]

@@ -80,5 +80,60 @@ namespace CatShelter.Core.Tests
             Assert.Throws<ArgumentException>(() =>
                 new Level(1, "room_01", 0, Pile(E(1, "a"), E(2, "a"))));
         }
-    }
+    
+        // ---- validation the Python side always had and this one did not -----
+        // tools/solver/schema.py has rejected these three since the start; C#
+        // rejected neither until 2026-08-27. A level is data read from disk, so
+        // the engine that plays it is the one that must refuse a bad one.
+
+        [Test]
+        public void AnItemThatBlocksItselfIsRejected()
+        {
+            var pile = new[]
+            {
+                Entry(1, "a", 1), Entry(2, "a"), Entry(3, "a"),
+            };
+            var ex = Assert.Throws<ArgumentException>(() => new Level(1, "room_1", 0, pile));
+            Assert.That(ex!.Message, Does.Contain("blocks itself"));
+        }
+
+        [Test]
+        public void ABlockerThatDoesNotExistIsRejected()
+        {
+            var pile = new[]
+            {
+                Entry(1, "a", 99), Entry(2, "a"), Entry(3, "a"),
+            };
+            var ex = Assert.Throws<ArgumentException>(() => new Level(1, "room_1", 0, pile));
+            Assert.That(ex!.Message, Does.Contain("does not exist"));
+        }
+
+        [Test]
+        public void ACycleInBlockedByIsRejected()
+        {
+            // 1 under 2, 2 under 3, 3 under 1: none of the three can ever be
+            // taken, so the board would hang with no move and no outcome.
+            var pile = new[]
+            {
+                Entry(1, "a", 2), Entry(2, "a", 3), Entry(3, "a", 1),
+            };
+            var ex = Assert.Throws<ArgumentException>(() => new Level(1, "room_1", 0, pile));
+            Assert.That(ex!.Message, Does.Contain("cycle"));
+        }
+
+        [Test]
+        public void ALongChainIsAcceptedAndNotMistakenForACycle()
+        {
+            // The cycle check walks the graph; a deep chain must come out clean.
+            var entries = new System.Collections.Generic.List<PileEntry>();
+            for (int i = 1; i <= 30; i++)
+                entries.Add(i == 1 ? Entry(i, $"k{(i - 1) / 3}")
+                                   : Entry(i, $"k{(i - 1) / 3}", i - 1));
+            Assert.DoesNotThrow(() => new Level(1, "room_1", 0, entries.ToArray()));
+        }
+
+        private static PileEntry Entry(int id, string kind, params int[] blockedBy) =>
+            new(new Item(id, new ItemKind(kind, kind)),
+                new System.Collections.Generic.List<int>(blockedBy));
+}
 }

@@ -99,3 +99,45 @@ Those are the retired figures for a player who only watches the shelf. The
 current measurement, same script, same seed, is 98.0% / 83.8% / 71.5% for that
 player and **99.2% / 94.2% / 90.0%** for a realistic one. The realistic row is
 the one that governs how often a lose screen is ever seen.
+
+---
+
+## Metric two does not mean what its name says, 2026-08-27
+
+GOAL.md defines metric 2 as **"uploaded a photo > 40%"** and calls it the one
+that matters most: *"the hook missed, and the hook is the whole concept"*. The
+threshold is written against a phrase, and the phrase has two readings that
+this task must choose between before any money moves.
+
+**What the code counts today.** `Analytics.PhotoUploaded()` fires in
+`View/CaptureScreen.cs:191`, immediately after the crop succeeds and before
+anything leaves the device. Nothing is uploaded at that moment — and nothing
+ever is, because `CaptureScreen.AskWorker` is a delegate the shipping code
+never assigns and the Worker is not deployed (D17). So the event means **"the
+photo passed the on-device cat check and was cropped"**.
+
+**The two readings, and why the difference is not cosmetic.**
+
+- *Accepted locally.* Measures whether a player is willing to point a camera at
+  her cat and hand the photo over. That is the hook.
+- *Traits came back.* Measures the same willingness **times** the reliability
+  of a network call to a service that does not exist yet. A player who did
+  everything right but hit a 502 would count as a miss.
+
+Read as the second, a bad number is ambiguous between "nobody wanted to" and
+"our proxy fell over", which is exactly the ambiguity metric 4's two-number
+rule was invented to avoid. Read as the first, the number is clean but says
+nothing about whether she ever saw *her* cat — and seeing her own cat is the
+promise, not handing over a photo.
+
+**So: record both, or record one and say which.** This is the same discipline
+as metric 4's denominator. Two events cost nothing — acceptance is already
+instrumented, and a second event on a successful traits response is one line
+whenever the Worker exists. Choosing one and not writing down which is the only
+outcome that fails.
+
+**Unblocked note for whoever writes it:** `70-analytics/02-nine-events/NOTES.md`
+already flags this under "Left open" and asks for a deliberate decision. This
+is where the decision belongs, because it is a threshold question, not a
+call-site question. The declared event surface is exactly nine (D9), so a
+second event is a change to that surface and needs saying out loud.

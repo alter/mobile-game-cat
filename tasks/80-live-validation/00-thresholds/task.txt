@@ -21,6 +21,11 @@ SCOPE
     each costs are in NOTES.md, "Metric four lost its instrument". Choose one
     in writing - "we will decide later" is the one answer that fails, because
     01-spend starts after this file and the money is then already moving.
+  + Metric two's own wording has to be settled here too, and it is not
+    cosmetic: "uploaded a photo" currently counts a photo ACCEPTED ON THE
+    DEVICE, before anything is sent anywhere - see NOTES.md, "Metric two does
+    not mean what its name says". Decide whether the threshold is read against
+    acceptance or against traits coming back, and write down which.
   + Whichever is chosen, the lose-screen denominator is still recorded on its
     own: the share of players who ever reached a lose screen. It is cheap, it
     is what makes any later monetisation number interpretable, and today's
@@ -44,6 +49,9 @@ VERIFY (HUMAN)
      nobody later reads a missing number as a failed one.
   4. The lose-screen denominator is listed as a number to collect, whatever
      was decided in item 3.
+  5. Metric two says in words whether it is read against a photo accepted on
+     the device or against traits coming back from the Worker. The two are
+     different numbers and the code currently produces only the first.
 
 ROLE
   HUMAN

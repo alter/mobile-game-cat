@@ -2,7 +2,7 @@ phase:android
 role:NATIVE
 type:feature
 priority:P2
-status:todo
+status:done
 verify:pending
 depends:90-android/02-build-pipeline
 milestone:M9

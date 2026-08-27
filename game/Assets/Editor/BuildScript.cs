@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEngine;
 
 public static class BuildScript
@@ -23,6 +24,54 @@ public static class BuildScript
 
     /// <summary>The single boot scene; the UI is assembled from code at runtime.</summary>
     private static string[] SceneList() => new[] { "Assets/Scenes/Empty.unity" };
+
+    // Android, task 90-android/02. Two entry points because they answer two
+    // different questions: an .apk goes on a phone in front of you, an .aab
+    // goes to Play and cannot be installed directly.
+    //
+    // ARM64 only, IL2CPP: Play requires 64-bit, and adding ARMv7 doubles build
+    // time for devices this audience does not have.
+    //
+    // Minimum API 25 because Unity 6.3 refuses anything lower — "Minimum
+    // supported Android API level is 25 (Android 7.1 Nougat)". Asking for 24
+    // does not fail the build, it logs an error and silently uses 25, which is
+    // the kind of thing that looks like a decision in the source and is not.
+
+    public static void BuildAndroidPlayer()
+    {
+        ConfigureAndroid();
+        BuildAndroid("build/android/CatShelter.apk", aab: false);
+    }
+
+    public static void BuildAndroidBundle()
+    {
+        ConfigureAndroid();
+        BuildAndroid("build/android/CatShelter.aab", aab: true);
+    }
+
+    private static void ConfigureAndroid()
+    {
+        PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+        PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel25;
+        // Play rejects uploads built against an SDK more than a year behind;
+        // "highest installed" keeps that from being a surprise at upload time.
+        PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;
+    }
+
+    private static void BuildAndroid(string path, bool aab)
+    {
+        EditorUserBuildSettings.buildAppBundle = aab;
+
+        var report = BuildPipeline.BuildPlayer(
+            SceneList(), path, BuildTarget.Android, BuildOptions.None);
+
+        var summary = report.summary;
+        Console.WriteLine($"[BuildScript] result={summary.result} " +
+                          $"path={path} size={summary.totalSize} errors={summary.totalErrors}");
+        if (summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            throw new Exception("Android build failed: " + summary.result);
+    }
 
     // Xcode project for iOS: -executeMethod BuildScript.BuildIOSXcodeProject
     // Output opens in Xcode: pick your device, set the team, press Play.

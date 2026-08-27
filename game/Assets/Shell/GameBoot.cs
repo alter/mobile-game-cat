@@ -14,9 +14,14 @@ namespace CatShelter.Shell
     {
         private void Awake()
         {
-            // Analytics sink: no-op until the GameAnalytics SDK task wires the
-            // real one. Configure(null, null) keeps calls valid and silent.
-            Core.Analytics.Configure(null, null);
+            // Analytics sink: GameAnalytics when analytics-keys.txt exists
+            // beside the save (70-analytics/01 NOTES.md has the one-minute
+            // setup instruction), the same no-op Configure(null, null) as
+            // before otherwise — nothing thrown, nothing logged repeatedly,
+            // identical to today's behaviour until a key exists.
+            var (designSink, progressionSink) =
+                GameAnalyticsSink.TryConfigure(gameObject);
+            Core.Analytics.Configure(designSink, progressionSink);
 
             // app:open, the denominator every other number is read against.
             Core.Analytics.AppOpen();

@@ -199,3 +199,165 @@ Re-run this audit after `90-android/04-picker-plugin` ships (it will add
 wires GameAnalytics in (watch specifically for `AD_ID` reappearing and for
 `INTERNET`/`ACCESS_NETWORK_STATE` arriving with the SDK — neither is in this
 manifest today).
+
+---
+
+# Correction — 2026-08-27, following `VERIFY.md`'s `verify:failed`
+
+An independent verification context ran `strings` over `classes.dex` — this
+document only ran it over `AndroidManifest.xml` and grepped source — and
+found what line 143 above said wasn't there. The claim was wrong, and the
+fix belongs here, not in `VERIFY.md`, which is left as written.
+
+## 1. Reproduced myself, not taken on trust
+
+```
+$ APK=game/build/android/CatShelter.apk
+$ unzip -oq "$APK" classes.dex AndroidManifest.xml -d /tmp/apk_reproduce
+$ cd /tmp/apk_reproduce
+
+$ strings classes.dex | grep -i "ad_id"
+                                                    # empty — no output
+
+$ strings classes.dex | grep -i "advertising"
+/Lcom/unity3d/player/AndroidAdvertisingIdHelper;
+9com.google.android.gms.ads.identifier.AdvertisingIdClient
+getAdvertisingIdInfo
+"nativeOnAndroidAdvertisingIdResult
+
+$ strings classes.dex | grep "Lcom/google/android/gms/ads/identifier"
+                                                    # empty — no compiled class reference
+
+$ strings AndroidManifest.xml | grep -i "ad_id\|advertising"
+                                                    # empty — the manifest itself is clean
+```
+
+Same four strings the verifier quoted, same absence of `AD_ID` and of a
+compiled GMS class reference. The correction below rests on this, not on
+`VERIFY.md`'s word for it.
+
+## 2. What line 141–150 above got wrong, and what is actually true
+
+**Wrong:** "`strings` over the built APK for `AD_ID`/`advertising` returns
+nothing." It returns nothing for `AD_ID`. It does not return nothing for
+`advertising` — the four strings above are in every build of this project,
+today, regardless of GameAnalytics.
+
+**What they are.** `Lcom/unity3d/player/AndroidAdvertisingIdHelper;` is a
+class in Unity's own Android player — shipped by the engine itself, not by
+any package this project chose to add, and not removable by not adding
+GameAnalytics. It contains string literals for
+`com.google.android.gms.ads.identifier.AdvertisingIdClient`,
+`getAdvertisingIdInfo`, and a native callback name
+`nativeOnAndroidAdvertisingIdResult` — this is Unity's built-in advertising-ID
+helper, present so that `UnityEngine.iOS`/Android advertising ID APIs and any
+Unity Ads/Analytics-family package can retrieve it if asked.
+
+**Why it is dormant.** The class reference is a *string*, not a compiled
+type — `strings classes.dex | grep "Lcom/google/android/gms/ads/identifier"`
+finds nothing, confirming Unity's helper reaches for the GMS
+`AdvertisingIdClient` reflectively (`Class.forName`-shaped lookup), the same
+pattern established for the GameAnalytics AAR in `70-analytics/01-sdk-integration/NOTES.md`'s
+research section. With no `play-services-ads-identifier` artifact actually
+linked into this APK and no `AD_ID` permission declared, that reflective
+lookup throws `ClassNotFoundException`, caught, and goes nowhere. Present,
+compiled in by the engine, unconditionally — but inert without a GMS
+artifact behind it. "No advertising ID is collected today" is still true;
+"nothing in the binary reaches for one" was not, and that is the correction.
+
+**Wake condition.** Any dependency that actually links
+`com.google.android.gms:play-services-ads-identifier` (a real ads/attribution
+SDK — AdMob, an attribution package, anything in that family) would give
+Unity's already-present helper a class to find, at which point the reflective
+call would succeed and `AD_ID` would also need to be declared in the manifest
+for the ID itself to be non-zeroed (per Play's own policy, confirmed live
+during the `70-analytics/01` research pass). GameAnalytics specifically does
+not do this — see the next correction.
+
+## 3. The GameAnalytics prediction, corrected against the real AAR
+
+Line 151–152 above guessed: "adding GameAnalytics's Android SDK (or any
+package that transitively depends on
+`com.google.android.gms:play-services-ads-identifier`)... would put `AD_ID`
+back." **This was already corrected once, in
+`tasks/70-analytics/01-sdk-integration/NOTES.md`** (§5 of its research
+section, 2026-08-27), by downloading and inspecting the actual
+`gameanalytics.aar` from `github.com/GameAnalytics/GA-SDK-ANDROID`:
+
+- Its own `AndroidManifest.xml` declares only `INTERNET` and
+  `ACCESS_NETWORK_STATE` — no `AD_ID`, no GMS dependency merged in.
+- Its `classes.jar` reaches the advertising ID the same way Unity's own
+  helper does — reflectively, via
+  `com.google.android.gms.ads.identifier.internal.IAdvertisingIdService`
+  and a class literally named `Reflection.class` — not a compiled Gradle
+  dependency.
+- GameAnalytics's own docs (`docs.gameanalytics.com`, Unity Configuration
+  page, fetched 2026-08-27): *"If the app has the required permissions,
+  GameAnalytics will track the advertising IDs"* — conditional on the
+  permission already existing, not something it adds.
+
+So the two dormant reflective probes in this project — Unity's own
+`AndroidAdvertisingIdHelper` (§2 above) and GameAnalytics's — are the **same
+shape of risk for the same reason**: neither compiles in nor declares the
+permission; both would need a *third*, genuinely ads-flavored dependency
+(AdMob, an attribution SDK) to have anything to find. Adding bare
+GameAnalytics does not, by itself, wake either one.
+
+## 4. What changes now that the SDK is actually landing
+
+As of `70-analytics/01-sdk-integration`, `com.gameanalytics.sdk: 8.1.0` is
+now declared in `game/Packages/manifest.json` — added today, after this
+audit and its `VERIFY.md` were both written. **Neither examined a manifest
+or a `classes.dex` that had this package resolved into it** — no Unity build
+has run since that dependency was added (the 01 task was explicitly told not
+to run one). This audit's every finding above, and the verifier's, describes
+the APK as it was *before* GameAnalytics existed in the project at all.
+
+**This audit must be re-run after the first Android build with the package
+resolved**, and specifically should look for:
+
+- `INTERNET` / `ACCESS_NETWORK_STATE` — GameAnalytics's own manifest declares
+  both (§3 above); expect them to appear for the first time.
+- Whether `AD_ID` appears — per §3, it should not, from GameAnalytics alone.
+  If it does, something else changed (the package version drifted from what
+  `01`'s NOTES inspected, or a second dependency was added alongside it).
+- `strings classes.dex | grep -i advertising` again — expect the same four
+  Unity-native strings, *plus* now GameAnalytics's own
+  `IAdvertisingIdService`/reflection-based lookup class, still reflective,
+  still dormant absent `AD_ID`.
+- The `androidx.startup.InitializationProvider` entry already in this
+  manifest may grow more `meta-data` children (GameAnalytics uses
+  `androidx.startup` conventions in some SDK versions) — not a red flag by
+  itself, just worth reconciling against the existing table.
+- Whether `EnableAdvertisingIdTracking(false)` (now called from
+  `Shell/GameAnalyticsSink.cs`, per `01`'s NOTES) shows up as expected in the
+  binary and whether `RequestTrackingAuthorization` — still absent from
+  source, grepped in `01`'s NOTES — stays absent.
+
+## 5. iOS gained the matching finding — what the platform difference means for the two stores' declarations
+
+`tasks/60-shell-build/17-permission-audit/NOTES.md` (also 2026-08-27) found
+the Objective-C equivalent — `DeviceSettings.mm`'s three `ASIdentifierManager`/
+`ATTrackingManager` uses sit inside `#if UNITY_USES_IAD`, and
+`Preprocessor.h:206` sets `UNITY_USES_IAD 0` because Unity detects no iAd use
+in the scripts. Its own words: *"the advertising-identifier path is compiled
+out of the iOS build,"* versus Android where — confirmed here, independently,
+twice now — *"the same helper is unconditionally present."*
+
+**That difference is real and it is not cosmetic for privacy declarations.**
+"The binary cannot reach the identifier" (iOS, compiled out) and "the binary
+can reach it but does not, today, because nothing supplies it a class to find"
+(Android, dormant) are two different facts, and the two stores ask the
+question separately: Apple's App Privacy "nutrition label" and Google Play's
+Data Safety form are both filled out per-binary, not per-project, so an
+honest answer to "does this app access the advertising identifier" is **"no,
+the code cannot"** on iOS and **"no, not currently, but the capability is
+compiled in and would activate if a linked dependency supplied the class"**
+on Android — the same practical outcome today, a different declaration if
+either platform's dependency set changes, and Android is the one to re-check
+first since it is the one gaining a new dependency (§4).
+
+**`UNITY_USES_IAD` is also not a constant** — the iOS NOTES already say so —
+so this needs re-checking on iOS too the next time any package is added
+there, for the same reason as here: what Unity compiles in depends on what it
+finds in the project, not on what this document assumed.

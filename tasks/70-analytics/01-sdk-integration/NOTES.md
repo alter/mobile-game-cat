@@ -492,3 +492,42 @@ any kind committed, the no-key behaviour identical to today's
 assumed), tests green, purity check green. `status:` moves to `review`.
 `verify:` untouched — this pass did not run a device build, and VERIFY 1 and
 2 in `task.txt` both need one.
+
+### It compiles, and the APK confirms the AAR prediction — 2026-08-27
+
+The one gap this task's write-up admitted — that `GameAnalyticsSink.cs` had
+never been compiled against the resolved package — is closed. A full Unity
+Android build, run for this purpose:
+
+```
+Unity -batchmode -quit -nographics -executeMethod BuildScript.BuildAndroidPlayer
+UNITY_EXIT=0
+grep -cE "error CS" build/ga-compile.log  ->  0
+game/build/android/CatShelter.apk        ->  27,988,228 bytes (was 27,850,892)
+```
+
+**And the manifest changed exactly as the AAR inspection predicted.** Before
+the package, the APK declared `POST_NOTIFICATIONS` and Unity's own
+`DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. After:
+
+```
+uses-permission: android.permission.INTERNET
+uses-permission: android.permission.ACCESS_NETWORK_STATE
+uses-permission: android.permission.POST_NOTIFICATIONS
+```
+
+`INTERNET` and `ACCESS_NETWORK_STATE` are the two the AAR's own manifest
+declares, and **`AD_ID` is still absent** — which is what was predicted from
+reading the AAR rather than guessing, and it now has a built artefact behind
+it rather than an inference.
+
+**No settings asset appeared.** `find game/Assets -iname "*GameAnalytics*"`
+returns only `GameAnalyticsSink.cs` and its meta. A batch build did not create
+the SDK's settings asset, so nothing capable of capturing a key into a
+committed file exists today. That does not settle what a first *Editor* open
+would do — this project builds headless and nobody has opened the editor since
+the package landed — so the risk is narrowed, not closed, and it is on the
+verifier's list.
+
+`90-android/10-permission-audit` must be re-run against this build: it examined
+the pre-package APK and its permission table is now one build out of date.

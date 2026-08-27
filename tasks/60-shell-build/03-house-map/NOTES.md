@@ -69,3 +69,47 @@ and neither side noticed because the screen looked complete from every angle
 except running it.
 
 One branch added to `GameBoot.OnEnable`, beside the other three.
+
+## Run with the real art, and what three builds fixed — 2026-08-28
+
+`android-house-map-real-art.png` is the screen on the emulator at 1080×2340
+with the delivered art. Twelve rooms inside the house, numbered, all in the
+dirty state because the save is fresh, legend wrapping, nothing off-screen.
+`android-before-layout-fix.png` is the first run, kept for the comparison.
+
+Three defects, none of which any amount of reading would have found:
+
+**The screen could not be opened at all.** Recorded above — no branch in
+`GameBoot` asked for it.
+
+**The layout was written in points.** 480×420 for the house and 440 for the
+grid were chosen against placeholder cells. With the real 928×1664 background
+the house drew over the grid and the outer columns ran off both edges. Now
+everything is a percentage of the panel, so it fits whatever screen it lands
+on rather than the one it was written on.
+
+**Percentage heights collapsed the cells to thumbnails.** A child's percentage
+height resolves against its parent, and the grid had no height of its own, so
+twelve rooms rendered a few pixels tall. Giving the grid an explicit height
+fixed it. This is the failure that looks most like it worked: the screen drew,
+the cells were there, and they were the wrong size by two orders of magnitude.
+
+**And one thing that was measured rather than guessed:** the delivered
+`map_background.png` is opaque with a white surround — 255,255,254 at three
+corners. The dark page it was drawn on framed the house in a white rectangle,
+so the page now matches the image instead of fighting it.
+
+## What still looks unfinished, said plainly
+
+- **Two columns, not three.** The grid is narrower than three cells plus their
+  margins, so twelve rooms stack as 2×6. In a house this tall that reads fine,
+  and it was not worth a fourth build to change — but it is an accident rather
+  than a decision, and whoever gives this screen a real navigation entry should
+  decide it on purpose.
+- **Rooms 1 and 2 sit slightly over the roofline.** Cosmetic.
+- **The white surround is still visible** as a panel behind the house. Matching
+  the page to it hid the contrast, not the rectangle. The real fix is art with
+  transparency or a background sized to the house itself.
+
+None of the three blocks the screen from doing its job, which is showing twelve
+rooms in three states derived from one source.

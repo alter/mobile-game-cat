@@ -43,14 +43,18 @@ namespace CatShelter.View
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
             root.Clear();
-            root.style.backgroundColor = (Color)new Color32(0x2A, 0x24, 0x1C, 0xFF);
+            // The delivered map_background.png is opaque and its surround is
+            // white — measured at three corners: 255,255,254 / 251,252,252 /
+            // 254,254,254. A dark page behind it framed the house in a white
+            // rectangle. Match the image rather than fight it.
+            root.style.backgroundColor = (Color)new Color32(0xFC, 0xFC, 0xFC, 0xFF);
             root.style.flexDirection = FlexDirection.Column;
             root.style.alignItems = Align.Center;
             root.style.paddingTop = 20;
 
             var title = new Label("house map: 12 rooms");
             title.style.fontSize = 15;
-            title.style.color = (Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
+            title.style.color = (Color)new Color32(0x4A, 0x3B, 0x28, 0xFF);
             title.style.marginBottom = 12;
             root.Add(title);
 
@@ -65,10 +69,20 @@ namespace CatShelter.View
             var pilesPerRoom = plan.PilesPerRoomInOrder();
             var progress = LoadProgress(pilesPerRoom);
 
+            // Sized in percent, not points. The first version fixed this at
+            // 480×420 against placeholder cells, and when the real art arrived
+            // on 2026-08-28 the house drew over the grid and the outer columns
+            // ran off both edges of a 1080-wide phone. A layout in absolute
+            // units is a layout that fits exactly one screen, and nobody knows
+            // which one. The delivered background is 928×1664 — portrait — so
+            // the rooms go three across and four down inside it rather than
+            // four across.
             var background = new VisualElement();
-            background.style.width = 480;
-            background.style.height = 420;
+            background.style.width = Length.Percent(94);
+            background.style.height = Length.Percent(78);
             background.style.marginBottom = 4;
+            background.style.alignItems = Align.Center;
+            background.style.justifyContent = Justify.Center;
             var backgroundArt = LoadNamed("Art/map_background");
             if (backgroundArt != null)
             {
@@ -90,11 +104,19 @@ namespace CatShelter.View
                     (Color)new Color32(0x55, 0x49, 0x38, 0xFF);
             }
 
+            // Three across, four down, inside the house rather than beside it.
             var grid = new VisualElement();
             grid.style.flexDirection = FlexDirection.Row;
             grid.style.flexWrap = Wrap.Wrap;
-            grid.style.width = 440;
+            grid.style.width = Length.Percent(52);
+            // An explicit height, because a child's percentage height resolves
+            // against its parent and an auto-height parent gives it nothing —
+            // which is exactly what happened on the first run: the twelve cells
+            // collapsed to thumbnails a few pixels tall.
+            grid.style.height = Length.Percent(52);
+            grid.style.marginTop = Length.Percent(14);
             grid.style.justifyContent = Justify.Center;
+            grid.style.alignContent = Align.Center;
             background.Add(grid);
 
             for (int room = 1; room <= pilesPerRoom.Count; room++)
@@ -109,7 +131,10 @@ namespace CatShelter.View
                 "dirty = square, untouched   ·   partial = split tile, clear boundary   " +
                 "·   clean = circle, checked");
             legend.style.fontSize = 10;
-            legend.style.color = (Color)new Color32(0xB8, 0xA9, 0x8E, 0xFF);
+            legend.style.whiteSpace = WhiteSpace.Normal;
+            legend.style.maxWidth = Length.Percent(92);
+            legend.style.unityTextAlign = TextAnchor.MiddleCenter;
+            legend.style.color = (Color)new Color32(0x7C, 0x6A, 0x52, 0xFF);
             legend.style.marginTop = 8;
             root.Add(legend);
         }
@@ -161,8 +186,10 @@ namespace CatShelter.View
             };
 
             var wrapper = new VisualElement();
-            wrapper.style.width = 96;
-            wrapper.style.height = 96;
+            // A third of the grid's width, minus its own margins, so twelve
+            // cells land as three columns whatever the screen is.
+            wrapper.style.width = Length.Percent(31);
+            wrapper.style.height = Length.Percent(23);
             wrapper.style.marginLeft = 4;
             wrapper.style.marginRight = 4;
             wrapper.style.marginTop = 4;
@@ -172,8 +199,8 @@ namespace CatShelter.View
 
             var art = LoadNamed($"Art/map_room_{roomNo}_{stateName}");
             var cell = new VisualElement();
-            cell.style.width = 72;
-            cell.style.height = 72;
+            cell.style.width = Length.Percent(86);
+            cell.style.height = Length.Percent(86);
 
             if (art != null)
             {
@@ -189,8 +216,8 @@ namespace CatShelter.View
             caption.style.position = Position.Absolute;
             caption.style.color = (Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
             caption.style.fontSize = 9;
-            caption.style.top = -2;
-            caption.style.left = 2;
+            caption.style.top = 1;
+            caption.style.left = 3;
 
             wrapper.Add(cell);
             wrapper.Add(caption);

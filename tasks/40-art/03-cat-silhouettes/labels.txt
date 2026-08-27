@@ -2,7 +2,7 @@ phase:art
 role:ART
 type:feature
 priority:P0
-status:todo
+status:in_progress
 verify:pending
 depends:00-validate-demand/04-cat-two-states
 milestone:M4

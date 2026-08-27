@@ -3,5 +3,5 @@ role:NATIVE
 type:chore
 priority:P0
 status:done
-verify:pending
+verify:passed
 milestone:M1

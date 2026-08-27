@@ -3,6 +3,6 @@ role:NATIVE
 type:feature
 priority:P2
 status:done
-verify:pending
+verify:passed
 depends:90-android/00-android-decision
 milestone:M9

@@ -48,3 +48,36 @@ the photographs themselves are third-party and gitignored):
   rather than rounded up.
 
 99 C# tests (84 → 99).
+
+---
+
+## The third gap, assembled from what `05` and `08` each recorded separately — 2026-08-27
+
+`VERIFY.md`'s failure connects three facts that were each already written
+down elsewhere in this project, but never joined up here, where "the
+pipeline" is named:
+
+- **The real plugin fails 41/41 in the simulator.** `05-vision-plugin/NOTES.md`:
+  run inside a real iOS build in the simulator, every one of the 41
+  reference images came back `{"ok":false,"error":"vision failed: Could not
+  create inference context"}`. Vision does not load under the simulator at
+  all.
+- **The 41-image confidence table above did not come from `CatVision.swift`.**
+  Same document: those numbers are from "the macOS probe" — a separate
+  command-line tool calling `VNRecognizeAnimalsRequest` directly on macOS,
+  not through the shipped plugin, not through the C# bridge, not on iOS.
+- **The only run of all four branches through the real app used a stub.**
+  `08-capture-screen/NOTES.md`, "All four messages, driven through a real
+  iOS build": `capture.txt`'s second line, `fake Cat 0.80` and similar —
+  because Vision cannot run in the simulator, so nothing else was reachable.
+- **No device has ever run this.** `05-vision-plugin/NOTES.md`: "There is no
+  developer team yet (`10-accounts/02`), so nothing runs on hardware,"
+  left open for `14-testflight`.
+
+So every outcome in the table above is real code, tested against real
+numbers — but the numbers are from a different binary than the one that
+ships, and the four branches have only ever fired for real off a hand-typed
+file. **`60-shell-build/14-testflight` owns closing this** — it is the task
+already named in both `05` and `08` as where a real device run happens, and
+this task adds nothing new to that queue, only makes explicit that it is
+also what `06`'s own reachability claim is waiting on.

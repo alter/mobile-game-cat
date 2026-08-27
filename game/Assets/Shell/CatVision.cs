@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
@@ -24,7 +25,13 @@ namespace CatShelter.Shell
         public AnimalBox[] detections;
 
         public bool FoundAnimal => ok && detections != null && detections.Length > 0;
-        public AnimalBox Best => detections[0];   // plugin sorts by confidence
+
+        // 50-photo/06 VERIFY item 2: this used to be detections[0] on the
+        // strength of a comment ("plugin sorts by confidence") — true in
+        // Plugins/iOS/CatVision.swift today, checked nowhere. Picking the max
+        // here means correctness no longer depends on the Swift ordering, or
+        // on remembering to re-check it if that file ever changes.
+        public AnimalBox Best => detections.OrderByDescending(d => d.confidence).First();
     }
 
     /// <summary>

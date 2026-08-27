@@ -227,9 +227,25 @@ namespace CatShelter.View
                 // trait a phone can read and default the rest — never an error
                 // screen, because the photo itself was fine.
                 var colour = Shell.CatColour.Estimate(prepared);
-                traits = colour != null
-                    ? CatTraits.FromColourOnly(colour)
-                    : CatTraits.Default;
+                try
+                {
+                    traits = colour != null
+                        ? CatTraits.FromColourOnly(colour)
+                        : CatTraits.Default;
+                }
+                catch (ArgumentException e)
+                {
+                    // FromColourOnly throws if `colour` is not one of
+                    // CatTraits.Allowed["base_color"] — Swift's palette
+                    // (Plugins/iOS/CatColour.swift) and that list are two
+                    // copies of one set of names with nothing keeping them
+                    // in sync (CatColourPaletteParityTests guards this now).
+                    // If they ever drift, this is the one call standing
+                    // between that drift and a hung screen: the coroutine
+                    // must not die here, so she still gets a cat.
+                    Debug.LogWarning($"[CaptureScreen] colour '{colour}' rejected: {e.Message}");
+                    traits = CatTraits.Default;
+                }
             }
 
             OnCatReady?.Invoke(traits);

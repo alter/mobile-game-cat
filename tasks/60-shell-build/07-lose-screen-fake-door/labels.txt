@@ -2,7 +2,7 @@ phase:shell
 role:VIEW
 type:feature
 priority:P0
-status:done
-verify:pending — HUMAN gate 3.7 (metric 4) required; code verified by build + screenshot
+status:in_progress
+verify:failed
 depends:20-rules-core/03-shelf-match
 milestone:M6

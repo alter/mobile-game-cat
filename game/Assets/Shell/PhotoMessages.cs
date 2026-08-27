@@ -1,4 +1,3 @@
-using System;
 using CatShelter.Core;
 
 namespace CatShelter.Shell
@@ -17,30 +16,11 @@ namespace CatShelter.Shell
     /// </summary>
     public static class PhotoMessages
     {
-        public static string For(PhotoOutcome outcome)
-        {
-            switch (outcome)
-            {
-                case PhotoOutcome.NoAnimal:
-                    return Copy.Of("photo.no_animal");
-
-                case PhotoOutcome.Dog:
-                    // Naming the dog is the joke and the explanation at once,
-                    // and it tells the player the app is looking, not broken.
-                    return Copy.Of("photo.dog");
-
-                case PhotoOutcome.UnclearCat:
-                    return Copy.Of("photo.unclear");
-
-                case PhotoOutcome.Cat:
-                    return Copy.Of("photo.accepted");
-
-                default:
-                    // Unreachable while PhotoOutcome has four values, and here
-                    // so that adding a fifth breaks loudly instead of showing
-                    // the player nothing.
-                    throw new ArgumentOutOfRangeException(nameof(outcome));
-            }
-        }
+        // The outcome->key mapping and its totality moved to
+        // Core.PhotoMessageKey (50-photo/06 VERIFY item 1), tested by
+        // dotnet test; this is the one thing that still needs the engine,
+        // the lookup into Copy's string table.
+        public static string For(PhotoOutcome outcome) =>
+            Copy.Of(PhotoMessageKey.For(outcome));
     }
 }

@@ -13,6 +13,13 @@ COPY = ROOT / "game/Assets/Shell/Copy.cs"
 UI_DIRS = [ROOT / "game/Assets/View", ROOT / "game/Assets/Shell"]
 SWIFT_DIR = ROOT / "game/Assets/Plugins"
 
+# 50-photo/06 VERIFY item 1: the outcome->key mapping moved to
+# Core/PhotoMessages.cs so dotnet test can guard it. Core is not in UI_DIRS
+# (it is compiled by build/core-tests, and scanning all of it here would be
+# noise), but the four literal keys now live only in this one file — without
+# listing it, test_every_declared_key_is_used would call them orphans.
+EXTRA_KEY_FILES = [ROOT / "game/Assets/Core/PhotoMessages.cs"]
+
 # Files exempt from the no-literals rule, with the reason.
 #
 # CatPicker.cs was exempted here until 2026-08-27 for "failure reasons handed
@@ -46,6 +53,8 @@ def sources():
         for path in sorted(directory.rglob("*.cs")):
             if path.name not in EXEMPT:
                 yield path, path.read_text()
+    for path in EXTRA_KEY_FILES:
+        yield path, path.read_text()
 
 
 def swift_sources():

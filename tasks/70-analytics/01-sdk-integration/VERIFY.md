@@ -108,3 +108,115 @@ has a real, confirmed, currently-open gap that isn't closed by anything in
 this diff, and the fix (one `.gitignore` line) is outside this verification's
 touch scope to apply. `status:` left at `review` — the fix is small and this
 is close, not a rewrite.
+
+---
+
+# Re-verification of the fix, 2026-08-27
+
+**Verifier:** a fresh context, different from the one that failed this task
+above. The coordinator wrote the fix (`.gitignore` rules plus
+`tools/tests/test_no_secrets.py`) and said explicitly they cannot rule on
+their own fix — that judgment is this section. I did not write the fix; I
+added documentation of three blind spots to `test_no_secrets.py`'s
+docstring (below), nothing functional. No adb, no emulator, no Unity build.
+
+## 1. The two `.gitignore` rules, checked, not assumed
+
+```
+$ git check-ignore -v analytics-keys.txt
+.gitignore:37:analytics-keys.txt	analytics-keys.txt
+
+$ git check-ignore -v game/Assets/Resources/GameAnalytics/Settings.asset
+.gitignore:43:game/Assets/Resources/GameAnalytics/	game/Assets/Resources/GameAnalytics/Settings.asset
+```
+
+Both in effect. The second rule is the directory
+(`game/Assets/Resources/GameAnalytics/`), matched against
+`Settings.asset` inside it — and that exact path,
+`Assets/Resources/GameAnalytics/Settings.asset`, is what `InitAPI()` builds
+with `Path.Combine`/string-literal `"Assets/Resources/GameAnalytics/Settings.asset"`
+in the actual SDK source read for the original failing verdict, not a
+path near it.
+
+## 2. `test_no_secrets.py`'s scope — honest, with real, nameable blind spots
+
+Its own docstring already says why source is scanned only for quoted
+literals and data files by assignment — a defensible, stated trade-off, not
+smuggled in. But it did not, until this pass, name what falls outside that
+choice. Confirmed three ways (see docstring addition and reproduction
+commands below):
+
+- **File extension in neither suffix list** — `.md`, `.pbxproj`, `.meta`,
+  `.gradle`, `.kt`, `.strings`, `.xcconfig` and more are scanned by nothing.
+- **Value split across a literal line break** — the field-name-to-separator
+  gap tolerates a newline, the value capture does not; a wrapped key is
+  truncated, and a short-enough fragment (e.g. 8 characters) drops under
+  `MIN_KEY_LENGTH` and is missed outright.
+- **A credential-shaped value with no digit** — `any(c.isdigit())` is a hard
+  requirement; an all-alphabetic 30+ character token passes.
+
+None of these are edge cases invented for this review — each is a direct
+consequence of a specific, readable line in the file (the suffix sets, the
+character class, the digit check), not a guess about what might go wrong.
+
+## 3. Mutation, on the real repo, reverted immediately
+
+**Should fail, did:**
+
+```
+$ mkdir -p game/Assets/Resources/GameAnalytics
+$ cat > game/Assets/Resources/GameAnalytics/Settings.asset  # gameKey/secretKey, 32 hex chars each
+$ git add -f game/Assets/Resources/GameAnalytics/Settings.asset
+$ pytest tools/tests/test_no_secrets.py -q
+FAILED test_no_credential_value_is_tracked — gameKey = '5f2c1ab9d34e47f0a1b8c7d6e5f40312'
+FAILED test_the_settings_asset_is_ignored   — not ignored (a force-added file
+                                               is, correctly, no longer
+                                               reported as ignored by git
+                                               itself — the exact "git add -f
+                                               protects nothing" case NOTES.md
+                                               names, caught two ways at once)
+$ git reset -- game/Assets/Resources/GameAnalytics/Settings.asset && rm -rf game/Assets/Resources/GameAnalytics
+$ pytest tools/tests/test_no_secrets.py -q
+4 passed
+```
+
+**Should miss, did:**
+
+```
+$ cat > game/Assets/Resources/GameAnalytics/Settings.asset  # gameKey/secretKey, 33-34 all-letter chars
+$ git add -f game/Assets/Resources/GameAnalytics/Settings.asset
+$ pytest tools/tests/test_no_secrets.py::test_no_credential_value_is_tracked -q
+1 passed          <- silently missed, said plainly, exactly as predicted in §2
+$ git reset -- game/Assets/Resources/GameAnalytics/Settings.asset && rm -rf game/Assets/Resources/GameAnalytics
+```
+
+Working tree confirmed clean after both (`git status --porcelain` shows
+nothing under `Resources/GameAnalytics`).
+
+## 4. "Never reach a commit" vs. "the two known paths are covered"
+
+**These are different claims, and only the second is true.** §2 and §3
+show real, working ways a credential-shaped value can sit in a tracked file
+and pass `test_no_secrets.py` clean — a `.md` paste, a wrapped value, an
+all-letter token. So "a key can never reach a commit" does not hold as a
+general guarantee; it was never meant to, and the fix's own commit message
+and `NOTES.md` are careful on this point ("Necessary and not sufficient",
+"What this does not close"). Where the *task's* wording overclaims is the
+`VERIFY.md` finding this section replaces, which used the unqualified
+phrase — now corrected here rather than in the original, which stays as
+the record of what was true when it was written. The accurate claim,
+and the one to carry forward: **the two paths this project has actually
+built — the out-of-band keys file and the SDK's settings asset — are both
+gitignored and both covered by a test proven able to fail on each.** A
+third, unbuilt path in one of §2's shapes would not be.
+
+## Verdict
+
+**`verify:passed`.** The specific gap the original `VERIFY.md` found — the
+Settings asset path, confirmed from SDK source, unmitigated — is closed by
+both a working `.gitignore` rule and a test that scans the tracked tree
+itself, independent of the ignore rule, proven able to fail against exactly
+the asset shape that was the concern. The blind spots found in this pass
+are real but are a documentation gap, now closed in `test_no_secrets.py`'s
+own docstring, not a defect in what the fix was built to stop. `status:`
+left as the coordinator's own commit set it.

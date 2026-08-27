@@ -3,6 +3,6 @@ role:VIEW
 type:feature
 priority:P2
 status:done
-verify:failed
+verify:passed
 depends:50-photo/07-crop-downscale
 milestone:M5

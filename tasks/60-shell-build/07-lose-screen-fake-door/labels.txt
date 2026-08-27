@@ -2,7 +2,7 @@ phase:shell
 role:VIEW
 type:feature
 priority:P0
-status:in_progress
-verify:failed
+status:done
+verify:passed
 depends:20-rules-core/03-shelf-match
 milestone:M6

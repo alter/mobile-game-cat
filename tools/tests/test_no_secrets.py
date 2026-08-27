@@ -27,10 +27,11 @@ Confirmed blind spots, 2026-08-27 re-verification of `70-analytics/01-sdk-integr
   or `.meta` file is invisible to both patterns — the value is never even
   read by a scan. Widening either list trades this for more false positives
   and is a real tradeoff, not a bug to silently patch here.
-- **A value split across a literal line break.** `\s*` between the field
-  name and `[:=]` matches a newline, so `gameKey:\n  <value>` is still found
-  — but the value's own character class (`[^"\'\s,}\]<]+`) stops at the
-  first whitespace, so a key wrapped across two lines is truncated to
+- **A value split across a literal line break.** The whitespace gap between
+  the field name and its `:`/`=` matches a newline, so a name and separator
+  on their own line are still found — but the value's own character class
+  stops at the first whitespace, so a key wrapped across two lines is
+  truncated to
   whatever precedes the break. A short first fragment (e.g. 8 characters)
   falls under `MIN_KEY_LENGTH` and is missed entirely; a long one may
   accidentally still trip the length check on the fragment alone, which is

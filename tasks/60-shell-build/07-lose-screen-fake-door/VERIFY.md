@@ -96,3 +96,57 @@ unmodified) — all mutation was performed on copies outside the repository.
 - The content of `tasks/DECISIONS.md` D4 itself was read and trusted as the
   record of what was decided; it was not independently re-derived (e.g. no
   attempt to re-run the booster-vs-win-rate simulation).
+
+## Re-verification, 2026-08-27 — the failure above is fixed
+
+**Verifier: independent QA context, a fresh pass, not a continuation of the
+one that wrote the `verify:failed` verdict above.** Wrote none of
+`task.txt`, `NOTES.md`, `tools/tests/test_analytics_call_sites.py`, or the
+code files named below. Did not run a Unity build, PlayMode test, adb, or
+an emulator. Read `task.txt`/`NOTES.md` as rewritten, re-ran every command,
+and mutation-tested the specific comment-stripping fix the earlier pass
+found missing, on a copy outside the repository. Only writes: this file and
+`labels.txt`.
+
+| # | Question | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Read `task.txt` cold — would you build the screen that exists? | **Yes** | GOAL states the current shape plainly ("a count of levels finished, and a way to try again — nothing offered that will not be granted") before narrating the history; SCOPE's `+`/`−` lines and VERIFY 1 match: a card with "Levels finished: {0}." and a Replay button, no second button, no stub. Confirmed against code unchanged since the failed pass: `DebugGameView.cs` still calls `ShowCard(..., secondaryText: null, ...)` for the lose case. A cold reader builds exactly this. |
+| 2 | Is keeping the 2026-08-25 text verbatim the right call? | **Right call — ordering and markup make it hard to mistake for current instruction** | The current, authoritative GOAL/SCOPE/OUTCOME/VERIFY/ROLE/DEPENDS come first, in the project's normal task-file order; the historical text sits after a `---` rule, under "As originally written, 2026-08-25 — kept for the record, not current," and is blockquoted (`>`) throughout — a reader who stops at DEPENDS (where every other task file ends) never reaches it, and one who does gets three separate signals it is not current. Matches `DECISIONS.md`'s own convention of keeping superseded numbers rather than editing them away, per this task's own `NOTES.md`. Residual risk: a keyword grep landing inside the blockquote without reading the header could mislead — true of any document, not specific to this one. |
+| 3 | Do the three code facts hold, and does the comment-stripping fix work? | **All three hold; the fix is real, confirmed by mutation both before and after** | `Analytics.cs:13,96` — `BoosterTap` constant and method both present. `Board.cs:186` — `AddShelfSlots` present. `grep -rn "Analytics\.BoosterTap\|AddShelfSlots" game/Assets/Shell game/Assets/View` → one hit, a comment. `pytest tools/tests/test_analytics_call_sites.py -q` → `14 passed`. Read the current file: `strip_comments()` now exists and `calls_of()` runs text through it before searching — exactly the fix the earlier pass's gap called for. Mutation-tested on a scratch copy (not the repo): wrapped the real `Core.Analytics.AppOpen();` call in `GameBoot.cs` as `// TODO: call Core.Analytics.AppOpen();` — `calls_of("AppOpen")` now returns `[]`, and `test_every_event_has_a_call_site[app:open-AppOpen]` plus `test_open_and_rejection_are_not_the_same_site` both fail. This is the exact opposite of what the earlier pass found (that mutation used to pass silently). `git status --short` confirms the real repo untouched. |
+| 4 | Does a reader finish knowing metric 4 is uninstrumented, not just unmeasured? | **Yes, and the pointer resolves to real content** | `task.txt` CONTEXT names `tasks/80-live-validation/00-thresholds/NOTES.md` ("Metric four lost its instrument, 2026-08-27") and OUTCOME states "Metric 4 has no instrument in this build" — "instrument," matching D4's own word, not "unmeasured." Confirmed the target section exists verbatim: `tasks/80-live-validation/00-thresholds/NOTES.md:54`, "## Metric four lost its instrument, 2026-08-27," with options (a)/(b)/(c) present below it. |
+
+**Overall: `verify:passed`.** `status:` moved `in_progress → done` — the
+artefact `task.txt` now describes (a truthful lose screen, dormancy
+enforced, the metric-4 gap tracked elsewhere) matches what is on disk, and
+the guard gap the earlier pass found and did not block progress on is
+independently confirmed fixed here.
+
+### How to reproduce (this pass)
+
+```sh
+.venv/bin/python -m pytest tools/tests/test_analytics_call_sites.py -q   # -> 14 passed
+grep -n "strip_comments" tools/tests/test_analytics_call_sites.py         # -> present, used by calls_of()
+grep -n "Metric four lost its instrument" tasks/80-live-validation/00-thresholds/NOTES.md
+
+# Mutation, outside the repo:
+SP=$(mktemp -d)
+mkdir -p "$SP/tools/tests" "$SP/game/Assets/Core" "$SP/game/Assets/View" "$SP/game/Assets/Shell"
+cp tools/tests/test_analytics_call_sites.py "$SP/tools/tests/"
+cp game/Assets/Core/Analytics.cs "$SP/game/Assets/Core/"
+cp -R game/Assets/View/. "$SP/game/Assets/View/"
+cp -R game/Assets/Shell/. "$SP/game/Assets/Shell/"
+python3 -c "p='$SP/game/Assets/Shell/GameBoot.cs'; t=open(p).read(); open(p,'w').write(t.replace('Core.Analytics.AppOpen();','// TODO: call Core.Analytics.AppOpen();'))"
+.venv/bin/python -m pytest "$SP/tools/tests/test_analytics_call_sites.py" -q
+# -> 2 failed (app:open reads as having no call site — the comment no longer counts)
+git status --short   # repo untouched
+```
+
+### What was not checked (this pass)
+
+- No Unity build, PlayMode test, adb, or emulator — VERIFY 1 was confirmed
+  by reading `DebugGameView.cs`, as the earlier pass also did.
+- Did not sweep whether `strip_comments()`'s regex has its own edge cases
+  (e.g. a `//` inside a string literal) — none of the files it runs against
+  today contain one in a position that would matter.
+- Did not re-check the `labels.txt` free-text formatting issue the earlier
+  pass flagged; out of scope for this pass's four questions.

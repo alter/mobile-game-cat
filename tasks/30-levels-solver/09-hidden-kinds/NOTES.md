@@ -52,3 +52,31 @@ drift apart, and the view is not covered by tests; it now asks Core.
 the 98/87/66 table describes a game nobody plays.
 
 `verify` stays `pending` — the checker also edited Core.
+
+---
+
+## The prediction in this note was measured and was wrong — 2026-08-27
+
+This note says hiding will make win rates "fall, possibly a long way". It was
+a reasonable expectation and it did not survive measurement.
+`30-levels-solver/10-remeasure-curve-partial-info` measured one policy playing
+the same levels with the buried pile hidden and with it visible: the difference
+is **0.0 ± 1.2 percentage points**. D3, the decision this task implements,
+carries that correction in its own text — *"this decision aimed at the wrong
+half"* — and the correction was never propagated back here, which a
+verification of this task caught.
+
+The reason is structural and could have been foreseen. A move is chosen among
+*reachable* items, and a reachable item always shows its kind; hiding removes
+only the planning past them, and 17 to 28 items are reachable at once — a
+quarter to a half of the pile. The level solved at a glance because the front
+is wide, not because the pile was visible.
+
+**Hiding stays and this note is not an argument to remove it.** It is free, the
+genre does it, and whether it changes how the game *feels* — the small reveal —
+is a question for `07-outsiders-playtest`, not for a simulation. What must not
+happen is this task being cited as evidence that the game was made harder,
+because it was not.
+
+Re-measured again on 27.08 after D15: the price of hiding is 0.6 / 0.0 / −0.2
+percentage points across the three bands.

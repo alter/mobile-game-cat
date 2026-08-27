@@ -79,8 +79,15 @@ namespace CatShelter.Core
         public bool IsTaken(int itemId) => _taken.Contains(itemId);
 
         /// <summary>
-        /// Task 3.9: an item shows its kind only once it is reachable —
-        /// nothing covers it and no complication locks it.
+        /// Task 3.9: an item shows its kind once nothing covers it. Being
+        /// locked does NOT hide it — see D15 and the comment in the body.
+        ///
+        /// This summary said "and no complication locks it" until 2026-08-27,
+        /// which D15 reversed the day before and which the body three lines
+        /// down already contradicted. Corrected after a verification of
+        /// 09-hidden-kinds pointed at it. A doc comment that disagrees with
+        /// the method under it is worse than none: the body can be read, and
+        /// the comment is what gets quoted into a decision.
         /// </summary>
         public bool IsRevealed(Item item)
         {

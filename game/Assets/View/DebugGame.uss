@@ -188,12 +188,15 @@
     min-width: 200px;
 }
 
-/* The lock overlay covers its tile exactly; the prop under it still shows
-   through the transparent parts of the drawing (task 40-art/02). */
+/* The lock badge sits in the lower-right corner of its tile, over the prop
+   and clear of most of it. Not stretched across the tile: prop_locked is a
+   coil of rope drawn on its own, so at full size it replaces the prop
+   instead of marking it, and the player loses the one thing the lock is
+   supposed to tell them — which kind is withheld (D15, task 40-art/02). */
 .game__tile-lock {
     position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    right: -2px;
+    bottom: -2px;
+    width: 26px;
+    height: 26px;
 }

@@ -36,16 +36,18 @@ VERIFY (QA)
      is under there" without naming an object.
   3. prop_locked composited over any one of the 30 props: prop underneath
      still identifiable through the overlay.
-     Blocked as written: the rules make a locked item hidden, so the overlay
-     is never on screen at all - see tasks/DECISIONS.md D15, which has the
-     count (visible in 0 of the 16 levels that carry a lock) and the choice
-     that has to be made. Check 3 cannot pass until that is settled.
+     Fails as an overlay, passes as a badge. Composited full-tile over five
+     different props on 2026-08-27, all five became the same picture:
+     prop_locked is a coil of rope drawn as its own object, 59% opaque, and
+     its transparency is the background around the coil rather than gaps to
+     see the item through. The view therefore draws it at 26px in the tile's
+     lower-right corner, where it marks the prop instead of replacing it, and
+     the prop stays fully readable at tile size.
 
-     Note: the view draws it as an overlay ON TOP of the prop's own tile
-     (DebugGameView.MakeTile, class game__tile-lock), not in place of it, so
-     this check is about the drawing's transparency, not the code. Measured
-     2026-08-27: 25% of the image fully transparent, 16% partly - it is a
-     drape over the item, not an opaque replacement.
+     Redraw it as a true overlay - rope crossing the item, most of the frame
+     open - and this check passes as written; the view goes back to full-tile
+     by changing two numbers in .game__tile-lock. Not blocking: the rules now
+     show the lock (D15, decided), so the mechanic is on screen either way.
 
 ROLE
   ART, QA

@@ -23,8 +23,15 @@ SCOPE
 
 OUTCOME
   24 PNGs, room_<nn>_clean.png and room_<nn>_dirty.png for nn 01..12,
-  1024x2048, no alpha, under game/Assets/Art. Same camera, furniture and
+  1536x3072, no alpha, under game/Assets/Art. Same camera, furniture and
   window position within each pair.
+
+  1536x3072, not the 1024x2048 this task carried until 2026-08-27:
+  art-brief.md section 5 says plainly "Rooms were specified at 1024x2048 and
+  that was wrong" - a room is a full-screen background and the worst case,
+  an iPhone 16 Pro Max, is 1320x2868. The old figure was short by 296 across
+  and 820 down, on exactly the screen where the before/after has to read in
+  half a second.
 
 VERIFY (HUMAN)
   1. 24 files present, correct size, no alpha channel.

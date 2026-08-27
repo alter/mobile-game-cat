@@ -231,25 +231,20 @@ namespace CatShelter.View
             if (art != null)
             {
                 Paint(tile, art);
-                // The lock goes OVER the prop, not instead of it: a locked
-                // item still has to be identifiable, or the player cannot tell
-                // which kind is the one being withheld (task 40-art/02). One
-                // element carries one background image, so the overlay is a
-                // child stretched across the tile.
-                //
-                // Unreachable as the rules stand: Board.IsRevealed counts a
-                // locked item as hidden, so the branch above returns first and
-                // this never runs - measured across all 37 levels, see
-                // DECISIONS.md D15. Kept, not deleted: it is what the tile
-                // should look like, and D15 is a decision waiting to be made,
-                // not a feature that was dropped.
+                // The lock sits in the CORNER, over the prop, not across it.
+                // prop_locked is drawn as a coil of rope on its own — laid
+                // over the whole tile it hides the prop completely, which is
+                // the thing the lock must not do: the player has to see which
+                // kind is being withheld to plan around it (D15, 40-art/02).
+                // At corner size it reads as "this one is tied up" and the
+                // prop underneath stays whole.
                 if (locked)
                 {
-                    var overlay = new VisualElement();
-                    overlay.AddToClassList("game__tile-lock");
-                    Paint(overlay, SpriteFor("prop_locked"));
-                    overlay.pickingMode = PickingMode.Ignore;
-                    tile.Add(overlay);
+                    var badge = new VisualElement();
+                    badge.AddToClassList("game__tile-lock");
+                    Paint(badge, SpriteFor("prop_locked"));
+                    badge.pickingMode = PickingMode.Ignore;
+                    tile.Add(badge);
                 }
             }
             else

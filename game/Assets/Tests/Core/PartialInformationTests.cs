@@ -87,13 +87,24 @@ namespace CatShelter.Core.Tests
             Assert.That(board.TakeItem(1), Is.False);   // direct attempt ignored
         }
 
+        /// <summary>
+        /// D15: the lock is a complication, so it has to be seen to be one.
+        /// This test asserted the opposite until 2026-08-27 — a locked item
+        /// reported itself unrevealed, the view drew it as a buried tile, and
+        /// the lock reached the screen in none of the 37 shipped levels.
+        /// Locked and buried are different states; only burial hides a kind.
+        /// </summary>
         [Test]
-        public void LockedItem_IsNotRevealed()
+        public void LockedItem_IsRevealedButNotTakeable()
         {
             var board = new Board(L(
-                Locked(1, "x", 5),          // far off: stays hidden all game
+                Locked(1, "x", 5),          // never unlocks in this level
                 E(10, "a"), E(11, "a"), E(12, "a")));
-            Assert.That(board.IsRevealed(_item(board, 1)), Is.False);
+            var locked = _item(board, 1);
+            Assert.That(board.IsRevealed(locked), Is.True, "the player must see which kind is withheld");
+            Assert.That(board.IsLockedByComplication(locked), Is.True);
+            Assert.That(board.GetAvailable().Any(i => i.Id == 1), Is.False, "seen, still not takeable");
+            Assert.That(board.TakeItem(1), Is.False);
         }
 
         [Test]

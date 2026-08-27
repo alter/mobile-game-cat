@@ -435,11 +435,25 @@ to touch scene YAML.
 
 </content>
 
-## D15. The lock is invisible today — a question for the owner, 2026-08-27
+## D15. A locked item is seen, not hidden — 2026-08-27
 
-**Not decided.** This entry records a contradiction found while wiring the art
-in, with the numbers behind it. Whoever owns the design decides; nothing in the
-rules was changed.
+**Decided: the lock is visible.** The owner chose it the same day the
+contradiction below was found. `IsRevealed` no longer counts a locked item as
+hidden, in `Board.cs` and in `tools/solver/rules.py`, and the two tests that
+pinned the old behaviour now assert the new one. Measured again after the
+change: the lock is on screen in **16 of 16** levels that carry one, where it
+was 0 of 16 before.
+
+**The lock is a corner badge, not a full-tile overlay.** `prop_locked` turned
+out not to be an overlay at all — it is a coil of rope drawn on its own, 59% of
+it opaque. Composited across a whole tile it hides the prop completely, which
+defeats the point: a vase, a book, a lamp and a ball under it were
+indistinguishable. Shrunk to 26px in the lower-right corner it marks the tile
+and leaves the prop whole. If a true overlay is ever drawn — rope crossing the
+item with real gaps — the badge can go back to full size by changing the two
+sizes in `.game__tile-lock`.
+
+**The contradiction, as found.**
 
 **The contradiction.** `Board.IsRevealed` (`game/Assets/Core/Board.cs:85-91`)
 returns false for a locked item — being locked makes an item *hidden*, on top of
@@ -466,10 +480,9 @@ fully visible; there is no middle setting to tune.
 `game__tile-lock`), so the moment the clause goes, the art is correct with no
 further work. Until then that branch is unreachable and the drawing ships unused.
 
-**The choice.**
-- Keep the rule: 3.11 is a difficulty knob the player never sees as one, and
-  `40-art/02` should drop its overlay requirement.
-- Drop the clause: the player sees which kind is being withheld and can plan
-  around it. `LockedItem_IsNotRevealed` and D3's wording need revising, and the
-  0.0 +/- 1.2 pp win-rate finding from `30-levels-solver/10` would want a rerun,
-  since it measured a rule nobody could see.
+**What the choice costs, and it is not nothing.** The win-rate finding in
+`30-levels-solver/10` — hiding buried kinds moved it 0.0 +/- 1.2 pp — measured a
+board where the locked kind was also hidden. That is no longer the board being
+played: a player who can see which kind is withheld can plan around it, and the
+levels may now be easier than they were measured to be. The number is not
+wrong, it is about a different game. Rerun it before quoting it again.

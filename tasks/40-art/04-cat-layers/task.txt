@@ -24,8 +24,9 @@ SCOPE
 
 OUTCOME
   54 mask PNGs (cat_<state>_<fur>_pattern_<name>.png / _mark_<name>.png /
-  _eyes.png), 512x512, strict black/white with <=2px edge antialiasing,
-  under game/Assets/Art.
+  _eyes.png), 1024x1024, strict black/white with <=2px edge antialiasing,
+  under game/Assets/Art. The size follows the base it is traced against -
+  see 40-art/03, corrected 2026-08-27.
 
 VERIFY (QA)
   1. Every mask pure black/white and does not extend past the base's alpha.

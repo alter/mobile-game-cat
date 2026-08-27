@@ -23,11 +23,18 @@ SCOPE
     runtime traits, not art choices.
 
 OUTCOME
-  6 PNGs, cat_<state>_<fur>_base.png, 512x512, transparent alpha, under
-  game/Assets/Art.
+  6 PNGs, cat_<state>_<fur>_base.png, 1024x1024, transparent alpha, pivot
+  bottom centre, under game/Assets/Art.
+
+  1024, not the 512 this task carried until 2026-08-27: art-brief.md section
+  5 reworked the sizes from the real screens and says of this one, "Cat
+  silhouettes were specified at 512x512 and that is marginal" - the cat is
+  about 200 logical points tall, 600 real pixels at 3x, and it is the single
+  asset a player looks at closely. Generating at 512 would have meant
+  redrawing all six.
 
 VERIFY (HUMAN)
-  1. All 6 files present, 512x512, greyscale (no hue in the fur).
+  1. All 6 files present, 1024x1024, greyscale (no hue in the fur).
   2. Outsider shown all 6, asked "is this one cat, or different cats?" -
      only "one cat" passes. Recorded verbatim in VERIFY.md.
   3. Same or a second outsider confirms the three states read worse-to-

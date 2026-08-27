@@ -87,7 +87,14 @@ namespace CatShelter.Core
             if (_taken.Contains(item.Id))
                 return false;
             var entry = _entries[item.Id];
-            return entry.BlockedBy.All(id => _taken.Contains(id)) && !IsLockedByComplication(item);
+            // Locked is NOT hidden. Burial (D3) and the complication lock
+            // (3.11) are two different things and used to collapse into one
+            // here: a locked item reported itself unrevealed, so the view drew
+            // it as a buried tile and the lock never reached the screen -
+            // visible in 0 of the 16 levels that carry one. The player has to
+            // see WHICH kind is being withheld, or the lock is not a
+            // complication, just a tile that will not respond. See D15.
+            return entry.BlockedBy.All(id => _taken.Contains(id));
         }
 
         /// <summary>Take an item from the pile and put it on the shelf.</summary>

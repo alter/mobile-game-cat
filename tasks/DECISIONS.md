@@ -559,3 +559,46 @@ is a workbench things are set down on, not a queue.
 
 Neither was taken. If the shelf is ever revisited, the second option is the one
 that changes the game and needs a fresh measurement; the first is free.
+
+---
+
+## D17. Accounts deferred; both platforms are targets — 2026-08-27
+
+**Decided by the owner.** The provider spend cap and the Apple Developer
+Program are not being set up now — "much later" — and the game targets **both
+Apple and Android**, not iOS first with Android as a second wave.
+
+**What this closes, and it should be said plainly.** Two of the project's
+three gates depend on accounts nobody is opening yet:
+
+- **Gate 1** (`00-validate-demand`, $300 of advertising) needs an ad account
+  and a store page to send installs to.
+- **Gate 3** (`80-live-validation`, $400, four metrics) needs a live listing,
+  TestFlight or Play internal testing, and analytics.
+
+And metric 2 — "uploaded a photo > 40%", the one the whole concept rests on —
+needs the traits Worker, which needs a model key, which needs the spend cap
+(D11). The Worker is written and its 13 tests pass; it cannot be deployed.
+`CaptureScreen.AskWorker` is a delegate nothing assigns, so the app has never
+called it and falls through to the on-device colour estimate every time
+(D-note: `50-photo/11`). Until the cap exists, the game gives every player a
+believable cat rather than *her* cat, and the hook is not being tested.
+
+**What is left, and it is not nothing.** **Gate 2** — five outsiders,
+`30-levels-solver/07` — needs no account, no store, no money and no device
+build. It runs in a browser from a link. It is now the only gate that can be
+run at all, which means it carries more weight than it was designed to carry:
+it was meant to be the cheap check between gates 1 and 3, and for the moment
+it is the only evidence the project can produce about whether this is worth
+building.
+
+**Consequence for `90-android`.** The phase stays P2 for now, but the reason
+changes. It was "iOS first, Android is the second wave"; it is now "gates
+before platforms". If both stores are targets, the Android build is no longer
+a port — and Android is the cheaper of the two to test on, needing no $99 and
+no review, which is worth remembering when the accounts question reopens.
+
+**What was NOT decided.** Nothing about whether the gates are still the way
+the project decides its own fate. GOAL.md says three gates decide it and only
+one is now runnable; that tension is real and is left standing rather than
+quietly resolved.

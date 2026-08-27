@@ -67,3 +67,51 @@ check fails.
 
 Source: `build/playtest/make_playtest.py` (module docstring),
 `verify_playtest.py` (assertions), run output above.
+
+## The build people will actually play, 2026-08-27 (evening)
+
+Three changes, made because the owner will hand this to five people rather
+than sit them in front of a rectangle demo.
+
+**Props are drawn, not numbered.** The prototype coloured each tile by hue and
+printed the kind's number on it, which asks a person to match digits — a
+different task from the one the game asks. The 30 prop sprites already exist
+in `game/Assets/Resources/Art`; they are now embedded as WebP data URIs at
+128 px, about 150 KB for all thirty against 1.4 MB for the 256 px originals.
+The whole page is 258 KB and still one file with no network.
+
+This is a departure from the gate's stated design, and the departure is worth
+naming: art was excluded here so that a "no" would be about the loop and not
+about ugly rectangles. The reason it is acceptable is that the art cost
+nothing — it was drawn for `40-art/01` months before this gate — so the
+"cheapest possible moment" argument is untouched. The reading caution is the
+other direction now: a **yes** is weaker evidence than it would have been,
+because someone may be charmed by the props rather than held by the loop. Ask
+the follow-up: *what would you have done next?*
+
+**Covered items are marked by a dark tile, not by fading.** The old convention
+faded a blocked tile to 34% opacity, which works on saturated rectangles and
+fails on drawn props: a white mitten at 34% on a cream ground is gone, and
+this gate's own rule is that every kind stays visible. The tile now carries
+the state — white and raised means takeable, dark and flat means covered —
+and the prop stays at full strength. Checked by rendering a 60-item pile at
+true scale before wiring it in, not after.
+
+**The pile fits on one screen.** Widened from 340 px to `min(358px, 96vw)`,
+which puts eight tiles in a row: a 60-item pile is 8 rows and about 355 px,
+inside the 56vh the container allows. It used to be 7 across, 9 rows, 398 px
+— and a puzzle you have to scroll is a puzzle you cannot see.
+
+**And the fake door is gone.** D4 was revised the same day and the "one more
+shelf" button was removed from the game; it was still here. Leaving it would
+have handed five strangers exactly the irritation the owner hit — offered a
+way out, then refused it — while measuring nothing, since the tap was free.
+The jam card now offers replaying the pile or finishing and answering.
+
+Regenerated and rechecked after every one of these: `verify_playtest.py`
+plays all 37 levels to a win and drives all 37 into a jam, both engines
+agreeing, each time.
+
+`make_playtest.py` also writes `hosted.html` — the same bytes without the
+document wrapper, for putting the prototype behind a link someone can open on
+their own phone. One generator, so the two cannot drift.

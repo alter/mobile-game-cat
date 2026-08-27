@@ -1,19 +1,44 @@
 """Build a self-contained playable HTML prototype of the puzzle.
 
 Embeds all 37 shipped levels from game/Assets/Resources/Levels — the same files
-the player loads (View/LevelAssets.cs). Output: build/playtest/index.html
+the player loads (View/LevelAssets.cs) — and the 30 prop sprites they name.
+Output: build/playtest/index.html, one file, no server, no network.
 
 This build serves gate 3.7 (five outsiders), which runs on the VISIBLE pile:
-kinds are always shown and blocked items are dimmed, not blanked. Hiding (3.9)
+every kind is shown, and a covered item is marked by a darker, flat tile
+rather than by fading — the prop stays fully readable either way. Hiding (3.9)
 and locked kinds (3.11) come after this gate, so `locked_after_triples` is
 dropped on the way in and nothing is buried. The pile-size curve (36 / 48 / 60)
 and the piles-per-room pacing are the shipped ones, untouched.
+
+Two deliberate departures from the file this replaces:
+
+* **Props are drawn, not numbered.** The prototype used to colour each tile by
+  hue and print the kind's number on it. That asks a person to match digits,
+  which is a different task from the one the game asks — and the art already
+  exists, so the rectangles were costing information for nothing. Sprites are
+  embedded as WebP data URIs at 128 px, about 150 KB for all thirty; the
+  originals are 256 px PNGs totalling 1.4 MB, far more than a phone needs for
+  a 38 px tile. Checked at 3x tile size before wiring it in: all thirty read
+  apart at that size.
+* **No booster button.** DECISIONS.md D4 was revised on 2026-08-27 and the
+  "one more shelf" offer was removed from the game, because a tap on a free
+  offer is not evidence about willingness to pay and being offered a way out
+  and then refused it annoyed the one person who met it. Leaving it here would
+  have handed the five outsiders exactly that annoyance, and this gate asks
+  whether the loop is worth playing, not whether a fake door is irritating.
 """
+import base64
+import io
 import json
 from pathlib import Path
 
+from PIL import Image
+
 ROOT = Path(__file__).resolve().parents[2]
 LEVELS = ROOT / "game" / "Assets" / "Resources" / "Levels"
+ART = ROOT / "game" / "Assets" / "Resources" / "Art"
+SPRITE_PX = 128
 
 levels = []
 for f in sorted(LEVELS.glob("l*.json")):
@@ -31,12 +56,31 @@ for f in sorted(LEVELS.glob("l*.json")):
 if not levels:
     raise SystemExit(f"no levels found in {LEVELS}")
 
+# Every kind the levels actually name, and nothing else: prop_unknown and
+# prop_locked exist in Art but belong to hiding (3.9) and locks (3.11), which
+# this build deliberately leaves out.
+kinds = sorted({e["kind"] for lv in levels for e in lv["pile"]})
+
+sprites = {}
+for kind in kinds:
+    source = ART / f"{kind}.png"
+    if not source.exists():
+        raise SystemExit(
+            f"{kind} is named by a level but {source} does not exist — the "
+            f"prototype would draw a blank tile and nobody would know why")
+    image = Image.open(source).convert("RGBA")
+    image.thumbnail((SPRITE_PX, SPRITE_PX), Image.LANCZOS)
+    buffer = io.BytesIO()
+    image.save(buffer, "WEBP", quality=82, method=6)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    sprites[kind] = f"data:image/webp;base64,{encoded}"
+
 html = """<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Разбор завала — прототип</title>
+<title>Разбор завала</title>
 <style>
   :root { --bg:#f4ead8; --shelf:#e8d9bd; --ink:#4a3b28; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -50,17 +94,28 @@ html = """<!DOCTYPE html>
   .rseg.done { background:#7f9e7a; }
   .rseg.now { background:var(--ink); }
   .rseg.roomstart { margin-left:6px; }
+  /* 358px fits eight tiles per row, so a 60-item pile is 8 rows and about
+     355px tall — it stays on one screen instead of scrolling, and a puzzle
+     you have to scroll is a puzzle you cannot see. */
   #pile { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; align-content:flex-start;
-          width:340px; max-height:50vh; overflow-y:auto; margin-bottom:14px; padding:8px;
+          width:min(358px, 96vw); max-height:56vh; overflow-y:auto; margin-bottom:14px; padding:8px;
           background:rgba(0,0,0,.06); border-radius:12px; min-height:110px; }
-  .item { width:38px; height:38px; border-radius:8px; border:none; padding:0;
-          display:flex; align-items:center; justify-content:center;
-          font-size:12px; font-family:inherit; color:#fff; cursor:pointer; }
-  /* blocked = still covered: kind stays visible, tile is dimmed (gate 3.7) */
-  .item.blocked { opacity:.35; cursor:default; }
+  .item { width:38px; height:38px; border-radius:9px; border:none; padding:0;
+          background-color:#fbf6ec; background-repeat:no-repeat;
+          background-position:center; background-size:84%;
+          box-shadow:0 1px 2px rgba(74,59,40,.16); cursor:pointer; }
+  /* Covered = a darker, flat tile; the prop itself stays at full strength.
+     Gate 3.7 runs on the VISIBLE pile, so a covered item must still be
+     identifiable. Fading the whole tile is what this used to do, and with
+     coloured rectangles it worked — with drawn props on a cream ground it
+     erases the pale ones (a white mitten at 34% is gone). The tile carries
+     the state, the prop carries the kind. */
+  .item.blocked { background-color:#ccbda1; box-shadow:none; cursor:default; }
   #shelf { display:grid; grid-template-columns:repeat(3,46px); gap:5px;
            background:var(--shelf); padding:8px; border-radius:10px; }
-  .slot { width:46px; height:46px; border-radius:8px; background:rgba(255,255,255,.5); }
+  .slot { width:46px; height:46px; border-radius:9px; background-color:rgba(255,255,255,.5);
+          background-repeat:no-repeat; background-position:center; background-size:84%; }
+  .slot.full { background-color:#fbf6ec; box-shadow:0 1px 2px rgba(74,59,40,.16); }
   #answerlink { margin-top:14px; font-size:13px; color:var(--ink); opacity:.6;
                 background:none; border:none; text-decoration:underline; font-family:inherit; }
   #overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); padding:16px;
@@ -90,6 +145,7 @@ html = """<!DOCTYPE html>
 
 <script>
 const LEVELS = __LEVELS__;
+const SPRITES = __SPRITES__;
 
 // --- rules: verify_playtest.py extracts this exact block and runs it in node ---
 // Mirror of Core/Board.cs and tools/solver/rules.py. No move limit (D1). No
@@ -133,18 +189,12 @@ function takeItem(level, state, item) {
 }
 // --- end rules ---
 
-// Hue by golden angle so kinds stay distinct well past 20 kinds.
-function kindStyle(kind) {
-  let n = parseInt(kind.replace("prop_", ""), 10);
-  if (isNaN(n)) { let h = 0; for (let i = 0; i < kind.length; i++) h = (h * 31 + kind.charCodeAt(i)) >>> 0; n = h; }
-  const hue = (n * 137.508) % 360;
-  return { bg: `hsl(${hue.toFixed(1)}, 38%, 62%)`, label: String(n) };
-}
+function spriteOf(kind) { return SPRITES[kind] ? `url(${SPRITES[kind]})` : "none"; }
 
 const ROOM_ORDER = [...new Set(LEVELS.map(l => l.roomId))];
 
 let levelIdx = 0, state = newState();
-let jams = 0, boosterTaps = 0, cleared = 0;
+let jams = 0, cleared = 0;
 
 function startLevel(i) {
   levelIdx = i;
@@ -189,21 +239,14 @@ function finishWin() {
     `<button class="act" onclick="nextLevel()">Продолжить</button>`);
 }
 
-// D4: the booster is a fake door — the tap is counted, nothing is granted,
-// the завал stays lost and is replayed from the start.
+// D4, revised 2026-08-27: no "one more shelf" offer. It was free, and a tap on
+// a free offer to not lose says nothing about paying — while being offered a
+// way out and then refused it is a real irritation. The jam simply ends the
+// pile and it is replayed.
 function showJam() {
   showCard(`<b>Полка переполнена.</b>` +
     `<p>Все девять мест заняты, а тройка не собирается.</p>` +
-    `<button class="act" onclick="tapBooster()">Поставить ещё одну полку</button>` +
     `<button class="act" onclick="replayLevel()">Разобрать завал заново</button>` +
-    `<button class="act quiet" onclick="askQuestion()">Закончить и ответить на вопрос</button>`);
-}
-
-function tapBooster() {
-  boosterTaps++;
-  showCard(`<b>Ещё одна полка — скоро.</b>` +
-    `<p>В этой сборке её пока нет. Завал придётся разобрать заново.</p>` +
-    `<button class="act" onclick="replayLevel()">Разобрать заново</button>` +
     `<button class="act quiet" onclick="askQuestion()">Закончить и ответить на вопрос</button>`);
 }
 
@@ -232,8 +275,7 @@ function answerText() {
   return `Сыграл бы дальше: ${text}\\n` +
     `Разобрано завалов: ${cleared} из ${LEVELS.length}\\n` +
     `Дошёл до завала №: ${levelIdx + 1}\\n` +
-    `Полка переполнялась: ${jams}\\n` +
-    `Жал «ещё одну полку»: ${boosterTaps}`;
+    `Полка переполнялась: ${jams}`;
 }
 
 function sendAnswer() {
@@ -260,10 +302,9 @@ function render() {
   for (const it of L.pile) {
     if (state.taken.has(it.id)) continue;
     const b = document.createElement("button");
-    const s = kindStyle(it.kind);
     b.className = "item" + (free.has(it.id) ? "" : " blocked");
-    b.style.background = s.bg;
-    b.textContent = s.label;
+    b.style.backgroundImage = spriteOf(it.kind);
+    b.setAttribute("aria-label", it.kind);
     if (free.has(it.id)) b.onclick = () => onTake(L, it);
     pileEl.appendChild(b);
   }
@@ -271,8 +312,8 @@ function render() {
   shelfEl.innerHTML = "";
   state.shelf.forEach(k => {
     const d = document.createElement("div");
-    d.className = "slot";
-    if (k) { const s = kindStyle(k); d.style.background = s.bg; }
+    d.className = "slot" + (k ? " full" : "");
+    if (k) d.style.backgroundImage = spriteOf(k);
     shelfEl.appendChild(d);
   });
   document.getElementById("status").textContent =
@@ -284,7 +325,7 @@ function begin() { hideCard(); startLevel(0); }
 startLevel(0);
 showCard(`<b>Разбор завала</b>` +
   `<p>Нажимай на предмет — он ложится на полку. Три одинаковых на полке — исчезают.</p>` +
-  `<p>Мест на полке девять. Бледные предметы придавлены сверху: сначала убери то, что лежит на них.</p>` +
+  `<p>Мест на полке девять. Предметы на тёмных плитках придавлены сверху: сначала убери то, что лежит на них.</p>` +
   `<p>Если полка забита, а тройки нет — завал не разобран.</p>` +
   `<button class="act" onclick="begin()">Начать</button>`);
 </script>
@@ -294,8 +335,31 @@ showCard(`<b>Разбор завала</b>` +
 
 out_dir = ROOT / "build" / "playtest"
 out_dir.mkdir(parents=True, exist_ok=True)
+page = (html
+        .replace("__LEVELS__", json.dumps(levels, ensure_ascii=False))
+        .replace("__SPRITES__", json.dumps(sprites)))
+
 out = out_dir / "index.html"
-out.write_text(html.replace("__LEVELS__", json.dumps(levels, ensure_ascii=False)))
+out.write_text(page)
+
+# A second copy without the document wrapper, for hosting the prototype as a
+# link someone can open on their own phone. The host supplies <!doctype>,
+# <html>, <head> and <body> itself and rejects a page that brings its own, so
+# everything from <title> to the end of the body is taken and the wrapper is
+# dropped. Same bytes otherwise — one generator, so the two cannot drift.
+head = page[page.index("<title>"):page.index("</head>")]
+body = page[page.index("<body>") + len("<body>"):page.index("</body>")]
+inner = f"{head.strip()}\n{body.strip()}\n"
+for required in ("<style>", "<script>", "const LEVELS", "const SPRITES",
+                 "<title>", "id=\"pile\""):
+    assert required in inner, f"{required} fell outside the extracted content"
+for forbidden in ("<!DOCTYPE", "<html", "<body", "</head", "</html"):
+    assert forbidden not in inner, f"{forbidden} survived into the hosted copy"
+hosted = out_dir / "hosted.html"
+hosted.write_text(inner)
+
 sizes = sorted({len(lv["pile"]) for lv in levels})
-print(f"wrote {out} ({out.stat().st_size // 1024} KB), {len(levels)} levels, "
-      f"pile sizes {sizes}, from {LEVELS}")
+print(f"wrote {out} ({out.stat().st_size // 1024} KB) and {hosted.name} "
+      f"({hosted.stat().st_size // 1024} KB), {len(levels)} levels, "
+      f"pile sizes {sizes}, {len(sprites)} sprites at {SPRITE_PX}px, "
+      f"from {LEVELS}")

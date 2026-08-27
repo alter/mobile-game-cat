@@ -11,9 +11,12 @@ CONTEXT
   NOTES.md in this directory (why this gate exists and what "no" means)
 
 SCOPE
-  + Five people with nothing invested in the project play the debug build,
-    ten minutes each, plain rectangles, no art.
-  + One question, answered in writing: would they keep playing.
+  + Five people with nothing invested in the project play the prototype, ten
+    minutes each, on their own phone, from a link. No install, no account.
+  + One question, answered in writing: would they keep playing. Ask the
+    follow-up too - "what would you have done next?" - because the build now
+    carries the drawn props and a yes could be about the pictures rather than
+    about the loop. See NOTES.md, "The build people will actually play".
   + build/playtest/index.html must embed the CURRENT shipped levels before the
     session. Regenerated and checked 27.08.2026 - see NOTES.md, "The prototype
     is current again". Do it again if the levels are reshipped before the

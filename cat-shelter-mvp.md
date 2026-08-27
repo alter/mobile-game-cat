@@ -181,9 +181,26 @@ traits. What this gives:
 Resemblance is sufficient: "that's my ginger tabby with white paws" — the
 attachment has already formed.
 
-Rejection if `is_cat` is false. The photo isn't stored anywhere, only the
-trait set goes out, and only the trait set comes back into the game. This
-removes almost all data requirements.
+Rejection if `is_cat` is false. **We** never store the photo: it is cropped on
+the device, sent once, and only the trait set comes back into the game —
+nothing about it is written to any storage of ours. That is the promise worth
+making to a player, and it holds.
+
+What does not hold is the stronger claim this paragraph used to make, and it
+was corrected on 27 August 2026. The crop goes to a model provider, and on a
+standard API account inputs and outputs are retained **by that provider for up
+to 30 days** before automatic deletion; they are not used for training without
+express permission; zero retention exists only as a separate opt-in
+arrangement this project does not have. Sources and dates:
+`tasks/00-validate-demand/01-market-scan/legal-risk.md`.
+
+The difference matters in one place, and it is not the pitch. A store privacy
+declaration asks separately whether data is collected, whether it is linked to
+the user, and whether it is used for tracking; the answers are yes, no-today,
+and no, written out with their caveats in
+`tasks/60-shell-build/14-testflight/NOTES.md`. The data requirements are still
+small. They are not zero, and a form filled in from the old sentence would
+have been wrong.
 
 Skipping the photo is possible — then a default cat is given. But the
 share of those who skip is measured; it's one of the main verification

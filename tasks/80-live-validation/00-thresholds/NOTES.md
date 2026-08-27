@@ -48,3 +48,54 @@ of those who tapped) resolve that ambiguity. Set both here, in advance.
 SayGames, Homa, Kwalee, CrazyLabs, Rollic (the five in
 04-publisher-submission) are worth asking directly what they consider a
 passing monetisation signal, rather than guessing at 15% alone.
+
+---
+
+## Metric four lost its instrument, 2026-08-27
+
+The section above ("Metric four: two numbers, not one") assumes the "one more
+shelf" button exists. It does not. **D4 was revised on 27.08.2026** and the
+button and its two strings were removed from the lose screen, after the owner
+hit the jam in play and asked why the game offers something and then refuses
+it. `Analytics.BoosterTap` and `Board.AddShelfSlots` both remain; only the
+offer is gone.
+
+The reasoning is worth repeating because it settles what to do next: the tap
+was **free**, and a tap on a costless offer to not lose is not evidence about
+willingness to pay. Metric four asks whether anyone would pay. So the number
+that button produced was never going to decide anything.
+
+That leaves gate 3 with three real metrics and one hole. Pick one of these,
+in writing, before `01-spend`:
+
+**(a) Drop metric four from this run.** Say plainly that this $400 answers
+"do they arrive, and do they come back" and not "would they pay". Costs
+nothing, and the honesty matters: a missing number must not later be read as
+a failed one. What it forfeits is the monetisation signal a publisher will
+ask for.
+
+**(b) Put the offer back with a real price.** One StoreKit product, three
+slots, once per level, priced. This is the only version that produces evidence
+about paying. It needs the App Store Connect record, a configured in-app
+purchase and review — days, not hours — and it pulls monetisation work forward
+that GOAL.md defers until after gate 3.
+
+**(c) Ask the five publishers instead of measuring.** `04-publisher-submission`
+already contacts SayGames, Homa, Kwalee, CrazyLabs and Rollic. What they call
+a passing monetisation signal for a prototype is free to ask and worth more
+than a number from a hundred installs. This is not a substitute for (a) or
+(b) — it is how the threshold gets chosen if (b) is taken.
+
+**The denominator problem is now measured, and it is the reason to lean to
+(a).** Re-measured 27.08 on the shipped levels
+(`30-levels-solver/10-remeasure-curve-partial-info/NOTES.md`): a realistic
+player wins **92.7%** of level attempts, so roughly one attempt in fourteen
+ends in a jam. At a hundred installs, the number who ever reach a lose screen
+is small, and the number who then buy anything is smaller still. Option (b)
+would spend days building a purchase to measure it on a handful of people.
+
+**Correction to the section above.** It quotes win rates "~98% / ~87% / ~66%".
+Those are the retired figures for a player who only watches the shelf. The
+current measurement, same script, same seed, is 98.0% / 83.8% / 71.5% for that
+player and **99.2% / 94.2% / 90.0%** for a realistic one. The realistic row is
+the one that governs how often a lose screen is ever seen.

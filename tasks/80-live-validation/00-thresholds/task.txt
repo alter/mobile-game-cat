@@ -14,8 +14,17 @@ SCOPE
     retention (originally >35%), booster-tap >15% of lose-screen reachers.
   + Day-1: pick and record one of three stances - keep 35% (breakout only),
     lower to ~25%, or bands (below 20% stop, 20-30% iterate, above 30% push).
-  + Booster tap: record as two numbers, never one - share who ever reached
-    the lose screen, and share of those who tapped.
+  + Metric four has no instrument in the MVP any more, and the FIRST thing
+    this task settles is which of three ways out to take. D4 was revised on
+    27.08.2026: the "one more shelf" button is gone, because a tap on a free
+    offer is not evidence about willingness to pay. The three options and what
+    each costs are in NOTES.md, "Metric four lost its instrument". Choose one
+    in writing - "we will decide later" is the one answer that fails, because
+    01-spend starts after this file and the money is then already moving.
+  + Whichever is chosen, the lose-screen denominator is still recorded on its
+    own: the share of players who ever reached a lose screen. It is cheap, it
+    is what makes any later monetisation number interpretable, and today's
+    measurement says it will be small - see NOTES.md.
   + Ask the five publishers in 04-publisher-submission what they expect on
     monetisation before finalising that threshold, rather than guessing.
   - Not spending any money - that is 01-spend, blocked until this is filed.
@@ -30,7 +39,11 @@ VERIFY (HUMAN)
   1. The file's date precedes the start date of 01-spend's campaign.
   2. The day-1 threshold states one of the three named stances explicitly,
      not a bare number.
-  3. The fourth metric is recorded as two separate numbers, not one.
+  3. The file names which of the three ways out of metric four was taken. If
+     the answer is "drop it for this run", it says so in those words, so that
+     nobody later reads a missing number as a failed one.
+  4. The lose-screen denominator is listed as a number to collect, whatever
+     was decided in item 3.
 
 ROLE
   HUMAN

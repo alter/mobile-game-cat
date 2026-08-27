@@ -1,7 +1,7 @@
 phase:art
 role:ART
 type:feature
-priority:P0
+priority:P2
 status:todo
 verify:pending
 depends:40-art/03-cat-silhouettes

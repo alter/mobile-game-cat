@@ -486,3 +486,33 @@ board where the locked kind was also hidden. That is no longer the board being
 played: a player who can see which kind is withheld can plan around it, and the
 levels may now be easier than they were measured to be. The number is not
 wrong, it is about a different game. Rerun it before quoting it again.
+
+## D16. The shelf does not compact and does not sort — 2026-08-27
+
+**Decided by the owner**, after seeing it in play and asking whether the gaps
+were intentional. They are now.
+
+**What the shelf does.** An item goes into the leftmost free slot. When three of
+a kind match, those three slots are emptied where they stand — nothing shifts
+along, and the next item drops into the first gap rather than onto the end. So
+the order on the shelf follows neither the order things were picked up nor any
+grouping of like with like.
+
+**Why this is written down.** `Shelf.TryMatch` nulls three slots and returns,
+and `TryPlace` takes `Array.IndexOf(_slots, null)`. Read cold, both look like an
+unfinished implementation — the genre's other games (Triple Match, Match
+Factory) compact left and slide a new item next to its twins, and the absence of
+that reads as a missing feature rather than a choice. It is a choice: the shelf
+is a workbench things are set down on, not a queue.
+
+**What was turned down, and what it would have cost.**
+- *Compact left only.* Gaps close, order becomes the order of picking up.
+  Changes no rule, no capacity, no jam condition — purely how it looks.
+- *Compact and group by kind.* Like sits next to like, so a pair is seen without
+  hunting for it. This one is not cosmetic: finding the second copy among nine
+  occupied slots is a real part of the attention the game asks for, and grouping
+  hands it to the player. It would also have invalidated the jam-rate numbers,
+  which were measured on an ungrouped shelf.
+
+Neither was taken. If the shelf is ever revisited, the second option is the one
+that changes the game and needs a fresh measurement; the first is free.

@@ -60,7 +60,14 @@ namespace CatShelter.Shell
                 ["win.room_clean.title"] = "Room clean!",
                 ["win.room_clean.body"] = "The kitten likes it better already.",
                 ["win.corner.title"] = "Corner cleared!",
-                ["win.corner.body"] = "{0}% of this room is done.",
+                // No count here on purpose: the header above the pile already
+                // reads "Room 3 of 12 - pile 2 of 3". The card used to say
+                // "67% of this room is done", which is the same number said
+                // worse - a fraction with no denominator on screen, and a
+                // second word ("corner") for the thing the header calls a
+                // pile. What the card is for is the small beat of having
+                // finished one, so it says that instead of counting again.
+                ["win.corner.body"] = "The kitten came over to look.",
                 ["win.next"] = "Next",
 
                 // --- losing a pile -------------------------------------------

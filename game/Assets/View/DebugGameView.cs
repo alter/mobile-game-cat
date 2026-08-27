@@ -14,11 +14,13 @@ namespace CatShelter.View
     /// DebugGame.uxml/uss assigned; this component populates the root.
     ///
     /// Conventions (DECISIONS.md):
-    /// - hidden kinds render as BLANK tiles (D3), not faded;
-    /// - locked kinds show a lock glyph and ignore taps until unlocked (3.11);
+    /// - buried kinds hide what they are (D3) and render as prop_unknown;
+    /// - locked kinds are SEEN (D15) with a rope badge in the tile corner, and
+    ///   ignore taps until unlocked (3.11);
     /// - the lose screen offers "one more shelf" but NEVER calls Shelf.AddSlots —
     ///   the booster is a fake door in the MVP (D4).
-    /// Styling lives in DebugGame.uss; inline styles only for per-tile colours.
+    /// Styling lives in DebugGame.uss; inline styles only for the per-tile
+    /// sprite, and for the colour fallback when a kind has no art file.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class DebugGameView : MonoBehaviour
@@ -358,8 +360,7 @@ namespace CatShelter.View
                     Shell.Copy.Of(lastPileOfRoom ? "win.room_clean.title" : "win.corner.title"),
                     lastPileOfRoom
                         ? Shell.Copy.Of("win.room_clean.body")
-                        : Shell.Copy.Of("win.corner.body",
-                            Mathf.RoundToInt(_plan.ClearedFractionAfter(_level) * 100)),
+                        : Shell.Copy.Of("win.corner.body"),
                     Shell.Copy.Of("win.next"), () => { HideCard(); StartLevel(_levelIndex + 1); },
                     null, null);
             }

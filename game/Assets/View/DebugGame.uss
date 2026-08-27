@@ -108,9 +108,12 @@
     background-color: #B0A79B;
 }
 
-/* Reachable but not takeable: dimmed, still readable. */
+/* Reachable but not takeable: the PROP dims, the tile does not.
+   opacity on the tile dimmed its children too, so the lock badge faded along
+   with the item it was there to mark. Tinting the background image leaves
+   child elements at full strength. */
 .game__tile--dim {
-    opacity: 0.45;
+    -unity-background-image-tint-color: rgba(255, 255, 255, 0.45);
 }
 
 .game__tile-label {

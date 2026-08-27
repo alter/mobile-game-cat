@@ -48,7 +48,9 @@ namespace CatShelter.Core
         public IReadOnlyList<Item?> Slots => _slots;
 
         /// <summary>
-        /// Place an item into the leftmost free slot.
+        /// Place an item into the leftmost free slot — which, after a triple has
+        /// been cleared, is a gap in the middle rather than the end of the row.
+        /// Deliberate; see TryMatch and DECISIONS.md D16.
         /// Returns false when the shelf is already full — the item does not fit.
         /// Matching is attempted after placement; matched triples are removed and
         /// reported through <paramref name="matchedKind"/> (null when nothing matched).
@@ -71,6 +73,15 @@ namespace CatShelter.Core
         /// A single placement adds a single item, so at most one triple can complete
         /// per call; the method removes that triple and returns.
         /// </summary>
+        /// <remarks>
+        /// The three slots are emptied where they stand and nothing shifts along:
+        /// the shelf neither compacts nor sorts (DECISIONS.md D16, decided
+        /// 2026-08-27 after the owner saw the gaps in play and asked). This is
+        /// not an unfinished implementation, and the genre's habit of sliding
+        /// items left and grouping like with like was turned down on purpose —
+        /// grouping would hand the player the work of spotting a pair, which is
+        /// part of what the game asks of them.
+        /// </remarks>
         public bool TryMatch(out ItemKind? matchedKind)
         {
             foreach (var group in _slots.OfType<Item>().GroupBy(i => i.Kind.Id))

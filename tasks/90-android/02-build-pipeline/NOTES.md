@@ -48,3 +48,44 @@ result `11-save-parity` then confirmed by moving a real position between runs.
    sizes above.
 2. **Met** — `aapt dump badging` output quoted above.
 3. **Met** — no `error CS` in either log; both runs exit 0.
+
+---
+
+## A silent defect in the pipeline, found and fixed 2026-08-27
+
+`BuildScript` passed `BuildTarget.Android` to `BuildPipeline.BuildPlayer` but
+never made Android the **active** build target. That is not the same thing, and
+the difference is invisible until something depends on it.
+
+Editor code that hooks a build is guarded by the platform define.
+`com.unity.mobile.notifications` opens its `AndroidNotificationPostProcessor`
+with `#if UNITY_ANDROID`, and in the editor those defines follow the *active*
+target, which is settled before any build script runs. The project was left on
+iOS, so that class did not exist, its `OnPostGenerateGradleAndroidProject`
+never ran, and nothing injected the manifest entries it is responsible for.
+
+**What shipped as a result.** An APK with the notification Java classes present
+in `classes.dex` — 18 references to `com.unity.androidnotifications` — and
+neither `android.permission.POST_NOTIFICATIONS` nor the
+`UnityNotificationManager` receiver in the manifest. So the code was there and
+could never deliver anything. The build reported `result=Succeeded`, exit code
+0, zero errors.
+
+**How it was found.** By dumping the built APK's manifest with `aapt2`, not by
+reading the log — there was nothing in the log to read. `dumpsys package` on
+the installed app showed one requested permission, the Unity default.
+
+**The fix**, in `BuildScript.UseTarget`: switch the active target first, and
+throw if the switch fails. Applied to all three entry points, not just Android
+— the iOS ones had the same latent bug from the other side, and
+`headless-build.sh` builds Android and then iOS in one run, so without it the
+iOS build would have inherited an Android editor.
+
+**Proof it was the cause:** the only change between the two builds was the
+target switch. Before: `uses-permission` listed only Unity's own
+`DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. After: `POST_NOTIFICATIONS` is
+there and so is the receiver.
+
+Worth remembering beyond notifications: **any** Unity package that injects
+manifest entries, permissions or gradle changes through an editor callback was
+silently skipped by every Android build this project has made until today.

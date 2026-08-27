@@ -49,8 +49,36 @@ public static class BuildScript
         BuildAndroid("build/android/CatShelter.aab", aab: true);
     }
 
+    /// <summary>
+    /// Make <paramref name="target"/> the ACTIVE build target before building
+    /// for it, rather than only passing it to BuildPlayer.
+    ///
+    /// This is not housekeeping. Editor code that hooks the build is guarded by
+    /// the platform define — com.unity.mobile.notifications opens its
+    /// AndroidNotificationPostProcessor with `#if UNITY_ANDROID` — and in the
+    /// editor those defines follow the ACTIVE target, which is settled before
+    /// any of this runs. Handing BuildTarget.Android to BuildPlayer while the
+    /// active target is still iOS produces an APK whose Android editor
+    /// callbacks never existed. On 2026-08-27 that shipped a build with the
+    /// notification Java classes present in classes.dex and neither the
+    /// POST_NOTIFICATIONS permission nor the UnityNotificationManager receiver
+    /// in the manifest — so nothing could ever be delivered — and the build
+    /// reported success. It was found by dumping the APK's manifest, not by
+    /// reading the log, because there was nothing in the log to read.
+    /// </summary>
+    private static void UseTarget(BuildTargetGroup group, BuildTarget target)
+    {
+        if (EditorUserBuildSettings.activeBuildTarget == target)
+            return;
+        Console.WriteLine("[BuildScript] switching active build target " +
+                          $"{EditorUserBuildSettings.activeBuildTarget} -> {target}");
+        if (!EditorUserBuildSettings.SwitchActiveBuildTarget(group, target))
+            throw new Exception($"could not switch active build target to {target}");
+    }
+
     private static void ConfigureAndroid()
     {
+        UseTarget(BuildTargetGroup.Android, BuildTarget.Android);
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel25;
@@ -77,6 +105,7 @@ public static class BuildScript
     // Output opens in Xcode: pick your device, set the team, press Play.
     public static void BuildIOSXcodeProject()
     {
+        UseTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
         var report = BuildPipeline.BuildPlayer(
             SceneList(),
             "build/ios/CatShelter",
@@ -99,6 +128,7 @@ public static class BuildScript
         var archProp = typeof(PlayerSettings.iOS).GetProperty(
             "simulatorSdkArchitecture",
             System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+        UseTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
         var sdk = PlayerSettings.iOS.sdkVersion;
         var arch = archProp?.GetValue(null);
         try

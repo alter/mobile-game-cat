@@ -123,6 +123,15 @@ namespace CatShelter.Shell
                 // a reproach (cat-shelter-mvp.md section 4).
                 ["notification.title"] = "Your kitten found something behind the couch",
                 ["notification.body"] = "It is waiting to show you, whenever you have a minute.",
+
+                // Android only, and shown in system Settings rather than in the
+                // game — which is exactly why it belongs here and not as a
+                // literal in EveningReminder. Named for what it is. One
+                // channel: the game sends one kind of message, and a list of
+                // switches for a single message is a list of one.
+                ["notification.channel"] = "Evening reminder",
+                ["notification.channel_description"] =
+                    "One quiet message in the evening, on days you have not played.",
             };
     }
 }

@@ -4,6 +4,9 @@ using UnityEngine;
 #if UNITY_IOS && !UNITY_EDITOR
 using Unity.Notifications.iOS;
 #endif
+#if UNITY_ANDROID && !UNITY_EDITOR
+using Unity.Notifications.Android;
+#endif
 
 namespace CatShelter.Shell
 {
@@ -33,6 +36,13 @@ namespace CatShelter.Shell
         private const string Identifier = "catshelter-evening";
         private const string AskedKey = "catshelter.notifications.asked";
 
+        // Android replaces a pending notification by integer id where iOS uses
+        // a string identifier, so the same reminder needs both. One channel,
+        // named for what it is: a channel per notification type would show the
+        // player a list of switches for a game that sends one kind of message.
+        private const int AndroidId = 1;
+        private const string AndroidChannel = "catshelter-evening";
+
         // Modelled on the line in cat-shelter-mvp.md section 4 — "Murzik found
         // something behind the couch". A discovery, not a chore and not a
         // reproach: the design rule there is that the kitten never gets sick,
@@ -42,8 +52,15 @@ namespace CatShelter.Shell
         private static string Title => Copy.Of("notification.title");
         private static string Body => Copy.Of("notification.body");
 
+        /// <summary>
+        /// Both stores are targets (DECISIONS.md D17), and this is the only
+        /// mechanism in the MVP built to cause a return. Firing on one platform
+        /// and not the other would make metric 3 a comparison of platforms
+        /// rather than of the game — see 90-android/09-notifications.
+        /// </summary>
         public static bool Available =>
-            Application.platform == RuntimePlatform.IPhonePlayer;
+            Application.platform == RuntimePlatform.IPhonePlayer ||
+            Application.platform == RuntimePlatform.Android;
 
         public static bool AlreadyAsked => PlayerPrefs.GetInt(AskedKey, 0) == 1;
 
@@ -72,6 +89,21 @@ namespace CatShelter.Shell
                     Core.Analytics.NotificationAllowed();
                     Schedule();
                 }
+            }
+#elif UNITY_ANDROID && !UNITY_EDITOR
+            // POST_NOTIFICATIONS is a runtime permission from API 33 (Android
+            // 13). Below that the request completes immediately as Allowed, so
+            // the same code covers both and there is no version branch here.
+            // The package remembers a refusal itself and will not re-prompt.
+            var request = new PermissionRequest();
+            while (request.Status == PermissionStatus.RequestPending)
+                yield return null;
+
+            Report($"permission answered: status={request.Status}");
+            if (request.Status == PermissionStatus.Allowed)
+            {
+                Core.Analytics.NotificationAllowed();
+                Schedule();
             }
 #else
             yield break;
@@ -178,6 +210,64 @@ namespace CatShelter.Shell
             Report($"scheduled '{Identifier}', pending={iOSNotificationCenter.GetScheduledNotifications().Length}, " +
                    $"authorization={iOSNotificationCenter.GetNotificationSettings().AuthorizationStatus}, " +
                    $"debugDelay={debugDelay}");
+#elif UNITY_ANDROID && !UNITY_EDITOR
+            // The channel has to exist before anything is posted to it, and
+            // registering the same id twice is a no-op, so this is done on
+            // every schedule rather than tracked with a flag.
+            AndroidNotificationCenter.RegisterNotificationChannel(
+                new AndroidNotificationChannel
+                {
+                    Id = AndroidChannel,
+                    Name = Copy.Of("notification.channel"),
+                    Description = Copy.Of("notification.channel_description"),
+                    // Default, not High: this is a quiet evening nudge, not an
+                    // alarm. High would give it heads-up display and sound,
+                    // which is the urgency the tone rule forbids.
+                    Importance = Importance.Default,
+                });
+
+            AndroidNotificationCenter.CancelNotification(AndroidId);
+
+            var androidDelay = DebugDelaySeconds();
+            DateTime fireTime;
+            TimeSpan? repeat;
+            if (androidDelay > 0)
+            {
+                fireTime = DateTime.Now.AddSeconds(androidDelay);
+                repeat = null;
+                Debug.Log($"[EveningReminder] debug delay {androidDelay}s instead of {EveningHour}:00");
+            }
+            else
+            {
+                // The next occurrence of EveningHour: today if it is still to
+                // come, otherwise tomorrow. iOS gets this from the calendar
+                // trigger with the date left unset; Android has no equivalent,
+                // so the same rule is written out here.
+                var today = DateTime.Now.Date.AddHours(EveningHour);
+                fireTime = today > DateTime.Now ? today : today.AddDays(1);
+                repeat = TimeSpan.FromDays(1);
+            }
+
+            var notification = new AndroidNotification
+            {
+                Title = Title,
+                Text = Body,
+                FireTime = fireTime,
+                RepeatInterval = repeat,
+                // Exact alarms are deliberately not requested: an evening
+                // reminder does not need to be exact, and SCHEDULE_EXACT_ALARM
+                // is a review question nobody wants to answer
+                // (90-android/09-notifications, SCOPE).
+                ShowTimestamp = false,
+            };
+
+            AndroidNotificationCenter.SendNotificationWithExplicitID(
+                notification, AndroidChannel, AndroidId);
+
+            Report($"scheduled id={AndroidId} on '{AndroidChannel}' for {fireTime:yyyy-MM-dd HH:mm:ss}, " +
+                   $"repeat={(repeat.HasValue ? "daily" : "once")}, " +
+                   $"permission={AndroidNotificationCenter.UserPermissionToPost}, " +
+                   $"debugDelay={androidDelay}");
 #endif
         }
 

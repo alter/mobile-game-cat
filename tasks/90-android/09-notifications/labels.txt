@@ -2,7 +2,7 @@ phase:android
 role:NATIVE
 type:feature
 priority:P2
-status:todo
+status:review
 verify:pending
 depends:90-android/03-emulator-run
 milestone:M9

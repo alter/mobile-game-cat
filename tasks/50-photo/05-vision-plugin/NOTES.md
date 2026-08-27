@@ -164,3 +164,46 @@ $ wc -l out.jsonl
 
 **Still open, unchanged by any of this: VERIFY 1**, a real device run,
 owned by `60-shell-build/14-testflight`.
+
+---
+
+## The device check may not need the $99 after all — 2026-08-28
+
+A verifier reading `14-testflight` noticed that this task's remaining blocker
+was described more broadly than it is. `14-testflight` is about **distribution**
+— TestFlight, review, an App Store Connect record — and that genuinely needs
+the paid Apple Developer Program, deferred under D17.
+
+**Running the app on one phone that belongs to you is a different thing.**
+Xcode's free provisioning signs with a personal Apple ID at no cost: the app
+installs on your own connected device and its certificate expires after seven
+days. For settling one question — does `CatVision.swift` return anything other
+than "Could not create inference context" on real hardware — seven days is
+more than enough.
+
+**What that would settle, and it is the largest open unknown in the project.**
+The shipped plugin's record is 0 of 41, on the simulator, and the simulator
+cannot run the animal model at all. `tools/vision-probe` shows the *framework*
+works on this machine — 18 of 20 cats, 5 of 5 dogs — so the untested part is
+our wrapper, not Apple's recognition. One run on a phone separates "the hook
+works" from "the hook has never been observed to work".
+
+**What the project would need first**, from the state as it stands today:
+
+| now | needed |
+|---|---|
+| `appleDeveloperTeamID:` empty | a personal team, from a free Apple ID signed into Xcode |
+| `appleEnableAutomaticSigning: 0` | on — free provisioning is automatic-only |
+| `PRODUCT_BUNDLE_IDENTIFIER = com.DefaultCompany.game` | something unique; Unity's default may already be claimed by another free profile |
+| no device connected (`xcrun devicectl list devices` → none) | an iPhone on a cable, and the certificate trusted in Settings on first launch |
+
+Then `BuildScript.BuildIOSXcodeProject`, open the project, pick the device,
+press Run, and drop the 41 reference photos in — or simply photograph a cat.
+
+**Stated as a lead, not as a fact.** Free provisioning has existed since
+Xcode 7 and is what this rests on, but I did not confirm against Apple's
+current documentation that it still works exactly this way in Xcode 26, and no
+device was available to try. Someone with a phone in their hand settles both
+questions in an evening.
+
+`14-testflight` still owns distribution. It does not own this.

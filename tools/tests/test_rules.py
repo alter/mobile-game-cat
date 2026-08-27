@@ -197,8 +197,17 @@ def test_locked_item_cannot_be_taken_even_if_asked():
         st.take(1)
 
 
-def test_locked_item_is_not_revealed():
+def test_locked_item_is_revealed_but_not_takeable():
+    """D15: the lock is a complication, so it has to be seen to be one.
+
+    This test asserted the opposite until 2026-08-27 - a locked item reported
+    itself unrevealed, so the view drew it as a buried tile and the lock was
+    never on screen in any of the 37 shipped levels. Being locked and being
+    buried are different states and only burial hides a kind.
+    """
     st = new_state(L(Locked(1, "x", 5),
                      E(10, "a"), E(11, "a"), E(12, "a")))
     by_id = st.level.by_id()
-    assert st.is_revealed(by_id[1]) is False
+    assert st.is_revealed(by_id[1]) is True
+    assert st.is_locked(by_id[1]) is True
+    assert by_id[1] not in st.available()

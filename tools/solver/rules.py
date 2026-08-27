@@ -62,8 +62,9 @@ class RulesState:
         """Task 3.9: kind visible only once reachable."""
         if item.id in self.taken:
             return False
-        return (all(b in self.taken for b in item.blocked_by)
-                and not self.is_locked(item))
+        # Locked is not hidden - the player must see which kind is withheld.
+        # Mirrors Board.IsRevealed; see tasks/DECISIONS.md D15.
+        return all(b in self.taken for b in item.blocked_by)
 
     def _try_match(self) -> bool:
         counts: dict[str, int] = {}

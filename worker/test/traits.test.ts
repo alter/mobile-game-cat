@@ -185,3 +185,28 @@ describe("what reaches the model, and what comes back", () => {
 		expect(response.status).toBe(502);
 	});
 });
+
+// The tests above stub the limiter, so they prove the handler honours whatever
+// verdict it is given and passes the right key. They cannot prove the binding
+// is configured to the numbers the task asked for — that lives in
+// wrangler.jsonc and nothing checked it. A limit of 600 an hour would pass
+// every test on this page.
+describe("the limiter's configuration, which no stub can check", () => {
+	it("matches what 50-photo/04-rate-limit asked for", async () => {
+		const { readFileSync } = await import("node:fs");
+		const source = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
+		// jsonc: strip // comments before parsing. Block comments are not used
+		// in this file and are deliberately not handled, so one appearing would
+		// break this loudly rather than be silently mis-parsed.
+		const config = JSON.parse(source.replace(/^\s*\/\/.*$/gm, ""));
+
+		const limiter = config.ratelimits?.find(
+			(r: { name: string }) => r.name === "TRAITS_LIMITER");
+		expect(limiter, "TRAITS_LIMITER is not declared in wrangler.jsonc").toBeDefined();
+
+		// Six in sixty seconds: a player photographs her cat once, so six is
+		// already generous, and the binding accepts no period but 10 or 60.
+		expect(limiter.simple.limit).toBe(6);
+		expect(limiter.simple.period).toBe(60);
+	});
+});

@@ -1,85 +1,129 @@
-# Re-verification, 2026-08-27 — ruling on a different agent's fixes to the 2026-08-27 failed VERIFY.md above
+# Re-verification, 2026-08-28 — ruling on the last closed quarter
 
-**Verifier:** fresh context. Wrote none of the fixes below (`Core/PhotoMessages.cs`,
-`Shell/PhotoMessages.cs`, `Tests/Core/PhotoMessageKeyTests.cs`,
-`Shell/CatVision.cs`'s `Best`/`Failed`, `View/CaptureScreen.cs`'s `Failed`
-branch, this `NOTES.md` addendum) or the original failing `VERIFY.md`. No
-build/adb/emulator. Ran `dotnet test` on the real repo (169/169) and
-`build/check-core-purity.sh` (OK). One mutation probe outside the repo.
+**Verifier:** fresh context. Wrote none of `Core/VisionAnswer.cs`,
+`Shell/CatVision.cs`, `Tests/Core/VisionAnswerTests.cs`, the NOTES.md
+addendum, the prior `VERIFY.md` (either round), or any earlier fix in this
+file's history. No build/adb/emulator. Ran `dotnet test` on the real repo
+(177/177, including 8/8 filtered to `VisionAnswerTests` and 8/8 to
+`PhotoMessageKeyTests`) and `bash build/check-core-purity.sh` (OK) myself.
 
-## Per-finding ruling
+## Per-item verdict
 
-| # | Original finding | Status |
+| # | Item | Result |
 |---|---|---|
-| 1 | `PhotoMessages` totality untested | **closed** |
-| 2 | `Best` rested on a Swift comment, untested | **partly closed** — fix is real, coverage gap is not |
-| 3 | Device failure indistinguishable from empty frame | **closed** |
-| 4 | No outcome ever came from real Vision | **closed, transparently** |
+| 1 | is the move honest — nothing left in Shell that could have moved, purity gate still passes | **pass** |
+| 2 | do the 8 new tests reach the states their names claim; is `Best` throwing the right contract | **pass, with a design note kept visible** |
+| 3 | are the three states (failed / found-nothing / found-something) genuinely distinct through `CaptureScreen` to copy | **pass** |
+| 4 | rule on the whole task | **pass** |
 
-**1 — closed.** Mapping moved to `Core/PhotoMessageKey.For`, guarded both
-ways: `EveryOutcomeMapsToANonEmptyKey` and — the direction that was actually
-missing — `EveryKeyExistsInTheCopyTable`, which reads real `Copy.cs` and
-fails (not skips) if the file can't be found. `Shell/PhotoMessages.For` is
-now one line, `Copy.Of(PhotoMessageKey.For(outcome))` — a lookup, not a
-second copy. 4/4 new tests pass, run myself.
+### 1. The move
 
-**2 — partly closed.** `VisionAnswer.Best` now does
-`detections.OrderByDescending(d => d.confidence).First()` — no longer reads
-Swift's ordering at all. Confirmed by mutation outside the repo: fed an
-unsorted `[Dog 0.55, Cat 0.91]`, old `detections[0]` returns **Dog** (wrong),
-new sort returns **Cat** (right). The defect is genuinely gone. But
-`grep -rln "VisionAnswer\|AnimalBox" game/Assets/Tests` is still empty — no
-committed test exercises this in either language. The original finding named
-two things, correctness and coverage; only correctness is fixed. Structural,
-not negligence — `VisionAnswer` lives in `Shell`, which `dotnet test` cannot
-compile — but the gap named in the finding is still there.
+`Core/VisionAnswer.cs` holds `AnimalBox` and `VisionAnswer` — plain structs,
+`[Serializable]` (`System.SerializableAttribute`, confirmed by reading the
+`using` list, no `UnityEngine`). `grep -rn "struct VisionAnswer\|struct
+AnimalBox" game/Assets` finds exactly one definition of each, in `Core` —
+no shadow copy left in `Shell/CatVision.cs`, which now holds only the
+`DllImport`, `Marshal`/`JsonUtility` glue, and `Application.platform`. Every
+call site (`Shell/GameBoot.cs`, `Shell/VisionSelfTest.cs`,
+`View/CaptureScreen.cs`) references the moved types via `using
+CatShelter.Core`, confirmed by grep — none redeclares anything. `bash
+build/check-core-purity.sh` → `Core is engine-free: OK`, run myself, not
+taken on NOTES.md's word. `dotnet test`: 177 passed, 0 failed, 0 skipped
+(up from 169, matching the claimed 8 new).
 
-**3 — closed.** `VisionAnswer.Failed => !ok`, checked first in
-`CaptureScreen.Handle`, returns `Copy.Of("photo.our_fault")` before
-`PhotoJudge.Judge` is ever called — structurally cannot conflate with
-`NoAnimal`. Three distinct Copy keys confirmed present and different:
-`photo.our_fault`, `photo.no_animal`, and the Dog/UnclearCat/Cat set.
+### 2. The eight tests, and the throw contract
 
-**4 — closed, and enough.** `NOTES.md`'s new section names all four facts
-(simulator can't load Vision, the confidence table is from a separate macOS
-probe, the one real-build run used a hand-typed stub, no device has run it)
-and states plainly: "`60-shell-build/14-testflight` owns closing this." A
-reader of this file alone now sees the gap and where it's tracked.
+Ran `--filter FullyQualifiedName~VisionAnswerTests`: 8/8 pass. Read each
+assertion against its name — `BestPicksTheHighestConfidenceFromAnUnsortedList`
+puts Dog(0.91) after two Cats and asserts Dog wins (real regression
+coverage for the sort fix, not a rename of an old passing case);
+`BestOnAnEmptyListThrows` asserts `InvalidOperationException`, which is
+exactly what `.OrderByDescending().First()` throws on an empty sequence —
+verified by reading `VisionAnswer.Best`'s implementation directly, not
+inferred; `TheThreeStatesAreMutuallyExclusive` exercises all three
+reachable `ok`/`detections` combinations and checks both flags on each. No
+test asserts a weaker condition than its name implies.
+
+**On the throw itself:** `grep -rn "\.Best\b" game/Assets` finds exactly two
+real call sites, `CaptureScreen.cs:183` and `VisionSelfTest.cs:59`, and both
+read `answer.FoundAnimal ? answer.Best : default` — the ternary
+short-circuits, so `.Best` is never evaluated when it would throw. This
+differs from the `CatTraits.FromColourOnly` defect closed in
+`50-photo/11-offline-fallback` today: that throw sat on a live, reachable
+path with no guard at its one call site. Here every real call site already
+guards the precondition, so the throw is presently unreachable, and it
+exists to fail loudly if a future call site forgets to — the same shape as
+`Enumerable.First()`'s own contract. Worth naming for the record: it is
+still an uncaught-exception-in-a-coroutine risk *if* that discipline ever
+lapses at a new call site, since nothing in the type system enforces the
+guard — but it is not a live defect today, and enforcing it belongs to
+whichever task adds the next call site, not to 06.
+
+### 3. Three states, every layer
+
+`VisionAnswer`: `Failed` / `FoundAnimal==false` / `FoundAnimal==true` —
+pinned mutually exclusive by test. `CaptureScreen.Handle` (read directly,
+`View/CaptureScreen.cs:168-193`): `answer.Failed` returns immediately with
+`Copy.Of("photo.our_fault")`, before `PhotoJudge.Judge` is ever called —
+structurally cannot merge with "found nothing". `PhotoJudge.Judge(null,
+0f)` (the found-nothing case, since `identifier` is passed as `null` when
+`!FoundAnimal`) returns `NoAnimal` → `"photo.no_animal"`. Found-something
+splits further into `Dog`/`UnclearCat`/`Cat`. `grep -n "photo\." Shell/Copy.cs`
+confirms five distinct strings: `no_animal`, `dog`, `unclear`, `accepted`,
+`our_fault` — the player reads a different sentence for "we couldn't look"
+than for "we looked and saw nothing," at every layer.
+
+### 4. Whole task
+
+All four grounds the original `VERIFY.md` failed on are now closed:
+mapping totality (`Core.PhotoMessageKey`, tested both directions, 8/8
+`PhotoMessageKeyTests` pass here including the fails-not-skips missing-file
+guard), `Best` no longer trusting Swift's ordering (fixed *and* now covered,
+closing the one gap the 2026-08-27 re-verification left open), the failure
+path split (unchanged, still correct), and the device gap named with its
+owner (`NOTES.md`'s "third gap" section still names
+`60-shell-build/14-testflight` as the owner, untouched by this fix). **Item
+2's coverage half is the one that decides this**, since it was the sole
+surviving finding from the prior round — it is now closed, verified by
+running the tests myself rather than trusting the count in NOTES.md.
 
 ## How to reproduce
 
 ```bash
-dotnet test build/core-tests/core-tests.csproj -v q --nologo --filter "FullyQualifiedName~PhotoMessageKeyTests"  # 4/4
-grep -rln "VisionAnswer\|AnimalBox" game/Assets/Tests   # still empty
-mkdir -p /tmp/best-mutation && cd /tmp/best-mutation
-cat > probe.csproj <<'EOF'
-<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType>
-<TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>
-EOF
-cat > Program.cs <<'EOF'
-using System.Linq;
-struct AnimalBox { public string identifier; public float confidence; }
-var unsorted = new[] {
-    new AnimalBox { identifier = "Dog", confidence = 0.55f },
-    new AnimalBox { identifier = "Cat", confidence = 0.91f } };
-System.Console.WriteLine("old: " + unsorted[0].identifier);
-System.Console.WriteLine("new: " + unsorted.OrderByDescending(d => d.confidence).First().identifier);
-EOF
-dotnet run --project probe.csproj   # old: Dog, new: Cat
+bash build/check-core-purity.sh                                   # Core is engine-free: OK
+dotnet test build/core-tests/core-tests.csproj -v q --nologo      # 177 passed, 0 failed, 0 skipped
+dotnet test build/core-tests/core-tests.csproj -v q --nologo \
+  --filter "FullyQualifiedName~VisionAnswerTests"                 # 8/8
+dotnet test build/core-tests/core-tests.csproj -v q --nologo \
+  --filter "FullyQualifiedName~PhotoMessageKeyTests"               # 8/8
+
+grep -rn "struct VisionAnswer\|struct AnimalBox" game/Assets       # one definition each, in Core
+grep -rn "\.Best\b" game/Assets --include="*.cs"                   # two call sites, both guarded by FoundAnimal
+grep -n "photo\." game/Assets/Shell/Copy.cs                        # five distinct player-facing keys
 ```
 
 ## What was not checked
 
-Same boundaries as the original `VERIFY.md`: no device run exists to check
-(item 4's own subject); the macOS probe's methodology was not re-inspected;
-`PhotoMessages`'s wording is `12-copy-english`'s scope, not checked here.
+- No device/simulator/Unity build run — the device gap named in `NOTES.md`
+  ("The third gap") is unchanged by this fix and stays open, owned by
+  `60-shell-build/14-testflight`, not re-litigated here.
+- Whether a future call site could call `.Best` without the `FoundAnimal`
+  guard — flagged as a design note in item 2, not something a repo scan can
+  rule out for code that doesn't exist yet.
+- `PhotoMessages`' English wording — `12-copy-english`'s scope, not this
+  task's or this verification's.
+- The Swift side (`Plugins/iOS/CatVision.swift`) itself — only its C#
+  consumer was in scope for this pass, matching the finding under review.
 
 ## Verdict
 
-`verify:failed`, kept — not softened. Items 1, 3, and 4 are genuinely
-closed. Item 2's underlying bug is fixed and independently mutation-confirmed,
-but its coverage half is not: no test in either language guards
-`VisionAnswer.Best` today, so a future regression there would go unnoticed
-again. `status:` stays `done`; fix the one gap named above (a C# test is
-possible if `VisionAnswer`/`AnimalBox` move somewhere `dotnet test` can
-reach, or an `XCTest` on the Swift side) and this passes cleanly.
+`verify: passed`. The move is honest (no logic left duplicated in `Shell`,
+purity gate holds), the new tests reach the states their names claim and
+run clean (177/177 total, 8/8 and 8/8 on the filtered suites), the three
+failure/empty/found states stay distinct through to the copy the player
+reads, and the one surviving finding from the prior round — `VisionAnswer`
+and `AnimalBox` had zero test coverage because `dotnet test` could not
+compile `Shell` — is closed on its merits, independently confirmed rather
+than taken on NOTES.md's count.
+
+`status:` stays `done` (already so; nothing to move).

@@ -33,4 +33,4 @@ ROLE
 
 DEPENDS
   50-photo/08-capture-screen
-  40-art/06-coat-shader
+  60-shell-build/18-coat-shader

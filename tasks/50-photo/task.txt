@@ -36,4 +36,4 @@ ROLE
 
 DEPENDS
   10-accounts/01-spend-cap
-  40-art/06-coat-shader
+  60-shell-build/18-coat-shader

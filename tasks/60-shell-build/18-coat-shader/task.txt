@@ -1,0 +1,66 @@
+TASK: Coat shader — colour the cat from her traits
+
+GOAL
+  Turn one greyscale silhouette plus a CatTraits object into the player's own
+  cat on screen. This is the missing link between 40-art/03 and the meet-your-
+  cat screen: the art is drawn without colour on purpose, and nothing in the
+  project yet applies any.
+
+CONTEXT
+  This task did not exist until 2026-08-27 and should have. Both
+  50-photo/09-meet-your-cat and 50-photo/task.txt list a dependency on
+  "40-art/06-coat-shader", which is not a directory: 40-art/06 is the house
+  map, and 40-art/task.txt says in its own SCOPE that the shader is "not this
+  phase - VIEW work, belongs with shell/view tasks". So the work was excluded
+  from art, never added to view, and the dependency pointed at nothing.
+
+  art-brief.md section 7 (how the cat is assembled: base + masks + eyes)
+  cat-shelter-tech.md section 3 ("cat assembled from parts")
+  game/Assets/Core/CatTraits.cs (the five fields and their allowed values)
+
+SCOPE
+  + Tint the greyscale base by base_color, preserving its light and shadow -
+    multiply, not replace, or the cat goes flat.
+  + eye_color applied to the eyes region.
+  + white_markings (chest, paws, face) rendered as white, kept readable on a
+    white cat by outline and shadow rather than fill alone.
+  + pattern applied over the tinted base in a darker shade of the same colour.
+  + Two ways to get the pattern, and BOTH are in scope because which one ships
+    depends on whether 40-art/04's 54 hand-traced masks are ever drawn:
+      a) mask mode - the masks exist, multiply them in;
+      b) procedural mode - no masks, the pattern is generated in the shader
+         from the silhouette's own shape and alpha. Coarser than hand-traced
+         and it is the fallback, not the goal.
+    Mode is chosen at runtime by whether the mask texture loads, so the game
+    works with three files or with fifty-seven.
+  + fur_length picks WHICH silhouette is used, not how it is coloured. With
+    only short-haired art present, a long-haired cat falls back to short and
+    logs it once - a visible fallback, not a silent one.
+  - Not the meet-your-cat screen itself - 50-photo/09.
+  - Not the three-state switching - 60-shell-build/04-cat-states.
+  - Not the silhouettes or masks - 40-art/03, 40-art/04.
+  - No new trait fields. The five in CatTraits are the whole vocabulary.
+
+OUTCOME
+  A component that takes (CatTraits, state) and produces the coloured cat,
+  working from the three short-haired bases alone, and using masks when they
+  are present. A debug scene or harness that renders a grid of trait
+  combinations, so the result can be looked at without playing to room 9.
+
+VERIFY (QA)
+  1. All six base_color values rendered on one silhouette: six distinct cats,
+     none flat, light and shadow from the base still visible in each.
+  2. A white cat with all three white_markings: the markings are still
+     findable - checked by someone other than the author.
+  3. Deleting the pattern masks from Resources and rerunning: procedural mode
+     draws every pattern, nothing throws, nothing renders blank.
+  4. A long-haired trait set with only short-haired art present: renders the
+     short-haired cat and logs the fallback exactly once, not per frame.
+  5. The grid harness output attached to VERIFY.md, so the claim is a picture
+     and not a sentence.
+
+ROLE
+  VIEW
+
+DEPENDS
+  40-art/03-cat-silhouettes

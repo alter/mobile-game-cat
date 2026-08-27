@@ -15,7 +15,8 @@ SCOPE
   + Reads the parsed CatTraits object from 03-traits-schema's response and
     feeds it to the coat compositing shader.
   + Name entry field, stored with the save data.
-  - Not the coat shader or art layers it composites (40-art/06, 40-art/05).
+  - Not the coat shader or art layers it composites
+    (60-shell-build/18-coat-shader, 40-art/03, 40-art/04).
   - Not what happens on skip, no traits at all - that is 10-skip-default-cat,
     a separate path into this same screen.
 
@@ -35,4 +36,4 @@ ROLE
 DEPENDS
   50-photo/08-capture-screen
   50-photo/03-traits-schema
-  40-art/06-coat-shader
+  60-shell-build/18-coat-shader

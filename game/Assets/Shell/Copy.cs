@@ -74,7 +74,13 @@ namespace CatShelter.Shell
                 // No blame and no urgency: losing here is a setback of two
                 // minutes, and the copy should not make it feel larger.
                 ["lose.title"] = "Shelf jammed",
-                ["lose.body"] = "Levels finished: {0}.\n\nWould you keep playing if this were the real game?",
+                // The question "Would you keep playing if this were the real
+                // game?" was here until 2026-08-27. It asked a tester's
+                // question inside the game, at the one moment the player had
+                // just lost — and told them the game was not real while they
+                // were playing it. What is left is the count, which is a fact
+                // and not a reproach.
+                ["lose.body"] = "Levels finished: {0}.",
                 ["lose.replay"] = "Replay",
                 // "One more shelf" / "Coming soon." lived here until
                 // 2026-08-27. The offer is gone until there is a price behind

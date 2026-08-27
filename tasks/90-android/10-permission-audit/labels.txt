@@ -2,7 +2,7 @@ phase:android
 role:NATIVE
 type:chore
 priority:P2
-status:todo
-verify:pending
+status:review
+verify:failed
 depends:90-android/04-picker-plugin
 milestone:M9

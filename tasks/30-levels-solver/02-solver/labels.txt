@@ -3,6 +3,6 @@ role:TOOLS
 type:feature
 priority:P0
 status:done
-verify:passed
+verify:failed
 depends:30-levels-solver/01-rules-in-solver
 milestone:M3

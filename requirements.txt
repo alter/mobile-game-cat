@@ -18,3 +18,12 @@ pytest>=8.0
 # build/playtest/make_playtest.py: resizes the 30 prop sprites and encodes
 # them as WebP data URIs.
 Pillow>=10.0
+
+# tools/coat-split/split.py and tools/photoset/build_reference_set.py: array
+# work over image pixels. Added 2026-08-28 after a verifier ran the OUTCOME's
+# own command in a fresh clone and got `Interrupted: 1 error during collection`
+# — the whole Python suite, all 170 tests, was unrunnable from a checkout
+# because numpy was present in the author's venv and absent from this file.
+# A dependency that only exists on the machine that wrote it is not a
+# dependency, it is a local accident.
+numpy>=1.24

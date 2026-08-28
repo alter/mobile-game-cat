@@ -1,0 +1,151 @@
+{
+  "A": [
+    {
+      "level": "l28_room10_pile2",
+      "n_seeds": 20,
+      "repeats_per_seed": 100,
+      "mean_oracle_minus_partial_wins": 0.0,
+      "min": -100,
+      "max": 100,
+      "n_seeds_oracle_worse": 5,
+      "n_seeds_oracle_better": 5,
+      "n_seeds_tied": 10
+    },
+    {
+      "level": "l30_room11_pile0",
+      "n_seeds": 20,
+      "repeats_per_seed": 100,
+      "mean_oracle_minus_partial_wins": -30.0,
+      "min": -100,
+      "max": 100,
+      "n_seeds_oracle_worse": 7,
+      "n_seeds_oracle_better": 1,
+      "n_seeds_tied": 12
+    },
+    {
+      "level": "l32_room11_pile2",
+      "n_seeds": 20,
+      "repeats_per_seed": 100,
+      "mean_oracle_minus_partial_wins": -30.0,
+      "min": -100,
+      "max": 100,
+      "n_seeds_oracle_worse": 7,
+      "n_seeds_oracle_better": 1,
+      "n_seeds_tied": 12
+    },
+    {
+      "level": "l33_room11_pile3",
+      "n_seeds": 20,
+      "repeats_per_seed": 100,
+      "mean_oracle_minus_partial_wins": 0.0,
+      "min": 0,
+      "max": 0,
+      "n_seeds_oracle_worse": 0,
+      "n_seeds_oracle_better": 0,
+      "n_seeds_tied": 20
+    }
+  ],
+  "B_l32": {
+    "level": "l32_room11_pile2",
+    "n_seeds": 30,
+    "n_divergent_forks_seen": 257,
+    "oracle_narrowed_out_a_safe_choice": 253,
+    "oracle_narrowed_set_entirely_unsafe": 5,
+    "examples": [
+      {
+        "seed": 2001,
+        "partial_choices": [
+          32,
+          8,
+          49,
+          55,
+          24,
+          31
+        ],
+        "oracle_choices": [
+          49,
+          31
+        ],
+        "safe_choices": []
+      },
+      {
+        "seed": 2023,
+        "partial_choices": [
+          6,
+          39,
+          27,
+          54,
+          59,
+          60
+        ],
+        "oracle_choices": [
+          6,
+          39
+        ],
+        "safe_choices": []
+      },
+      {
+        "seed": 2024,
+        "partial_choices": [
+          2,
+          37,
+          45,
+          15,
+          47,
+          49,
+          18,
+          53
+        ],
+        "oracle_choices": [
+          2,
+          45,
+          15,
+          49,
+          18,
+          53
+        ],
+        "safe_choices": []
+      },
+      {
+        "seed": 2028,
+        "partial_choices": [
+          8,
+          49,
+          51,
+          31
+        ],
+        "oracle_choices": [
+          49,
+          31
+        ],
+        "safe_choices": [
+          8
+        ]
+      },
+      {
+        "seed": 2029,
+        "partial_choices": [
+          1,
+          39,
+          9,
+          15,
+          16,
+          31
+        ],
+        "oracle_choices": [
+          31,
+          15
+        ],
+        "safe_choices": []
+      }
+    ]
+  },
+  "B_l30": {
+    "level": "l30_room11_pile0",
+    "n_seeds": 30,
+    "n_divergent_forks_seen": 239,
+    "oracle_narrowed_out_a_safe_choice": 239,
+    "oracle_narrowed_set_entirely_unsafe": 0,
+    "examples": []
+  }
+}

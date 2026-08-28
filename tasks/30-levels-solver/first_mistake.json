@@ -1,0 +1,530 @@
+[
+  {
+    "level": "l30_room11_pile0",
+    "trials": 400,
+    "wins": 337,
+    "losses": 63,
+    "win_rate_pct": 84.2,
+    "mistakes": [
+      {
+        "trial": 4,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 27,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 34,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 4,
+        "avoidable": true
+      },
+      {
+        "trial": 36,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 4,
+        "avoidable": true
+      },
+      {
+        "trial": 43,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 44,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 46,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 47,
+        "path_len": 42,
+        "mistake_move": 41,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.7
+  },
+  {
+    "level": "l31_room11_pile1",
+    "trials": 400,
+    "wins": 349,
+    "losses": 51,
+    "win_rate_pct": 87.2,
+    "mistakes": [
+      {
+        "trial": 2,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 4,
+        "avoidable": true
+      },
+      {
+        "trial": 4,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 9,
+        "path_len": 39,
+        "mistake_move": 38,
+        "avail_at_mistake": 11,
+        "avoidable": true
+      },
+      {
+        "trial": 10,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 20,
+        "path_len": 42,
+        "mistake_move": 41,
+        "avail_at_mistake": 10,
+        "avoidable": true
+      },
+      {
+        "trial": 30,
+        "path_len": 42,
+        "mistake_move": 41,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 35,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 4,
+        "avoidable": true
+      },
+      {
+        "trial": 44,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.7
+  },
+  {
+    "level": "l32_room11_pile2",
+    "trials": 400,
+    "wins": 266,
+    "losses": 134,
+    "win_rate_pct": 66.5,
+    "mistakes": [
+      {
+        "trial": 1,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 3,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 9,
+        "path_len": 39,
+        "mistake_move": 38,
+        "avail_at_mistake": 9,
+        "avoidable": true
+      },
+      {
+        "trial": 17,
+        "path_len": 42,
+        "mistake_move": 41,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 18,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 4,
+        "avoidable": true
+      },
+      {
+        "trial": 24,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 25,
+        "path_len": 39,
+        "mistake_move": 38,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 27,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.6
+  },
+  {
+    "level": "l33_room11_pile3",
+    "trials": 400,
+    "wins": 384,
+    "losses": 16,
+    "win_rate_pct": 96.0,
+    "mistakes": [
+      {
+        "trial": 43,
+        "path_len": 39,
+        "mistake_move": 38,
+        "avail_at_mistake": 10,
+        "avoidable": true
+      },
+      {
+        "trial": 45,
+        "path_len": 42,
+        "mistake_move": 41,
+        "avail_at_mistake": 10,
+        "avoidable": true
+      },
+      {
+        "trial": 57,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 62,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 87,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 116,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 165,
+        "path_len": 36,
+        "mistake_move": 35,
+        "avail_at_mistake": 12,
+        "avoidable": true
+      },
+      {
+        "trial": 170,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.7
+  },
+  {
+    "level": "l34_room12_pile0",
+    "trials": 400,
+    "wins": 277,
+    "losses": 123,
+    "win_rate_pct": 69.2,
+    "mistakes": [
+      {
+        "trial": 3,
+        "path_len": 39,
+        "mistake_move": 38,
+        "avail_at_mistake": 10,
+        "avoidable": true
+      },
+      {
+        "trial": 6,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 12,
+        "path_len": 45,
+        "mistake_move": 43,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 24,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 25,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 31,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 33,
+        "path_len": 42,
+        "mistake_move": 41,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 34,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.7
+  },
+  {
+    "level": "l35_room12_pile1",
+    "trials": 400,
+    "wins": 327,
+    "losses": 73,
+    "win_rate_pct": 81.8,
+    "mistakes": [
+      {
+        "trial": 0,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 12,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 21,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 28,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 33,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 44,
+        "path_len": 48,
+        "mistake_move": 46,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 65,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 72,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.7
+  },
+  {
+    "level": "l36_room12_pile2",
+    "trials": 400,
+    "wins": 355,
+    "losses": 45,
+    "win_rate_pct": 88.8,
+    "mistakes": [
+      {
+        "trial": 2,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      },
+      {
+        "trial": 12,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 10,
+        "avoidable": true
+      },
+      {
+        "trial": 24,
+        "path_len": 51,
+        "mistake_move": 50,
+        "avail_at_mistake": 4,
+        "avoidable": true
+      },
+      {
+        "trial": 32,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 38,
+        "path_len": 54,
+        "mistake_move": 53,
+        "avail_at_mistake": 3,
+        "avoidable": true
+      },
+      {
+        "trial": 51,
+        "path_len": 54,
+        "mistake_move": 53,
+        "avail_at_mistake": 3,
+        "avoidable": true
+      },
+      {
+        "trial": 57,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 61,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.7
+  },
+  {
+    "level": "l37_room12_pile3",
+    "trials": 400,
+    "wins": 349,
+    "losses": 51,
+    "win_rate_pct": 87.2,
+    "mistakes": [
+      {
+        "trial": 1,
+        "path_len": 54,
+        "mistake_move": 53,
+        "avail_at_mistake": 3,
+        "avoidable": true
+      },
+      {
+        "trial": 4,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 8,
+        "avoidable": true
+      },
+      {
+        "trial": 7,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 7,
+        "avoidable": true
+      },
+      {
+        "trial": 9,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 6,
+        "avoidable": true
+      },
+      {
+        "trial": 13,
+        "path_len": 42,
+        "mistake_move": 41,
+        "avail_at_mistake": 9,
+        "avoidable": true
+      },
+      {
+        "trial": 15,
+        "path_len": 45,
+        "mistake_move": 44,
+        "avail_at_mistake": 9,
+        "avoidable": true
+      },
+      {
+        "trial": 19,
+        "path_len": 54,
+        "mistake_move": 53,
+        "avail_at_mistake": 3,
+        "avoidable": true
+      },
+      {
+        "trial": 24,
+        "path_len": 48,
+        "mistake_move": 47,
+        "avail_at_mistake": 5,
+        "avoidable": true
+      }
+    ],
+    "elapsed_s": 0.7
+  }
+]

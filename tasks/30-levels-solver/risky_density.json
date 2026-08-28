@@ -1,0 +1,74 @@
+[
+  {
+    "level": "l30_room11_pile0",
+    "n_seeds": 15,
+    "avg_path_len": 60.0,
+    "avg_branch_steps": 58.5,
+    "avg_risky_forks": 0.0,
+    "risky_density_pct": 0.0,
+    "elapsed_s": 4.6
+  },
+  {
+    "level": "l31_room11_pile1",
+    "n_seeds": 15,
+    "avg_path_len": 59.0,
+    "avg_branch_steps": 57.8,
+    "avg_risky_forks": 0.27,
+    "risky_density_pct": 0.5,
+    "elapsed_s": 4.4
+  },
+  {
+    "level": "l32_room11_pile2",
+    "n_seeds": 15,
+    "avg_path_len": 57.0,
+    "avg_branch_steps": 56.2,
+    "avg_risky_forks": 1.27,
+    "risky_density_pct": 2.3,
+    "elapsed_s": 4.2
+  },
+  {
+    "level": "l33_room11_pile3",
+    "n_seeds": 15,
+    "avg_path_len": 60.0,
+    "avg_branch_steps": 58.7,
+    "avg_risky_forks": 0.53,
+    "risky_density_pct": 0.9,
+    "elapsed_s": 4.9
+  },
+  {
+    "level": "l34_room12_pile0",
+    "n_seeds": 15,
+    "avg_path_len": 57.4,
+    "avg_branch_steps": 56.5,
+    "avg_risky_forks": 2.13,
+    "risky_density_pct": 3.8,
+    "elapsed_s": 4.3
+  },
+  {
+    "level": "l35_room12_pile1",
+    "n_seeds": 15,
+    "avg_path_len": 56.2,
+    "avg_branch_steps": 54.7,
+    "avg_risky_forks": 1.07,
+    "risky_density_pct": 2.0,
+    "elapsed_s": 4.9
+  },
+  {
+    "level": "l36_room12_pile2",
+    "n_seeds": 15,
+    "avg_path_len": 59.6,
+    "avg_branch_steps": 58.4,
+    "avg_risky_forks": 0.13,
+    "risky_density_pct": 0.2,
+    "elapsed_s": 4.6
+  },
+  {
+    "level": "l37_room12_pile3",
+    "n_seeds": 15,
+    "avg_path_len": 58.6,
+    "avg_branch_steps": 57.7,
+    "avg_risky_forks": 0.6,
+    "risky_density_pct": 1.0,
+    "elapsed_s": 5.0
+  }
+]

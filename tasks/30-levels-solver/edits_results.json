@@ -1,0 +1,86 @@
+[
+  {
+    "level": "l32",
+    "edit": "baseline",
+    "shelf_only": 32.3,
+    "partial": 66.0,
+    "oracle": 39.7
+  },
+  {
+    "level": "l32",
+    "edit": "drop blocked_by 14 from item 58 (prop_ball)",
+    "shelf_only": 31.0,
+    "partial": 66.7,
+    "oracle": 42.3
+  },
+  {
+    "level": "l32",
+    "edit": "prop_clock locked_after_triples 2->1",
+    "shelf_only": 30.7,
+    "partial": 66.0,
+    "oracle": 39.7
+  },
+  {
+    "level": "l32",
+    "edit": "drop blocked_by 11 from item 22 (prop_ball)",
+    "shelf_only": 33.7,
+    "partial": 64.3,
+    "oracle": 38.3
+  },
+  {
+    "level": "l32",
+    "edit": "swap kind of item 58 (prop_ball) <-> item 1 (prop_lamp)",
+    "shelf_only": 30.3,
+    "partial": 70.0,
+    "oracle": 64.0
+  },
+  {
+    "level": "l32",
+    "edit": "stack: also swap item 24 (prop_ball) <-> item 2 (prop_suitcase), on top of the item-58 swap",
+    "shelf_only": 34.0,
+    "partial": 62.7,
+    "oracle": 51.3
+  },
+  {
+    "level": "l34",
+    "edit": "baseline",
+    "shelf_only": 40.7,
+    "partial": 63.7,
+    "oracle": 81.0
+  },
+  {
+    "level": "l34",
+    "edit": "drop blocked_by 9 from item 14 (prop_pillow)",
+    "shelf_only": 52.7,
+    "partial": 84.3,
+    "oracle": 98.7
+  },
+  {
+    "level": "l34",
+    "edit": "prop_crate locked_after_triples 2->1",
+    "shelf_only": 51.0,
+    "partial": 63.7,
+    "oracle": 81.0
+  },
+  {
+    "level": "l35",
+    "edit": "baseline",
+    "shelf_only": 55.7,
+    "partial": 78.7,
+    "oracle": 88.0
+  },
+  {
+    "level": "l35",
+    "edit": "drop blocked_by 52 from item 60 (prop_ball)",
+    "shelf_only": 56.0,
+    "partial": 81.7,
+    "oracle": 89.7
+  },
+  {
+    "level": "l35",
+    "edit": "prop_lamp locked_after_triples 2->1",
+    "shelf_only": 59.0,
+    "partial": 83.3,
+    "oracle": 88.0
+  }
+]

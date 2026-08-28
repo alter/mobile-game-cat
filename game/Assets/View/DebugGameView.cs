@@ -547,14 +547,18 @@ namespace CatShelter.View
         /// <summary>
         /// The picture that leaves the phone. 1080×1080.
         ///
-        /// **The room is not in it yet, and that is a gap, not a decision.**
-        /// The owner asked for the kitten against her room. Composing that on
-        /// the CPU needs the room texture readable, which costs its memory for
-        /// the whole run; composing it on the GPU needs the blit path that
-        /// blanked the iOS simulator for a whole session. The honest third way
-        /// is to bake small share-sized rooms at build time the way
-        /// BakeDefaultCoats bakes the cat, and that is the next step. Until
-        /// then she stands on paper and the card is a portrait.
+        /// The kitten in her room, which is what the owner asked for and what
+        /// the rooms were drawn to allow: their lower third is deliberately
+        /// empty floor. `Art/share_room_NN.png` is that floor — a 1080×1080
+        /// square cut from the clean room's bottom and imported readable, so
+        /// the whole card composes on the CPU.
+        ///
+        /// Readable and CPU on purpose. Compositing this on the GPU means the
+        /// blit path that blanked the iOS simulator for an entire session, and
+        /// twelve small readable squares is the cheaper price.
+        ///
+        /// The clean room, not the dirty one, whatever state the player is in:
+        /// this picture leaves the phone, and nobody posts the mess.
         /// </summary>
         private byte[] RenderShareCard()
         {
@@ -565,14 +569,35 @@ namespace CatShelter.View
             var px = new Color32[Side * Side];
             for (int i = 0; i < px.Length; i++) px[i] = paper;
 
+            // The room first, underneath everything.
+            var roomNo = _level != null
+                ? RoomPlan.RoomNumber(_level.RoomId).ToString("00", CultureInfo.InvariantCulture)
+                : "01";
+            var stage = SpriteNamed($"Art/share_room_{roomNo}");
+            if (stage != null && stage.isReadable)
+            {
+                var sp = stage.GetPixels32();
+                int sw = stage.width, sh = stage.height;
+                for (int y = 0; y < Side; y++)
+                    for (int x = 0; x < Side; x++)
+                        px[y * Side + x] = sp[(y * sh / Side) * sw + (x * sw / Side)];
+            }
+            else if (stage != null)
+            {
+                Debug.LogWarning($"[Board] share_room_{roomNo} is not readable — " +
+                                 "the card falls back to paper");
+            }
+
             if (_catTexture != null && _catTexture.isReadable)
             {
                 var cat = _catTexture.GetPixels32();
                 int cw = _catTexture.width, ch = _catTexture.height;
                 // Two thirds of the card, centred, sitting a little low so the
                 // game's name has room above her.
-                int target = Side * 2 / 3;
-                int ox = (Side - target) / 2, oy = Side / 6;
+                // Large, and low: she is lying on the floor the room left for
+                // her, not floating in the middle of the frame.
+                int target = (int)(Side * 0.72f);
+                int ox = (Side - target) / 2, oy = Side - target - Side / 12;
                 for (int y = 0; y < target; y++)
                     for (int x = 0; x < target; x++)
                     {

@@ -270,3 +270,32 @@ Unity build, no simulator, no emulator, no device was run - by instruction.
    anything `catshare_paths.xml` allows.
 10. **Both platforms, per the standing rule.** Only iOS has ever been run in
     this project. This task adds an Android plug-in that no screenshot covers.
+
+## The picture that leaves the phone — 2026-08-28
+
+The owner: "кот на странице где мы шарим лежит просто на пустой странице, а
+должен лежать в комнате, мы же для этого в комнатах оставляли 30-35% пустого
+места на переднем плане снизу."
+
+He is right, and the art was built for it. `Art/share_room_NN.png` is that
+foreground: a 1080×1080 square cut from the bottom of each **clean** room —
+2048×2048 at +0+1835 of the 2048×4096 file, then scaled — which lands exactly on
+the empty floor the rooms reserve. Twelve files, imported **readable**.
+
+Readable, and composed on the CPU, deliberately. The alternative is a
+`RenderTexture` blit, and that is the path that blanked the iOS simulator for a
+whole session on 28.08. Twelve small readable squares is the cheaper price, and
+the composition is a couple of nested loops over 1.1M pixels — well under a
+frame.
+
+**The clean room, whatever state the player is in.** This picture leaves the
+phone and nobody posts the mess. It is also the only choice that makes the
+picture the same shape for every player at every moment, which matters for
+something that is supposed to be recognisable.
+
+The kitten is drawn at 72% of the card and sits low, on the floor rather than
+floating in the middle.
+
+**Not done here:** the game's name and the caption are drawn by nothing yet — the
+card is room plus cat. The name is blocked on the game not having one
+(`productName: game`), which is the owner's to give and appears in every repost.

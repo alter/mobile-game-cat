@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using CatShelter.Core;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -69,6 +70,61 @@ namespace CatShelter.View
             }
         }
 
+        /// <summary>
+        /// A small copy of the silhouette, cached per source.
+        ///
+        /// The harness builds 27 coats in one pass, and `CoatBuilder.Build`
+        /// walks every pixel of the source several times. At the shipped
+        /// 1024×1024 that is 27 million pixels through six passes on the main
+        /// thread: measured on the iOS simulator on 28.08, the app sat at 99.9%
+        /// CPU with a blank screen for over three minutes and had not finished.
+        /// The screen was only ever opened on Android before, where it is
+        /// merely slow rather than useless.
+        ///
+        /// The cells are 96 points wide. 256 is already more than they can
+        /// show, and it is 16× less work.
+        /// </summary>
+        private static readonly Dictionary<string, Texture2D> _small = new();
+
+        private static Texture2D Small(Texture2D src, int size = 256)
+        {
+            if (src == null || src.width <= size) return src;
+            if (_small.TryGetValue(src.name, out var cached) && cached != null) return cached;
+
+            var w = src.width; var h = src.height;
+            var px = src.isReadable ? src.GetPixels32() : null;
+            if (px == null) return src;   // let Build take its own path and complain
+
+            int oh = Mathf.Max(1, h * size / w);
+            var outPx = new Color32[size * oh];
+            int bx = w / size, by = h / oh;
+            for (int y = 0; y < oh; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    int r = 0, g = 0, b = 0, a = 0, n = 0;
+                    for (int sy = y * by; sy < (y + 1) * by && sy < h; sy++)
+                        for (int sx = x * bx; sx < (x + 1) * bx && sx < w; sx++)
+                        {
+                            var c = px[sy * w + sx];
+                            r += c.r; g += c.g; b += c.b; a += c.a; n++;
+                        }
+                    if (n == 0) n = 1;
+                    outPx[y * size + x] = new Color32(
+                        (byte)(r / n), (byte)(g / n), (byte)(b / n), (byte)(a / n));
+                }
+
+            var tex = new Texture2D(size, oh, TextureFormat.RGBA32, mipChain: false)
+            {
+                name = src.name,
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+            tex.SetPixels32(outPx);
+            tex.Apply(updateMipmaps: false);
+            _small[src.name] = tex;
+            return tex;
+        }
+
         private static VisualElement Row(string label, string pattern,
                                          string[] markings)
         {
@@ -97,7 +153,7 @@ namespace CatShelter.View
                     // harness whose whole job is showing 27 coats does not come
                     // up blank without saying why — CoatBuilder.LastFailure is
                     // shown once at the foot of the grid.
-                    var built = CoatBuilder.TryBuild(art, traits, state);
+                    var built = CoatBuilder.TryBuild(Small(art), traits, state);
                     cell.style.backgroundImage = new StyleBackground(built != null ? built : art);
                     cell.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
                 }

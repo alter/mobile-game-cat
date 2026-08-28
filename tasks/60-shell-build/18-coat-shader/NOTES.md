@@ -149,3 +149,56 @@ both are right.
 
 So the masks worth drawing, in order, are the markings on the two non-standing
 states — not the stripes. `40-art/04-cat-layers` has been corrected.
+
+## The harness was unusable on iOS, and the fur texture is invisible — 2026-08-28
+
+Two findings from finally opening this screen on the iOS simulator. It had only
+ever been looked at on Android.
+
+### It hung the app for minutes
+
+Blank screen, **99.9% CPU, still going after three minutes**, with `boot-state.txt`
+never written because the panel never laid out. Not a bug in the harness's
+logic — it builds 27 coats in one synchronous pass, and `CoatBuilder.Build`
+walks every pixel of a 1024×1024 silhouette six times. That is 27 million pixels
+through six passes on the main thread.
+
+The cells are 96 points wide. `CoatGridView.Small` now builds from a cached
+256-wide copy — 16× less work — and the grid comes up inside the 30 seconds a
+launch already takes. `ios-coat-grid.png` is the result, the first picture this
+screen has had on iOS.
+
+### The fur texture nobody can see
+
+The artist's objection to the cat is that **any fur texture breaks this game's
+flat style**. `Weather` does three things and only one is texture: it dulls the
+coat toward its own mean, lays a grime gradient up from the paws, and lays
+coarse value noise meant to read as matted fur.
+
+A `flatcoat.txt` flag drops the noise and keeps the other two, so the two can be
+compared instead of argued about. Rendering the whole grid both ways:
+
+| row | mean change, textured → flat, of 255 |
+|---|---|
+| solid | 1.3 |
+| tabby | 0.9 |
+| bicolor | 0.9 |
+| calico | 1.0 |
+| tuxedo | 1.0 |
+| pointed | 1.3 |
+| marks | 1.0 |
+
+**About one unit in 255.** The texture the objection is about is, at the size the
+cat is ever drawn, not there. It costs a full pass over every pixel and buys an
+effect no one can see.
+
+The term is left at its original strength rather than tuned down: a constant
+chosen to make an invisible thing more invisible is the kind of unmeasured tweak
+this file has already been burned by. The flag stays so the artist can look at
+both.
+
+**What this does not settle.** Whether the six coat patterns are actually
+distinguishable from each other. My first attempt to measure that compared rows
+at fixed coordinates and then by content bounding box, and both are unsound —
+the three poses crop differently, so the numbers were measuring alignment, not
+pattern. It needs a proper per-cell comparison and it is not done.

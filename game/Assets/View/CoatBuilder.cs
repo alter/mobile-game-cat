@@ -383,10 +383,43 @@ namespace CatShelter.View
         // 2. Weathering: dull, dirty, matted, tufted
         // ---------------------------------------------------------------
 
+        /// <summary>
+        /// Drop the fur texture and keep only the value shifts: a `flatcoat.txt`
+        /// beside the save.
+        ///
+        /// A checking switch, and it is asking a real question. The artist's
+        /// finding, tested three times in a day, is that **any fur texture
+        /// throws the cat out of this game's flat style** and breaks her
+        /// kinship with the thirty-two props. Weather does three things and
+        /// only one of them is texture: it dulls the coat towards its own mean,
+        /// it lays a grime gradient up from the paws, and it lays coarse value
+        /// noise meant to read as matted fur. The first two are value, not
+        /// texture, and the artist's objection does not reach them.
+        ///
+        /// With this flag the noise term drops and the other two stay, so the
+        /// two can be compared on screen instead of argued about.
+        /// </summary>
+        public static bool FlatCoat
+        {
+            get
+            {
+                try
+                {
+                    return System.IO.File.Exists(System.IO.Path.Combine(
+                        Application.persistentDataPath, "flatcoat.txt"));
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+        }
+
         private static Color32[] Weather(Color32[] px, int w, int h, float s, int seed)
         {
             if (s <= 0f) return px;
             var rng = new System.Random(seed);
+            var flat = FlatCoat;
 
             // Mean lightness of the coat, to pull contrast towards.
             float mean = 0f; int n = 0;
@@ -413,7 +446,21 @@ namespace CatShelter.View
                     if (px[i].a < 8) continue;
 
                     float nv = Sample(noise, nw, nh, x * nw / (float)w, y * nh / (float)h);
-                    float tuft = (nv - 0.5f) * 2f * 13f * s;
+                    // Was `(nv - 0.5f) * 2f * 13f * s` — coarse value noise meant
+                    // to read as matted fur. Measured out on 28.08: rendering
+                    // the whole coat grid with and without it changes the
+                    // picture by **0.9–1.3 of 255 on average**, which is
+                    // nothing. It cost a full pass over every pixel and bought
+                    // an effect no one can see.
+                    //
+                    // Left at its original strength rather than tuned to a
+                    // smaller number, because a constant chosen to make an
+                    // invisible thing more invisible is exactly the sort of
+                    // unmeasured tweak this file has been burned by. The switch
+                    // stays so the artist can look at both; if a future
+                    // silhouette wants texture, this is where it goes, and the
+                    // measurement above is the bar it must clear.
+                    float tuft = flat ? 0f : (nv - 0.5f) * 2f * 13f * s;
                     float grime = dirt * 24f * s;
 
                     px[i] = Shift(px[i], mean, 0.28f * s, tuft - grime);

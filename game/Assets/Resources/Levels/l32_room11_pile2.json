@@ -5,7 +5,7 @@
   "pile": [
     {
       "id": 1,
-      "kind": "prop_lamp",
+      "kind": "prop_ball",
       "blocked_by": []
     },
     {
@@ -361,7 +361,7 @@
     },
     {
       "id": 58,
-      "kind": "prop_ball",
+      "kind": "prop_lamp",
       "blocked_by": [
         14
       ]

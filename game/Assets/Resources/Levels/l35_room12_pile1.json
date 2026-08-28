@@ -7,7 +7,7 @@
       "id": 1,
       "kind": "prop_lamp",
       "blocked_by": [],
-      "locked_after_triples": 2
+      "locked_after_triples": 1
     },
     {
       "id": 2,
@@ -33,7 +33,7 @@
       "id": 6,
       "kind": "prop_lamp",
       "blocked_by": [],
-      "locked_after_triples": 2
+      "locked_after_triples": 1
     },
     {
       "id": 7,
@@ -172,7 +172,7 @@
       "id": 29,
       "kind": "prop_lamp",
       "blocked_by": [],
-      "locked_after_triples": 2
+      "locked_after_triples": 1
     },
     {
       "id": 30,
@@ -235,7 +235,7 @@
       "id": 40,
       "kind": "prop_lamp",
       "blocked_by": [],
-      "locked_after_triples": 2
+      "locked_after_triples": 1
     },
     {
       "id": 41,
@@ -284,7 +284,7 @@
         40,
         2
       ],
-      "locked_after_triples": 2
+      "locked_after_triples": 1
     },
     {
       "id": 48,
@@ -318,7 +318,7 @@
       "id": 53,
       "kind": "prop_lamp",
       "blocked_by": [],
-      "locked_after_triples": 2
+      "locked_after_triples": 1
     },
     {
       "id": 54,

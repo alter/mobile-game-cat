@@ -76,9 +76,7 @@
     {
       "id": 14,
       "kind": "prop_pillow",
-      "blocked_by": [
-        9
-      ]
+      "blocked_by": []
     },
     {
       "id": 15,

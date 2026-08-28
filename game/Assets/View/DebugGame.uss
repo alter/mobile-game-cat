@@ -8,24 +8,173 @@
 .game__root {
     flex-grow: 1;
     background-color: #F4EAD8;
-    padding-top: 16px;
-    padding-bottom: 16px;
+    /* padding-top was 16 and padding-bottom 16 until 2026-08-28. SafeArea
+       already holds the whole panel clear of the notch and the home
+       indicator, so this was a second inset on top of the first, paid out of
+       the pile's height on the one screen where height is scarce (rooms
+       09-12 carry 60-tile piles; see the header note below). */
+    padding-top: 0;
+    padding-bottom: 4px;
     padding-left: 12px;
     padding-right: 12px;
     align-items: center;
 }
 
-.game__title {
-    font-size: 20px;
-    color: #4A3B28;
-    -unity-font-style: bold;
-    margin-bottom: 2px;
+/* =====================================================================
+   60-shell-build/01: the header, rebuilt 2026-08-28.
+
+   What it was: two centred lines of prose — "Room 1 of 12 · pile 1 of 1"
+   at 20px bold across two thirds of the width, and "Items left: 36" under
+   it — with the kitten exiled to a 56-unit corner beside them. The owner's
+   words: the sentence eats the top of the screen and the cat is a tiny
+   icon you cannot make out.
+
+   What it is now: ONE row, as tall as the kitten, holding a cream plaque
+   of numerals on the left and the kitten at 104 units on the right. No
+   sentence, no words at all — see NOTES.md for the games this was read
+   off and for what each fact turned into.
+
+   The height arithmetic, because this screen has no slack (panel is
+   390x844 units, PanelSettings match=1 so height is fixed):
+     usable height after the safe area (Dynamic Island, 59 + 34)  751
+     - header                                                    104
+     - shelf (5 + 32 + 5 padding, 8 margin)                        50
+     - root padding-bottom                                          4
+     = for the pile                                               593
+   A 60-tile pile is 6 columns x 10 rows; at the tile pitch below
+   (52 + 3 + 3) that is 580. Thirteen units to spare. The old layout, at
+   the old pitch of 60, needed 600 and had 592 — which is why the bottom
+   tile row is the first thing to check in a room-09 screenshot.
+   ===================================================================== */
+.game__header {
+    width: 100%;
+    flex-direction: row;
+    /* Top-aligned, not centred: the plaque lines up with the back button
+       (top: 4) while the kitten stands the full height of the row. */
+    align-items: flex-start;
+    height: 104px;
+    flex-shrink: 0;
 }
 
-.game__status {
-    font-size: 14px;
-    color: #6B6055;
-    margin-bottom: 12px;
+/* Reserved for HouseMapView's back-to-map plaque, which is absolutely
+   positioned at left:4/top:4 and 44 wide, and so takes no room in this
+   flow. 52 leaves 4 units of air between it and the plaque beside it.
+   If that button is ever moved or resized, this number moves with it. */
+.game__header-gap {
+    width: 52px;
+    flex-shrink: 0;
+}
+
+.game__header-spacer {
+    flex-grow: 1;
+}
+
+/* The one plaque, over a photograph. Opaque cream on ink, the same pair
+   the back button and the map's room plaques already use: cream #F6EEDC
+   on ink #332A1E is 12.2:1 by the WCAG relative-luminance formula, and
+   because the plaque is opaque that ratio holds over any room photo. A
+   translucent scrim would have made it depend on the picture behind it. */
+.game__hud {
+    margin-top: 4px;
+    padding-top: 4px;
+    padding-bottom: 5px;
+    padding-left: 9px;
+    padding-right: 9px;
+    background-color: #F6EEDC;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+    border-left-color: #332A1E;
+    border-right-color: #332A1E;
+    border-top-color: #332A1E;
+    border-bottom-color: #332A1E;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    align-items: flex-start;
+}
+
+.game__hud-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* "5/12" — the room, as a fraction rather than a clause. The denominator
+   survives where the shipped games drop it (their level counts are
+   unbounded; twelve rooms is a promise the player can hold). */
+.game__room-count {
+    font-size: 17px;
+    color: #332A1E;
+    -unity-font-style: bold;
+}
+
+/* One pip per pile in THIS room, filled up to and including the one being
+   played. This is "pile 2 of 3" with the words taken out, and it is the
+   same count the room's cleaned quadrants behind the pile already show. */
+.game__pips {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.game__pip {
+    width: 7px;
+    height: 7px;
+    margin-left: 2px;
+    margin-right: 2px;
+    background-color: #F4EAD8;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: #7C6A52;
+    border-right-color: #7C6A52;
+    border-top-color: #7C6A52;
+    border-bottom-color: #7C6A52;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+.game__pip--done {
+    background-color: #4A3B28;
+}
+
+/* The pile, as a bar that EMPTIES, next to the count that falls with it.
+   Both move the same way on purpose: a bar that fills while the number it
+   sits beside drops would be two readings of one fact in opposite
+   directions. */
+.game__bar {
+    width: 74px;
+    height: 7px;
+    margin-top: 4px;
+    background-color: #D9C6A3;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    overflow: hidden;
+}
+
+/* Width is set from C# as a percentage; everything else lives here. */
+.game__bar-fill {
+    height: 100%;
+    background-color: #4A3B28;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+.game__left-count {
+    font-size: 13px;
+    color: #4A3B28;
+    -unity-font-style: bold;
+    margin-top: 4px;
+    margin-left: 7px;
 }
 
 /* The pile: tiles wrap into rows, newest additions flow left to right. */
@@ -53,11 +202,15 @@
     border-top-right-radius: 10px;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
-    padding-top: 6px;
-    padding-bottom: 6px;
+    /* padding 6 and margin-top 12 until 2026-08-28: six units of the
+       height the 60-tile rooms do not have, spent on air the shelf's own
+       border already provides. */
+    padding-top: 5px;
+    padding-bottom: 5px;
     padding-left: 6px;
     padding-right: 6px;
-    margin-top: 12px;
+    margin-top: 8px;
+    flex-shrink: 0;
 }
 
 .game__slot {
@@ -91,8 +244,15 @@
     height: 52px;
     margin-left: 4px;
     margin-right: 4px;
-    margin-top: 4px;
-    margin-bottom: 4px;
+    /* Vertical margins 4 -> 3 on 2026-08-28, and ONLY the vertical ones.
+       A 60-tile pile (rooms 09-12) is ten rows; two units a row is twenty
+       units of height back, which is most of what the taller header costs.
+       Left/right stay at 4 so the column pitch is still 60 against the
+       360-unit max-width — six columns, unchanged, no reflow. The tile's
+       own 52 is untouched, so DebugGameView's TileHalf (26) and .game__fly
+       (52) still describe it. */
+    margin-top: 3px;
+    margin-bottom: 3px;
     background-color: #C9A97C;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
@@ -298,20 +458,42 @@
     height: 26px;
 }
 
-/* 60-shell-build/04: the cat portrait, always on the board, top-right corner
-   so it never competes with the pile for attention. Its pose (CoatBuilder's
-   state 1/2/3) is set in code — this only places and frames it. */
+/* 60-shell-build/04: the cat portrait. 60-shell-build/01, 2026-08-28: she
+   is no longer a 56-unit badge pinned to the corner but the right-hand end
+   of the header row, at 104 — the largest single thing on the board that is
+   not a prop.
+
+   TWO elements, not one, and that is not decoration. DebugGameView.Paint
+   sets background-color: clear on whatever it paints, so any background
+   declared for .game__cat was being wiped the moment her art loaded — the
+   cream disc this rule used to carry has never once appeared on a screen.
+   The seat is a separate parent that Paint never touches, so its disc
+   survives; .game__cat is the child that holds the art.
+
+   THE SEAT IS ALSO THE TAP TARGET. 60-shell-build/15 (share card) is going
+   to make her open a full-screen card: that handler goes on the seat, which
+   is 104x104 — well past the 48x48dp Material asks for and the 44x44pt iOS
+   asks for. The disc is what makes it look pressable before anything is
+   wired to it. Nothing is registered on it yet; this task only made the
+   room. */
+.game__cat-seat {
+    width: 104px;
+    height: 104px;
+    flex-shrink: 0;
+    /* A soft cream disc, so a grey tabby is never lost against a grey room
+       photograph, and so the shape reads as one object worth pressing. */
+    background-color: rgba(246, 238, 220, 0.82);
+    border-top-left-radius: 52px;
+    border-top-right-radius: 52px;
+    border-bottom-left-radius: 52px;
+    border-bottom-right-radius: 52px;
+    align-items: center;
+    justify-content: center;
+}
+
 .game__cat {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 56px;
-    height: 56px;
-    background-color: #E8D9BD;
-    border-top-left-radius: 28px;
-    border-top-right-radius: 28px;
-    border-bottom-left-radius: 28px;
-    border-bottom-right-radius: 28px;
+    width: 100%;
+    height: 100%;
 }
 
 /* 60-shell-build/06: the win card's before/after. Two panes, side by side,

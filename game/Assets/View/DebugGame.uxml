@@ -1,8 +1,28 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="DebugGame.uss" />
     <ui:VisualElement name="game-root" class="game__root">
-        <ui:Label name="title" class="game__title" text="" />
-        <ui:Label name="status" class="game__status" text="" />
+        <!-- 60-shell-build/01: the header is one row as tall as the kitten.
+             "header-gap" is dead space reserved for the back-to-map plaque,
+             which HouseMapView positions absolutely at left:4 (44 wide) and
+             which therefore takes no room in this flow. The kitten is added
+             to "header" from code (BuildCatPortrait), after "header-spacer",
+             so she lands at the right-hand end. -->
+        <ui:VisualElement name="header" class="game__header">
+            <ui:VisualElement name="header-gap" class="game__header-gap" />
+            <ui:VisualElement name="hud" class="game__hud">
+                <ui:VisualElement name="hud-room" class="game__hud-row">
+                    <ui:Label name="room-count" class="game__room-count" text="" />
+                    <ui:VisualElement name="pips" class="game__pips" />
+                </ui:VisualElement>
+                <ui:VisualElement name="hud-left" class="game__hud-row">
+                    <ui:VisualElement name="bar" class="game__bar">
+                        <ui:VisualElement name="bar-fill" class="game__bar-fill" />
+                    </ui:VisualElement>
+                    <ui:Label name="left-count" class="game__left-count" text="" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="header-spacer" class="game__header-spacer" />
+        </ui:VisualElement>
         <ui:VisualElement name="pile" class="game__pile" />
         <ui:VisualElement name="shelf" class="game__shelf" />
         <ui:VisualElement name="overlay" class="game__overlay">

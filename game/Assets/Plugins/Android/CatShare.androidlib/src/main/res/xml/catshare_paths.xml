@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one directory this app will ever serve a content:// URI from.
+
+  <cache-path> is getCacheDir() - "Represents files in the cache subdirectory
+  of your app's internal storage area. The root path of this subdirectory is
+  the same as the value returned by getCacheDir()"
+  (developer.android.com/reference/androidx/core/content/FileProvider,
+  "Specifying Available Files").
+
+  path="share/" must stay in step with CatShare.DIRECTORY. name="card" is the
+  URI path segment the outside world sees; it deliberately does not spell out
+  the real directory, which is what the name/path split is for.
+
+  Internal cache, not external: nothing here needs to survive an uninstall or
+  be visible in a file manager, and the internal cache costs no permission on
+  any API level.
+-->
+<paths>
+    <cache-path name="card" path="share/" />
+</paths>

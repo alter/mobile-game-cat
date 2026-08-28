@@ -47,8 +47,15 @@ namespace CatShelter.View
         private Level _level;
         private VisualElement _pileArea;
         private VisualElement _shelfArea;
-        private Label _status;
-        private Label _title;
+        // 60-shell-build/01, 2026-08-28: the header is numerals, pips and a
+        // bar instead of "Room 1 of 12 · pile 1 of 1" / "Items left: 36".
+        // _title and _status are gone with the two Labels they pointed at.
+        private VisualElement _header;
+        private Label _roomCount;
+        private VisualElement _pips;
+        private VisualElement _barFill;
+        private Label _leftCount;
+        private string _pipsShown;
         private VisualElement _overlay;
         private Label _overlayTitle;
         private Label _overlayBody;
@@ -77,6 +84,8 @@ namespace CatShelter.View
         // nothing about anybody.
         private static CatTraits CatStateTraits => Shell.CatIdentity.Traits;
         private VisualElement _catPortrait;
+        // The disc she sits on, and the tap target 60-shell-build/15 will use.
+        private VisualElement _catSeat;
         private Texture2D _catTexture;
         private int _catTextureState = -1;
 
@@ -114,8 +123,11 @@ namespace CatShelter.View
 
             _pileArea = gameRoot.Q("pile");
             _shelfArea = gameRoot.Q("shelf");
-            _title = gameRoot.Q<Label>("title");
-            _status = gameRoot.Q<Label>("status");
+            _header = gameRoot.Q("header");
+            _roomCount = gameRoot.Q<Label>("room-count");
+            _pips = gameRoot.Q("pips");
+            _barFill = gameRoot.Q("bar-fill");
+            _leftCount = gameRoot.Q<Label>("left-count");
             _overlay = gameRoot.Q("overlay");
             _overlayTitle = gameRoot.Q<Label>("overlay-title");
             _overlayBody = gameRoot.Q<Label>("overlay-body");
@@ -218,15 +230,68 @@ namespace CatShelter.View
         private void Render()
         {
             RenderRoom();
-            var roomNo = RoomPlan.RoomNumber(_level.RoomId);
-            _title.text = Shell.Copy.Of("board.title", roomNo, _plan.RoomCount,
-                _level.PileIndex + 1, _plan.PilesIn(_level.RoomId));
-            _status.text = Shell.Copy.Of("board.items_left",
-                _level.Pile.Count - _board.TakenOrder.Count);
-
+            RenderHeader();
             RenderPile();
             RenderShelf();
             RenderCat();
+        }
+
+        /// <summary>
+        /// 60-shell-build/01, 2026-08-28. The three facts the header has to
+        /// carry, with the words taken out of all three:
+        ///
+        ///  - which room of twelve -> "5/12". A fraction, not a clause.
+        ///  - which pile of this room's piles -> one pip per pile, filled up
+        ///    to the one being played. The same count the cleaned quadrants
+        ///    behind the pile already draw (RenderRoom), so it is a legend for
+        ///    a picture that is on screen rather than a second sentence.
+        ///  - how many items are left -> a bar that empties, and the number
+        ///    beside it. The number is the only value on this screen that
+        ///    changes on every tap and the only one a player cannot count.
+        ///
+        /// Nothing here goes through Shell.Copy: there is no longer a word in
+        /// the header to translate. That leaves "board.title" and
+        /// "board.items_left" unused in Copy.cs — see NOTES.md; deleting them
+        /// belongs to whoever owns that file.
+        /// </summary>
+        private void RenderHeader()
+        {
+            if (_roomCount == null) return; // older skeleton; nothing to fill
+
+            var roomNo = RoomPlan.RoomNumber(_level.RoomId);
+            _roomCount.text =
+                $"{roomNo.ToString(CultureInfo.InvariantCulture)}/" +
+                _plan.RoomCount.ToString(CultureInfo.InvariantCulture);
+
+            // Rebuilt only when the room or the pile actually changes: Render
+            // runs on every tap and these elements never move within a pile.
+            var key = $"{_level.RoomId}/{_level.PileIndex}";
+            if (_pips != null && _pipsShown != key)
+            {
+                _pipsShown = key;
+                _pips.Clear();
+                var piles = _plan.PilesIn(_level.RoomId);
+                for (int i = 0; i < piles; i++)
+                {
+                    var pip = new VisualElement();
+                    pip.AddToClassList("game__pip");
+                    if (i <= _level.PileIndex) pip.AddToClassList("game__pip--done");
+                    _pips.Add(pip);
+                }
+            }
+
+            var total = _level.Pile.Count;
+            var left = total - _board.TakenOrder.Count;
+            if (_leftCount != null)
+                _leftCount.text = left.ToString(CultureInfo.InvariantCulture);
+            if (_barFill != null)
+            {
+                // Length.Percent, not a pixel width: the bar's track is sized
+                // in USS and this never has to know what that size resolved
+                // to. Same call BuildRoom already relies on.
+                var fraction = total > 0 ? (float)left / total : 0f;
+                _barFill.style.width = Length.Percent(Mathf.Clamp01(fraction) * 100f);
+            }
         }
 
         private void RenderPile()
@@ -454,12 +519,118 @@ namespace CatShelter.View
             Debug.Log($"[Board] room {no}, pile {_level.PileIndex}: {cleaned} of 4 corners clean");
         }
 
+        private CatCardScreen _catCard;
+
+        /// <summary>
+        /// The kitten full screen, with a Share button behind her.
+        ///
+        /// Built on first tap rather than at startup: it is a screen most
+        /// players will never open, and this board already spent a session
+        /// paying 21.8 seconds at startup for work nobody had asked for.
+        /// </summary>
+        private void ShowCatCard()
+        {
+            var uid = GetComponent<UIDocument>();
+            if (uid?.rootVisualElement == null) return;
+
+            if (_catCard == null)
+            {
+                _catCard = new CatCardScreen();
+                _catCard.Build(uid.rootVisualElement, _catTexture, null, RenderShareCard);
+                _catCard.OnClose = () => Debug.Log("[Board] cat card closed");
+                _catCard.OnShareTapped = () => Debug.Log("[Board] share tapped");
+            }
+            Debug.Log("[Board] cat card opened");
+            _catCard.Show();
+        }
+
+        /// <summary>
+        /// The picture that leaves the phone. 1080×1080.
+        ///
+        /// **The room is not in it yet, and that is a gap, not a decision.**
+        /// The owner asked for the kitten against her room. Composing that on
+        /// the CPU needs the room texture readable, which costs its memory for
+        /// the whole run; composing it on the GPU needs the blit path that
+        /// blanked the iOS simulator for a whole session. The honest third way
+        /// is to bake small share-sized rooms at build time the way
+        /// BakeDefaultCoats bakes the cat, and that is the next step. Until
+        /// then she stands on paper and the card is a portrait.
+        /// </summary>
+        private byte[] RenderShareCard()
+        {
+            const int Side = 1080;
+            var card = new Texture2D(Side, Side, TextureFormat.RGBA32, mipChain: false);
+            var paper = (Color32)(Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
+
+            var px = new Color32[Side * Side];
+            for (int i = 0; i < px.Length; i++) px[i] = paper;
+
+            if (_catTexture != null && _catTexture.isReadable)
+            {
+                var cat = _catTexture.GetPixels32();
+                int cw = _catTexture.width, ch = _catTexture.height;
+                // Two thirds of the card, centred, sitting a little low so the
+                // game's name has room above her.
+                int target = Side * 2 / 3;
+                int ox = (Side - target) / 2, oy = Side / 6;
+                for (int y = 0; y < target; y++)
+                    for (int x = 0; x < target; x++)
+                    {
+                        var c = cat[(y * ch / target) * cw + (x * cw / target)];
+                        if (c.a == 0) continue;
+                        int di = (oy + y) * Side + ox + x;
+                        var b = px[di];
+                        float a = c.a / 255f;
+                        px[di] = new Color32(
+                            (byte)(c.r * a + b.r * (1 - a)),
+                            (byte)(c.g * a + b.g * (1 - a)),
+                            (byte)(c.b * a + b.b * (1 - a)), 255);
+                    }
+            }
+
+            card.SetPixels32(px);
+            card.Apply(updateMipmaps: false);
+            var bytes = card.EncodeToPNG();
+            Destroy(card);
+            return bytes;
+        }
+
         private void BuildCatPortrait(VisualElement gameRoot)
         {
             if (_catPortrait != null) return; // OnEnable can re-run; do not double-insert
+
+            // 60-shell-build/01, 2026-08-28. She used to be an absolutely
+            // positioned 56-unit badge in the corner, next to a header
+            // sentence that took the rest of the width. She is now the
+            // right-hand end of the header row itself, at 104.
+            //
+            // The seat exists because Paint() sets background-color: clear on
+            // whatever it paints — so a background on the portrait itself is
+            // wiped the instant her art loads, which is why the cream disc
+            // .game__cat used to declare has never appeared on a screen. The
+            // seat is a parent Paint never touches.
+            //
+            // The seat is also where 60-shell-build/15's tap handler goes: it
+            // is 104x104, the whole of it hers, and the disc already reads as
+            // a pressable object. Nothing is registered here yet.
+            _catSeat = new VisualElement { name = "cat-seat" };
+            _catSeat.AddToClassList("game__cat-seat");
+
             _catPortrait = new VisualElement { name = "cat-portrait" };
             _catPortrait.AddToClassList("game__cat");
-            gameRoot.Insert(gameRoot.IndexOf(_overlay), _catPortrait);
+            _catSeat.Add(_catPortrait);
+
+            // Tapping her opens the card. The owner asked for exactly this: the
+            // kitten is the point of the game and was a 52-point icon in a
+            // corner, so she is now 104 points and she answers a tap.
+            _catSeat.pickingMode = PickingMode.Position;
+            _catSeat.RegisterCallback<PointerUpEvent>(_ => ShowCatCard());
+
+            // Appended to the header, after the flexible spacer, so she sits
+            // at its right-hand end. The fallback keeps an older skeleton (or
+            // a test that builds one by hand) from losing her entirely.
+            if (_header != null) _header.Add(_catSeat);
+            else gameRoot.Insert(gameRoot.IndexOf(_overlay), _catSeat);
         }
 
         /// <summary>Rebuilds the cat texture only when her state actually

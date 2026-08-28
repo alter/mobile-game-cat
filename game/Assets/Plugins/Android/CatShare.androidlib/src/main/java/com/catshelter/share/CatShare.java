@@ -1,0 +1,134 @@
+package com.catshelter.share;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+import android.util.Log;
+
+import androidx.core.content.FileProvider;
+
+import com.unity3d.player.UnityPlayer;
+
+import java.io.File;
+import java.io.FileOutputStream;
+
+/**
+ * Task 60-shell-build/15: the Android half of Shell/Share.cs.
+ *
+ * ACTION_SEND through Intent.createChooser, which is the Android Sharesheet -
+ * the system one. Android's own guidance is explicit about not replacing it:
+ * "We strongly recommend using the Android Sharesheet to create consistency
+ * for your users across apps. Don't display your app's own list of share
+ * targets or create your own Sharesheet variations."
+ * (developer.android.com/training/sharing/send)
+ *
+ * The picture cannot be handed over as a file path. Since Android 7 a
+ * file:// URI in an Intent raises FileUriExposedException, and every modern
+ * target expects a content:// URI it has been granted read access to. That is
+ * what FileProvider is for, and it is why this plugin needs a manifest
+ * declaration and an XML paths file as well as this class - see
+ * ../../AndroidManifest.xml and ../../res/xml/catshare_paths.xml, and the
+ * task NOTES for the one line that must reach gradleTemplate.properties.
+ *
+ * Bytes arrive rather than a path, and the file is written here, on purpose:
+ * the FileProvider paths file has to name a directory ahead of time, and
+ * getCacheDir()/share is a directory this class controls. Unity's
+ * Application.temporaryCachePath resolves to different places on Android
+ * depending on the project's write-permission setting, so a path chosen on
+ * the C# side could land outside anything the provider is allowed to serve.
+ *
+ * NOT COMPILED as part of this change - the project has no Android build yet
+ * (90-android/02-build-pipeline). Verify on a device or emulator.
+ */
+public final class CatShare {
+
+    private static final String TAG = "CatShare";
+
+    /** Must match path= in res/xml/catshare_paths.xml. */
+    private static final String DIRECTORY = "share";
+
+    private static final String FILE_NAME = "kitten-card.png";
+
+    /**
+     * Must match android:authorities in AndroidManifest.xml, where it is
+     * written as ${applicationId} + this suffix. getPackageName() and
+     * applicationId are the same string as long as no applicationIdSuffix is
+     * set; Unity sets none, and if one is ever added this is the line that
+     * breaks - loudly, with an IllegalArgumentException from getUriForFile,
+     * not silently.
+     */
+    private static final String AUTHORITY_SUFFIX = ".catshare";
+
+    private static final String MIME = "image/png";
+
+    private CatShare() {
+    }
+
+    /**
+     * Open the system share sheet on {@code png}, offering {@code text}
+     * alongside it. Called from Shell/Share.cs by name; do not rename.
+     *
+     * Never throws back into Unity. A share that fails is a log line: the card
+     * it was opened from is still on screen and the player can tap again.
+     */
+    public static void image(final byte[] png, final String text) {
+        final Activity activity = UnityPlayer.currentActivity;
+        if (activity == null) {
+            Log.w(TAG, "no_activity");
+            return;
+        }
+        // startActivity has to be called from the UI thread, and Unity's
+        // scripting thread is not it.
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                send(activity, png, text);
+            }
+        });
+    }
+
+    private static void send(Activity activity, byte[] png, String text) {
+        try {
+            File directory = new File(activity.getCacheDir(), DIRECTORY);
+            if (!directory.exists() && !directory.mkdirs()) {
+                Log.w(TAG, "mkdir_failed");
+                return;
+            }
+
+            File file = new File(directory, FILE_NAME);
+            FileOutputStream out = new FileOutputStream(file);
+            try {
+                out.write(png);
+            } finally {
+                out.close();
+            }
+
+            Uri uri = FileProvider.getUriForFile(
+                    activity, activity.getPackageName() + AUTHORITY_SUFFIX, file);
+
+            Intent send = new Intent(Intent.ACTION_SEND);
+            send.setType(MIME);
+            send.putExtra(Intent.EXTRA_STREAM, uri);
+            if (text != null && text.length() > 0) {
+                // Offered, not guaranteed. Every target decides what it keeps:
+                // some take the picture and drop the words.
+                send.putExtra(Intent.EXTRA_TEXT, text);
+            }
+            // Without this the chosen app gets a URI it is not allowed to
+            // read, and the share arrives as a blank or an error inside
+            // somebody else's app. createChooser propagates the flag to
+            // whichever target the player picks.
+            send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            // null title: the Sharesheet supplies the system's own wording, in
+            // the device's language. A title of ours would be one more English
+            // string outside Copy.cs, crossing the native boundary, which is
+            // the exact fault 60-shell-build/16 went and fixed in CatPicker.
+            activity.startActivity(Intent.createChooser(send, null));
+        } catch (Exception e) {
+            // Diagnostic only. Nothing here reaches the player: an OS message
+            // follows the device's language, not the game's.
+            Log.w(TAG, "share_failed", e);
+        }
+    }
+}

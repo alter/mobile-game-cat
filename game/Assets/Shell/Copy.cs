@@ -53,8 +53,6 @@ namespace CatShelter.Shell
             new Dictionary<string, string>
             {
                 // --- the board -----------------------------------------------
-                ["board.title"] = "Room {0} of {1} · pile {2} of {3}",
-                ["board.items_left"] = "Items left: {0}",
 
                 // --- finishing a pile ----------------------------------------
                 // "Room clean!" until 2026-08-28. The exclamation mark was
@@ -84,6 +82,21 @@ namespace CatShelter.Shell
                 // finished one, so it says that instead of counting again.
                 ["win.corner.body"] = "The kitten came over to look.",
                 ["win.next"] = "Next",
+
+                // --- the kitten's card, and sharing her --------------------
+                //
+                // `card.game_name` is a placeholder and must not ship as one:
+                // ProjectSettings still says `productName: game`, so the game
+                // has no name, and a caption reading "Look at the kitten I have
+                // in Cat Shelter" is a name I invented rather than one anybody
+                // chose. Raised with the owner; it belongs in ProjectSettings
+                // and here at the same time.
+                ["card.game_name"] = "Cat Shelter",
+                ["card.close"] = "Back",
+                ["card.share"] = "Share her",
+                // {0} is the game's name. Kept short: it rides on a picture and
+                // most people rewrite the caption anyway.
+                ["card.caption"] = "Look at the kitten I have in {0}",
                 // Shown over the map for the second or so it takes to build
                 // the board. Names the room being entered rather than saying
                 // "Loading": the player tapped a room, and the answer should

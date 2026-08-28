@@ -1,0 +1,62 @@
+// Task 60-shell-build/15. Modelled on the one Android library plug-in this
+// project already ships and that already builds under Unity 6000.3:
+// Library/PackageCache/com.unity.mobile.notifications@*/Runtime/Android/Plugins/
+// mobilenotifications.androidlib/build.gradle - same plugin id, same way of
+// reading compileSdk/buildTools off :unityLibrary, same
+// api files('../libs/unity-classes.jar') for com.unity3d.player.UnityPlayer.
+//
+// Supplying our own build.gradle means the standard Android Gradle Plugin
+// source layout applies (src/main/java, src/main/res, src/main/AndroidManifest.xml)
+// rather than the flattened one Unity's libTemplate.gradle imposes on an
+// .androidlib that has none. The resources this plug-in needs
+// (res/xml/catshare_paths.xml) are why it wants a real library module at all:
+// a loose .java file under Assets/Plugins/Android cannot carry a res folder.
+
+plugins {
+    id 'com.android.library'
+}
+
+// androidx.core 1.13.x requires compileSdk 34 or newer. Unity's own compileSdk
+// is normally well past that, but a project pinned to an older API would fail
+// here with an unhelpful AAR-metadata error, so the floor is explicit.
+def compileSdkFor(unityLib) {
+    def version = unityLib.compileSdkVersion.find('\\d+').toInteger()
+    return version < 34 ? 34 : version
+}
+
+android {
+    namespace "com.catshelter.share"
+
+    def unityLib = project(':unityLibrary').extensions.getByName('android')
+    compileSdkVersion compileSdkFor(unityLib)
+    buildToolsVersion unityLib.buildToolsVersion
+
+    defaultConfig {
+        // Matches ProjectSettings AndroidMinSdkVersion: 25. FileProvider and
+        // ACTION_SEND both predate it; the FLAG_GRANT_READ_URI_PERMISSION on
+        // the chooser (rather than on each target) needs API 21.
+        minSdkVersion 25
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // com.unity3d.player.UnityPlayer, for currentActivity. The path is
+    // relative to where Unity copies this folder in the generated Gradle
+    // project (a sibling of unityLibrary/libs), which is exactly the path the
+    // notifications plug-in uses.
+    api files('../libs/unity-classes.jar')
+
+    // androidx.core.content.FileProvider. Unity does not ship androidx:
+    // classes.jar in the 6000.3 Android player contains no androidx/ entries
+    // (checked), so this has to be declared. google() and mavenCentral() are
+    // already in Unity's settingsTemplate.gradle, so it resolves without any
+    // repository change - but it does need android.useAndroidX=true, which is
+    // NOT in Unity's default gradle properties. See
+    // Assets/Plugins/Android/gradleTemplate.properties.
+    implementation 'androidx.core:core:1.13.1'
+}

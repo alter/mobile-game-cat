@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Task 60-shell-build/15. Gradle merges this into the app's manifest
+  (Unity Manual, "Android App Manifest": plug-in manifests are one of the
+  sources merged into the final Android App Manifest).
+
+  Nothing here asks for a permission. Sharing a file this way needs none: the
+  file is inside the app's own cache, and the receiving app is granted read
+  access to one URI for the length of one intent
+  (FLAG_GRANT_READ_URI_PERMISSION, set in CatShare.java). That is the whole
+  point of FileProvider over WRITE_EXTERNAL_STORAGE, and it keeps
+  60-shell-build/17-permission-audit's standard: every permission justified or
+  removed - here, removed by construction.
+
+  ${applicationId} is an Android Gradle Plugin manifest placeholder; AGP
+  substitutes the application's real id when it merges a library manifest.
+  CatShare.java rebuilds the same authority at runtime from
+  getPackageName(). If those two ever disagree, getUriForFile throws
+  IllegalArgumentException rather than sharing the wrong thing.
+
+  android:exported="false" because nothing outside the app should be able to
+  reach the provider on its own; a share works through the granted URI, not
+  through the provider being public.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <provider
+            android:name="com.catshelter.share.CatShareFileProvider"
+            android:authorities="${applicationId}.catshare"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/catshare_paths" />
+        </provider>
+    </application>
+
+</manifest>

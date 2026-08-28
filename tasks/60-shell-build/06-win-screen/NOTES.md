@@ -57,3 +57,48 @@ Raw test output, 2026-08-28:
 `.venv/bin/python -m pytest tools/ -q` → `160 passed` (up from 159 — two new
 `win.before`/`win.after` Copy.cs keys, both declared and used).
 `build/check-core-purity.sh` → `Core is engine-free: OK`.
+
+## The room itself, at last — 2026-08-28
+
+`ios-win-room-before-after.png` is this screen's first picture in the project's
+life, and the first time it shows what the task always asked for: **the room
+before and the room after**, from the drawn pair.
+
+It had been showing a collage of the room's prop sprites — scattered for
+"before", lined up for "after". That was honest when it was written: 40-art/07
+had delivered nothing, and a collage of real props beat a placeholder image. It
+stopped being honest on 28.08 when 24 room files arrived, and it survived
+because nobody went back to the code that had worked around their absence.
+
+The owner played the game and named it in one sentence: "мы рисовали комнаты
+грязные и чистые, почему просто не показать комнату до и после?" The pair of
+pictures *is* the pitch — `cat-shelter-mvp.md` calls it the game's eight-second
+reel — and the screen built to show it was showing something else.
+
+**What changed.** `ShowRoomTransformation` loads `Art/room_NN_dirty` and
+`Art/room_NN_clean` and paints them into the two frames. The frames were 116×116
+squares built for a scatter of props; a room is 1856×3328, so scale-to-fit would
+have shrunk it to a letterboxed sliver. They become 104×186 portrait for a room
+and drop their painted background and border — the picture is the panel now, and
+a frame around it only competes.
+
+The prop collage stays as the fallback for a room with no pair drawn, and the
+log says which of the two ran: `[Board] before/after: room 01 art` or
+`… has no art, using props`.
+
+### How it was reached, which is worth writing down
+
+There is no debug route to this screen and playing to it by hand is 36 taps of
+matching. Instead the level file was read (`l01_room01_pile0.json`), a full
+winning order computed against its `blocked_by` graph, and a save written that
+replays all but the last take — leaving one tile on the board and two of its
+kind on the shelf. One tap then wins the room. The trace confirms it:
+
+```
+[Board] took 36, shelf=0, triples=12, available=0
+[Board] win: level 1, lastPileOfRoom=True
+[Board] before/after: room 01 art
+```
+
+That save-crafting trick works for any level and is the cheap way to reach any
+end-of-level screen: the lose card, the house-complete card, the reward drop.

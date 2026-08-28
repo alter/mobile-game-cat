@@ -644,6 +644,48 @@ namespace CatShelter.View
             _beforeCollage.Clear();
             _afterCollage.Clear();
 
+            // The room itself, when it has been drawn. This is what the task
+            // asked for from the start; the prop collage below was written
+            // when 40-art/07-rooms had delivered nothing, and it survived the
+            // delivery because nobody went back. The owner played the game and
+            // said it plainly: "мы рисовали комнаты грязные и чистые, почему
+            // просто не показать комнату до и после?" — the whole promise of
+            // this game is that pair of pictures.
+            var roomNo = RoomPlan.RoomNumber(closedLevel.RoomId)
+                                 .ToString("00", CultureInfo.InvariantCulture);
+            var dirty = SpriteNamed($"Art/room_{roomNo}_dirty");
+            var clean = SpriteNamed($"Art/room_{roomNo}_clean");
+            if (dirty != null && clean != null)
+            {
+                Debug.Log($"[Board] before/after: room {roomNo} art");
+
+                // The frames are square (116×116) because they were built to
+                // hold a scatter of props. A room is 1856×3328 — portrait, and
+                // scale-to-fit would shrink it into a letterboxed sliver. So
+                // the frames become portrait for a room, and lose the painted
+                // background and border they used to need: the picture is the
+                // whole panel now, and a frame around it only competes.
+                foreach (var frame in new[] { _beforeCollage, _afterCollage })
+                {
+                    frame.style.width = 104;
+                    frame.style.height = 186;
+                    frame.style.backgroundColor = Color.clear;
+                    frame.style.borderLeftWidth = frame.style.borderRightWidth =
+                        frame.style.borderTopWidth = frame.style.borderBottomWidth = 0;
+                    frame.style.paddingTop = frame.style.paddingLeft = 0;
+                }
+
+                Paint(_beforeCollage, dirty);
+                Paint(_afterCollage, clean);
+
+                _beforeAfter.style.display = DisplayStyle.Flex;
+                return;
+            }
+
+            // No pair drawn for this room: fall back to the props it held,
+            // scattered and then lined up. Real data, real art, and honest
+            // about being second best.
+            Debug.Log($"[Board] before/after: room {roomNo} has no art, using props");
             var scatter = new System.Random(RoomPlan.RoomNumber(closedLevel.RoomId));
             foreach (var kindId in kinds)
             {
@@ -670,6 +712,14 @@ namespace CatShelter.View
 
             _beforeAfter.style.display = DisplayStyle.Flex;
         }
+
+        /// <summary>
+        /// A room's own picture, or null. Separate from <see cref="SpriteFor"/>
+        /// because that one caches by prop kind and warns about a missing prop;
+        /// a room without art is an ordinary state here, not a defect.
+        /// </summary>
+        private static Texture2D SpriteNamed(string path) =>
+            Resources.Load<Texture2D>(path);
 
         private void HideRoomTransformation()
         {

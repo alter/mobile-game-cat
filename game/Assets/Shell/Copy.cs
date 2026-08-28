@@ -69,6 +69,11 @@ namespace CatShelter.Shell
                 // finished one, so it says that instead of counting again.
                 ["win.corner.body"] = "The kitten came over to look.",
                 ["win.next"] = "Next",
+                // Shown over the map for the second or so it takes to build
+                // the board. Names the room being entered rather than saying
+                // "Loading": the player tapped a room, and the answer should
+                // be about the room.
+                ["map.opening"] = "Opening the room…",
                 // 60-shell-build/06: captions for the room's before/after,
                 // shown on a room's last pile only. Room art itself does not
                 // exist yet (40-art/07 is todo) — see that task's NOTES.md

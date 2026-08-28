@@ -552,12 +552,71 @@ namespace CatShelter.View
             var root = uid != null ? uid.rootVisualElement : null;
             if (root == null) return;
 
+            // Answer the finger before doing anything else. Building the board
+            // takes about a second and a half — levels and prop sprites — and
+            // until this was added the screen simply sat there. The owner
+            // played it and read that silence exactly as a person would: "кликаю
+            // - ничего не происходит... юзер не понимает что происходит, кликает
+            // и раздражается, что все зависло." A tap that produces nothing
+            // visible is indistinguishable from a tap that was not registered.
+            ShowOpening(root);
+
             // Not here, next frame. This runs inside a pointer callback, and
             // the element under the finger is in the tree the swap destroys —
             // UI Toolkit is still walking the propagation path through it.
             // Clearing the panel mid-dispatch is how the tap came to fire, log
             // itself, throw nothing, and leave the map exactly where it was.
             root.schedule.Execute(() => SwapInBoard(uid, root));
+        }
+
+        /// <summary>
+        /// A word and a moving bar over the map, the instant the room is
+        /// tapped. Not a percentage: the work behind it is a level load and a
+        /// sprite load with no measurable progress, and a number that jumps
+        /// 0→100 lies more than no number at all. What it has to say is "the
+        /// tap landed, something is happening", and it says that honestly.
+        /// </summary>
+        private void ShowOpening(VisualElement root)
+        {
+            var veil = new VisualElement { name = "opening" };
+            veil.style.position = Position.Absolute;
+            veil.style.left = veil.style.right = veil.style.top = veil.style.bottom = 0;
+            veil.style.backgroundColor = new Color(0.957f, 0.918f, 0.847f, 0.86f);
+            veil.style.alignItems = Align.Center;
+            veil.style.justifyContent = Justify.Center;
+            veil.pickingMode = PickingMode.Position; // swallow further taps
+
+            var ink = (Color)new Color32(0x33, 0x2A, 0x1E, 0xFF);
+            var word = new Label(Shell.Copy.Of("map.opening"));
+            word.style.fontSize = 17;
+            word.style.color = ink;
+            word.style.marginBottom = 14;
+            veil.Add(word);
+
+            var track = new VisualElement();
+            track.style.width = 168;
+            track.style.height = 5;
+            track.style.backgroundColor = new Color(0.84f, 0.78f, 0.66f);
+            Round(track, 3);
+
+            var bar = new VisualElement();
+            bar.style.height = Length.Percent(100);
+            bar.style.width = Length.Percent(34);
+            bar.style.backgroundColor = ink;
+            Round(bar, 3);
+            track.Add(bar);
+            veil.Add(track);
+            root.Add(veil);
+
+            // Slides back and forth rather than filling: honest about not
+            // knowing how far along it is.
+            var step = 0;
+            veil.schedule.Execute(() =>
+            {
+                step = (step + 1) % 40;
+                var t = step < 20 ? step : 40 - step;   // 0..20..0
+                bar.style.left = Length.Percent(t * 3.3f);
+            }).Every(28);
         }
 
         /// <summary>

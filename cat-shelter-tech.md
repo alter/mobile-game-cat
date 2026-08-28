@@ -547,7 +547,7 @@ xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone \
 # 3. Boot the simulator, install, launch
 xcrun simctl boot "iPhone 17"; open -a Simulator
 xcrun simctl install booted DerivedData/Build/Products/Debug-iphonesimulator/game.app
-xcrun simctl launch booted com.DefaultCompany.game
+xcrun simctl launch booted com.sootpaw.game
 
 # 4. Screenshot — this is how a visual claim gets proven
 xcrun simctl io booted screenshot /tmp/sim.png
@@ -557,7 +557,7 @@ Notes that cost time if forgotten:
 
 - No signing and no team ID are needed for the simulator; the two
   `CODE_SIGNING_*` overrides are what make that true.
-- The bundle identifier is `com.DefaultCompany.game` until task 14
+- The bundle identifier is `com.sootpaw.game` until task 14
   changes it — `simctl launch` takes the identifier, not the app name.
 - The app target builds as `game.app` (`PRODUCT_NAME_APP = game`), not
   `CatShelter.app`.

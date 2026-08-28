@@ -85,13 +85,12 @@ namespace CatShelter.Shell
 
                 // --- the kitten's card, and sharing her --------------------
                 //
-                // `card.game_name` is a placeholder and must not ship as one:
-                // ProjectSettings still says `productName: game`, so the game
-                // has no name, and a caption reading "Look at the kitten I have
-                // in Cat Shelter" is a name I invented rather than one anybody
-                // chose. Raised with the owner; it belongs in ProjectSettings
-                // and here at the same time.
-                ["card.game_name"] = "Cat Shelter",
+                // The game's name, chosen 2026-08-28. One invented word: it
+                // finds itself in a store search, which "Cat Shelter" never
+                // would — that phrase sits in the title or description of a
+                // dozen shelter games — and it is true to this one, a kitten
+                // found in a dusty house.
+                ["card.game_name"] = "Sootpaw",
                 ["card.close"] = "Back",
                 // Beside the share glyph. Just the verb: the owner asked why it
                 // said "Share her" at all, and he is right — the icon and the

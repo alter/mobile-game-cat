@@ -377,7 +377,7 @@ inferring a bug from screenshots that one line of log already named:
 
 ```bash
 # iOS simulator — prints every Debug.Log line the run produces
-xcrun simctl launch --console booted com.DefaultCompany.game
+xcrun simctl launch --console booted com.sootpaw.game
 
 # Android
 "$ADB" logcat -c && "$ADB" logcat -s Unity
@@ -405,12 +405,12 @@ Pulling them:
 
 ```bash
 # iOS simulator
-D=$(xcrun simctl get_app_container booted com.DefaultCompany.game data)
+D=$(xcrun simctl get_app_container booted com.sootpaw.game data)
 cat "$D/Documents/boot-state.txt"
 
 # Android
 ADB=/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb
-"$ADB" exec-out run-as com.DefaultCompany.game cat files/boot-state.txt
+"$ADB" exec-out run-as com.sootpaw.game cat files/boot-state.txt
 ```
 
 ## Tapping the iOS simulator: use idb, not the mouse
@@ -456,3 +456,30 @@ Two things that cost a build each and are easy to repeat:
   working directory it builds the device project into the simulator's
   DerivedData, reports `** BUILD SUCCEEDED **`, and produces no `game.app`
   where you expect one.
+
+## The game is called Sootpaw — 2026-08-28
+
+`productName`, `companyName` and the bundle identifier are now `Sootpaw` /
+`com.sootpaw.game`. Until today the project shipped as `com.DefaultCompany.game`
+with no name at all, which blocked the share caption and left the ending card's
+Like button undrawable (`Shell/Review.Available` checks the identifier precisely
+because the default one would send a player to a stranger's listing).
+
+**Historical `NOTES.md` and `VERIFY.md` files still say `com.DefaultCompany.game`
+and are deliberately left alone.** They record commands that were actually run
+against that identifier; rewriting them would make the record say something that
+never happened. Commands in *instructions* — this file and `cat-shelter-tech.md`
+— are updated, because those are meant to be run now.
+
+**Changing the identifier orphans anything already installed.** The simulator and
+emulator keep the old app and its saves under the old id; reinstall rather than
+wondering why a save vanished.
+
+The name was chosen against store search: "Cat Shelter", the owner's first
+choice, has no exact match in the App Store (checked through Apple's own search
+API in four countries) but sits inside the title or description of a dozen
+shelter games, so it could never rank. "Sootpaw" is one invented word — it finds
+itself, and it is true to the game: a kitten found in a dusty house. An exact
+search returned nothing on either store, but neither store's search proves a name
+is free: only creating the App Store Connect record does, and that needs the paid
+account this project does not have yet.

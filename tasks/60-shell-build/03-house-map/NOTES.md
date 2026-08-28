@@ -185,7 +185,7 @@ and one under the roof is what the house has room for.
 
 ### The trap the crop set, and how it cost two builds
 
-Cropping the background to 807×1381 made it non-power-of-two, and Unity's
+Cropping the background to 809×1385 made it non-power-of-two, and Unity's
 importer rescales such textures to the *nearest* power of two per axis —
 807→1024 and 1381→1024. The house came out square. `nPOTScale: 0` on that one
 file fixes it.
@@ -218,9 +218,12 @@ which were shut. Now:
 | done | sage circle with a tick above the number |
 | locked | sunk into the wood, dim, and **smaller** — size does the work, not only colour |
 
-`ios-numbers-fresh-game.png` is a new game: room 1 lit, everything else shut.
-`ios-numbers-in-progress.png` and `android-numbers-in-progress.png` are rooms
-1–4 done with room 5 a third cleared, on both platforms.
+`ios-numbers-in-order.png` is a new game: room 1 lit, everything else shut.
+`ios-numbers-in-progress.png` is rooms 1–4 done with room 5 a third cleared.
+Retaken 28.08: the first pair showed the numbered-by-identity layout that the
+climbing order replaced, so they were screenshots of a screen that no longer
+exists. An independent verifier caught that, along with two dead file references
+and a wrong crop size in these notes — all corrected.
 
 Three states told apart by shape and size rather than by tint — the same rule
 art-brief.md section 9 sets for the room cells, which three shades of one
@@ -228,7 +231,7 @@ colour do not satisfy.
 
 `PlayerProgress.AccessFor` is the new rule and it lives in Core with six tests,
 one of which walks the whole 37-pile game asserting that **exactly one room is
-open at every point** — a map offering two playable rooms, or none mid-game,
+open at every point until the house is finished, and none after** — a map offering two playable rooms, or none mid-game,
 misleads worse than one that says nothing.
 
 The room art is untouched on disk and still named as art-brief.md section 9
@@ -289,7 +292,7 @@ which destroys the UXML skeleton the board needs. `StartPlaying` clones
 that asset is missing rather than leaving an empty panel.
 
 **Verified by an actual tap, on Android.** `android-tap-before.png` is the map
-with room 1 lit; `android-tap-starts-room-1.png` is what `adb shell input tap`
+with room 1 lit; `android-tap-opens-room-1.png` is what `adb shell input tap`
 produced: "Room 1 of 12 · pile 1 of 1". The same tap could not be automated on
 the iOS simulator — posting a synthetic click needs macOS accessibility
 permission the terminal does not hold — so **iOS is verified for the layout by

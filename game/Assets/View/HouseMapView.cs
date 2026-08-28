@@ -314,7 +314,7 @@ namespace CatShelter.View
             }
 
             // The painted house fills the picture: `map_background.png` was
-            // cropped on 28.08 from the delivered 928×1664 to the 807×1381 the
+            // cropped on 28.08 from the delivered 928×1664 to the 809×1385 the
             // house actually occupies. It arrived sitting on a white rectangle
             // that showed as a white card behind the map, on a cream screen.
             // The uncropped file is kept at Art/delivery-originals/ — outside
@@ -535,7 +535,8 @@ namespace CatShelter.View
         /// Leave the map and play the open room.
         ///
         /// There is no room to pass along and no new plumbing needed for one:
-        /// exactly one room is ever open and it is always the save's cursor,
+        /// at most one room is ever open — exactly one until the house is
+        /// finished, none after — and it is always the save's cursor,
         /// which is where the board starts anyway. `PlayerProgress.AccessFor`
         /// is what makes that true and a test walks the whole game asserting
         /// it, so "tap the open room" and "start the board" are the same

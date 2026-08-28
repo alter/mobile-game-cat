@@ -198,8 +198,12 @@ namespace CatShelter.Core.Tests
         //
         // The map's first question is where the player may go, which is not
         // the same question as how dirty a room is. These pin the rule that
-        // exactly one room is ever open, because a map offering two playable
-        // rooms — or none, mid-game — misleads worse than one saying nothing.
+        // exactly one room is open until the house is finished and none after,
+        // because a map offering two playable rooms — or none, mid-game —
+        // misleads worse than one saying nothing. The distinction matters: an
+        // independent verifier found three places claiming the stronger "always
+        // exactly one", which this suite does not assert and the code does not
+        // do.
 
         [Test]
         public void AccessFor_FreshGame_OnlyRoomOneIsOpen()

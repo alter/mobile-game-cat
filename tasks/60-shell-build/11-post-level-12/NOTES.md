@@ -39,3 +39,21 @@ and the moment it appears at.
 
 The route there is covered by test rather than by eye: `RoomPlanTests` asserts
 `Next` returns null on the last level and that the house does not wrap.
+
+## The ending, seen — 2026-08-28
+
+`ios-every-room-is-clean.png`. "Every room is clean / All twelve of them, and one
+kitten who no longer has anywhere to hide her finds. / That is as far as this
+house goes for now." No button: the screen does not offer to start over, which is
+out of scope on purpose.
+
+The cat is in state 3 in the header — lying down — which is the arc landing where
+it should at the last room.
+
+Reached with `tools/save-forge/house.save`: level 37, room 12 of 12, pile 4 of 4,
+eleven rooms already done, one tile left. One tap.
+
+```
+[Board] took 57, shelf=0, triples=20, available=0
+[Board] house complete
+```

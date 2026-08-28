@@ -146,3 +146,19 @@ text, so a call site sitting only inside a comment — e.g. wrapped in
 `// TODO:` — read as "called"); that gap was closed the same day this note
 was written, in the same pass — see the test file's own history for the
 mutation that proved it.
+
+## Seen running, for the first time — 2026-08-28
+
+`ios-shelf-jammed.png`: "Shelf jammed / Levels finished: 0. / Replay", over the
+board it happened on. No offer, no second chance for a tap — D4's revision took
+the fake door out, and the screen is what it says it is.
+
+Reached without playing: `tools/save-forge/jam.save` puts eight of nine shelf
+slots full with no triple available, and one tap of a kind that cannot match
+fills the ninth. The log confirms the outcome rather than the picture being
+interpreted:
+
+```
+[Board] took 33, shelf=9, triples=0, available=22
+[Board] lose
+```

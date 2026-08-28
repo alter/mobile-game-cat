@@ -40,3 +40,39 @@ Everything visible: the clutter sprites per corner, the dirty and clean room
 backgrounds, and the swap between them. `ClearedFractionAfter` is the number
 that will drive it. The task stays `todo` because its OUTCOME is about what the
 player sees, and none of that can be drawn yet.
+
+## Ready to build, and one assumption in the task is wrong — 2026-08-28
+
+The board today is a cream page with prop tiles on it. **The room is not there at
+all**, which makes this the largest piece of the product still missing: the game's
+whole promise is a room getting better, and the room is absent from the screen
+where the work happens.
+
+Everything needed now exists. `Resources/Art/room_NN_dirty.png` and `_clean.png`,
+24 files, 1024×2048, undistorted since today's resize. `RoomPlan` already answers
+the questions this needs: `PilesIn`, `IsLastPileOfRoom` and — the useful one —
+`ClearedFractionAfter(level)`.
+
+**The task's SCOPE assumes something that is not true.** It says which items sit
+in which corner "is decided by 30-levels-solver's level data, this task only
+renders it". Checked: a level file carries `number`, `room_id`, `pile_index` and
+a pile of items with `id`, `kind` and `blocked_by` — **no corner, no position,
+nothing spatial**. Nothing downstream can render a corner it was never told
+about.
+
+Two ways out, and the choice should be deliberate:
+
+1. **Add corner data to the levels.** Faithful to the task, and it means
+   regenerating 37 level files and teaching the generator a spatial notion it
+   does not have. Everything about difficulty would have to be re-measured.
+2. **Derive the corners from the pile index.** A room has 1–4 piles; a room has 4
+   quadrants. Pile *n* cleans quadrant *n*, and the last pile swaps the whole
+   background to clean. No new data, no regeneration, and the OUTCOME — "visibly
+   increasing cleanliness, corner by corner, swaps to clean on the last pile" —
+   is met exactly as written.
+
+**Going with 2**, and recording it here rather than quietly: it delivers what the
+OUTCOME asks with data that exists, and if per-item corners are ever added, the
+same rendering can read them instead of the pile index.
+
+Waiting on `DebugGameView.cs`, which another worker is in.

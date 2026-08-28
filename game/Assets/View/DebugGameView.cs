@@ -81,6 +81,19 @@ namespace CatShelter.View
         // exists yet (40-art/07 is todo), so a drawn dirty/clean pair is not
         // available; this stands in with the real prop sprites of the room
         // that just closed, scattered for "before" and lined up for "after".
+        // --- 60-shell-build/01: motion. Durations mirror DebugGame.uss
+        // (.game__fly and .game__pop); change both together or the copy is
+        // removed from the screen mid-flight.
+        private const int FlyMs = 150;
+        private const int PopMs = 170;
+        private const float TileHalf = 26f;   // .game__tile is 52
+        private const float SlotHalf = 16f;   // .game__slot is 32
+
+        // A layer over the board that Render() never clears. Everything that
+        // moves lives here as a throwaway copy — see the header comment in
+        // DebugGame.uss for why it cannot live on the real elements.
+        private VisualElement _fxLayer;
+
         private VisualElement _beforeAfter;
         private VisualElement _beforeCollage;
         private VisualElement _afterCollage;
@@ -109,12 +122,17 @@ namespace CatShelter.View
                 throw new InvalidOperationException(
                     "DebugGame.uxml skeleton not found in UIDocument source");
 
+            var _t0 = System.Diagnostics.Stopwatch.StartNew();
             Debug.Log("[Board] enabled, skeleton found");
+            BuildRoom(uid.rootVisualElement, gameRoot);
             BuildCatPortrait(gameRoot);
+            BuildFxLayer(gameRoot);
             BuildBeforeAfter(gameRoot);
 
+            Debug.Log($"[Perf] layers {_t0.ElapsedMilliseconds}ms");
             _levels.Clear();
             var loaded = LevelAssets.LoadAll();
+            Debug.Log($"[Perf] LoadAll {_t0.ElapsedMilliseconds}ms");
             if (!loaded.CanStart)
             {
                 // Every room came back incomplete — LevelAssets already
@@ -133,6 +151,7 @@ namespace CatShelter.View
             _progress = new PlayerProgress(_plan.PilesPerRoomInOrder());
             if (!Resume())
                 StartLevel(0);
+            Debug.Log($"[Perf] board ready {_t0.ElapsedMilliseconds}ms");
         }
 
         /// <summary>
@@ -194,6 +213,7 @@ namespace CatShelter.View
 
         private void Render()
         {
+            RenderRoom();
             var roomNo = RoomPlan.RoomNumber(_level.RoomId);
             _title.text = Shell.Copy.Of("board.title", roomNo, _plan.RoomCount,
                 _level.PileIndex + 1, _plan.PilesIn(_level.RoomId));
@@ -252,6 +272,184 @@ namespace CatShelter.View
         /// change — it is already visible in the room behind the card the
         /// instant the boundary is crossed (task wording: "visible in the
         /// room the transition happens in").</summary>
+        // --- 60-shell-build/02: the room behind the pile -----------------
+        //
+        // The board was a cream page with props on it. The game's promise is a
+        // room getting better, and the room was absent from the screen where
+        // that work happens.
+        //
+        // Two layers, both the same size and both ScaleToFit, so they line up
+        // pixel for pixel: the dirty room underneath, and up to four quadrant
+        // windows onto the clean one over it. A window is 50%×50% with
+        // overflow hidden, holding a child sized 200%×200% and offset by a
+        // quadrant — which makes that child exactly the size and position of
+        // the dirty layer, clipped. Only position, size and overflow, no
+        // background-position or background-size: those signatures churn
+        // between Unity versions and this has to survive one.
+        //
+        // Which quadrants are clean comes from the pile index, not from the
+        // level data. The task's SCOPE says corner assignment comes from the
+        // level files; it does not — they carry id, kind and blocked_by and
+        // nothing spatial. A room has 1–4 piles and four quadrants, so pile n
+        // cleans quadrant n. Written up in the task's NOTES.
+        private VisualElement _room;
+        private VisualElement _gameRoot;
+        private VisualElement _panelRoot;
+        private VisualElement _roomDirty;
+        private readonly VisualElement[] _roomClean = new VisualElement[4];
+        private string _roomShown;
+
+        private void BuildRoom(VisualElement panelRoot, VisualElement gameRoot)
+        {
+            if (_room != null) return; // OnEnable can re-run; do not double-insert
+            _gameRoot = gameRoot;
+
+            _room = new VisualElement { name = "room" };
+            _room.style.position = Position.Absolute;
+            _room.style.left = _room.style.right = _room.style.top = _room.style.bottom = 0;
+            _room.pickingMode = PickingMode.Ignore;
+
+            _roomDirty = new VisualElement();
+            _roomDirty.style.position = Position.Absolute;
+            _roomDirty.style.left = _roomDirty.style.right = 0;
+            _roomDirty.style.top = _roomDirty.style.bottom = 0;
+            _roomDirty.style.unityBackgroundScaleMode = ScaleMode.ScaleAndCrop;
+            _room.Add(_roomDirty);
+
+            for (int q = 0; q < 4; q++)
+            {
+                var window = new VisualElement();
+                window.style.position = Position.Absolute;
+                window.style.width = Length.Percent(50);
+                window.style.height = Length.Percent(50);
+                window.style.left = Length.Percent((q % 2) * 50);
+                window.style.top = Length.Percent((q / 2) * 50);
+                window.style.overflow = Overflow.Hidden;
+                window.style.display = DisplayStyle.None;
+
+                var inner = new VisualElement();
+                inner.style.position = Position.Absolute;
+                inner.style.width = Length.Percent(200);
+                inner.style.height = Length.Percent(200);
+                inner.style.left = Length.Percent(-(q % 2) * 100);
+                inner.style.top = Length.Percent(-(q / 2) * 100);
+                inner.style.unityBackgroundScaleMode = ScaleMode.ScaleAndCrop;
+                window.Add(inner);
+
+                _room.Add(window);
+                _roomClean[q] = window;
+            }
+
+            // The props have to stay readable over a photograph. A cream veil
+            // at the page colour keeps the room legible as a place without it
+            // competing with the tiles the player is actually reading.
+            var veil = new VisualElement();
+            veil.style.position = Position.Absolute;
+            veil.style.left = veil.style.right = veil.style.top = veil.style.bottom = 0;
+            veil.style.backgroundColor = new Color(0.957f, 0.918f, 0.847f, 0.62f);
+            veil.pickingMode = PickingMode.Ignore;
+            _room.Add(veil);
+
+            // On the panel root, not on game-root, and pulled out past the
+            // safe-area padding: a room photograph that stops short of the
+            // notch and the home indicator reads as a picture pasted on a page
+            // rather than as the place the player is standing in. `SafeArea`
+            // pads the panel root, so the room cancels that padding with
+            // negative insets and covers the glass edge to edge.
+            //
+            // ScaleAndCrop, not ScaleToFit: the room fills the screen and loses
+            // its edges rather than sitting letterboxed in the middle.
+            panelRoot.Insert(0, _room);
+            _panelRoot = panelRoot;
+            panelRoot.RegisterCallback<GeometryChangedEvent>(_ => FillScreen());
+        }
+
+        /// <summary>
+        /// Pull the room out past the safe-area padding, so it reaches the
+        /// glass on every edge instead of stopping at the notch.
+        /// </summary>
+        private void FillScreen()
+        {
+            if (_room == null || _panelRoot == null) return;
+
+            // Computed from Screen.safeArea, not read back from the root's
+            // padding, and that is the whole point. `SafeArea` applies its
+            // padding from Update, retrying until layout is ready; the room is
+            // positioned during the first Render, when the padding is still
+            // zero, and nothing recomputed it afterwards. Two cream bands at
+            // the notch and the home indicator, twice, before this was traced
+            // rather than guessed at.
+            //
+            // Same arithmetic as SafeArea: screen pixels are not panel units,
+            // and the panel's width against the screen's gives the factor.
+            var width = _panelRoot.resolvedStyle.width;
+            if (float.IsNaN(width) || width <= 0f || Screen.width <= 0) return;
+            var scale = width / Screen.width;
+            var area = Screen.safeArea;
+
+            _room.style.left = -area.xMin * scale;
+            _room.style.right = -(Screen.width - area.xMax) * scale;
+            _room.style.top = -(Screen.height - area.yMax) * scale;
+            _room.style.bottom = -area.yMin * scale;
+        }
+
+        /// <summary>
+        /// Point the room layers at the current level's room and reveal one
+        /// quadrant per pile already cleared. Cheap to call often: it does
+        /// nothing unless the room or the pile changed.
+        /// </summary>
+        private void RenderRoom()
+        {
+            if (_room == null || _level == null || _plan == null) return;
+
+            var key = $"{_level.RoomId}/{_level.PileIndex}";
+            if (_roomShown == key) return;
+            _roomShown = key;
+
+            var no = RoomPlan.RoomNumber(_level.RoomId)
+                             .ToString("00", CultureInfo.InvariantCulture);
+            var dirty = SpriteNamed($"Art/room_{no}_dirty");
+            var clean = SpriteNamed($"Art/room_{no}_clean");
+            if (dirty == null || clean == null)
+            {
+                _room.style.display = DisplayStyle.None;
+                if (_gameRoot != null)
+                    _gameRoot.style.backgroundColor = (Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
+                Debug.Log($"[Board] room {no}: no art, board stays plain");
+                return;
+            }
+
+            _room.style.display = DisplayStyle.Flex;
+            // Insets applied here as well as from the geometry callback. The
+            // callback alone left cream bands at the notch and the home
+            // indicator on a real run: it fires when the panel's geometry
+            // changes, and SafeArea's padding can be in place before that ever
+            // happens, so nothing was ever recomputed.
+            FillScreen();
+            // Layout is not ready on the first frame — the same reason SafeArea
+            // retries — so ask again once it is.
+            _room.schedule.Execute(FillScreen).Every(100).Until(
+                () => !float.IsNaN(_panelRoot.resolvedStyle.width)
+                      && _panelRoot.resolvedStyle.width > 0f);
+            // game-root paints itself cream; with a room behind it that cream
+            // is a lid over the photograph.
+            if (_gameRoot != null) _gameRoot.style.backgroundColor = Color.clear;
+            _roomDirty.style.backgroundImage = new StyleBackground(dirty);
+
+            // One quadrant per pile finished before this one. The room's last
+            // pile is finished by winning it, and the win card carries the
+            // whole clean room — so the board never needs to show four.
+            int cleaned = Mathf.Clamp(_level.PileIndex, 0, 4);
+            for (int q = 0; q < 4; q++)
+            {
+                var show = q < cleaned;
+                _roomClean[q].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+                if (show)
+                    _roomClean[q][0].style.backgroundImage = new StyleBackground(clean);
+            }
+            Debug.Log($"[Board] room {no}, pile {_level.PileIndex}: {cleaned} of 4 corners clean");
+        }
+
         private void BuildCatPortrait(VisualElement gameRoot)
         {
             if (_catPortrait != null) return; // OnEnable can re-run; do not double-insert
@@ -276,7 +474,13 @@ namespace CatShelter.View
             var baseArt = CoatBuilder.LoadBase(CatStateTraits, state);
             if (baseArt == null) return; // art not shipped yet; portrait stays blank
 
-            var built = CoatBuilder.TryBuild(baseArt, CatStateTraits, state);
+            // 256, not the shipped 1024: the portrait is about 52 points, and
+            // building at full size cost 21.8 seconds of the board's opening on
+            // the iOS simulator — the whole of it. Cached, so coming back to a
+            // room does not pay again. See CoatBuilder.Downscale.
+            var _tc = System.Diagnostics.Stopwatch.StartNew();
+            var built = CoatBuilder.TryBuildFor(CatStateTraits, state, 256);
+            Debug.Log($"[Perf] coat {_tc.ElapsedMilliseconds}ms");
             if (_catTexture != null) UnityEngine.Object.Destroy(_catTexture);
             // Null when the coat could not be built: own nothing, and paint the
             // untinted silhouette. `baseArt` is the Resources asset itself, so
@@ -320,6 +524,9 @@ namespace CatShelter.View
                 // version of that — a covered shape, not a grey square.
                 tile.AddToClassList("game__tile--hidden");
                 Paint(tile, SpriteFor("prop_unknown"));
+                // A buried tile is a legitimate thing to try to tap. It answers
+                // with a flinch rather than with nothing — see Refuse.
+                tile.RegisterCallback<ClickEvent>(_ => Refuse(tile, entry.Item.Id));
                 return tile;
             }
 
@@ -353,9 +560,21 @@ namespace CatShelter.View
             }
 
             if (available && !locked)
-                tile.RegisterCallback<ClickEvent>(_ => Take(entry.Item.Id));
+            {
+                tile.RegisterCallback<ClickEvent>(
+                    _ => Take(entry.Item.Id, tile, entry.Item.Kind.Id));
+            }
             else
+            {
                 tile.AddToClassList("game__tile--dim");
+                // 01-presentation-input: a locked or covered tile used to
+                // register no callback at all, so the "[Board] tap refused"
+                // line in Take was only reachable once the board was already
+                // over — a locked tile answered a tap with total silence, and
+                // "the game said no" and "the game has frozen" look the same
+                // from the far side of the screen.
+                tile.RegisterCallback<ClickEvent>(_ => Refuse(tile, entry.Item.Id));
+            }
 
             return tile;
         }
@@ -384,9 +603,23 @@ namespace CatShelter.View
             return digits.Length > 0 ? new string(digits) : kindId[..2];
         }
 
-        private void Take(int itemId)
+        private void Take(int itemId, VisualElement source = null, string kindId = null)
         {
             var triplesBefore = _board.TriplesCompleted;
+
+            // Everything the animation needs is read HERE, before the model
+            // moves and before Render() clears the pile and the shelf. After
+            // Render there is no tapped tile left to fly from and no slot left
+            // to fly to — both were destroyed and rebuilt.
+            //   - the destination is the leftmost free slot, because that is
+            //     what Shelf.TryPlace fills (Array.IndexOf(_slots, null));
+            //   - the shelf elements on screen right now are the only ones with
+            //     a resolved layout, so worldBound is real only at this moment.
+            int destSlot = FirstFreeSlot();
+            var occupiedBefore = SlotOccupancy();
+            var from = source != null ? source.worldBound : default;
+            var to = SlotWorldBound(destSlot);
+
             if (_board.IsOver || !_board.TakeItem(itemId))
             {
                 // A tap that changes nothing is worth a line: it is either a
@@ -394,6 +627,7 @@ namespace CatShelter.View
                 // app those look the same.
                 Debug.Log($"[Board] tap {itemId} refused " +
                           $"(over={_board.IsOver})");
+                Flinch(source);
                 return;
             }
             Debug.Log($"[Board] took {itemId}, shelf={_board.Shelf.Occupied}, " +
@@ -403,10 +637,19 @@ namespace CatShelter.View
             // Feedback before the redraw: the tap should answer the finger, not
             // wait for a frame of layout. A match speaks louder than a
             // placement, which is the only difference the player needs to hear.
-            if (_board.TriplesCompleted > triplesBefore)
+            bool matched = _board.TriplesCompleted > triplesBefore;
+            if (matched)
                 Shell.Feedback.Match();
             else
                 Shell.Feedback.Place();
+
+            // The picture answers the finger in the same breath as the sound,
+            // and for the same reason. Decoration only: the model has already
+            // moved, Render() below draws the finished truth, and the copies
+            // this spawns fly over the top of it. Nothing here is awaited, so a
+            // player tapping faster than 150ms gets a second flyer beside the
+            // first rather than a queue to sit through.
+            AnimateTake(from, to, kindId, destSlot, occupiedBefore, matched);
 
             // Written on the move, not on OnApplicationPause: iOS kills
             // backgrounded apps without warning and the pause callback is not a
@@ -418,6 +661,199 @@ namespace CatShelter.View
             Render();
             if (_board.IsOver)
                 Finish();
+        }
+
+        // =====================================================================
+        // 60-shell-build/01: motion. The OUTCOME asks for placement and match
+        // to be animated; until 2026-08-28 nothing in this view moved.
+        //
+        // Why USS transitions over inline styles, and not
+        // VisualElement.experimental.animation: the `experimental` namespace is
+        // named that for a reason and its overloads have shifted between Unity
+        // versions, and nothing here can be compiled or run on this machine
+        // before the owner builds it. transition-property/-duration have been
+        // stable public USS since 2021.2. Everything below writes either a
+        // float into style.left/top (StyleLength takes a plain float — no
+        // struct constructor to get wrong) or toggles a class; the transform
+        // work (scale, rotate) is done entirely in USS, so no Scale/Translate/
+        // Rotate constructor appears in this file's animation path at all.
+        //
+        // Why copies rather than the real elements: Render() calls
+        // _pileArea.Clear() and _shelfArea.Clear() on EVERY move. A transition
+        // started on the tapped tile or on its destination slot dies with the
+        // element in the same frame it began. So the tile that flies is a
+        // throwaway on _fxLayer, which Render() never touches, and it is
+        // spawned from geometry captured before Render runs.
+        // =====================================================================
+
+        private void BuildFxLayer(VisualElement gameRoot)
+        {
+            if (_fxLayer != null) return; // OnEnable can re-run; do not double-insert
+            _fxLayer = new VisualElement { name = "fx-layer" };
+            _fxLayer.AddToClassList("game__fx-layer");
+            // Never eats a tap: a flyer passing over the pile must not swallow
+            // the next one while the player is tapping quickly.
+            _fxLayer.pickingMode = PickingMode.Ignore;
+            // Behind the overlay, so a win or lose card is never flown across.
+            int at = _overlay != null ? gameRoot.IndexOf(_overlay) : gameRoot.childCount;
+            gameRoot.Insert(at < 0 ? gameRoot.childCount : at, _fxLayer);
+        }
+
+        /// <summary>Where Shelf.TryPlace will put the next item: the leftmost
+        /// free slot. The shelf does not compact on a match (D16), so this is a
+        /// gap in the middle as often as it is the end of the row.</summary>
+        private int FirstFreeSlot()
+        {
+            var slots = _board?.Shelf.Slots;
+            if (slots == null) return -1;
+            for (int i = 0; i < slots.Count; i++)
+                if (slots[i] == null) return i;
+            return -1;
+        }
+
+        private bool[] SlotOccupancy()
+        {
+            var slots = _board?.Shelf.Slots;
+            if (slots == null) return Array.Empty<bool>();
+            var occupied = new bool[slots.Count];
+            for (int i = 0; i < slots.Count; i++) occupied[i] = slots[i] != null;
+            return occupied;
+        }
+
+        /// <summary>The on-screen rectangle of shelf slot <paramref name="index"/>.
+        /// Only meaningful before Render() rebuilds the shelf.</summary>
+        private Rect SlotWorldBound(int index)
+        {
+            if (_shelfArea == null || index < 0 || index >= _shelfArea.childCount)
+                return default;
+            return _shelfArea.ElementAt(index).worldBound;
+        }
+
+        private void AnimateTake(Rect from, Rect to, string kindId, int destSlot,
+                                 bool[] occupiedBefore, bool matched)
+        {
+            if (_fxLayer == null) return;
+            var origin = _fxLayer.worldBound;
+            // Before the first layout pass worldBound is NaN. No animation is
+            // better than one that flies to a nonsense coordinate.
+            if (float.IsNaN(origin.x) || float.IsNaN(origin.y)) return;
+
+            if (from.width > 0f && to.width > 0f)
+                FlyToShelf(from, to, kindId, origin);
+
+            if (matched)
+                PopMatchedSlots(occupiedBefore, destSlot, kindId, origin);
+        }
+
+        /// <summary>The tapped tile's copy travels from the pile to its slot and
+        /// shrinks from tile size to slot size on the way, so it arrives as a
+        /// shelf item rather than landing oversized.</summary>
+        private void FlyToShelf(Rect from, Rect to, string kindId, Rect origin)
+        {
+            var flyer = new VisualElement { name = "fx-fly" };
+            flyer.AddToClassList("game__fly");
+            flyer.pickingMode = PickingMode.Ignore;
+            PaintKind(flyer, kindId);
+
+            flyer.style.left = from.center.x - origin.x - TileHalf;
+            flyer.style.top = from.center.y - origin.y - TileHalf;
+            _fxLayer.Add(flyer);
+
+            // The end position is set one frame later on purpose. Two writes to
+            // the same property inside one frame collapse into a single
+            // resolved style, and the transition then has nothing to
+            // interpolate from — the copy would simply appear at the shelf
+            // instead of travelling there. ExecuteLater(0) is "next panel
+            // update", which is the next frame.
+            _fxLayer.schedule.Execute(() =>
+            {
+                flyer.style.left = to.center.x - origin.x - SlotHalf;
+                flyer.style.top = to.center.y - origin.y - SlotHalf;
+                flyer.AddToClassList("game__fly--landed");
+            }).ExecuteLater(0);
+
+            // Cleaned up on a timer rather than on TransitionEndEvent: if the
+            // transition never runs for any reason, the timer still fires, and
+            // a copy stuck over the board would be far worse than a missing
+            // animation. The scheduler is the layer's, not the flyer's, so
+            // removal does not depend on the element it is removing.
+            _fxLayer.schedule.Execute(() => flyer.RemoveFromHierarchy()).ExecuteLater(FlyMs + 40);
+        }
+
+        /// <summary>A match: the three slots that just emptied expand and fade
+        /// where they stand. A different verb from a placement on purpose — that
+        /// one travels, this one bursts, and the two are never confused at a
+        /// glance. The slots are found by diffing occupancy across the move,
+        /// which is exact because Shelf.TryMatch empties in place (D16).</summary>
+        private void PopMatchedSlots(bool[] occupiedBefore, int destSlot,
+                                     string kindId, Rect origin)
+        {
+            var slots = _board.Shelf.Slots;
+            for (int i = 0; i < slots.Count && i < occupiedBefore.Length; i++)
+            {
+                // Held something a moment ago (or is the slot this move just
+                // filled) and holds nothing now.
+                bool held = occupiedBefore[i] || i == destSlot;
+                if (!held || slots[i] != null) continue;
+
+                var bound = SlotWorldBound(i);
+                if (bound.width <= 0f) continue;
+
+                var pop = new VisualElement { name = "fx-pop" };
+                pop.AddToClassList("game__pop");
+                pop.pickingMode = PickingMode.Ignore;
+                if (!PaintKind(pop, kindId))
+                    pop.AddToClassList("game__pop-flash");
+
+                pop.style.left = bound.center.x - origin.x - SlotHalf;
+                pop.style.top = bound.center.y - origin.y - SlotHalf;
+                _fxLayer.Add(pop);
+
+                // Held back until the flight lands, so the two read as cause
+                // and effect instead of as one blur. 150 + 170 = 320ms of
+                // decoration over a board that was already up to date at 0ms.
+                _fxLayer.schedule.Execute(() => pop.AddToClassList("game__pop--out"))
+                        .ExecuteLater(FlyMs);
+                _fxLayer.schedule.Execute(() => pop.RemoveFromHierarchy())
+                        .ExecuteLater(FlyMs + PopMs + 40);
+            }
+        }
+
+        /// <summary>Paints a copy with a kind's art, falling back to the same
+        /// coloured square MakeTile uses when a kind has no art file. Returns
+        /// whether real art was found.</summary>
+        private bool PaintKind(VisualElement element, string kindId)
+        {
+            if (kindId == null) return false;
+            var art = SpriteFor(kindId);
+            if (art != null)
+            {
+                Paint(element, art);
+                return true;
+            }
+            element.style.backgroundColor = HueFor(kindId);
+            return false;
+        }
+
+        /// <summary>A refused tap. The board did not change and Render() is not
+        /// called, which makes this the one place where the real tile survives
+        /// long enough to animate — so it flinches in place: away over 90ms,
+        /// back over the 110ms the class removal transitions through.</summary>
+        private void Refuse(VisualElement tile, int itemId)
+        {
+            Debug.Log($"[Board] tap {itemId} refused (over={_board?.IsOver})");
+            Flinch(tile);
+        }
+
+        private void Flinch(VisualElement tile)
+        {
+            if (tile == null) return;
+            // Already flinching: leave it alone rather than restarting from the
+            // shrunk state, which would look like a stutter under fast tapping.
+            if (tile.ClassListContains("game__tile--refused")) return;
+            tile.AddToClassList("game__tile--refused");
+            tile.schedule.Execute(() => tile.RemoveFromClassList("game__tile--refused"))
+                .ExecuteLater(90);
         }
 
         private void Finish()

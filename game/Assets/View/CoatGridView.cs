@@ -153,7 +153,7 @@ namespace CatShelter.View
                     // harness whose whole job is showing 27 coats does not come
                     // up blank without saying why — CoatBuilder.LastFailure is
                     // shown once at the foot of the grid.
-                    var built = CoatBuilder.TryBuild(Small(art), traits, state);
+                    var built = CoatBuilder.TryBuildFor(traits, state, 256);
                     cell.style.backgroundImage = new StyleBackground(built != null ? built : art);
                     cell.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
                 }

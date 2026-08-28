@@ -98,7 +98,23 @@ namespace CatShelter.View
             masks[PatternPointed] = Pointed(body, w, h, top, bottom, left, right);
             masks[PatternBicolor] = Blur(Patches(body, w, h, 4, 0.52f, 10, seed), w, h, 8, body);
             masks[PatternCalico] = Blur(Patches(body, w, h, 7, 0.55f, 6, seed + 1), w, h, 5, body);
-            masks[PatternTabby] = Tabby(body, w, h, top, bottom, left, right, seed + 2);
+            // Not computed any more. The 28.08 cat delivery draws real tabby
+            // markings into the silhouette — rings round the legs and tail, an M
+            // on the forehead, stripes leaving the spine and curving over the
+            // ribs, none on the chest or belly — and the delivery note says in
+            // as many words that the computed longitudinal hatching can now be
+            // removed.
+            //
+            // It had to go regardless. The owner's verdict on seeing it running
+            // was that no cat has straight vertical bands from ear tip to paw
+            // and that it looked painted on with a brush. He was right: these
+            // stripes followed the frame, not the animal. Leaving them would now
+            // double the drawn ones.
+            //
+            // An empty mask, not a missing key: `MaskOf` still asks for it, and
+            // a hand-drawn `Art/cat_N_pattern_tabby` file still overrides it the
+            // moment one exists.
+            masks[PatternTabby] = new float[w * h];
 
             var tuxedo = new float[px.Length];
             for (int i = 0; i < px.Length; i++)

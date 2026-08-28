@@ -57,9 +57,24 @@ namespace CatShelter.Shell
                 ["board.items_left"] = "Items left: {0}",
 
                 // --- finishing a pile ----------------------------------------
-                ["win.room_clean.title"] = "Room clean!",
+                // "Room clean!" until 2026-08-28. The exclamation mark was
+                // congratulating the player for a tap, which section 2 of
+                // cat-shelter-mvp.md rules out along with rushing and
+                // competition; and the card now carries the room's own
+                // before/after photographs, which SHOW it clean far better
+                // than a shout does. A title over two pictures should name
+                // what they are, quietly, and then get out of the way.
+                ["win.room_clean.title"] = "The room is clean",
                 ["win.room_clean.body"] = "The kitten likes it better already.",
-                ["win.corner.title"] = "Corner cleared!",
+                // "Corner cleared!" until 2026-08-28, and the comment below
+                // had already diagnosed the fault without fixing it: the
+                // header two lines above this card says "pile 2 of 3", and
+                // this card answered with a different noun for the same
+                // thing. A player meeting both in one second has to work out
+                // that a corner is a pile. One word, and it is the one the
+                // board uses, because the board says it on every screen and
+                // this card appears once.
+                ["win.corner.title"] = "Pile cleared",
                 // No count here on purpose: the header above the pile already
                 // reads "Room 3 of 12 - pile 2 of 3". The card used to say
                 // "67% of this room is done", which is the same number said
@@ -86,12 +101,41 @@ namespace CatShelter.Shell
                 // minutes, and the copy should not make it feel larger.
                 ["lose.title"] = "Shelf jammed",
                 // The question "Would you keep playing if this were the real
-                // game?" was here until 2026-08-27. It asked a tester's
-                // question inside the game, at the one moment the player had
-                // just lost — and told them the game was not real while they
-                // were playing it. What is left is the count, which is a fact
-                // and not a reproach.
-                ["lose.body"] = "Levels finished: {0}.",
+                // game?" was here until 2026-08-27, and "Levels finished: {0}."
+                // replaced it until 2026-08-28. That line defended itself as
+                // "a fact and not a reproach". Three things were wrong with
+                // it, and the screenshot in 07-lose-screen-fake-door/
+                // ios-shelf-jammed.png shows all three at once:
+                //
+                //  - it reads "Levels finished: 0." on a first loss, which is
+                //    a scoreboard of nothing shown at the exact moment the
+                //    player failed. A fact can still be a reproach when the
+                //    fact is zero (mvp section 2: no humiliation on loss);
+                //  - "Levels" is engine vocabulary. The player is never shown
+                //    the word anywhere else — the header counts rooms and
+                //    piles, the map counts rooms — so the one number on this
+                //    card is denominated in a unit the game never taught;
+                //  - it says nothing about what just happened. "Shelf jammed"
+                //    is exact but terse, and a first-time player who does not
+                //    yet know that three of a kind clear a slot cannot tell a
+                //    jam from a bug.
+                //
+                // What replaces it states the rule at the one moment the
+                // player is guaranteed to care about it, and then says
+                // nothing is lost — which is the no-guilt half of D4 ("losing
+                // is not punishment here") said to the player rather than
+                // only in the decision log. It is still the only place in the
+                // game where the matching rule is written down; see this
+                // task's NOTES.md for why that is a gap and not a fix.
+                //
+                // No placeholder any more. The call site still passes
+                // `_levelIndex` (DebugGameView.cs, Finish) and that is
+                // harmless — string.Format ignores an argument the format
+                // string does not use — but the argument is now dead and
+                // should go whenever that file is next open.
+                ["lose.body"] =
+                    "Every slot is full and no three the same. " +
+                    "The pile goes back the way it was.",
                 ["lose.replay"] = "Replay",
                 // "One more shelf" / "Coming soon." lived here until
                 // 2026-08-27. The offer is gone until there is a price behind
@@ -105,9 +149,19 @@ namespace CatShelter.Shell
                 // no second-wave feature before gate 3, and a call to action
                 // here would be exactly that.
                 ["house.complete.title"] = "Every room is clean",
+                // Shortened on 2026-08-28, not rewritten. The old text
+                // ("All twelve of them, and one kitten who no longer has
+                // anywhere to hide her finds.") rendered as five wrapped
+                // lines — 11-post-level-12/ios-every-room-is-clean.png,
+                // taken when this card held nothing but words. It has since
+                // gained room 12's before/after pair above it
+                // (DebugGameView.Finish calls ShowRoomTransformation on this
+                // branch too), so the same paragraph now sits under two
+                // photographs on a phone card. Same image, same ending, two
+                // fewer lines.
                 ["house.complete.body"] =
-                    "All twelve of them, and one kitten who no longer has anywhere " +
-                    "to hide her finds.\n\nThat is as far as this house goes for now.",
+                    "All twelve, and a kitten with nowhere left to hide her finds." +
+                    "\n\nThat is as far as the house goes for now.",
 
                 // --- levels missing or broken ---------------------------------
                 // Shipped level data is gated before release (test_ship_levels.py,
@@ -116,12 +170,35 @@ namespace CatShelter.Shell
                 // screen a malformed or missing file used to leave behind
                 // (Core/LevelLoadPolicy, task 30-levels-solver/06).
                 ["levels.unavailable.title"] = "Something is missing",
+                // "...could not be loaded this time. Please reinstall or try
+                // again later." until 2026-08-28. Both hedges were false:
+                // shipped level data is either in the app or not, so there is
+                // no "this time", and waiting changes nothing. Offering
+                // "try again later" to someone whose install is broken sends
+                // them away to fail again. One instruction, and it is the one
+                // that can actually work.
                 ["levels.unavailable.body"] =
-                    "The rooms could not be loaded this time. Please reinstall or try again later.",
+                    "The rooms could not be loaded. Please reinstall the game.",
 
                 // --- the photo screen ----------------------------------------
+                // Kept short deliberately: CaptureScreen builds this at
+                // fontSize 26 and does NOT set whiteSpace = Normal, so this
+                // label cannot wrap. A title that reads well in this table
+                // and runs past the padding on a phone is exactly the failure
+                // this pass was looking for — anything much longer than this
+                // has to go in "capture.hint" below, which does wrap.
                 ["capture.title"] = "Show us your cat",
-                ["capture.hint"] = "A photo where she fills most of the frame works best.",
+                // Until 2026-08-28 this line spent itself entirely on framing
+                // advice and never said why a photo is being asked for. On
+                // the screen the whole concept rests on (mvp section 5: "the
+                // main feature and the main source of cheap installs"), the
+                // one wrapping label was explaining how to hold a camera to
+                // someone who had not been told what the picture is for. The
+                // reason comes first now; the advice, which is what keeps
+                // Vision's rejection rate down, survives in the second half.
+                ["capture.hint"] =
+                    "The kitten in the game gets her colours. " +
+                    "Fill the frame with her if you can.",
                 ["capture.camera"] = "Take a photo",
                 ["capture.gallery"] = "Choose one I have",
                 ["capture.skip"] = "Not now — give me a kitten",
@@ -156,7 +233,14 @@ namespace CatShelter.Shell
                 // The kitten never gets sick: a discovery, not a chore and not
                 // a reproach (cat-shelter-mvp.md section 4).
                 ["notification.title"] = "Your kitten found something behind the couch",
-                ["notification.body"] = "It is waiting to show you, whenever you have a minute.",
+                // "It is waiting..." until 2026-08-28. The kitten is "she"
+                // in every other string in this table — "the kitten likes it
+                // better", "her finds", "a photo where she fills the frame" —
+                // and the one place the game speaks to a player who is not
+                // holding the phone called her an it. The player has also, by
+                // this point, typed a name for her (MeetYourCatScreen). See
+                // NOTES.md for why the name still does not appear here.
+                ["notification.body"] = "She is waiting to show you, whenever you have a minute.",
 
                 // Android only, and shown in system Settings rather than in the
                 // game — which is exactly why it belongs here and not as a

@@ -452,3 +452,206 @@ points) are in AGENT-BRIEF.md. `simctl terminate`/`launch` can leave the app run
 with no window at all, and between two runs the window jumped from (629,71) to
 (482,82). Any coordinate computed before that move points at nothing. Read the
 window's position immediately before every click, or click nothing.
+
+## The map is the way in, and the board has a way back — 2026-08-28
+
+The owner played the build and said it twice: he was dropped straight into a
+room having chosen nothing, and did not understand where he was. Everything
+needed to answer that already existed — the map reads well, its rooms are
+tappable, the tap opens the room — and all of it sat behind a debug flag file.
+
+**This is a product decision, not a technical one, and it is the owner's to
+confirm.** `tasks/OWNER-TODO.md` asks it as an open question ("Должна ли карта
+дома быть входом в игру?"). It is now answered "yes" in code. Reverting it is
+one `if` in `GameBoot.OnEnable`: put the board back as the fall-through and the
+map behind its flag. Nothing else in this change depends on which way it goes.
+
+### What changed
+
+**`GameBoot.OnEnable`.** The fall-through branch builds the house map instead of
+the board. `capture.txt`, `coat.txt` and `meet.txt` are untouched, in the same
+order, still ahead of everything — they are checking tools and they keep
+priority.
+
+**`housemap.txt` is retired**, deliberately. With the map as the default, a flag
+that selects the map is a switch with one position, and `HouseMapView.Requested`
+would be a property nothing calls — the exact shape that left this screen
+unreachable for two builds (see the 2026-08-28 section above). A device still
+carrying the file gets the same screen it got before; nothing errors. The
+property is gone. `View/CoatBuilder.cs:184` still names `housemap.txt` in a
+comment as an example of the convention — a file I was not allowed to edit this
+pass, and a stale reference worth a line from whoever next opens it.
+
+**`board.txt` is new**, and is the inverse: it skips the map and builds the
+board. Without it, anyone working on `DebugGameView` would have to tap through
+the map on every launch — which on the iOS simulator means locating a window and
+posting a synthetic tap, three rounds of which are already recorded above as
+wasted. It deliberately carries no way back: the flag says "give me the board".
+
+### The way back, and why it is this
+
+**A cream plaque in the board's top-left corner, with a drawn `<` on it.**
+
+- **Where.** Top-left, mirroring the cat portrait's top-right (`.game__cat`).
+  Those two corners above the title are the only space on the board that is not
+  the pile, the shelf or the header, and the left one is where a thumb looks for
+  "back". 44 units square against the ~390-unit panel — the 44pt minimum touch
+  target — and a shade smaller than the 56-unit cat: utility, not reward.
+- **What it looks like.** The same cream plaque with the same heavy ink ring as
+  the open room on the map, so the thing it returns to is drawn on the thing that
+  returns to it. The arrow is drawn from two borders turned 45°, not typed: the
+  device font is not guaranteed to carry `‹` or `←`, which is the reason the
+  done-room tick is drawn too.
+- **No word on it.** `Shell/Copy.cs` holds every string a player reads and I was
+  not allowed to edit it this pass. A hard-coded English literal would go round
+  the copy table; `Copy.Of("map.back")` with no key prints `[map.back]` at a
+  player. So the plaque is the arrow alone. **Follow-up for whoever owns
+  `Copy.cs`: add `map.back` and `map.returning`.**
+- **It is inserted before the `overlay` element**, the same trick
+  `BuildCatPortrait` uses. The win/lose card covers the whole board and absorbs
+  taps, so while a card is up the plaque is dimmed by the card's scrim and does
+  nothing. That is not cosmetic — see the next paragraph.
+
+**What happens to an unfinished pile: nothing, and the return path writes no
+save at all.** `DebugGameView.Take` calls `Save()` after every tap, and
+`SaveResume.TryResume` restores taken order, shelf and triples exactly, so a
+half-cleared pile is already on disk before the player reaches for the plaque.
+Leaving is a look at the map, not a decision: tapping the lit room afterwards
+resumes the same pile with the same shelf and the same count. Writing anything
+from the return path would make it a second author of the save file, which is how
+two views end up disagreeing about where the player is.
+
+The one case where leaving *would* cost progress is why the plaque hides behind
+the card: `DebugGameView.Finish` **clears the save** on a loss and at the end of
+the house. Leaving at that moment would put a player four rooms in back at room
+1. Behind the card the only exits are the card's own — Replay, which rewrites
+the save — and that is the correct set.
+
+**The tap gets the same courtesy as the forward one**: the veil goes up first,
+the swap is deferred by the same measured 120ms (now a named constant,
+`SwapDelayMs`, used by both directions so they cannot drift), and the swap runs
+outside the pointer callback. The map is not free either — it parses all 37
+level files through `LevelAssets.LoadAll` before it can say which room is open.
+Both events, `ClickEvent` and `PointerUpEvent`, with one `fired` guard, for the
+reason recorded above: `up` is the one that actually fires.
+
+Coming back **destroys** `DebugGameView` rather than disabling it. Re-enabling
+would re-run its `OnEnable` against a freshly cloned skeleton while its
+`_catPortrait != null` and `_beforeAfter != null` guards still point at the tree
+that was thrown away, so the cat and the win card's before/after would never be
+inserted into the new one.
+
+### The defect this uncovered, which would have made the map lie
+
+**The map was reading a cursor nothing ever writes.** Every production save is
+`GameSave.Write(board, null)` (`DebugGameView.cs:172`, `:436`), so no `cursor`
+or `roomsdone` line is ever written, and `GameSave.Read` defaults an absent
+cursor to room 1, pile 0. The map trusted that. Invisible while the map was a
+checking tool opened with a hand-written save beside it; fatal the moment it is
+the first screen. A player four rooms in would have been shown **room 1 lit and
+eleven rooms locked**, tapped it, and landed in room 5 — the same "I chose
+nothing and do not know where I am", now wearing a map.
+
+`HouseMapView.LoadProgress` now derives the cursor from the saved level's own
+room and pile index, which is the same fact the board resumes from, so the map
+promises exactly what the board delivers by construction. The room is taken as
+its **ordinal** in the shipped plan rather than the digits in `room_07`, because
+`PilesPerRoomInOrder` is a list in play order and `LevelLoadPolicy` can drop an
+incomplete room out of it. Rooms before the cursor are marked done for the same
+reason: nothing writes `roomsdone` either. A save naming a room this build does
+not ship falls back to fresh progress with a warning, as an unreadable save does.
+
+### Three smaller things fixed in passing, all on the return path
+
+1. **`paddingTop = 20` on the panel root is gone from the map's build.**
+   `Shell/SafeArea` owns the root's padding — it is what keeps the notch clear —
+   and it re-applies only when the safe area or the screen size changes. On the
+   first launch its pass lands one frame after layout and overwrote that 20 on
+   every platform, so it was dead code. Coming *back* from the board there is no
+   such pass, and the 20 would have stuck: the map pulled up under the Dynamic
+   Island on the second visit but not the first.
+2. **The board is handed a clean root.** The map styles the root itself (column,
+   centred) and `Clear()` removes children, not styles, so the board inherited
+   the map's cross-axis centring — `game-root` is `flex-grow: 1` with no width,
+   and centred it is as wide as its contents rather than as wide as the screen.
+   Harmless while this path was a debug flag; it is now the only way a player
+   reaches the board, so the two inline overrides are un-set with
+   `StyleKeyword.Null` before the skeleton is cloned. **This may change how the
+   board looks by a few units — it should now match the `board.txt` route
+   exactly. It is the first thing to compare in the screenshots.**
+3. **`Message()` paints its own dark background.** It drew cream text and every
+   screen that shows one is cream, so all three of this file's error messages
+   were invisible.
+
+### What I could not verify, said plainly
+
+**No build, no simulator, no emulator — I was told not to run any, and I did
+not.** Everything below is read, not seen:
+
+- **That any of it compiles.** No Unity, no `csc`. Braces and parentheses
+  balance; that is all I can claim.
+- **`StyleKeyword.Null` assigned to `StyleEnum<FlexDirection>` /
+  `StyleEnum<Align>`.** The idiom is proven in this repo on `StyleLength`,
+  `StyleColor` and `StyleBackground` (`DebugGameView.ShowRoomTransformation`),
+  and `StyleEnum<T>` carries the same implicit conversion — but I have not
+  compiled it. If it does not compile, delete those two lines: the board then
+  renders as it does in `android-tap-opens-room-1.png`, which is the behaviour
+  of every screenshot taken so far.
+- **The chevron's centring.** Rotation moves an element's ink but not its box —
+  the thing that had to be measured for the done-room tick. I computed the
+  offset (about 0.35 of the box, to the left) and compensated with a 4-unit
+  margin. Derived, not measured on a screen.
+- **Whether `enabled = true` fires `OnEnable` synchronously**, which is how the
+  map rebuilds on the way back. I believe it does; the code covers the other
+  case anyway by calling `Build()` directly when the component was already
+  enabled, so the only failure mode I can see is building twice, not not at all.
+- **Whether a detached `VisualElement.schedule` item stops ticking.**
+  `VERIFY.md` §5 already records this as unsettled and it now matters twice as
+  much: both veils leave a repeating `.Every(28)` item behind on a cleared tree.
+  Still unsettled by me.
+
+### What to look for in the screenshots
+
+Both platforms, in this order:
+
+1. **Launch with no flag files.** The map, not the board. `boot-state.txt` should
+   read `branch=map`. (It is rewritten by a geometry callback afterwards, so
+   after a tap it will say `branch=map` with board contents — that is the old
+   behaviour of this file, not a new bug.)
+2. **The board reached by tapping the lit room** — compare it against
+   `android-tap-opens-room-1.png` / `ios-tap-opens-room-1.png` above. Header,
+   pile and shelf should be laid out the same or *wider*; anything narrower or
+   off-centre is item 2 of the previous section and should be reported.
+3. **The plaque, top-left**, clear of the title and not overlapping the cat in
+   the other corner. Is the `<` centred inside it, or pushed to one side?
+4. **Tap it.** A pale veil with a moving bar should appear *immediately* — that
+   is the 120ms doing its job — then the map. `adb logcat -s Unity` /
+   `xcrun simctl launch --console booted` will show
+   `[HouseMap] back to the map via up` then `[HouseMap] back: clearing N
+   children, board=True`.
+5. **Progress survived.** Take three or four items in room 1, go back, and check
+   the map shows room 1 lit with a part-filled bar under the number. Tap it: the
+   pile should come back with those items already gone and the shelf as it was.
+6. **Play to room 2 and relaunch.** The map must show room 1 ticked and room 2
+   lit. Before this change it showed room 1 lit forever. This is the fix worth
+   the most and the one I can least verify by reading.
+7. **The win card.** Finish a pile and look at the card: the plaque should be
+   dimmed under the scrim and do nothing when pressed.
+8. **`board.txt` still gives the bare board**, with no plaque.
+
+### Left for the files I was not allowed to touch
+
+- **`Shell/Copy.cs`** — `map.back`, `map.returning`. The plaque is wordless and
+  the return veil is a bar with no line above it until those exist.
+- **`View/DebugGameView.cs`** — two things. It has no `OnDestroy`, so the cat
+  texture `CoatBuilder` builds for it is leaked once per return trip; and
+  `Finish()` clears the save on a loss, which means a player who loses and kills
+  the app loses the whole house. That second one predates this change, but the
+  map now *shows* it: they will relaunch to a map with room 1 lit.
+- **`View/LevelAssets.cs`** — the forward path parses all 37 level files twice,
+  once for the map and once for the board. It was one build before; it is two
+  now, plus one per return trip. Caching the parse is the obvious fix and it is
+  the largest single thing left on this path.
+- **`50-photo`** — the capture flow, when it becomes the first-run screen, has
+  to hand off to the map rather than to the board. `GameBoot`'s capture branch
+  currently ends at meet-your-cat.

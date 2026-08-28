@@ -12,11 +12,16 @@ namespace CatShelter.View
     /// partial or clean, so the twelve separate room improvements read as
     /// one accumulating thing (cat-shelter-mvp.md section 4, "completeness").
     ///
-    /// Reached the same way as <see cref="CoatGridView"/> and the capture
-    /// screen: drop a `housemap.txt` beside the save. It is a checking tool
-    /// for a screen that has no navigation entry point yet — wiring it into
-    /// the real room-select flow is 60-shell-build's job elsewhere, once
-    /// there is a flow to wire it into.
+    /// **This is the game's first screen.** A launch with no debug flag file
+    /// beside the save comes here, not to the board — see `GameBoot.OnEnable`,
+    /// which now falls through to this instead of to `DebugGameView`. The
+    /// `housemap.txt` flag that used to be the only way in is retired: a flag
+    /// that selects what the app already does is a switch with one position.
+    /// A device still carrying the old file behaves exactly as it did.
+    ///
+    /// It is a hub in both directions. <see cref="StartPlaying"/> swaps the
+    /// board in when the open room is tapped; the board carries a plaque in
+    /// its top-left corner (<see cref="AddReturnToMap"/>) that swaps this back.
     ///
     /// Every cell state comes from <see cref="PlayerProgress.CellStateFor"/>,
     /// read off the real save when one exists. There is no second "which
@@ -32,14 +37,23 @@ namespace CatShelter.View
     [RequireComponent(typeof(UIDocument))]
     public sealed class HouseMapView : MonoBehaviour
     {
-        public static bool Requested =>
-            File.Exists(Path.Combine(Application.persistentDataPath, "housemap.txt"));
-
         // Mirrors CoatBuilder's own _warned set: log the first miss per asset
         // name, not once per cell per frame.
         private static readonly HashSet<string> _warned = new();
 
-        private void OnEnable()
+        private void OnEnable() => Build();
+
+        /// <summary>
+        /// Draw the map into the panel.
+        ///
+        /// Separate from <see cref="OnEnable"/> because the way back from the
+        /// board has three cases and only two of them go through it: the
+        /// component may be absent (added, and OnEnable builds), disabled
+        /// (re-enabled, and OnEnable builds), or already enabled — and that
+        /// last one gets nothing from `enabled = true`. Calling this covers
+        /// all three the same way.
+        /// </summary>
+        private void Build()
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
             root.Clear();
@@ -50,7 +64,16 @@ namespace CatShelter.View
             root.style.backgroundColor = (Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
             root.style.flexDirection = FlexDirection.Column;
             root.style.alignItems = Align.Center;
-            root.style.paddingTop = 20;
+            // No padding set here. `Shell/SafeArea` owns the panel root's
+            // padding — it is how the notch and the home indicator are kept
+            // clear — and it re-applies only when the safe area or the screen
+            // size changes. A `paddingTop = 20` stood here until 2026-08-28 and
+            // was harmless only by luck: SafeArea's first successful pass, one
+            // frame after layout, overwrote it on every platform. On the way
+            // *back* from the board there is no such pass, and the 20 would
+            // have stuck — pulling the map up under the Dynamic Island on the
+            // second visit and not the first, which is the kind of bug that
+            // gets blamed on the screenshot.
 
             var title = new Label("house map: 12 rooms");
             title.style.fontSize = 15;
@@ -67,7 +90,7 @@ namespace CatShelter.View
 
             var plan = new RoomPlan(loaded.Levels);
             var pilesPerRoom = plan.PilesPerRoomInOrder();
-            var progress = LoadProgress(pilesPerRoom);
+            var progress = LoadProgress(pilesPerRoom, loaded.Levels);
 
             // Sized in percent, not points. The first version fixed this at
             // 480×420 against placeholder cells, and when the real art arrived
@@ -167,23 +190,68 @@ namespace CatShelter.View
         }
 
         /// <summary>
-        /// The real save's cursor and finished-rooms list, restored through
+        /// Where the player actually stands, restored through
         /// <see cref="PlayerProgress.Restore"/> — or a fresh, all-dirty
         /// progress when there is no save yet, or the save does not match
         /// the currently shipped room plan (SaveResume's own reasoning: an
         /// unreadable position starts fresh rather than crashing the screen).
+        ///
+        /// **Read from the saved level, not from the saved cursor**, and that
+        /// is not a preference. `GameSave` can carry a cursor, but nothing in
+        /// the game ever writes one: every production call is
+        /// `GameSave.Write(board, null)` (DebugGameView.cs:172, :436), and
+        /// `GameSave.Read` defaults an absent cursor to room 1, pile 0. So the
+        /// cursor this screen used to trust said "room 1" for every save ever
+        /// written by playing. That was invisible while the map was a checking
+        /// tool reached by a flag file with a hand-written save beside it. It
+        /// stops being invisible the moment the map is the first screen: a
+        /// player four rooms in would have been shown room 1 lit and eleven
+        /// rooms locked, tapped it, and landed in room 5 — the same "I chose
+        /// nothing and do not know where I am" this task exists to end,
+        /// wearing a map.
+        ///
+        /// The saved level identity is always present and is the same fact the
+        /// board resumes from (`SaveResume.TryResume` → `DebugGameView.Resume`,
+        /// which replays one `CompletePile` per level before it). Deriving from
+        /// it makes the map promise exactly what the board delivers, by
+        /// construction rather than by two things being kept in step. If a
+        /// cursor is ever written, it will agree with this or the save is
+        /// self-contradictory.
+        ///
+        /// The room is taken as its **ordinal** in the shipped plan, not as the
+        /// digits in `room_07`: `PilesPerRoomInOrder` is a list in play order,
+        /// and if `LevelLoadPolicy` drops an incomplete room the two stop
+        /// matching. The plaques are numbered by the same ordinal, so the map
+        /// stays self-consistent either way.
         /// </summary>
-        private static PlayerProgress LoadProgress(IReadOnlyList<int> pilesPerRoom)
+        private static PlayerProgress LoadProgress(IReadOnlyList<int> pilesPerRoom,
+                                                   IReadOnlyList<Level> levels)
         {
             var text = Shell.SaveFile.Read();
             var saved = GameSave.Read(text);
             if (saved == null)
                 return new PlayerProgress(pilesPerRoom);
 
+            var room = RoomOrdinal(levels, saved.RoomId);
+            if (room < 1)
+            {
+                // The save names a room this build does not ship. Same answer
+                // as an unreadable save.
+                Debug.LogWarning($"[HouseMap] save names {saved.RoomId}, " +
+                                 "which is not in the shipped plan — starting fresh");
+                return new PlayerProgress(pilesPerRoom);
+            }
+
+            // Rooms are played in order, so everything before the cursor is
+            // finished. Derived here rather than read, for the same reason as
+            // the cursor: nothing writes `roomsdone` either.
+            var done = new List<int>();
+            for (int i = 1; i < room; i++) done.Add(i);
+
             try
             {
-                return PlayerProgress.Restore(pilesPerRoom, saved.CursorRoom,
-                    saved.CursorPile, saved.RoomsDone);
+                return PlayerProgress.Restore(pilesPerRoom, room,
+                    saved.PileIndex, done);
             }
             catch (ArgumentOutOfRangeException)
             {
@@ -192,6 +260,32 @@ namespace CatShelter.View
                 // an unreadable save.
                 return new PlayerProgress(pilesPerRoom);
             }
+        }
+
+        /// <summary>
+        /// 1-based position of a room in play order, or 0 when this build
+        /// ships no such room. Mirrors <see cref="RoomPlan.PilesPerRoomInOrder"/>'s
+        /// own ordering — levels by number, room ids distinct in that order —
+        /// so an index into one is an index into the other.
+        /// </summary>
+        private static int RoomOrdinal(IReadOnlyList<Level> levels, string roomId)
+        {
+            if (levels == null || string.IsNullOrEmpty(roomId)) return 0;
+            var seen = new List<string>();
+            foreach (var level in OrderedByNumber(levels))
+                if (!seen.Contains(level.RoomId))
+                {
+                    seen.Add(level.RoomId);
+                    if (level.RoomId == roomId) return seen.Count;
+                }
+            return 0;
+        }
+
+        private static List<Level> OrderedByNumber(IReadOnlyList<Level> levels)
+        {
+            var ordered = new List<Level>(levels);
+            ordered.Sort((a, b) => a.Number.CompareTo(b.Number));
+            return ordered;
         }
 
         /// <summary>
@@ -560,7 +654,7 @@ namespace CatShelter.View
             // - ничего не происходит... юзер не понимает что происходит, кликает
             // и раздражается, что все зависло." A tap that produces nothing
             // visible is indistinguishable from a tap that was not registered.
-            ShowOpening(root);
+            ShowOpening(root, Shell.Copy.Of("map.opening"));
 
             // Not here, and not on the very next tick either.
             //
@@ -585,17 +679,33 @@ namespace CatShelter.View
             // board build blocks the main thread for roughly a second and a
             // half, no repaint happens during it, and the last painted frame is
             // the veil.
-            root.schedule.Execute(() => SwapInBoard(uid, root)).ExecuteLater(120);
+            root.schedule.Execute(() => SwapInBoard(uid, root)).ExecuteLater(SwapDelayMs);
         }
 
         /// <summary>
-        /// A word and a moving bar over the map, the instant the room is
-        /// tapped. Not a percentage: the work behind it is a level load and a
-        /// sprite load with no measurable progress, and a number that jumps
+        /// The measured delay above, named so the way back cannot drift from
+        /// the way in. Both directions rebuild the panel from inside a pointer
+        /// callback and both put a veil up first, so both need exactly this.
+        /// The reasoning is at <see cref="StartPlaying"/>; do not change the
+        /// number without re-reading it.
+        /// </summary>
+        private const long SwapDelayMs = 120;
+
+        /// <summary>
+        /// A word and a moving bar over whatever is on screen, the instant a
+        /// tap lands. Not a percentage: the work behind it is a level load and
+        /// a sprite load with no measurable progress, and a number that jumps
         /// 0→100 lies more than no number at all. What it has to say is "the
         /// tap landed, something is happening", and it says that honestly.
+        ///
+        /// <paramref name="word"/> may be null, and is on the way back to the
+        /// map: `Shell/Copy.cs` holds every string a player reads and I was not
+        /// allowed to edit it in this pass, so rather than hard-code an English
+        /// literal past the copy table — or print `[map.returning]` at a
+        /// player — the return veil is the bar alone. It still answers the
+        /// finger, which is the job. The missing key is in NOTES.md.
         /// </summary>
-        private void ShowOpening(VisualElement root)
+        private void ShowOpening(VisualElement root, string word)
         {
             var veil = new VisualElement { name = "opening" };
             veil.style.position = Position.Absolute;
@@ -606,11 +716,14 @@ namespace CatShelter.View
             veil.pickingMode = PickingMode.Position; // swallow further taps
 
             var ink = (Color)new Color32(0x33, 0x2A, 0x1E, 0xFF);
-            var word = new Label(Shell.Copy.Of("map.opening"));
-            word.style.fontSize = 17;
-            word.style.color = ink;
-            word.style.marginBottom = 14;
-            veil.Add(word);
+            if (word != null)
+            {
+                var line = new Label(word);
+                line.style.fontSize = 17;
+                line.style.color = ink;
+                line.style.marginBottom = 14;
+                veil.Add(line);
+            }
 
             var track = new VisualElement();
             track.style.width = 168;
@@ -649,6 +762,26 @@ namespace CatShelter.View
                 Debug.Log($"[HouseMap] swap: clearing {root.childCount} children");
                 root.Clear();
 
+                // Hand the panel back the way it was found. `Build` styles the
+                // root itself — column, centred — and `Clear` removes children,
+                // not styles, so the board used to inherit the map's cross-axis
+                // centring: `game-root` is `flex-grow: 1` with no width, and
+                // centred it is as wide as its contents instead of as wide as
+                // the screen. Nobody saw it while this path was a debug flag
+                // and the board was normally reached without the map. It is now
+                // the only way a player reaches the board, so it has to render
+                // identically to the `board.txt` route.
+                //
+                // `StyleKeyword.Null` removes the inline override rather than
+                // setting a value I would have to be sure about — the same
+                // idiom `DebugGameView.ShowRoomTransformation` uses to hand a
+                // frame back to its stylesheet. Unity's USS defaults differ
+                // from the web's in more places than one would guess (this
+                // project has already been bitten by `flex-shrink: 0` —
+                // DebugGame.uss), so the right move is to un-set, not to guess.
+                root.style.flexDirection = StyleKeyword.Null;
+                root.style.alignItems = StyleKeyword.Null;
+
                 if (uid.visualTreeAsset == null)
                 {
                     root.Add(Message("the board's layout is missing — " +
@@ -663,6 +796,11 @@ namespace CatShelter.View
                 if (GetComponent<DebugGameView>() == null)
                     gameObject.AddComponent<DebugGameView>();
                 Debug.Log("[HouseMap] swap: board added");
+
+                // After the board, not before: DebugGameView builds the cat
+                // portrait and the win card's panes into this same tree, and
+                // the corner belongs to whoever is drawn last.
+                AddReturnToMap(root);
             }
             catch (System.Exception e)
             {
@@ -672,6 +810,169 @@ namespace CatShelter.View
                 Tapped($"swap failed — {e.GetType().Name}: {e.Message}");
                 root.Clear();
                 root.Add(Message($"could not open the room: {e.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// The way back to the map, added to a board that has just been built.
+        ///
+        /// **Where it sits.** Top-left corner of the board, mirroring the cat
+        /// portrait in the top-right (`DebugGame.uss` `.game__cat`). The two
+        /// corners above the title are the only space on this screen that is
+        /// not the pile, the shelf or the header, and the left one is where a
+        /// phone player's thumb already looks for "back". It is the same cream
+        /// plaque with the same heavy ink ring as the open room on the map, so
+        /// the thing it returns to is drawn on the thing that returns to it.
+        ///
+        /// **Why it is a child of `game-root` and sits before the overlay.**
+        /// Exactly the trick `BuildCatPortrait` uses. The win/lose card is an
+        /// absolutely-positioned sibling that covers the whole board, so any
+        /// element inserted before it is both dimmed by the card's scrim and
+        /// unable to receive a tap through it. That is the behaviour I want and
+        /// it costs no code: while a card is up, this button is visibly not the
+        /// thing to press, and pressing it does nothing.
+        ///
+        /// That last part is not cosmetic. `DebugGameView.Finish` **clears the
+        /// save** when the player loses (DebugGameView.cs:438) and when the
+        /// house is finished, so leaving to the map at that moment would put a
+        /// player who has cleared four rooms back at room 1 with no way to
+        /// argue. Behind the card, the only exits are the card's own — Replay,
+        /// which rewrites the save — and that is the correct set.
+        ///
+        /// **The arrow is drawn, not typed**, for the reason the map's tick
+        /// already records: a device font is not guaranteed to carry ‹ or ←,
+        /// and a missing glyph would leave an empty plaque.
+        /// </summary>
+        private void AddReturnToMap(VisualElement root)
+        {
+            var gameRoot = root.Q("game-root") ?? root;
+            var ink = (Color)new Color32(0x33, 0x2A, 0x1E, 0xFF);
+            var cream = (Color)new Color32(0xF6, 0xEE, 0xDC, 0xFF);
+
+            var plaque = new VisualElement { name = "to-map" };
+            plaque.style.position = Position.Absolute;
+            plaque.style.top = 4;
+            plaque.style.left = 4;
+            // 44 units against the ~390-unit panel (Shell/PanelSettings.asset)
+            // is the 44pt minimum touch target on a phone, and a shade smaller
+            // than the 56-unit cat: utility, not the reward.
+            plaque.style.width = 44;
+            plaque.style.height = 44;
+            plaque.style.backgroundColor = cream;
+            plaque.style.alignItems = Align.Center;
+            plaque.style.justifyContent = Justify.Center;
+            Round(plaque, 14);
+            Border(plaque, ink, 3);
+
+            // A "<" chevron: an L of two borders, turned 45°. Rotation moves
+            // the ink but not the box — the same thing that had to be measured
+            // for the done-room tick — so the ink lands about 0.35 of the box
+            // to the left of centre and the margin puts it back. That figure is
+            // derived, not measured on a screen: check it in the screenshot.
+            var chevron = new VisualElement();
+            chevron.style.width = 12;
+            chevron.style.height = 12;
+            chevron.style.marginLeft = 4;
+            chevron.style.borderLeftWidth = 3;
+            chevron.style.borderBottomWidth = 3;
+            chevron.style.borderLeftColor = chevron.style.borderBottomColor = ink;
+            chevron.style.rotate = new Rotate(45f);
+            chevron.pickingMode = PickingMode.Ignore;
+            plaque.Add(chevron);
+
+            // Both events with one guard, for the reason the room plaques
+            // carry the same pair: ClickEvent alone worked on Android and did
+            // nothing on the iOS simulator, and `up/plaque` is the line the
+            // real trace shows firing. Do not "simplify" it away.
+            var fired = false;
+            void Fire(string via)
+            {
+                if (fired) return;
+                fired = true;
+                Debug.Log($"[HouseMap] back to the map via {via}");
+                ReturnToMap();
+            }
+
+            plaque.pickingMode = PickingMode.Position;
+            plaque.RegisterCallback<ClickEvent>(_ => Fire("click"));
+            plaque.RegisterCallback<PointerUpEvent>(_ => Fire("up"));
+
+            var overlay = gameRoot.Q("overlay");
+            if (overlay != null && overlay.parent == gameRoot)
+                gameRoot.Insert(gameRoot.IndexOf(overlay), plaque);
+            else
+                gameRoot.Add(plaque);
+        }
+
+        /// <summary>
+        /// Leave the board and show the map.
+        ///
+        /// **Nothing is saved here, and that is the design.** The board writes
+        /// the whole position on every move — `DebugGameView.Take` calls
+        /// `Save()` after each tap, and `SaveResume.TryResume` restores taken
+        /// order, shelf and triples exactly — so a half-cleared pile is already
+        /// on disk before the player reaches for this button. Leaving is a
+        /// look at the map, not a decision: tapping the lit room afterwards
+        /// resumes the same pile with the same shelf. Writing anything from
+        /// here would be a second author of the save file, which is how the
+        /// two views end up disagreeing about where the player is.
+        ///
+        /// The map redraws from that save, so it shows the room just left as
+        /// the open one, with its part-cleared bar under the number.
+        /// </summary>
+        private void ReturnToMap()
+        {
+            var uid = GetComponent<UIDocument>();
+            var root = uid != null ? uid.rootVisualElement : null;
+            if (root == null) return;
+
+            // The same courtesy the forward path gets, for the same reason: the
+            // map is not free either — it parses all 37 level files through
+            // LevelAssets.LoadAll before it can say which room is open — and a
+            // tap with no visible answer reads as a frozen game.
+            ShowOpening(root, null);
+            root.schedule.Execute(() => SwapInMap(uid, root)).ExecuteLater(SwapDelayMs);
+        }
+
+        /// <summary>
+        /// Replace the board with the map. Runs a frame after the tap, never
+        /// during it — <see cref="StartPlaying"/> records what clearing the
+        /// panel mid-dispatch costs.
+        /// </summary>
+        private void SwapInMap(UIDocument uid, VisualElement root)
+        {
+            try
+            {
+                var board = GetComponent<DebugGameView>();
+                Debug.Log($"[HouseMap] back: clearing {root.childCount} children, " +
+                          $"board={(board != null)}");
+                root.Clear();
+
+                // Destroyed rather than disabled. Re-enabling it would re-run
+                // its OnEnable against a freshly cloned skeleton while its
+                // `_catPortrait != null` and `_beforeAfter != null` guards
+                // still point at the tree that was just thrown away — so the
+                // cat and the win card's before/after would never be inserted
+                // into the new one. A fresh component has no such memory.
+                // (The board's built cat texture goes unreleased when it dies;
+                // DebugGameView owns it and has no OnDestroy. One texture per
+                // return trip — recorded in NOTES.md for whoever holds that
+                // file.)
+                if (board != null) Destroy(board);
+
+                // Three cases, one line each. Absent is impossible here (this
+                // instance is running), disabled is what SwapInBoard left
+                // behind, and enabled would mean the map never left.
+                var wasEnabled = enabled;
+                enabled = true;          // fires OnEnable → Build when it was off
+                if (wasEnabled) Build(); // ...and OnEnable does not fire when it was on
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[HouseMap] back failed — {e}");
+                Tapped($"back failed — {e.GetType().Name}: {e.Message}");
+                root.Clear();
+                root.Add(Message($"could not open the map: {e.Message}"));
             }
         }
 
@@ -701,7 +1002,15 @@ namespace CatShelter.View
         private static VisualElement Message(string text)
         {
             var label = new Label(text);
+            // Paper-on-dark, and it carries its own dark: the page under it is
+            // cream (Build sets it, and SafeArea paints the panel cream too),
+            // so the old bare cream text was an error message nobody could
+            // read on any of the three screens that show one.
             label.style.color = (Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
+            label.style.backgroundColor = new Color(0.35f, 0.12f, 0.10f);
+            label.style.paddingLeft = label.style.paddingRight = 10;
+            label.style.paddingTop = label.style.paddingBottom = 8;
+            label.style.whiteSpace = WhiteSpace.Normal;
             label.style.fontSize = 13;
             return label;
         }

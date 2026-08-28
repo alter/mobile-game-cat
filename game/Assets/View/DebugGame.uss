@@ -116,6 +116,100 @@
     -unity-background-image-tint-color: rgba(255, 255, 255, 0.45);
 }
 
+/* =====================================================================
+   60-shell-build/01: motion. Every animation below is a USS transition
+   over an inline style or a class the C# toggles — not experimental.animation
+   (see NOTES.md 2026-08-28 for why).
+
+   The hard constraint this had to be designed around: Render() calls
+   _pileArea.Clear() and _shelfArea.Clear() on every move, so the tile that
+   was tapped and the slot it lands in are both DESTROYED before any
+   animation on them could run. So the travelling tile and the match pop are
+   not the real elements — they are throwaway copies on .game__fx-layer,
+   which Render() never touches. The refusal flinch is the one exception:
+   a refused tap does not redraw, so the real tile survives and animates.
+   ===================================================================== */
+
+/* Sits over the whole board, never intercepts a tap, never redrawn. */
+.game__fx-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+/* The travelling copy of a tapped tile: pile position -> shelf slot.
+   left/top rather than translate: transitions on both are supported, and
+   StyleLength takes a plain float from C# with no struct constructor whose
+   signature could differ between Unity versions. One element per tap, so
+   the layout cost of animating position is not worth a risk to compiling. */
+.game__fly {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    transition-property: left, top, width, height;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+}
+
+/* Arriving: the copy shrinks from tile size (52) to slot size (32) as it
+   flies, so it visibly becomes a shelf item rather than landing oversized. */
+.game__fly--landed {
+    width: 32px;
+    height: 32px;
+}
+
+/* A match: the three slots that emptied pop and vanish. Deliberately a
+   different verb from a placement — that one travels, this one expands and
+   fades on the spot, so the two are never confused at a glance. */
+.game__pop {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    scale: 1;
+    opacity: 1;
+    transition-property: scale, opacity;
+    transition-duration: 170ms;
+    transition-timing-function: ease-out;
+}
+
+.game__pop--out {
+    scale: 1.7;
+    opacity: 0;
+}
+
+/* A flash of the shelf's own border colour behind the popping prop, so a
+   match reads even when the props are pale against the shelf. */
+.game__pop-flash {
+    background-color: #C9A97C;
+}
+
+/* A refused tap — locked, buried, or the board is over. The tile flinches
+   and comes back: 90ms away, 110ms back, and the player has learnt that the
+   game saw the tap and said no. Without this the tile is silent and
+   "refused" and "frozen" look identical from the outside. */
+.game__tile--refused {
+    scale: 0.86;
+    rotate: -5deg;
+}
+
+/* Both directions of the flinch are transitions of the same property set;
+   the class toggle supplies the two ends. */
+.game__tile {
+    transition-property: scale, rotate;
+    transition-duration: 110ms;
+    transition-timing-function: ease-out;
+}
+
 .game__tile-label {
     font-size: 18px;
     color: #4A3B28;

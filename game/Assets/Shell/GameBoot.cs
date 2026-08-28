@@ -336,28 +336,6 @@ namespace CatShelter.Shell
                 return;
             }
 
-            // The house map (60-shell-build/03), same convention: drop a
-            // `housemap.txt` beside the save.
-            //
-            // This branch was missing until 2026-08-28 and the screen was
-            // unreachable because of it. Its author was told not to touch this
-            // file and concluded that "self-contained via a flag file, like
-            // CoatGridView" needed no wiring — but CoatGridView is reached
-            // precisely because this method asks it. A `Requested` property
-            // that nothing calls is a door with no corridor to it, and the
-            // screen looked finished from every angle except running it.
-            if (CatShelter.View.HouseMapView.Requested)
-            {
-                Debug.Log("[GameBoot] branch=housemap");
-                SafeBuild("the house map", uid.rootVisualElement, () =>
-                {
-                    if (GetComponent<CatShelter.View.HouseMapView>() == null)
-                        gameObject.AddComponent<CatShelter.View.HouseMapView>();
-                });
-                BootState("housemap", uid);
-                return;
-            }
-
             // Meet-your-cat (50-photo/09) reachable on its own, same
             // convention: drop a `meet.txt` beside the save. Whatever cat is
             // already saved is what she meets — an existing name comes back
@@ -378,13 +356,73 @@ namespace CatShelter.Shell
                 return;
             }
 
-            Debug.Log("[GameBoot] branch=board");
-            SafeBuild("the board", uid.rootVisualElement, () =>
+            // The board with no map in front of it: drop a `board.txt` beside
+            // the save. This is the last of the checking flags and the newest,
+            // and it exists because the branch below stopped being the default
+            // on 2026-08-28 — without it, anyone working on the board would
+            // have to tap through the map on every launch, which on the iOS
+            // simulator means finding a window and posting a synthetic tap.
+            //
+            // It gets no way back to the map on purpose: the flag says "give me
+            // the board", and a corner that leaves it would be answering a
+            // question nobody asked. The way back belongs to the route a player
+            // takes, which is the one below.
+            if (BoardRequested())
             {
-                if (GetComponent<DebugGameView>() == null)
-                    gameObject.AddComponent<DebugGameView>();
+                Debug.Log("[GameBoot] branch=board");
+                SafeBuild("the board", uid.rootVisualElement, () =>
+                {
+                    if (GetComponent<DebugGameView>() == null)
+                        gameObject.AddComponent<DebugGameView>();
+                });
+                BootState("board", uid);
+                return;
+            }
+
+            // **The house map is the game's first screen** (60-shell-build/03).
+            //
+            // Until 2026-08-28 this line built the board, and the map was
+            // reachable only by dropping a `housemap.txt` beside the save. The
+            // owner played that build twice and said the same thing both times:
+            // he was dropped into a room having chosen nothing and did not know
+            // where he was. A map that exists, reads well and answers taps is
+            // worth nothing behind a debug flag.
+            //
+            // `housemap.txt` is retired rather than kept. With the map as the
+            // default, a flag that selects the map is a switch with one
+            // position — and `HouseMapView.Requested` would then be a property
+            // nothing calls, which is precisely the shape that made this screen
+            // unreachable for two builds in the first place. A device still
+            // carrying the old file gets exactly the screen it got before.
+            //
+            // **This is a product decision, not a technical one**, and the
+            // owner asked for it as an open question in tasks/OWNER-TODO.md
+            // ("Должна ли карта дома быть входом в игру?"). Reverting it is one
+            // `if` — see this task's NOTES.md.
+            Debug.Log("[GameBoot] branch=map");
+            SafeBuild("the house map", uid.rootVisualElement, () =>
+            {
+                if (GetComponent<CatShelter.View.HouseMapView>() == null)
+                    gameObject.AddComponent<CatShelter.View.HouseMapView>();
             });
-            BootState("board", uid);
+            BootState("map", uid);
+        }
+
+        /// <summary>
+        /// `board.txt` beside the save: skip the map and build the board, the
+        /// same convention as `capture.txt`, `coat.txt` and `meet.txt`.
+        /// </summary>
+        private static bool BoardRequested()
+        {
+            try
+            {
+                return System.IO.File.Exists(System.IO.Path.Combine(
+                    Application.persistentDataPath, "board.txt"));
+            }
+            catch (System.Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>

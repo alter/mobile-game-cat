@@ -209,6 +209,167 @@ namespace CatShelter.View
             }
         }
 
+        /// <summary>
+        /// A small copy of a silhouette, cached by name and size.
+        ///
+        /// Measured on the iOS simulator, 28.08: building one coat from the
+        /// shipped 1024×1024 silhouette took **21.8 seconds**, and that was the
+        /// whole of the board's opening delay — level loading was 91ms and
+        /// everything else 4ms. The owner asked why opening a room was slow and
+        /// guessed the pile was being generated; it is not, it comes from a
+        /// file. This was the answer.
+        ///
+        /// The cost is superlinear, not linear. `Outline` dilates by 1.6% of the
+        /// width — 16 pixels at 1024 — and does it by scanning a square window
+        /// per pixel: a million pixels against a 33×33 window is over a billion
+        /// reads. Halving the source quarters the pixels *and* halves the
+        /// radius, so the work falls by roughly sixteen times each time.
+        ///
+        /// The cat is drawn at about 52 points. 256 is already more than that
+        /// can show.
+        /// </summary>
+        public static Texture2D Downscale(Texture2D src, int size)
+        {
+            if (src == null || src.width <= size) return src;
+            var key = $"{src.name}@{size}";
+            if (_downscaled.TryGetValue(key, out var cached) && cached != null) return cached;
+            if (!src.isReadable) return src;   // Build's own path will complain
+
+            Color32[] px;
+            try { px = src.GetPixels32(); }
+            catch (Exception) { return src; }
+
+            int w = src.width, h = src.height;
+            int oh = Mathf.Max(1, h * size / w);
+            var outPx = new Color32[size * oh];
+            int bx = Mathf.Max(1, w / size), by = Mathf.Max(1, h / oh);
+            for (int y = 0; y < oh; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    int r = 0, g = 0, b = 0, a = 0, n = 0;
+                    for (int sy = y * by; sy < (y + 1) * by && sy < h; sy++)
+                        for (int sx = x * bx; sx < (x + 1) * bx && sx < w; sx++)
+                        {
+                            var c = px[sy * w + sx];
+                            r += c.r; g += c.g; b += c.b; a += c.a; n++;
+                        }
+                    if (n == 0) n = 1;
+                    outPx[y * size + x] =
+                        new Color32((byte)(r / n), (byte)(g / n), (byte)(b / n), (byte)(a / n));
+                }
+
+            var tex = new Texture2D(size, oh, TextureFormat.RGBA32, mipChain: false)
+            {
+                name = src.name,
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+            tex.SetPixels32(outPx);
+            tex.Apply(updateMipmaps: false);
+            _downscaled[key] = tex;
+            return tex;
+        }
+
+        private static readonly Dictionary<string, Texture2D> _downscaled = new();
+
+        /// <summary>
+        /// A built coat, kept so re-entering a room does not rebuild it. Keyed
+        /// by everything that changes the result.
+        /// </summary>
+        private static readonly Dictionary<string, Texture2D> _builtCache = new();
+
+        /// <summary>
+        /// The cat nobody chose. Compared by value, not by reference:
+        /// `CatTraits.Default` is a fresh instance every time it is read.
+        /// </summary>
+        private static bool IsDefault(CatTraits t)
+        {
+            var d = CatTraits.Default;
+            return t.BaseColor == d.BaseColor && t.Pattern == d.Pattern
+                && t.FurLength == d.FurLength && t.EyeColor == d.EyeColor
+                && string.Join(",", t.WhiteMarkings) == string.Join(",", d.WhiteMarkings);
+        }
+
+        /// <summary>Where a built coat is kept between launches.</summary>
+        private static string CachePath(string key)
+        {
+            var safe = key.Replace('/', '_').Replace('@', '_').Replace(',', '-');
+            return System.IO.Path.Combine(Application.persistentDataPath, $"coat_{safe}.png");
+        }
+
+        private static Texture2D LoadCached(string key, int size)
+        {
+            try
+            {
+                var path = CachePath(key);
+                if (!System.IO.File.Exists(path)) return null;
+                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, mipChain: false);
+                if (!tex.LoadImage(System.IO.File.ReadAllBytes(path))) return null;
+                tex.filterMode = FilterMode.Bilinear;
+                tex.wrapMode = TextureWrapMode.Clamp;
+                return tex;
+            }
+            catch (Exception)
+            {
+                return null;   // a broken cache is not a broken game
+            }
+        }
+
+        private static void SaveCached(string key, Texture2D tex)
+        {
+            try
+            {
+                System.IO.File.WriteAllBytes(CachePath(key), tex.EncodeToPNG());
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        /// <summary>
+        /// <see cref="TryBuild"/> at a size worth drawing, cached. This is what
+        /// callers should use; the full-resolution path exists for anything
+        /// that genuinely needs a big texture, and nothing does yet.
+        /// </summary>
+        public static Texture2D TryBuildFor(CatTraits traits, int state, int size)
+        {
+            if (traits == null) return null;
+            var key = $"{traits.BaseColor}/{traits.Pattern}/{traits.FurLength}/" +
+                      $"{traits.EyeColor}/{string.Join(",", traits.WhiteMarkings)}/{state}@{size}";
+            if (_builtCache.TryGetValue(key, out var hit) && hit != null) return hit;
+
+            // Shipped first. The default cat — what a player sees before she has
+            // given the game a photograph — is baked into Resources at build
+            // time by Assets/Editor/BakeDefaultCoats.cs. Nothing is computed for
+            // her at all, on any launch, ever.
+            if (IsDefault(traits) && size <= 256)
+            {
+                var baked = Resources.Load<Texture2D>($"Art/coat_default_{state}");
+                if (baked != null)
+                {
+                    _builtCache[key] = baked;
+                    return baked;
+                }
+            }
+
+            // Disk, before doing the work again. A coat survives an app
+            // restart: the traits that produced it come from a photograph the
+            // player took once, and rebuilding it on every launch is paying
+            // twice for the same picture.
+            var onDisk = LoadCached(key, size);
+            if (onDisk != null) { _builtCache[key] = onDisk; return onDisk; }
+
+            var art = LoadBase(traits, state);
+            if (art == null) return null;
+            var built = TryBuild(Downscale(art, size), traits, state);
+            if (built != null)
+            {
+                _builtCache[key] = built;
+                SaveCached(key, built);
+            }
+            return built;
+        }
+
         public static Texture2D TryBuild(Texture2D baseCoat, CatTraits traits, int state)
         {
             if (Skipped)

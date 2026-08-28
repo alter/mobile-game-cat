@@ -27,6 +27,15 @@ ROOT = Path(__file__).resolve().parents[2]
 SPLIT_PY = ROOT / "tools/coat-split/split.py"
 ART = ROOT / "game/Assets/Resources/Art"
 
+# The unstriped cats, kept when the 28.08 delivery replaced them with drawn
+# tabby markings. Both checks below need a substrate with *no* markings on it:
+# the negative one asks that shading alone produces no mask, and the synthetic
+# one adds stripes of known width and asks for them back. Run against the
+# shipped cats after that delivery, both measure something else and fail — which
+# is the tests being right about a premise that stopped being true, not the tool
+# breaking. Pointed at the originals, they measure what they were written to.
+UNSTRIPED = ROOT / "game/Assets/Art/delivery-originals/cat-2026-08-27"
+
 _spec = importlib.util.spec_from_file_location("coat_split", SPLIT_PY)
 coat_split = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(coat_split)
@@ -182,14 +191,14 @@ def test_cli_defaults_output_dir_to_the_input_directory(tmp_path):
 
 @pytest.mark.parametrize("n", [1, 2, 3])
 def test_real_shipped_cats_have_no_stripes_and_the_mask_stays_near_empty(n):
-    """cat_1/2/3_short_base.png carry no drawn markings -- the game paints
+    """The pre-28.08 cats carry no drawn markings -- the game painted
     stripes in code today. A correct extractor must not invent any: the
     mask's mean value within the silhouette should stay low. The bound here
     (60/255) is well above what was actually measured for all three cats
     (19.6, 18.6, 21.3 -- see tools/coat-split/README.md), left loose so the
     test isn't tuned to the exact figure and only fails on real regressions.
     """
-    path = ART / f"cat_{n}_short_base.png"
+    path = UNSTRIPED / f"cat_{n}_short_base.png"
     grey, alpha = coat_split.load_grey_alpha(path)
     base_grey, mask_grey = coat_split.split(grey, alpha)
     body = alpha > 10
@@ -207,7 +216,7 @@ def test_synthetic_stripes_are_recovered_and_the_base_gets_closer_to_truth():
     up where the marking was, and that the base moves measurably closer to
     the true unstriped cat than doing nothing at all would.
     """
-    grey, alpha = coat_split.load_grey_alpha(ART / "cat_1_short_base.png")
+    grey, alpha = coat_split.load_grey_alpha(UNSTRIPED / "cat_1_short_base.png")
     striped, delta, body = _make_synthetic_stripes(grey, alpha)
     true_stripe = (delta > 15) & body
 

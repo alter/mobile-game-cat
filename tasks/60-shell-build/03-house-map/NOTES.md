@@ -387,3 +387,21 @@ levels and prop sprites, not the swap.
 Seven `Debug.Log` calls on this path, none in a loop or a per-frame method.
 Cheap enough to keep in a shipping build, and the first thing anyone
 investigating this screen should read.
+
+## The attic is under the roof again, without breaking the numbering
+
+Two commits ago the numbers were made to climb — odd left, even right, bottom to
+top — and the price was that room 9's picture is an attic sitting mid-house.
+That price has now been refunded: `room_09_*` and `room_11_*` swapped pixels,
+`map_room_09_*` and `map_room_11_*` with them. The `.meta` files stayed where
+they were, so every guid, import setting and reference is untouched — only the
+image behind each name changed.
+
+Rooms 11 and 12 are the two slots under the roof, and they now hold the two
+rooms drawn with a sloped ceiling: the attic and the reading nook. The numbers
+still climb. Both properties, no compromise.
+
+Nothing in the level files or the code refers to a room's *theme*, only its
+number, so this is a change of picture and not of content. The uncropped
+delivery originals are unaffected; `git show` on the previous commit recovers
+either file if the swap is ever judged wrong.

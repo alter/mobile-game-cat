@@ -143,3 +143,16 @@ Everything above was found on the **simulator**. Whether a real iPhone shares
 the blit fault is unknown and probably not — simulator Metal is not device
 Metal. The fix is correct on both regardless, and the diagnostics are what will
 answer it in one run when a device is available.
+
+## Boot state is written by every branch now
+
+`boot-state.txt` was produced only by the board branch, which meant a flag-file
+screen coming up empty — the exact case this file exists for — left nothing
+behind. Every branch writes one now: `coat`, `housemap`, `meet` and `board`,
+each with the post-layout sizes and the coat's read path.
+
+The board also logs what it does: `[Board] took <id>, shelf=N, triples=N,
+available=N` on every tile taken, `[Board] tap <id> refused` when a tap changes
+nothing, and a line for each ending — win, lose, house complete. A tap that does
+nothing is either a locked tile behaving correctly or a bug, and from outside the
+app those look identical.

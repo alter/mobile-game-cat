@@ -388,7 +388,17 @@ namespace CatShelter.View
         {
             var triplesBefore = _board.TriplesCompleted;
             if (_board.IsOver || !_board.TakeItem(itemId))
+            {
+                // A tap that changes nothing is worth a line: it is either a
+                // locked tile behaving correctly or a bug, and from outside the
+                // app those look the same.
+                Debug.Log($"[Board] tap {itemId} refused " +
+                          $"(over={_board.IsOver})");
                 return;
+            }
+            Debug.Log($"[Board] took {itemId}, shelf={_board.Shelf.Occupied}, " +
+                      $"triples={_board.TriplesCompleted}, " +
+                      $"available={_board.GetAvailable().Count}");
 
             // Feedback before the redraw: the tap should answer the finger, not
             // wait for a frame of layout. A match speaks louder than a
@@ -448,6 +458,7 @@ namespace CatShelter.View
                 if (_plan.Next(_level) == null)
                 {
                     Shell.SaveFile.Clear();
+                    Debug.Log("[Board] house complete");
                     ShowCard(Shell.Copy.Of("house.complete.title"),
                         Shell.Copy.Of("house.complete.body"),
                         null, null, null, null);
@@ -457,6 +468,8 @@ namespace CatShelter.View
                 // Permission is asked here, after a level was actually cleared,
                 // and only once ever — see Shell/EveningReminder.
                 StartCoroutine(Shell.EveningReminder.OnLevelCompleted(this, _level.Number));
+                Debug.Log($"[Board] win: level {_level.Number}, " +
+                          $"lastPileOfRoom={lastPileOfRoom}");
                 ShowCard(
                     Shell.Copy.Of(lastPileOfRoom ? "win.room_clean.title" : "win.corner.title"),
                     lastPileOfRoom
@@ -482,6 +495,7 @@ namespace CatShelter.View
                 // annoyance was real and the number was not going to decide
                 // anything. Analytics.BoosterTap and Board.AddShelfSlots both
                 // stay: the button comes back when there is a price on it.
+                Debug.Log("[Board] lose");
                 ShowCard(Shell.Copy.Of("lose.title"),
                     Shell.Copy.Of("lose.body", _levelIndex),
                     Shell.Copy.Of("lose.replay"), () =>

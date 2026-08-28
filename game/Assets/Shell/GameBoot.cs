@@ -140,7 +140,9 @@ namespace CatShelter.Shell
         /// facts that separate those — which branch ran, whether the UXML
         /// skeleton the board needs was found, how many children the root has,
         /// and the panel's own size — so the next blank screen is a lookup
-        /// rather than another round of guessing.
+        /// rather than another round of guessing. Every branch writes one, not
+        /// just the board: a flag-file screen that comes up empty is exactly
+        /// the case worth having evidence for.
         /// </summary>
         private static void BootState(string branch, UIDocument uid)
         {
@@ -286,6 +288,7 @@ namespace CatShelter.Shell
             // (50-photo/09): traits in, her named cat out.
             if (CaptureRequested())
             {
+                Debug.Log("[GameBoot] branch=capture");
                 var screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
                 SafeBuild("the capture screen", uid.rootVisualElement,
                           () => screen.Build(uid.rootVisualElement));
@@ -329,6 +332,7 @@ namespace CatShelter.Shell
                     if (GetComponent<CatShelter.View.CoatGridView>() == null)
                         gameObject.AddComponent<CatShelter.View.CoatGridView>();
                 });
+                BootState("coat", uid);
                 return;
             }
 
@@ -344,11 +348,13 @@ namespace CatShelter.Shell
             // screen looked finished from every angle except running it.
             if (CatShelter.View.HouseMapView.Requested)
             {
+                Debug.Log("[GameBoot] branch=housemap");
                 SafeBuild("the house map", uid.rootVisualElement, () =>
                 {
                     if (GetComponent<CatShelter.View.HouseMapView>() == null)
                         gameObject.AddComponent<CatShelter.View.HouseMapView>();
                 });
+                BootState("housemap", uid);
                 return;
             }
 
@@ -368,9 +374,11 @@ namespace CatShelter.Shell
                         ShowMeetYourCat(uid.rootVisualElement, traits, saved?.Name);
                     }
                 });
+                BootState("meet", uid);
                 return;
             }
 
+            Debug.Log("[GameBoot] branch=board");
             SafeBuild("the board", uid.rootVisualElement, () =>
             {
                 if (GetComponent<DebugGameView>() == null)

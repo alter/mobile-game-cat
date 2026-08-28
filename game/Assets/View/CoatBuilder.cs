@@ -299,6 +299,16 @@ namespace CatShelter.View
             }
 
             LastReadWasBlit = true;
+            // Loud, once per texture. This path blanks the iOS simulator for the
+            // rest of the run, and a verifier pointed out it could still be
+            // entered in silence: MaskOf reads any `Art/{base}_{mask}` file, and
+            // a mask delivered by 40-art/04 will import with isReadable: 0 by
+            // default and walk straight back into it. LogError so DeviceLog
+            // records it too — that filter only keeps Error and above.
+            if (_warned.Add($"blit:{source.name}"))
+                Debug.LogError($"[CoatBuilder] reading {source.name} through the GPU " +
+                               $"({LastReadNote}). This is the path that blanks the " +
+                               "iOS simulator — import it readable and uncompressed.");
             var rt = RenderTexture.GetTemporary(
                 source.width, source.height, 0,
                 RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);

@@ -114,3 +114,37 @@ then `adb shell input tap` on the last tile.
 [Board] win: level 1, lastPileOfRoom=True
 [Board] before/after: room 01 art
 ```
+
+## The rooms were being squashed 10%, and nobody looked — 2026-08-28
+
+An independent verifier measured the panes on both screenshots and found them at
+aspect **0.5000** where the art is **0.5577**: about a ten per cent horizontal
+squash. Confirmed by eye once pointed at — the round mirror in room 01 was an
+oval.
+
+Cause: the NPOT trap this project already met with the map background, left half
+fixed. Room art is 1856×3328 — neither dimension a power of two — and with
+`nPOTScale: 1` Unity rescales each axis independently, so the runtime texture
+came out 1024×2048 and the aspect with it. The notes on `03-house-map` had said
+outright that whoever wired the rooms would have to decide this properly. The
+rooms got wired and the decision did not get made.
+
+**Fixed at the source, not in code.** All 24 files are now **1024×2048** with the
+room scaled to fit and centred on transparent padding — the content keeps its own
+0.5577 exactly (measured: content occupies rows 106–1941, 1024×1836). Power of
+two, so nothing is rescaled and compression still applies; the earlier attempt
+that turned NPOT scaling off took the APK from 45 MB to 133 MB, and this avoids
+that entirely while being smaller than the originals.
+
+The delivered files are kept at `game/Assets/Art/delivery-originals/rooms/`.
+
+**For `02-room-piles`:** a room drawn full-screen from a 1024-wide texture will be
+softer than one drawn from 1856. If that shows, the answer is a larger
+power-of-two canvas (2048×4096), not a return to non-power-of-two.
+
+## Room 12's pair was the one nobody would ever see
+
+`Finish()` returned on house-complete before showing the transformation, so the
+last room — the one a player works hardest for — ended with words alone. Found by
+reading, not by playing: nobody had ever got that far. It now shows its
+before/after on the ending card.

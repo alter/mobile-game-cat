@@ -459,9 +459,16 @@ namespace CatShelter.View
                 {
                     Shell.SaveFile.Clear();
                     Debug.Log("[Board] house complete");
+                    // Room 12's own before/after, on the ending card. It used to
+                    // be the one room whose pair a player never saw: this branch
+                    // returned before the transformation was shown, so the last
+                    // room — the one they worked hardest for — was the only one
+                    // that ended with words alone. A verifier found it by
+                    // reading; nobody had played that far.
                     ShowCard(Shell.Copy.Of("house.complete.title"),
                         Shell.Copy.Of("house.complete.body"),
                         null, null, null, null);
+                    ShowRoomTransformation(_level);
                     return;
                 }
 
@@ -643,6 +650,23 @@ namespace CatShelter.View
 
             _beforeCollage.Clear();
             _afterCollage.Clear();
+
+            // Both branches below style these frames, and the room branch used
+            // to leave its inline sizes behind. Unreachable today — the branch
+            // is chosen once per room and never switches — but a leak that
+            // depends on nobody ever changing the order is a trap, not a
+            // safeguard. Reset first, then let the branch style them.
+            foreach (var frame in new[] { _beforeCollage, _afterCollage })
+            {
+                frame.style.width = StyleKeyword.Null;
+                frame.style.height = StyleKeyword.Null;
+                frame.style.backgroundColor = StyleKeyword.Null;
+                frame.style.backgroundImage = StyleKeyword.Null;
+                frame.style.borderLeftWidth = frame.style.borderRightWidth =
+                    frame.style.borderTopWidth = frame.style.borderBottomWidth =
+                        StyleKeyword.Null;
+                frame.style.paddingTop = frame.style.paddingLeft = StyleKeyword.Null;
+            }
 
             // The room itself, when it has been drawn. This is what the task
             // asked for from the start; the prop collage below was written

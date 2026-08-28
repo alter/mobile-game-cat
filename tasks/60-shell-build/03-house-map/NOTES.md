@@ -198,3 +198,50 @@ them yet. **Whoever wires `60-shell-build/02-room-piles` has to decide this
 properly** — either accept the slight aspect change from 1856×3328 → 2048×4096,
 or re-export the rooms at a power-of-two size, or pay the size. Do not simply
 copy the flag across.
+
+## The thumbnails are gone; the map says where you may go — 2026-08-28
+
+`ios-thumbnails-before.png` is what the owner saw running: twelve rooms drawn
+as their own photographs, all desaturated because a dirty room is drawn
+desaturated, coming out as twelve near-identical grey-green smudges with an
+unreadable white number on each. His verdict was that you could not tell what
+any of them were, and he was right — at that size the picture carries nothing a
+player can use, and it hides the thing they need.
+
+**A map's first question is where you may go.** That question had no answer on
+this screen at all: nothing said which room was next, which were finished, or
+which were shut. Now:
+
+| state | drawn as |
+|---|---|
+| the room to play | cream plaque, heavy ink ring, the largest number on the map, and a bar under it when the room is part-cleared |
+| done | sage circle with a tick above the number |
+| locked | sunk into the wood, dim, and **smaller** — size does the work, not only colour |
+
+`ios-numbers-fresh-game.png` is a new game: room 1 lit, everything else shut.
+`ios-numbers-in-progress.png` and `android-numbers-in-progress.png` are rooms
+1–4 done with room 5 a third cleared, on both platforms.
+
+Three states told apart by shape and size rather than by tint — the same rule
+art-brief.md section 9 sets for the room cells, which three shades of one
+colour do not satisfy.
+
+`PlayerProgress.AccessFor` is the new rule and it lives in Core with six tests,
+one of which walks the whole 37-pile game asserting that **exactly one room is
+open at every point** — a map offering two playable rooms, or none mid-game,
+misleads worse than one that says nothing.
+
+The room art is untouched on disk and still named as art-brief.md section 9
+requires. Where a room's picture belongs is `60-shell-build/02-room-piles`, at a
+size where it can be seen. `PaintPlaceholder` went with the thumbnails: it had
+no caller left, and dead code that draws things is the kind that gets revived
+by accident.
+
+### Still not done, and it is the obvious next thing
+
+**The map is not a hub.** The plaques are not tappable, so a player cannot
+choose a room from here — the board simply starts wherever the save says. The
+owner ran the game and was dropped into room 3 with no explanation and nothing
+chosen, which was partly a leftover test save on the device, and partly this:
+nothing connects the map to the board in either direction. Wiring the tap needs
+`DebugGameView` to accept a starting room, which it does not today.

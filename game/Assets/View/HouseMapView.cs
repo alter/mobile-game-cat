@@ -74,9 +74,11 @@ namespace CatShelter.View
             // on 2026-08-28 the house drew over the grid and the outer columns
             // ran off both edges of a 1080-wide phone. A layout in absolute
             // units is a layout that fits exactly one screen, and nobody knows
-            // which one. The delivered background is 928×1664 — portrait — so
-            // the rooms go three across and four down inside it rather than
-            // four across.
+            // which one.
+            //
+            // How many rooms go across is not decided here any more — see
+            // Placements, where it comes from the width the house actually
+            // offers at each height.
             var background = new VisualElement();
             background.style.width = Length.Percent(94);
             background.style.height = Length.Percent(78);
@@ -132,8 +134,10 @@ namespace CatShelter.View
 
             for (int room = 1; room <= pilesPerRoom.Count; room++)
             {
-                var state = progress.CellStateFor(room);
-                var cell = Cell(room, state);
+                var total = pilesPerRoom[room - 1];
+                var cleared = progress.PilesClearedIn(room);
+                var cell = Cell(room, progress.AccessFor(room),
+                                total > 0 ? (float)cleared / total : 0f);
                 Place(cell, room);
                 houseBox.Add(cell);
             }
@@ -141,8 +145,8 @@ namespace CatShelter.View
             root.Add(background);
 
             var legend = new Label(
-                "dirty = square, untouched   ·   partial = split tile, clear boundary   " +
-                "·   clean = circle, checked");
+                "the lit number is the room to play   ·   ticked rooms are done   " +
+                "·   dim rooms are still locked");
             legend.style.fontSize = 10;
             legend.style.whiteSpace = WhiteSpace.Normal;
             legend.style.maxWidth = Length.Percent(92);
@@ -319,136 +323,161 @@ namespace CatShelter.View
         }
 
         /// <summary>
-        /// One room cell. Real art is `map_room_&lt;nn&gt;_&lt;state&gt;.png`
-        /// (art-brief.md section 9); until it exists, the three states are
-        /// told apart by silhouette — square / split-tile / circle — not by
-        /// a tint of the same shape, because a shade difference alone does
-        /// not survive "read the whole house in one glance" (art-brief.md
-        /// section 9's own requirement, unmet by three tints of one colour).
+        /// One room, drawn as its number.
+        ///
+        /// It used to be the room's own photograph. Twelve of those at cell
+        /// size, all desaturated because a dirty room is drawn desaturated,
+        /// came out as twelve near-identical grey-green smudges with a white
+        /// number nobody could read on them — the owner's verdict on seeing it
+        /// running was that you could not tell what any of them were. The
+        /// pictures were carrying information the player cannot use at that
+        /// size, and hiding the information they can: **which room am I
+        /// allowed to play?**
+        ///
+        /// So the cell answers that first, and by shape rather than by shade,
+        /// because a map has to be readable at a glance (art-brief.md
+        /// section 9's own requirement, which three tints of one colour do not
+        /// meet):
+        ///
+        /// - **open** — the room to play now. Cream plaque, dark ink number,
+        ///   a heavy ring around it. Exactly one room is ever open, which
+        ///   `PlayerProgress.AccessFor` guarantees and its tests pin.
+        /// - **done** — cleared. Sage plaque, a tick above the number.
+        /// - **locked** — ahead of the cursor. Sunk into the wood, thin, dim,
+        ///   no ring, and drawn smaller than the other two so the eye skips it.
+        ///
+        /// How far along a room is still shows, but only where it can mean
+        /// something: as a bar under the number of the room being played, and
+        /// only when it is neither none nor all. A locked room's dirtiness is
+        /// not the player's business yet, and a finished room's is always
+        /// clean — drawing either would be decoration.
+        ///
+        /// The room art is untouched on disk and still named the way
+        /// art-brief.md section 9 says; `60-shell-build/02-room-piles` is where
+        /// a room's picture belongs, at a size where it can be seen.
         /// </summary>
-        private static VisualElement Cell(int room, RoomCellState state)
+        private static VisualElement Cell(int room, RoomAccess access, float cleared)
         {
-            var roomNo = room.ToString("00", System.Globalization.CultureInfo.InvariantCulture);
-            var stateName = state switch
-            {
-                RoomCellState.Dirty => "dirty",
-                RoomCellState.Partial => "partial",
-                _ => "clean",
-            };
+            var ink = (Color)new Color32(0x33, 0x2A, 0x1E, 0xFF);
+            var cream = (Color)new Color32(0xF6, 0xEE, 0xDC, 0xFF);
+            var sage = (Color)new Color32(0x9D, 0xB3, 0x93, 0xFF);
+            var shut = (Color)new Color32(0x6B, 0x4B, 0x30, 0xFF);
 
             var wrapper = new VisualElement();
-            // A third of the grid's width, minus its own margins, so twelve
-            // cells land as three columns whatever the screen is.
-            wrapper.style.width = Length.Percent(31);
-            wrapper.style.height = Length.Percent(23);
-            wrapper.style.marginLeft = 4;
-            wrapper.style.marginRight = 4;
-            wrapper.style.marginTop = 4;
-            wrapper.style.marginBottom = 4;
             wrapper.style.alignItems = Align.Center;
             wrapper.style.justifyContent = Justify.Center;
 
-            var art = LoadNamed($"Art/map_room_{roomNo}_{stateName}");
-            var cell = new VisualElement();
-            cell.style.width = Length.Percent(86);
-            cell.style.height = Length.Percent(86);
+            var plaque = new VisualElement();
+            plaque.style.alignItems = Align.Center;
+            plaque.style.justifyContent = Justify.Center;
+            // A locked room is drawn smaller as well as dimmer. Size is the
+            // one difference that survives being looked at sideways on a
+            // phone, and it makes the open room the largest thing inside the
+            // house without any colour doing the work.
+            var fill = access == RoomAccess.Locked ? 74f : 100f;
+            plaque.style.width = Length.Percent(fill);
+            plaque.style.height = Length.Percent(fill);
+            Round(plaque, access == RoomAccess.Done ? 999 : 14);
 
-            if (art != null)
+            var number = new Label(
+                room.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            number.style.unityFontStyleAndWeight = FontStyle.Bold;
+            number.style.unityTextAlign = TextAnchor.MiddleCenter;
+
+            switch (access)
             {
-                cell.style.backgroundImage = new StyleBackground(art);
-                cell.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+                case RoomAccess.Open:
+                    plaque.style.backgroundColor = cream;
+                    Border(plaque, ink, 3);
+                    number.style.color = ink;
+                    number.style.fontSize = 22;
+                    break;
+
+                case RoomAccess.Done:
+                    plaque.style.backgroundColor = sage;
+                    Border(plaque, new Color(0.42f, 0.50f, 0.38f), 1);
+                    number.style.color = ink;
+                    number.style.fontSize = 16;
+                    break;
+
+                default: // Locked
+                    plaque.style.backgroundColor = shut;
+                    number.style.color = new Color(0.85f, 0.78f, 0.68f, 0.45f);
+                    number.style.fontSize = 15;
+                    break;
             }
-            else
+
+            // The tick sits above the digit, so the digit moves down to meet
+            // it rather than the two fighting over the middle.
+            if (access == RoomAccess.Done) number.style.marginTop = 10;
+            plaque.Add(number);
+
+            if (access == RoomAccess.Done)
             {
-                PaintPlaceholder(cell, state);
+                // A tick, drawn rather than typed: the font on a device is not
+                // guaranteed to carry ✓, and a missing glyph would leave the
+                // one state that should read instantly reading as nothing.
+                var tick = new VisualElement();
+                tick.style.position = Position.Absolute;
+                tick.style.width = 14;
+                tick.style.height = 7;
+                // High enough to clear the digit: rotating the element moves
+                // its ink but not its box, so the two overlapped at the
+                // obvious value and had to be measured on screen.
+                tick.style.top = Length.Percent(9);
+                tick.style.borderLeftWidth = 3;
+                tick.style.borderBottomWidth = 3;
+                tick.style.borderLeftColor = tick.style.borderBottomColor = ink;
+                tick.style.rotate = new Rotate(-45f);
+                plaque.Add(tick);
             }
 
-            var caption = new Label(room.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            caption.style.position = Position.Absolute;
-            caption.style.color = (Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
-            caption.style.fontSize = 9;
-            caption.style.top = 1;
-            caption.style.left = 3;
+            if (access == RoomAccess.Open && cleared > 0f && cleared < 1f)
+            {
+                // Only the open room shows how far along it is, and only when
+                // that is neither none nor all — the two cases the plaque
+                // already says.
+                var track = new VisualElement();
+                track.style.position = Position.Absolute;
+                track.style.bottom = Length.Percent(14);
+                track.style.width = Length.Percent(56);
+                track.style.height = 4;
+                track.style.backgroundColor = new Color(0.80f, 0.74f, 0.62f);
+                Round(track, 2);
 
-            wrapper.Add(cell);
-            wrapper.Add(caption);
+                var filled = new VisualElement();
+                filled.style.width = Length.Percent(Mathf.Clamp01(cleared) * 100f);
+                filled.style.height = Length.Percent(100);
+                filled.style.backgroundColor = ink;
+                Round(filled, 2);
+                track.Add(filled);
+                plaque.Add(track);
+            }
+
+            wrapper.Add(plaque);
             return wrapper;
         }
 
-        /// <summary>
-        /// Shape-coded placeholder — the piece this task owns rather than
-        /// generated or faked art (40-art/06-house-map is still `status:todo`).
-        ///
-        /// Silhouette carries the difference, so it survives greyscale and a
-        /// glance from across the room, per art-brief.md section 9:
-        ///   dirty   — plain square, flat fill, no icon: nothing here yet.
-        ///   partial — split tile, two halves across a hard boundary: matches
-        ///             art-prompts.md's own "half-lit, clear boundary" for
-        ///             this state, not a blend.
-        ///   clean   — full circle with a check mark: a different outline
-        ///             from the other two, not just a lighter square.
-        ///
-        /// What the real art has to preserve: the partial cell needs a crisp
-        /// boundary between its two halves (not a gradient — a blend reads as
-        /// one smudged tile at cell size, not "half done"), and the three
-        /// states must stay tellable apart with the colour removed, the same
-        /// property 40-art/06's own QA check verifies on the real files.
-        /// </summary>
-        private static void PaintPlaceholder(VisualElement cell, RoomCellState state)
+        private static void Round(VisualElement e, float radius)
         {
-            var dark = (Color)new Color32(0x33, 0x2B, 0x22, 0xFF);
-            var light = (Color)new Color32(0xF0, 0xD9, 0x9A, 0xFF);
+            e.style.borderTopLeftRadius = e.style.borderTopRightRadius =
+                e.style.borderBottomLeftRadius = e.style.borderBottomRightRadius = radius;
+        }
 
-            switch (state)
-            {
-                case RoomCellState.Dirty:
-                    cell.style.backgroundColor = dark;
-                    cell.style.borderTopLeftRadius = cell.style.borderTopRightRadius =
-                        cell.style.borderBottomLeftRadius = cell.style.borderBottomRightRadius = 2;
-                    break;
-
-                case RoomCellState.Partial:
-                    cell.style.backgroundColor = dark;
-                    cell.style.borderTopLeftRadius = cell.style.borderTopRightRadius =
-                        cell.style.borderBottomLeftRadius = cell.style.borderBottomRightRadius = 2;
-                    var litHalf = new VisualElement();
-                    litHalf.style.position = Position.Absolute;
-                    litHalf.style.right = 0;
-                    litHalf.style.top = 0;
-                    litHalf.style.bottom = 0;
-                    litHalf.style.width = new StyleLength(new Length(50, LengthUnit.Percent));
-                    litHalf.style.backgroundColor = light;
-                    // The hard edge at 50% IS the "clear boundary" — no
-                    // gradient between the two children.
-                    cell.Add(litHalf);
-                    break;
-
-                case RoomCellState.Clean:
-                    cell.style.backgroundColor = light;
-                    cell.style.borderTopLeftRadius = cell.style.borderTopRightRadius =
-                        cell.style.borderBottomLeftRadius = cell.style.borderBottomRightRadius = 36;
-                    // Plain ASCII, not a unicode glyph — IL2CPP's default UI
-                    // Toolkit font does not carry every codepoint, and a tofu
-                    // box here would be worse than no mark at all. The circle
-                    // is what has to read from a distance; this is a bonus
-                    // up close, and 40-art/06 replaces the whole cell anyway.
-                    var check = new Label("OK");
-                    check.style.position = Position.Absolute;
-                    check.style.color = dark;
-                    check.style.fontSize = 18;
-                    check.style.left = 22;
-                    check.style.top = 24;
-                    cell.Add(check);
-                    break;
-            }
+        private static void Border(VisualElement e, Color colour, float width)
+        {
+            e.style.borderTopWidth = e.style.borderBottomWidth =
+                e.style.borderLeftWidth = e.style.borderRightWidth = width;
+            e.style.borderTopColor = e.style.borderBottomColor =
+                e.style.borderLeftColor = e.style.borderRightColor = colour;
         }
 
         private static Texture2D LoadNamed(string path)
         {
             var art = Resources.Load<Texture2D>(path);
             if (art == null && _warned.Add(path))
-                Debug.LogWarning($"[HouseMapView] no {path} — using a painted " +
-                                 "placeholder until 40-art/06-house-map delivers it");
+                Debug.LogWarning($"[HouseMapView] no {path} — the map falls back " +
+                                 "to a painted panel");
             return art;
         }
 

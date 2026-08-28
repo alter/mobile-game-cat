@@ -66,6 +66,29 @@ namespace CatShelter.Core
         }
 
         /// <summary>
+        /// Done, open, or locked — what the house map has to say about a room
+        /// before it says anything else.
+        ///
+        /// Deliberately separate from <see cref="CellStateFor"/>. That one says
+        /// how dirty a room is, which only becomes interesting once you know
+        /// you can go there at all. Twelve rooms drawn as twelve thumbnails
+        /// told a first-time viewer neither thing: the owner's reaction on
+        /// seeing it running was that the icons were grey and nothing was
+        /// clear. Where you may go is the first question a map answers.
+        ///
+        /// Rooms are played in order, so the rule is the cursor's: everything
+        /// behind it is finished, the cursor itself is the room to play, and
+        /// everything ahead is shut. A room out of range reads Locked rather
+        /// than throwing — the map draws whatever the level files handed it.
+        /// </summary>
+        public RoomAccess AccessFor(int room)
+        {
+            if (room < 1 || room > PilesPerRoom.Count) return RoomAccess.Locked;
+            if (IsRoomDone(room) || room < CurrentRoom) return RoomAccess.Done;
+            return room == CurrentRoom ? RoomAccess.Open : RoomAccess.Locked;
+        }
+
+        /// <summary>
         /// Rebuild a cursor from a saved position (Core.GameSave) instead of
         /// replaying every CompletePile call the player ever made — the save
         /// already carries the cursor and the finished-rooms list, and
@@ -135,5 +158,22 @@ namespace CatShelter.Core
         Dirty,
         Partial,
         Clean
+    }
+
+    /// <summary>
+    /// Whether a room can be entered — the house map's first question, and a
+    /// different one from <see cref="RoomCellState"/>. Read off
+    /// <see cref="PlayerProgress.AccessFor"/>, never stored.
+    /// </summary>
+    public enum RoomAccess
+    {
+        /// <summary>Cleared. Behind the cursor.</summary>
+        Done,
+
+        /// <summary>The room being played. Exactly one room is ever Open.</summary>
+        Open,
+
+        /// <summary>Ahead of the cursor, or not a room at all.</summary>
+        Locked
     }
 }

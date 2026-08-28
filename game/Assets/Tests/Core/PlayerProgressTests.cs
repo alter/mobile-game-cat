@@ -193,5 +193,82 @@ namespace CatShelter.Core.Tests
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => PlayerProgress.Restore(Curve, 1, 1, new List<int>())); // room 1 has 1 pile
         }
+
+        // --- house map: done / open / locked ----------------------------
+        //
+        // The map's first question is where the player may go, which is not
+        // the same question as how dirty a room is. These pin the rule that
+        // exactly one room is ever open, because a map offering two playable
+        // rooms — or none, mid-game — misleads worse than one saying nothing.
+
+        [Test]
+        public void AccessFor_FreshGame_OnlyRoomOneIsOpen()
+        {
+            var p = Make();
+            Assert.That(p.AccessFor(1), Is.EqualTo(RoomAccess.Open));
+            for (int room = 2; room <= Curve.Length; room++)
+                Assert.That(p.AccessFor(room), Is.EqualTo(RoomAccess.Locked),
+                            $"room {room} should be shut on a fresh game");
+        }
+
+        [Test]
+        public void AccessFor_FinishedRoomReadsDone_AndTheCursorIsOpen()
+        {
+            var p = Make();
+            p.CompletePile(0); // room 1 is one pile, so this closes it
+
+            Assert.That(p.AccessFor(1), Is.EqualTo(RoomAccess.Done));
+            Assert.That(p.AccessFor(2), Is.EqualTo(RoomAccess.Open));
+            Assert.That(p.AccessFor(3), Is.EqualTo(RoomAccess.Locked));
+        }
+
+        [Test]
+        public void AccessFor_HalfClearedRoom_IsStillOpenNotDone()
+        {
+            var p = Make();
+            p.CompletePile(0); // room 1 done, cursor on room 2 (two piles)
+            p.CompletePile(0); // the first of room 2's two piles
+
+            Assert.That(p.AccessFor(2), Is.EqualTo(RoomAccess.Open));
+            Assert.That(p.CellStateFor(2), Is.EqualTo(RoomCellState.Partial),
+                        "a started room is partial, and being partial does not close it");
+        }
+
+        [Test]
+        public void AccessFor_ExactlyOneRoomIsOpen_AtEveryPointInTheGame()
+        {
+            var p = Make();
+            int piles = Curve.Sum();
+            for (int step = 0; step <= piles; step++)
+            {
+                var open = Enumerable.Range(1, Curve.Length)
+                                     .Count(r => p.AccessFor(r) == RoomAccess.Open);
+                var finished = p.RoomsDone.Count == Curve.Length;
+                Assert.That(open, Is.EqualTo(finished ? 0 : 1),
+                            $"after {step} piles, {open} rooms were open");
+                // CompletePile wants the pile's index inside its room, not a
+                // running count — the cursor already knows which one is next.
+                if (step < piles) p.CompletePile(p.CurrentPile);
+            }
+        }
+
+        [Test]
+        public void AccessFor_OutOfRange_IsLockedRatherThanThrowing()
+        {
+            var p = Make();
+            Assert.That(p.AccessFor(0), Is.EqualTo(RoomAccess.Locked));
+            Assert.That(p.AccessFor(-3), Is.EqualTo(RoomAccess.Locked));
+            Assert.That(p.AccessFor(Curve.Length + 1), Is.EqualTo(RoomAccess.Locked));
+        }
+
+        [Test]
+        public void AccessFor_SurvivesRestore()
+        {
+            var p = PlayerProgress.Restore(Curve, cursorRoom: 4, cursorPile: 1,
+                                           roomsDone: new List<int> { 1, 2, 3 });
+            Assert.That(p.AccessFor(2), Is.EqualTo(RoomAccess.Done));
+            Assert.That(p.AccessFor(4), Is.EqualTo(RoomAccess.Open));
+            Assert.That(p.AccessFor(5), Is.EqualTo(RoomAccess.Locked));
+        }
     }
 }

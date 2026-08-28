@@ -77,3 +77,25 @@ cd - && rm -rf "$SP"
 - The 40-art/06-house-map real-art files do not exist yet (task is
   `status:todo`), so the placeholder-vs-real-art comparison in item 3 is
   necessarily a comparison against written specs, not rendered art.
+
+---
+
+## This pass predates a rewrite of half the file — 2026-08-28
+
+The verification above read a `HouseMapView.cs` whose layout half no longer
+exists. On 28.08 the flex-wrap grid was replaced by measured per-room placement
+(`Placements`, `Place`, `FitToPicture`), and the background asset was cropped
+and given transparency.
+
+**What the pass still covers:** the state derivation — `PlayerProgress`'s
+`PilesClearedIn`, `CellStateFor`, `Restore`, `RoomCellState` and their twelve
+tests. None of that was touched, and `dotnet test` still reports 189/189.
+
+**What it no longer covers:** everything about where a cell lands and what the
+screen looks like. That is now the substance of the task and it has never been
+verified by an independent context — only by the author, with screenshots from
+both platforms (`ios-house-map-placed.png`, `android-house-map-placed.png`).
+
+`verify:` is left at `passed` for the derivation rather than reset, because
+resetting would discard a real independent check of code that did not change.
+Anyone re-verifying should treat the layout as unverified and start there.

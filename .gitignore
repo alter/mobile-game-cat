@@ -9,6 +9,9 @@ __pycache__/
 .hermes/
 game/Assets/Levels/pool/
 tools/artgen/out/
+# swiftc output; the source is versioned, the binary is rebuilt with
+# swiftc -O vision-probe.swift -o vision-probe (50-photo/05-vision-plugin)
+tools/vision-probe/vision-probe
 
 # Reference photo set: images come from third-party datasets under their own
 # licences, so only the manifest and the builder are versioned. Restore with

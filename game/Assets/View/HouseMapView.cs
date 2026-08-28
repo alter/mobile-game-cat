@@ -135,17 +135,23 @@ namespace CatShelter.View
             background.RegisterCallback<GeometryChangedEvent>(_ =>
                 FitToPicture(background, houseBox, artWidth, artHeight));
 
+            var openRoom = 0;
             for (int room = 1; room <= pilesPerRoom.Count; room++)
             {
                 var total = pilesPerRoom[room - 1];
                 var cleared = progress.PilesClearedIn(room);
                 var access = progress.AccessFor(room);
+                if (access == RoomAccess.Open) openRoom = room;
                 var cell = Cell(room, access, total > 0 ? (float)cleared / total : 0f,
                                 access == RoomAccess.Open ? StartPlaying : null);
                 Place(cell, room);
                 houseBox.Add(cell);
             }
 
+            Debug.Log($"[HouseMap] built {pilesPerRoom.Count} rooms, " +
+                      $"cursor={progress.CurrentRoom}/{progress.CurrentPile}, " +
+                      $"done=[{string.Join(",", progress.RoomsDone)}], " +
+                      $"open={openRoom}");
             root.Add(background);
 
             var legend = new Label(
@@ -320,6 +326,9 @@ namespace CatShelter.View
             const float BoxLeft = 0f, BoxRight = 1f;
             const float BoxTop = 0f, BoxBottom = 1f;
 
+            if (_warned.Add("house-box"))
+                Debug.Log($"[HouseMap] picture {pictureWidth}x{pictureHeight} " +
+                          $"at {pictureLeft},{pictureTop} in element {r.width}x{r.height}");
             houseBox.style.left = pictureLeft + pictureWidth * BoxLeft;
             houseBox.style.top = pictureTop + pictureHeight * BoxTop;
             houseBox.style.width = pictureWidth * (BoxRight - BoxLeft);
@@ -473,21 +482,22 @@ namespace CatShelter.View
                 // and the guard keeps a tap that produces both from starting
                 // the game twice.
                 var fired = false;
-                void Fire()
+                void Fire(string via)
                 {
                     if (fired) return;
                     fired = true;
+                    Debug.Log($"[HouseMap] tap room {room} via {via}");
                     onTap();
                 }
 
                 plaque.pickingMode = PickingMode.Position;
-                plaque.RegisterCallback<ClickEvent>(_ => Fire());
-                plaque.RegisterCallback<PointerUpEvent>(_ => Fire());
+                plaque.RegisterCallback<ClickEvent>(_ => Fire("click/plaque"));
+                plaque.RegisterCallback<PointerUpEvent>(_ => Fire("up/plaque"));
                 // The whole cell is the target, not just the plaque, so a
                 // thumb landing near the edge still counts.
                 wrapper.pickingMode = PickingMode.Position;
-                wrapper.RegisterCallback<ClickEvent>(_ => Fire());
-                wrapper.RegisterCallback<PointerUpEvent>(_ => Fire());
+                wrapper.RegisterCallback<ClickEvent>(_ => Fire("click/cell"));
+                wrapper.RegisterCallback<PointerUpEvent>(_ => Fire("up/cell"));
             }
             else
             {
@@ -558,6 +568,7 @@ namespace CatShelter.View
         {
             try
             {
+                Debug.Log($"[HouseMap] swap: clearing {root.childCount} children");
                 root.Clear();
 
                 if (uid.visualTreeAsset == null)
@@ -568,14 +579,18 @@ namespace CatShelter.View
                 }
 
                 uid.visualTreeAsset.CloneTree(root);
+                Debug.Log($"[HouseMap] swap: cloned skeleton, game-root=" +
+                          $"{root.Q("game-root") != null}, pile={root.Q("pile") != null}");
                 enabled = false;
                 if (GetComponent<DebugGameView>() == null)
                     gameObject.AddComponent<DebugGameView>();
+                Debug.Log("[HouseMap] swap: board added");
             }
             catch (System.Exception e)
             {
                 // The event dispatcher swallows what a callback throws. This
                 // one does not get to be silent.
+                Debug.LogError($"[HouseMap] swap failed — {e}");
                 Tapped($"swap failed — {e.GetType().Name}: {e.Message}");
                 root.Clear();
                 root.Add(Message($"could not open the room: {e.Message}"));

@@ -8,11 +8,20 @@ namespace CatShelter.Shell
     ///
     /// This exists because of a day spent staring at a black screen. On 28.08
     /// the board and meet-your-cat both rendered as an empty panel on the iOS
-    /// simulator while the house map rendered correctly, and there was no way
-    /// to find out why: Unity's Debug.Log reaches neither a device nor a
-    /// simulator console, so the only account of the failure was written to a
-    /// surface nobody can read. Two rounds of guessing followed, and guessing
-    /// is what happens when the evidence is unreachable.
+    /// simulator while the house map rendered correctly, and it was diagnosed
+    /// by inference from screenshots rather than by reading anything.
+    ///
+    /// **The reason given for that at the time was wrong, and it is worth
+    /// knowing why.** The claim was that Unity's Debug.Log reaches no console
+    /// on a device or simulator. It does:
+    /// `xcrun simctl launch --console booted &lt;bundle-id&gt;` prints every line,
+    /// and `adb logcat -s Unity` does the same on Android. A day went into
+    /// inferring from pixels what one line of log already said. Check the
+    /// premise before building an apparatus on it.
+    ///
+    /// What this file is still for: a run nobody is attached to. A capture
+    /// script, a tester's device, a crash after the console was closed — the
+    /// errors are on disk afterwards either way.
     ///
     /// <see cref="GameBoot.SafeBuild"/> covers a screen that throws where it is
     /// called. It cannot cover the more common case: Unity catches exceptions

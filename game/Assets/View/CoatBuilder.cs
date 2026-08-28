@@ -173,9 +173,10 @@ namespace CatShelter.View
         /// bar and a name field. A cat that will not tint should cost a tint.
         ///
         /// The reason is written to `coat-failure.txt` beside the save as well
-        /// as logged, because Unity's Debug.Log reaches neither a device nor a
-        /// simulator console: a log-only record of a device-only failure is no
-        /// record at all.
+        /// as logged, so a run with no console attached still leaves the
+        /// reason behind. The log itself does reach both platforms —
+        /// `simctl launch --console` on iOS, `adb logcat -s Unity` on Android;
+        /// the claim that it did not is what turned this bug into a day.
         /// </summary>
         /// <summary>
         /// Skip the coat entirely: drop a `nocat.txt` beside the save.

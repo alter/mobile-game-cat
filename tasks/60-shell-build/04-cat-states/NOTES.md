@@ -94,10 +94,12 @@ the cream background colour, `pile` 359×677 with 36 children, and the first
 tile 52×52, `Visible`, opacity 1, `display: Flex`, with its texture loaded.
 Every number said the screen was fine. The screen was blank.
 
-Unity's `Debug.Log` reaches neither a device nor a simulator console, so the
-one surface that might have said something was unreadable. **The bug and the
-blindness were the same bug**, and two rounds of guessing went by before the
-instruments existed to stop guessing.
+I believed at the time that Unity's `Debug.Log` reached no console on either
+platform, so I never looked at one and inferred everything from screenshots.
+**That belief was wrong** — `xcrun simctl launch --console booted <bundle-id>`
+prints every line, and `adb logcat -s Unity` does the same on Android. Checked
+on 28.08 by running it. The blindness was self-inflicted, and two rounds of
+guessing came out of a premise I never tested.
 
 What settled it was a controlled experiment rather than another theory: a
 `nocat.txt` flag that skips `CoatBuilder` entirely. With the flag, the whole

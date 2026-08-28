@@ -109,6 +109,7 @@ namespace CatShelter.View
                 throw new InvalidOperationException(
                     "DebugGame.uxml skeleton not found in UIDocument source");
 
+            Debug.Log("[Board] enabled, skeleton found");
             BuildCatPortrait(gameRoot);
             BuildBeforeAfter(gameRoot);
 

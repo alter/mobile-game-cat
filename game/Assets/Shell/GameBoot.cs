@@ -130,23 +130,6 @@ namespace CatShelter.Shell
         }
 
         /// <summary>
-        /// Build a screen, and if it throws, say so on the screen instead of
-        /// leaving a black one.
-        ///
-        /// Written on 28.08 after the board and meet-your-cat both came up
-        /// black on the iOS simulator with nothing anywhere to say why. A
-        /// screen builds its whole tree before attaching it to the panel, so an
-        /// exception halfway through attaches nothing at all, and an empty
-        /// panel is black. Unity's Debug.Log reaches neither a device nor a
-        /// simulator console, so the failure left no trace on any surface a
-        /// person can read — the bug and the blindness were the same bug.
-        ///
-        /// The reason goes three places on purpose: the panel, so whoever is
-        /// holding the phone can read it; `screen-failure.txt` beside the save,
-        /// so a capture run can pull it off the device; and the log, for the
-        /// editor.
-        /// </summary>
-        /// <summary>
         /// Positive evidence about what the screen ended up being, written
         /// beside the save as `boot-state.txt`.
         ///
@@ -226,6 +209,25 @@ namespace CatShelter.Shell
             }
         }
 
+        /// <summary>
+        /// Build a screen, and if it throws, say so on the screen instead of
+        /// leaving a black one.
+        ///
+        /// Written on 28.08 after the board and meet-your-cat both came up
+        /// black on the iOS simulator with nothing anywhere to say why. A
+        /// screen builds its whole tree before attaching it to the panel, so an
+        /// exception halfway through attaches nothing at all, and an empty
+        /// panel is black.
+        ///
+        /// The reason goes three places on purpose: the panel, so whoever is
+        /// holding the phone can read it; `screen-failure.txt` beside the save,
+        /// so a capture run can pull it off a device with no console attached;
+        /// and the log, which **does** reach the simulator —
+        /// `xcrun simctl launch --console booted <bundle-id>` prints every
+        /// Debug.Log line. An earlier version of this comment claimed it did
+        /// not, and that claim is why a day was spent inferring from
+        /// screenshots what one line of log would have said.
+        /// </summary>
         private static void SafeBuild(string what, VisualElement root, System.Action build)
         {
             try
@@ -321,6 +323,7 @@ namespace CatShelter.Shell
             // the save. A checking tool, not a screen in the game.
             if (CatShelter.View.CoatGridView.Requested)
             {
+                Debug.Log("[GameBoot] branch=coat");
                 SafeBuild("the coat harness", uid.rootVisualElement, () =>
                 {
                     if (GetComponent<CatShelter.View.CoatGridView>() == null)

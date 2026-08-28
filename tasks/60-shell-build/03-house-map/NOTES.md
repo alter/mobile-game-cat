@@ -339,3 +339,51 @@ swap. The final build's only difference from that one is the removal of
 temporary probes, and its tap has **not** been re-confirmed on iOS: the
 Simulator window could not be brought back from the shell afterwards. Android
 carries the final build; iOS carries the fix.
+
+## The log reaches the simulator. It always did. — 2026-08-28
+
+Everything above was diagnosed by comparing screenshots, because the code and
+this project's own brief both said Unity's `Debug.Log` reaches no console on a
+device or simulator. **That is false**, and it was never tested:
+
+```bash
+xcrun simctl launch --console booted com.DefaultCompany.game   # every Debug.Log line
+"$ADB" logcat -c && "$ADB" logcat -s Unity                      # the same on Android
+```
+
+A day went into inferring from pixels what one line of log already said. The
+claim has been corrected in `AGENT-BRIEF.md`, `Shell/DeviceLog`,
+`Shell/EveningReminder`, `View/CoatBuilder` and `60-shell-build/04`'s notes,
+because a false premise repeated in five places is how it survives.
+
+The file-based records keep their place — a capture script or a tester's phone
+has no console attached — but they are the second channel now, not the only one.
+
+### What the trace says, end to end
+
+Real run, real tap, `adb logcat -s Unity`:
+
+```
+[HouseMap] built 12 rooms, cursor=1/0, done=[], open=1
+[HouseMap] picture 366.45x627.37 at 0,7.69 in element 366.45x642.74
+[HouseMap] tap room 1 via up/plaque
+[HouseMap] swap: clearing 3 children
+[HouseMap] swap: cloned skeleton, game-root=True, pile=True
+[Board] enabled, skeleton found
+[HouseMap] swap: board added
+```
+
+**`via up/plaque`** is the line worth keeping. The tap arrives as a
+`PointerUpEvent`, not a `ClickEvent` — so the first version of this screen,
+which registered only `ClickEvent`, could not have worked on either platform.
+The second handler was added as a belt-and-braces guess and turned out to be
+the one that fires. Do not "simplify" it away.
+
+The 1.5 seconds between "skeleton found" and "board added" is the board loading
+levels and prop sprites, not the swap.
+
+### Cost
+
+Seven `Debug.Log` calls on this path, none in a loop or a per-frame method.
+Cheap enough to keep in a shipping build, and the first thing anyone
+investigating this screen should read.

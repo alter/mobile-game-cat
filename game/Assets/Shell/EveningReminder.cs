@@ -204,7 +204,10 @@ namespace CatShelter.Shell
                 Trigger = trigger,
             });
 
-            // Unity's Debug.Log does not reach the simulator console, so what
+            // Written to a file as well as logged: a capture run has no
+            // console attached. (The log itself does reach both platforms —
+            // `simctl launch --console`, `adb logcat -s Unity`; an earlier
+            // comment here said otherwise and was wrong.) So what
             // happened here is written next to the save instead. This is the
             // only way the scheduling is observable from outside the app.
             Report($"scheduled '{Identifier}', pending={iOSNotificationCenter.GetScheduledNotifications().Length}, " +

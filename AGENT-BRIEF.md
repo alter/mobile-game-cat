@@ -371,8 +371,25 @@ every screen that built a coat drew nothing, and had done since the coat shader
 landed, because nobody had run it there. Android was checked; iOS was assumed.
 Two platforms means two runs, and the second is not optional.
 
-Three files beside the save now answer "why is the screen wrong" without a
-console, because Unity's `Debug.Log` reaches neither a device nor a simulator:
+**Read the log first.** Unity's `Debug.Log` *does* reach both platforms, and an
+earlier version of this section said it did not — which is why a day went into
+inferring a bug from screenshots that one line of log already named:
+
+```bash
+# iOS simulator — prints every Debug.Log line the run produces
+xcrun simctl launch --console booted com.DefaultCompany.game
+
+# Android
+"$ADB" logcat -c && "$ADB" logcat -s Unity
+```
+
+Useful greps: `[GameBoot]` for which screen was chosen and the post-layout
+sizes, `[HouseMap]` for what the map decided and every tap it received,
+`[Board]` for the board coming up.
+
+Three files beside the save answer the same questions for a run with no console
+attached — a capture script, a tester's device, a crash after the console was
+closed:
 
 | file | written by | says |
 |---|---|---|

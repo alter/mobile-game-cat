@@ -435,9 +435,17 @@ and the bar over the dimmed map, caught by screenshotting immediately after
 `adb shell input tap`. The log puts the delay at 133ms between the tap and the
 swap, which is the 120ms doing its job.
 
-It is still unconfirmed on the **iOS simulator**, and the reason is worth
-recording because it wasted three rounds — **the Simulator window moves and
-closes on its own**. `simctl terminate`/`launch` can leave the app running
+**And on iOS** — `ios-opening-the-room.png`. That took finding the right tool
+instead of persisting with the wrong one. Three rounds went into driving the
+host's mouse, which cannot work reliably: the Simulator window moves and closes
+on its own, so every coordinate computed from it is stale before it is used;
+between two runs it jumped from (629,71) to (482,82), and `simctl terminate` can
+leave the app running with no window at all.
+
+Meta's `idb` is the documented answer and takes coordinates in the **device's own
+point space** — no window, no bezel, no mapping. `idb ui tap 142 595` landed
+first try. Setup and the one conversion that matters (screenshot pixels ÷ 3 =
+points) are in AGENT-BRIEF.md. `simctl terminate`/`launch` can leave the app running
 with no window at all, and between two runs the window jumped from (629,71) to
 (482,82). Any coordinate computed before that move points at nothing. Read the
 window's position immediately before every click, or click nothing.

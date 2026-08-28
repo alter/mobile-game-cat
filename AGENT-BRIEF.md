@@ -413,6 +413,40 @@ ADB=/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/SDK
 "$ADB" exec-out run-as com.DefaultCompany.game cat files/boot-state.txt
 ```
 
+## Tapping the iOS simulator: use idb, not the mouse
+
+`xcrun simctl` has no tap command, and driving the host's mouse through
+AppleScript or CGEvent is a trap that cost the better part of a day: the
+Simulator window **moves and closes on its own** (between two runs it jumped from
+(629,71) to (482,82), and `simctl terminate`/`launch` can leave the app running
+with no window at all), so every coordinate computed from the window is stale
+before it is used. Several "the tap does nothing" conclusions were clicks landing
+where no window was.
+
+The documented tool is Meta's **idb**, and it takes coordinates in the *device's
+own* space — no window, no bezel, no mapping:
+
+```bash
+brew trust facebook/fb && brew install idb-companion
+python3 -m venv idbenv && idbenv/bin/pip install fb-idb   # the CLI is Python
+
+UDID=$(xcrun simctl list devices booted | grep -o "[0-9A-F-]\{36\}" | head -1)
+idb ui describe-all --udid $UDID     # what is on screen, and the app's frame
+idb ui tap --udid $UDID X Y          # X,Y in POINTS
+idb ui text "hello" ; idb ui swipe X1 Y1 X2 Y2 ; idb ui button HOME
+```
+
+**The one conversion to remember:** `idb` works in points, `xcrun simctl io
+screenshot` gives pixels, and the factor is the device's scale — 3 on these
+phones. A thing measured at (441, 1860) in a screenshot is `idb ui tap 147 620`.
+`describe-all` prints the application frame in points, so the factor is always
+checkable rather than assumed.
+
+Landed first try, every try, after three rounds of mouse-driven guessing.
+
+Android needs none of this: `adb shell input tap X Y` takes screenshot pixels
+directly.
+
 Two things that cost a build each and are easy to repeat:
 
 - **The Android entry point is `BuildScript.BuildAndroidPlayer`**, not

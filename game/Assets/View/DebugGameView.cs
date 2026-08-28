@@ -71,7 +71,11 @@ namespace CatShelter.View
         // so this is the fixed default coat CatTraits.Default already gives
         // a player who skips the photo — "whatever cat was built" is, today,
         // nobody's cat. Task 50-photo owns swapping this for the real one.
-        private static readonly CatTraits CatStateTraits = CatTraits.Default;
+        // The player's own cat, rolled on her first launch and kept — see
+        // Shell/CatIdentity. This was `CatTraits.Default` and every player in
+        // the world met the same grey tabby, which made a shared picture say
+        // nothing about anybody.
+        private static CatTraits CatStateTraits => Shell.CatIdentity.Traits;
         private VisualElement _catPortrait;
         private Texture2D _catTexture;
         private int _catTextureState = -1;

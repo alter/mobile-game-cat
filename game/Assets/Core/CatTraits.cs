@@ -70,6 +70,47 @@ namespace CatShelter.Core
         /// rather than a lesser one. Fixed, never random — two players who skip
         /// must be able to talk about the same cat.
         /// </summary>
+        /// <summary>
+        /// A cat of this player's own, rolled once and kept.
+        ///
+        /// The owner's reasoning, and it is a product argument rather than a
+        /// technical one: every player meeting the same grey tabby has nothing
+        /// to show anyone. If the kitten differs — fat or thin, ginger or
+        /// olive, striped or plain, long-haired or short — then a shared
+        /// picture says something, and seeing someone else's says that cats
+        /// vary. That is the whole reason the coat is assembled from traits
+        /// instead of being three shipped pictures.
+        ///
+        /// Deterministic from <paramref name="seed"/> so the same player gets
+        /// the same cat on every launch, and so a test can pin one.
+        ///
+        /// White markings are rolled at one in three each, independently: a cat
+        /// with none is the commonest single outcome and a cat with all three
+        /// is rare, which is roughly how markings fall in life.
+        ///
+        /// The origin is <see cref="TraitsOrigin.Skipped"/> and not something
+        /// new, because it is still true — nobody has given the game a
+        /// photograph. This cat is a placeholder with a face, not a claim about
+        /// anyone's actual pet, and the moment a photo arrives it is replaced.
+        /// </summary>
+        public static CatTraits Roll(int seed)
+        {
+            var rng = new Random(seed);
+            string Pick(string key)
+            {
+                var options = Allowed[key];
+                return options[rng.Next(options.Length)];
+            }
+
+            var markings = new List<string>();
+            foreach (var m in Allowed["white_markings"])
+                if (rng.Next(3) == 0) markings.Add(m);
+
+            return new CatTraits(Pick("base_color"), Pick("pattern"),
+                                 Pick("fur_length"), Pick("eye_color"),
+                                 markings, TraitsOrigin.Skipped);
+        }
+
         public static CatTraits Default => new CatTraits(
             "grey", "tabby", "short", "green", Array.Empty<string>(),
             TraitsOrigin.Skipped);

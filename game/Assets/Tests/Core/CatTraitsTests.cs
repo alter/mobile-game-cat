@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CatShelter.Core;
@@ -98,6 +99,79 @@ namespace CatShelter.Core.Tests
                 foreach (var value in pair.Value)
                     Assert.That(json, Does.Contain($"\"{value}\""),
                         $"{pair.Key}: '{value}' is missing from schema.json");
+            }
+        }
+
+        // --- a cat of one's own ------------------------------------------
+        //
+        // The owner asked for a different kitten per player so that a shared
+        // picture says something. These pin the two properties that makes
+        // depend on: the same player always gets the same cat, and every cat
+        // rolled is one the rest of the game can actually draw.
+
+        [Test]
+        public void Roll_IsDeterministic()
+        {
+            var a = CatTraits.Roll(12345);
+            var b = CatTraits.Roll(12345);
+            Assert.That(a.BaseColor, Is.EqualTo(b.BaseColor));
+            Assert.That(a.Pattern, Is.EqualTo(b.Pattern));
+            Assert.That(a.FurLength, Is.EqualTo(b.FurLength));
+            Assert.That(a.EyeColor, Is.EqualTo(b.EyeColor));
+            Assert.That(a.WhiteMarkings, Is.EquivalentTo(b.WhiteMarkings));
+        }
+
+        [Test]
+        public void Roll_OnlyEverProducesAllowedValues()
+        {
+            for (int seed = 0; seed < 500; seed++)
+            {
+                var c = CatTraits.Roll(seed);
+                Assert.That(CatTraits.Allowed["base_color"], Contains.Item(c.BaseColor));
+                Assert.That(CatTraits.Allowed["pattern"], Contains.Item(c.Pattern));
+                Assert.That(CatTraits.Allowed["fur_length"], Contains.Item(c.FurLength));
+                Assert.That(CatTraits.Allowed["eye_color"], Contains.Item(c.EyeColor));
+                foreach (var m in c.WhiteMarkings)
+                    Assert.That(CatTraits.Allowed["white_markings"], Contains.Item(m));
+            }
+        }
+
+        [Test]
+        public void Roll_ActuallyVaries()
+        {
+            // The point of the feature. If a thousand players saw four cats
+            // between them the feature would be pointless, and a bug that
+            // collapsed the roll would otherwise pass every test above.
+            var seen = new HashSet<string>();
+            for (int seed = 0; seed < 1000; seed++)
+            {
+                var c = CatTraits.Roll(seed);
+                seen.Add($"{c.BaseColor}/{c.Pattern}/{c.FurLength}/{c.EyeColor}/" +
+                         string.Join(",", c.WhiteMarkings));
+            }
+            Assert.That(seen.Count, Is.GreaterThan(200),
+                        $"only {seen.Count} distinct cats in 1000 rolls");
+        }
+
+        [Test]
+        public void Roll_SurvivesTheSaveFormat()
+        {
+            // A rolled cat is written to disk on first launch and read back on
+            // every launch after. A trait that does not survive that round trip
+            // would give the player a different cat every time they opened the
+            // game.
+            for (int seed = 0; seed < 50; seed++)
+            {
+                var rolled = CatTraits.Roll(seed);
+                var cat = new Cat("Kitty", rolled);
+                var back = CatSave.Read(CatSave.Write(cat));
+                Assert.That(back, Is.Not.Null, $"seed {seed} did not round-trip");
+                Assert.That(back.Traits.BaseColor, Is.EqualTo(rolled.BaseColor));
+                Assert.That(back.Traits.Pattern, Is.EqualTo(rolled.Pattern));
+                Assert.That(back.Traits.FurLength, Is.EqualTo(rolled.FurLength));
+                Assert.That(back.Traits.EyeColor, Is.EqualTo(rolled.EyeColor));
+                Assert.That(back.Traits.WhiteMarkings,
+                            Is.EquivalentTo(rolled.WhiteMarkings), $"seed {seed}");
             }
         }
     }

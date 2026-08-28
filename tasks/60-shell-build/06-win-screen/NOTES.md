@@ -102,3 +102,15 @@ kind on the shelf. One tap then wins the room. The trace confirms it:
 
 That save-crafting trick works for any level and is the cheap way to reach any
 end-of-level screen: the lose card, the house-complete card, the reward drop.
+
+## Both platforms — 2026-08-28
+
+`android-win-room-before-after.png` beside the iOS one: identical, the drawn
+room pair on both. Reached the same way — the crafted one-move-from-won save,
+then `adb shell input tap` on the last tile.
+
+```
+[Board] took 36, shelf=0, triples=12, available=0
+[Board] win: level 1, lastPileOfRoom=True
+[Board] before/after: room 01 art
+```

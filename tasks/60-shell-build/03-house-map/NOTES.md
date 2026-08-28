@@ -430,10 +430,14 @@ The swap now waits 120ms, about seven frames. The veil then stays visible
 through the whole build for free: the board build blocks the main thread, no
 repaint happens during it, and the last painted frame is the veil.
 
-**Not visually confirmed.** The fix follows from a measured cause, but I have
-not seen the veil on screen: synthetic clicks stopped landing, and the reason is
-worth recording because it wasted three rounds — **the Simulator window moves
-and closes on its own**. `simctl terminate`/`launch` can leave the app running
+**Confirmed on Android** — `android-opening-the-room.png`: "Opening the room…"
+and the bar over the dimmed map, caught by screenshotting immediately after
+`adb shell input tap`. The log puts the delay at 133ms between the tap and the
+swap, which is the 120ms doing its job.
+
+It is still unconfirmed on the **iOS simulator**, and the reason is worth
+recording because it wasted three rounds — **the Simulator window moves and
+closes on its own**. `simctl terminate`/`launch` can leave the app running
 with no window at all, and between two runs the window jumped from (629,71) to
 (482,82). Any coordinate computed before that move points at nothing. Read the
 window's position immediately before every click, or click nothing.

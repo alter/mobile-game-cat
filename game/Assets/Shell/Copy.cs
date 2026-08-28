@@ -93,7 +93,10 @@ namespace CatShelter.Shell
                 // and here at the same time.
                 ["card.game_name"] = "Cat Shelter",
                 ["card.close"] = "Back",
-                ["card.share"] = "Share her",
+                // Beside the share glyph. Just the verb: the owner asked why it
+                // said "Share her" at all, and he is right — the icon and the
+                // picture in it already say who.
+                ["card.share_short"] = "Share",
                 // {0} is the game's name. Kept short: it rides on a picture and
                 // most people rewrite the caption anyway.
                 ["card.caption"] = "Look at the kitten I have in {0}",
@@ -175,6 +178,26 @@ namespace CatShelter.Shell
                 ["house.complete.body"] =
                     "All twelve, and a kitten with nowhere left to hide her finds." +
                     "\n\nThat is as far as the house goes for now.",
+                // 2026-08-28. The card above was, until today, the whole
+                // ending: no button on it at all, by an old reading of this
+                // task's "no call to action". The owner played to the end and
+                // asked "человек доиграл — и что?" — and he is right that the
+                // rule was being applied to the wrong thing. What that scope
+                // line forbids is a *teaser*: a waitlist, a purchase, a
+                // wishlist for content that does not exist. Offering to show
+                // the finished house to somebody, or to say you liked it, sells
+                // nothing and promises nothing. Two buttons, and neither of
+                // them asks the player for money or for patience.
+                //
+                // "Show someone", not "Share": the complaint was that there was
+                // no way to show anyone, and the game already says "Share her"
+                // on the kitten's card. A second, different moment deserves a
+                // different verb rather than the same one twice.
+                ["house.complete.share"] = "Show someone",
+                // {0} is the game's name, same as card.caption. Kept to one
+                // short sentence: it rides on a picture, and most people
+                // rewrite the caption anyway.
+                ["house.complete.caption"] = "Every room in {0} is clean.",
 
                 // --- levels missing or broken ---------------------------------
                 // Shipped level data is gated before release (test_ship_levels.py,

@@ -62,6 +62,21 @@ namespace CatShelter.View
         private Button _primaryButton;
         private Button _secondaryButton;
 
+        // --- the ending card, 60-shell-build/11 -------------------------------
+        /// <summary>
+        /// Composes the picture the ending card shares. Set from outside; this
+        /// view never draws a share image itself, exactly as CatCardScreen
+        /// takes its `renderCard` rather than composing one.
+        ///
+        /// Null until it is wired, and the "Show someone" button is not drawn
+        /// while it is null — a button that produces nothing is the fake door
+        /// D4 already threw out once.
+        /// </summary>
+        public Func<byte[]> RenderEndingCard;
+
+        private VisualElement _endingKitten;
+        private VisualElement _endingActions;
+
         // Loaded once per kind and kept: a pile is 60 tiles and a room is
         // redrawn on every move, so Resources.Load per tile per frame would be
         // sixty lookups a tap.
@@ -140,6 +155,11 @@ namespace CatShelter.View
 
             var _t0 = System.Diagnostics.Stopwatch.StartNew();
             Debug.Log("[Board] enabled, skeleton found");
+            // The ending card composes its own picture through the same
+            // composer as the kitten's card, with the heart pose instead of her
+            // current one: this is the frame a player posts when they finish.
+            RenderEndingCard = () => RenderShareCard(SpriteNamed("Art/cat_4_short_base"));
+
             BuildRoom(uid.rootVisualElement, gameRoot);
             BuildCatPortrait(gameRoot);
             BuildFxLayer(gameRoot);
@@ -536,7 +556,15 @@ namespace CatShelter.View
             if (_catCard == null)
             {
                 _catCard = new CatCardScreen();
-                _catCard.Build(uid.rootVisualElement, _catTexture, null, RenderShareCard);
+                // Her room behind her, not paper. `share_room_NN` is the floor
+                // the rooms reserve, already cut square and imported readable
+                // for the shared picture — the card and the picture then show
+                // the same scene, which is the point of a card you share from.
+                var roomNo = _level != null
+                    ? RoomPlan.RoomNumber(_level.RoomId).ToString("00", CultureInfo.InvariantCulture)
+                    : "01";
+                _catCard.Build(uid.rootVisualElement, _catTexture,
+                               SpriteNamed($"Art/share_room_{roomNo}"), RenderShareCard);
                 _catCard.OnClose = () => Debug.Log("[Board] cat card closed");
                 _catCard.OnShareTapped = () => Debug.Log("[Board] share tapped");
             }
@@ -560,7 +588,11 @@ namespace CatShelter.View
         /// The clean room, not the dirty one, whatever state the player is in:
         /// this picture leaves the phone, and nobody posts the mess.
         /// </summary>
-        private byte[] RenderShareCard()
+        private byte[] RenderShareCard() => RenderShareCard(null);
+
+        /// <param name="pose">A cat to draw instead of her current one — the
+        /// ending card passes the heart pose. Null means whoever she is now.</param>
+        private byte[] RenderShareCard(Texture2D pose)
         {
             const int Side = 1080;
             var card = new Texture2D(Side, Side, TextureFormat.RGBA32, mipChain: false);
@@ -588,10 +620,11 @@ namespace CatShelter.View
                                  "the card falls back to paper");
             }
 
-            if (_catTexture != null && _catTexture.isReadable)
+            var who = pose != null && pose.isReadable ? pose : _catTexture;
+            if (who != null && who.isReadable)
             {
-                var cat = _catTexture.GetPixels32();
-                int cw = _catTexture.width, ch = _catTexture.height;
+                var cat = who.GetPixels32();
+                int cw = who.width, ch = who.height;
                 // Two thirds of the card, centred, sitting a little low so the
                 // game's name has room above her.
                 // Large, and low: she is lying on the floor the room left for
@@ -1095,16 +1128,7 @@ namespace CatShelter.View
                 {
                     Shell.SaveFile.Clear();
                     Debug.Log("[Board] house complete");
-                    // Room 12's own before/after, on the ending card. It used to
-                    // be the one room whose pair a player never saw: this branch
-                    // returned before the transformation was shown, so the last
-                    // room — the one they worked hardest for — was the only one
-                    // that ended with words alone. A verifier found it by
-                    // reading; nobody had played that far.
-                    ShowCard(Shell.Copy.Of("house.complete.title"),
-                        Shell.Copy.Of("house.complete.body"),
-                        null, null, null, null);
-                    ShowRoomTransformation(_level);
+                    ShowEndingCard();
                     return;
                 }
 
@@ -1162,6 +1186,9 @@ namespace CatShelter.View
             // room's last pile. Centralised here so the ordinary corner-win,
             // lose, and house-complete cards never have to remember to hide it.
             HideRoomTransformation();
+            // Same rule, same reason, for the ending card's kitten and its two
+            // buttons: hidden by default, and ShowEndingCard turns them on.
+            HideEndingExtras();
 
             if (primaryText == null)
             {
@@ -1193,6 +1220,208 @@ namespace CatShelter.View
 
         private void OnPrimary() { /* wired per-card via clickable */ }
         private void OnSecondary() { /* wired per-card via clickable */ }
+
+        // =====================================================================
+        // 60-shell-build/11: the ending card, and the two things it now offers.
+        //
+        // The owner played to the end and asked "человек доиграл — и что?".
+        // What he met was a card with no button on it, a cleared save, and no
+        // way to show anybody. This section is the answer: the kitten who was
+        // drawn for this screen, one button that hands the card to the phone's
+        // share sheet, and one unfilled heart that opens the store's review
+        // page. Neither sells anything, so neither is the "call to action" the
+        // task's scope rules out — see Copy.cs at house.complete.share.
+        //
+        // Everything is built lazily, on the one card that uses it, and hidden
+        // by default from ShowCard: the win and lose cards must not grow a
+        // kitten and a heart because the house happened to end once.
+        // =====================================================================
+
+        private void ShowEndingCard()
+        {
+            ShowCard(Shell.Copy.Of("house.complete.title"),
+                     Shell.Copy.Of("house.complete.body"),
+                     null, null, null, null);
+
+            BuildEndingExtras();
+
+            if (_endingKitten != null) _endingKitten.style.display = DisplayStyle.Flex;
+            if (_endingActions != null) _endingActions.style.display = DisplayStyle.Flex;
+        }
+
+        private void HideEndingExtras()
+        {
+            if (_endingKitten != null) _endingKitten.style.display = DisplayStyle.None;
+            if (_endingActions != null) _endingActions.style.display = DisplayStyle.None;
+        }
+
+        private void BuildEndingExtras()
+        {
+            if (_endingActions != null) return; // shown once, but be safe
+            var card = _overlayBody?.parent;
+            if (card == null) return;
+
+            // The kitten, above the words. cat_4_short_base is a fourth POSE —
+            // fat, happy, holding a heart — drawn for this screen and for no
+            // other. It is NOT a fourth cat state: PlayerProgress.CatStateFor
+            // still returns 1..3 and nothing here asks it anything. Loaded by
+            // name, and left greyscale: the coat shader is keyed to the three
+            // states and this pose is not one of them.
+            var art = SpriteNamed("Art/cat_4_short_base");
+            if (art != null)
+            {
+                _endingKitten = new VisualElement { name = "ending-kitten" };
+                _endingKitten.style.width = 148;
+                _endingKitten.style.height = 148;
+                _endingKitten.style.marginBottom = 10;
+                _endingKitten.pickingMode = PickingMode.Ignore;
+                Paint(_endingKitten, art);
+                card.Insert(card.IndexOf(_overlayBody), _endingKitten);
+            }
+            else
+            {
+                // Missing art stays missing rather than leaving a 148px hole,
+                // the same rule the prop collage above holds to.
+                Debug.LogWarning("[Board] ending card: cat_4_short_base not found");
+            }
+
+            _endingActions = new VisualElement { name = "ending-actions" };
+            _endingActions.style.flexDirection = FlexDirection.Row;
+            _endingActions.style.alignItems = Align.Center;
+            _endingActions.style.justifyContent = Justify.Center;
+
+            // "Show someone". Hidden, not disabled, while nothing has been
+            // wired to compose the picture — see RenderEndingCard.
+            //
+            // Buttons.Share rather than Buttons.Primary: it is the same filled
+            // tan button with the share mark drawn in front of the label, which
+            // is what the kitten's card will carry too. The one override is the
+            // gap to the heart — Buttons zeroes every margin on purpose, so
+            // spacing is the caller's, and Buttons.Gap is the caller's number.
+            if (RenderEndingCard != null)
+            {
+                var share = Buttons.Share(Shell.Copy.Of("house.complete.share"),
+                                          TapEndingShare);
+                share.style.marginRight = Buttons.Gap;
+                _endingActions.Add(share);
+            }
+            else
+                Debug.LogWarning("[Board] ending card: no RenderEndingCard, share button hidden");
+
+            // The heart. Hidden while the game has no store page, because a
+            // heart that opens a page that does not exist is worse than no
+            // heart — Shell/Review.cs carries the whole argument and the two
+            // store citations behind it.
+            if (Shell.Review.Available)
+                _endingActions.Add(HeartButton(TapEndingLike));
+            else
+                Debug.Log("[Board] ending card: no store page yet, heart hidden");
+
+            card.Insert(card.IndexOf(_overlayBody) + 1, _endingActions);
+        }
+
+        private void TapEndingShare()
+        {
+            byte[] png;
+            try
+            {
+                png = RenderEndingCard();
+            }
+            catch (Exception e)
+            {
+                // A render that throws must not take the ending down with it.
+                // e.Message is diagnostic only — an OS or .NET string, not copy.
+                Debug.LogWarning($"[Board] ending card render_failed: {e.Message}");
+                return;
+            }
+
+            Shell.Share.Image(png, Shell.Copy.Of("house.complete.caption",
+                                                 Shell.Copy.Of("card.game_name")));
+        }
+
+        private void TapEndingLike() => Shell.Review.Open();
+
+        /// <summary>
+        /// The Like heart: an outline, not a filled shape, and drawn rather
+        /// than typed.
+        ///
+        /// Not the character ♡ (U+2661). Nothing in DebugGame.uss sets a font,
+        /// so this text renders in Unity's default face, and a glyph that face
+        /// may not carry would ship as a blank box on the last screen of the
+        /// game. A Painter2D path has no font to be missing from, scales to
+        /// whatever box it is given, and is the same stroke on both platforms.
+        /// It is the same reasoning, and the same answer, as Buttons.ShareGlyph
+        /// next to it — draw the mark, do not import it.
+        ///
+        /// Not a Buttons.Primary or a Buttons.Secondary: both are filled or
+        /// bezelled, and a filled button around an *unfilled* heart argues with
+        /// itself. What it does borrow is the number that matters —
+        /// Buttons.MinTarget, Apple's 44pt floor — so the hit region is the
+        /// same as its neighbour's even though nothing is drawn at its edges.
+        /// </summary>
+        private static VisualElement HeartButton(Action onClick)
+        {
+            var button = new VisualElement { name = "ending-like" };
+            button.style.width = Buttons.MinTarget;
+            button.style.height = Buttons.MinTarget;
+            button.style.flexShrink = 0;
+            button.style.alignItems = Align.Center;
+            button.style.justifyContent = Justify.Center;
+            button.AddManipulator(new Clickable(onClick));
+
+            // The press feedback Buttons.Press gives its own buttons, by hand
+            // because that method is private and this is not a Button. Same
+            // opacity, and the same reason for Leave and Cancel: a finger that
+            // slides off never sends PointerUp here, and the heart would be
+            // left dimmed.
+            button.RegisterCallback<PointerDownEvent>(_ => button.style.opacity = 0.72f);
+            button.RegisterCallback<PointerUpEvent>(_ => button.style.opacity = 1f);
+            button.RegisterCallback<PointerLeaveEvent>(_ => button.style.opacity = 1f);
+            button.RegisterCallback<PointerCancelEvent>(_ => button.style.opacity = 1f);
+
+            var heart = new VisualElement { name = "ending-heart" };
+            heart.style.width = 26;
+            heart.style.height = 24;
+            heart.pickingMode = PickingMode.Ignore; // the taps belong to the 44x44
+            heart.generateVisualContent += PaintHeart;
+            button.Add(heart);
+
+            return button;
+        }
+
+        /// <summary>
+        /// One closed heart, stroked and not filled, fitted to whatever box the
+        /// element ended up with. The path is written in a 100x100 space and
+        /// scaled, so the numbers stay readable and the shape survives a
+        /// different size later.
+        /// </summary>
+        private static void PaintHeart(MeshGenerationContext ctx)
+        {
+            var rect = ctx.visualElement.contentRect;
+            if (rect.width <= 0f || rect.height <= 0f) return;
+
+            float sx = rect.width / 100f;
+            float sy = rect.height / 100f;
+            Vector2 P(float x, float y) => new Vector2(x * sx, y * sy);
+
+            var painter = ctx.painter2D;
+            painter.lineWidth = Mathf.Max(2f, rect.height * 0.10f);
+            painter.lineCap = LineCap.Round;
+            painter.strokeColor = Buttons.Ink;
+
+            painter.BeginPath();
+            painter.MoveTo(P(50, 92));
+            // down the left lobe and up over its shoulder to the dimple
+            painter.BezierCurveTo(P(20, 68), P(6, 52), P(6, 34));
+            painter.BezierCurveTo(P(6, 17), P(19, 8), P(31, 8));
+            painter.BezierCurveTo(P(41, 8), P(47, 15), P(50, 22));
+            // and back down the right, mirrored
+            painter.BezierCurveTo(P(53, 15), P(59, 8), P(69, 8));
+            painter.BezierCurveTo(P(81, 8), P(94, 17), P(94, 34));
+            painter.BezierCurveTo(P(94, 52), P(80, 68), P(50, 92));
+            painter.ClosePath();
+            painter.Stroke();
+        }
 
         // =====================================================================
         // 60-shell-build/06: win screen before/after. Everything from here to

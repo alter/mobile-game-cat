@@ -43,11 +43,11 @@ namespace CatShelter.View
         {
             var root = GetComponent<UIDocument>().rootVisualElement;
             root.Clear();
-            // The delivered map_background.png is opaque and its surround is
-            // white — measured at three corners: 255,255,254 / 251,252,252 /
-            // 254,254,254. A dark page behind it framed the house in a white
-            // rectangle. Match the image rather than fight it.
-            root.style.backgroundColor = (Color)new Color32(0xFC, 0xFC, 0xFC, 0xFF);
+            // The game's cream. This was near-white while the delivered
+            // background still carried its opaque white surround and the page
+            // had to match it; the background was cropped and its corners made
+            // transparent on 28.08, so the page is the page again.
+            root.style.backgroundColor = (Color)new Color32(0xF4, 0xEA, 0xD8, 0xFF);
             root.style.flexDirection = FlexDirection.Column;
             root.style.alignItems = Align.Center;
             root.style.paddingTop = 20;
@@ -136,8 +136,9 @@ namespace CatShelter.View
             {
                 var total = pilesPerRoom[room - 1];
                 var cleared = progress.PilesClearedIn(room);
-                var cell = Cell(room, progress.AccessFor(room),
-                                total > 0 ? (float)cleared / total : 0f);
+                var access = progress.AccessFor(room);
+                var cell = Cell(room, access, total > 0 ? (float)cleared / total : 0f,
+                                access == RoomAccess.Open ? StartPlaying : null);
                 Place(cell, room);
                 houseBox.Add(cell);
             }
@@ -145,7 +146,7 @@ namespace CatShelter.View
             root.Add(background);
 
             var legend = new Label(
-                "the lit number is the room to play   ·   ticked rooms are done   " +
+                "tap the lit number to play it   ·   ticked rooms are done   " +
                 "·   dim rooms are still locked");
             legend.style.fontSize = 10;
             legend.style.whiteSpace = WhiteSpace.Normal;
@@ -187,53 +188,53 @@ namespace CatShelter.View
         /// <summary>
         /// <summary>
         /// Where each room sits inside the house, as percentages of the house's
-        /// own bounding box: centre x, centre y, width, height.
+        /// own bounding box: centre x, centre y, width, height. Indexed by room
+        /// number, so entry 0 is room 1.
         ///
-        /// Indexed by room number, so entry 0 is room 1. Measured from the art
-        /// rather than chosen: `map_background.png` is 928×1664 and the painted
-        /// house occupies x 6–93%, y 9–92% of it, which is the box these
-        /// percentages are relative to. Full detail and the row-by-row scan
-        /// behind the roof line are in tasks/40-art/06-house-map/ROOM-PLACEMENT.md.
+        /// **The numbers climb.** Odd rooms on the left, even on the right,
+        /// bottom to top, and the last two alone under the roof. That is the
+        /// whole rule, and it is the rule because the owner read the previous
+        /// version and could not follow it: "9 на самом верху, 12 под ней" —
+        /// the map had 9 at the apex and 12 beneath it, and nothing about the
+        /// order made sense from the outside.
         ///
-        /// The first version of this table came from the identification pass
-        /// and was measured against the file, but its rows were 12% apart with
-        /// cells 16% tall — so every cell overlapped the two beside it, and the
-        /// columns ran out over the painted frame. The numbers below are the
-        /// corrected ones, taken from a row-by-row scan of the silhouette:
-        /// the house is centred on local x 50.5%, its walls stand at local x
-        /// 10.9%–90.1% from local y 34% down, and above that the roof narrows —
-        /// at local y 12% the interior is only about a third of the width.
-        /// Rows are 11% apart and cells 10% tall, which is what leaves a gap
-        /// between them, and a cell is near enough square (17% × 10% of a box
-        /// 807×1381) that its number sits on the picture rather than beside it.
+        /// It made sense from the inside, which is exactly the trap. The
+        /// earlier table placed each room where its *picture* belonged in a
+        /// house: the attic art at the top, the kitchen on the ground floor,
+        /// measured off the background and written up in
+        /// tasks/40-art/06-house-map/ROOM-PLACEMENT.md. That is a real property
+        /// and it was right while the cells were photographs. The moment the
+        /// cells became numbers, the number became the only thing on the
+        /// screen, and a scattered sequence of numbers reads as a mistake no
+        /// matter how principled the scatter is.
         ///
-        /// Two things in here are not arbitrary and should not be "tidied":
+        /// What was given up, said plainly so nobody "restores" it by accident:
+        /// room 9's art is an attic and it now sits mid-house, and room 12's is
+        /// a reading nook which happens to still land under the roof. Getting
+        /// both properties needs the sloped-ceiling pictures to *be* rooms 11
+        /// and 12 — a reassignment of which picture belongs to which room
+        /// number, not a layout change, and not one to make quietly.
         ///
-        /// **The top two rows are single-column.** A scan across the background
-        /// shows the silhouette reaching its full 640px wall width only at
-        /// about 38% down the file; above that it is roof slope. Rooms 09 (the
-        /// attic) and 12 (the reading nook) are the only two rooms drawn with a
-        /// sloped ceiling, and they are the two placed there. Ten rooms below,
-        /// two under the roof — nothing dropped.
-        ///
-        /// **Room 10 takes the right-hand column.** It is a balcony, the one
-        /// room with an outdoor view, so it sits against open air rather than
-        /// boxed between two interiors.
+        /// The geometry is still measured, not guessed: the house is centred on
+        /// local x 50.5%, its walls stand at local x 10.9%–90.1% from local y
+        /// 34% down, and above that the roof narrows to about a third of the
+        /// width by local y 12% — which is why the top two rooms are single and
+        /// centred. Rows are 11% apart and cells 10% tall, so they do not touch.
         /// </summary>
         private static readonly float[][] Placements =
         {
-            new[] { 35.0f, 85.0f, 17f, 10f }, // 01 entry hall
-            new[] { 65.0f, 85.0f, 17f, 10f }, // 02 kitchen
-            new[] { 35.0f, 63.0f, 17f, 10f }, // 03 living room
-            new[] { 65.0f, 41.0f, 17f, 10f }, // 04 bedroom
-            new[] { 65.0f, 52.0f, 17f, 10f }, // 05 bedroom
-            new[] { 35.0f, 41.0f, 17f, 10f }, // 06 study
-            new[] { 65.0f, 74.0f, 17f, 10f }, // 07 bathroom
-            new[] { 35.0f, 74.0f, 17f, 10f }, // 08 pantry
-            new[] { 50.5f, 17.0f, 17f, 10f }, // 09 attic — under the roof
-            new[] { 65.0f, 63.0f, 17f, 10f }, // 10 balcony — outer column
-            new[] { 35.0f, 52.0f, 17f, 10f }, // 11 corridor
-            new[] { 50.5f, 28.5f, 17f, 10f }, // 12 reading nook — under the roof
+            new[] { 35.0f, 85.0f, 17f, 10f }, // 01
+            new[] { 65.0f, 85.0f, 17f, 10f }, // 02
+            new[] { 35.0f, 74.0f, 17f, 10f }, // 03
+            new[] { 65.0f, 74.0f, 17f, 10f }, // 04
+            new[] { 35.0f, 63.0f, 17f, 10f }, // 05
+            new[] { 65.0f, 63.0f, 17f, 10f }, // 06
+            new[] { 35.0f, 52.0f, 17f, 10f }, // 07
+            new[] { 65.0f, 52.0f, 17f, 10f }, // 08
+            new[] { 35.0f, 41.0f, 17f, 10f }, // 09
+            new[] { 65.0f, 41.0f, 17f, 10f }, // 10
+            new[] { 50.5f, 28.5f, 17f, 10f }, // 11 — under the roof
+            new[] { 50.5f, 17.0f, 17f, 10f }, // 12 — under the roof, the last room
         };
 
         /// <summary>
@@ -356,7 +357,8 @@ namespace CatShelter.View
         /// art-brief.md section 9 says; `60-shell-build/02-room-piles` is where
         /// a room's picture belongs, at a size where it can be seen.
         /// </summary>
-        private static VisualElement Cell(int room, RoomAccess access, float cleared)
+        private static VisualElement Cell(int room, RoomAccess access, float cleared,
+                                          System.Action onTap)
         {
             var ink = (Color)new Color32(0x33, 0x2A, 0x1E, 0xFF);
             var cream = (Color)new Color32(0xF6, 0xEE, 0xDC, 0xFF);
@@ -454,8 +456,67 @@ namespace CatShelter.View
                 plaque.Add(track);
             }
 
+            if (onTap != null)
+            {
+                // Only the open room answers a tap. A lit plaque that does
+                // nothing is worse than no plaque: the owner tapped it, the
+                // game did not start, and the screen had promised that it
+                // would. The other eleven stay inert on purpose — a locked
+                // room that reacts is a different lie.
+                plaque.pickingMode = PickingMode.Position;
+                plaque.RegisterCallback<ClickEvent>(_ => onTap());
+                // The whole cell is the target, not just the plaque, so a
+                // thumb landing near the edge still counts.
+                wrapper.pickingMode = PickingMode.Position;
+                wrapper.RegisterCallback<ClickEvent>(_ => onTap());
+            }
+            else
+            {
+                plaque.pickingMode = PickingMode.Ignore;
+                wrapper.pickingMode = PickingMode.Ignore;
+            }
+
             wrapper.Add(plaque);
             return wrapper;
+        }
+
+        /// <summary>
+        /// Leave the map and play the open room.
+        ///
+        /// There is no room to pass along and no new plumbing needed for one:
+        /// exactly one room is ever open and it is always the save's cursor,
+        /// which is where the board starts anyway. `PlayerProgress.AccessFor`
+        /// is what makes that true and a test walks the whole game asserting
+        /// it, so "tap the open room" and "start the board" are the same
+        /// instruction.
+        ///
+        /// The map cleared the panel when it took over, so the UXML skeleton
+        /// DebugGameView needs — `game-root`, `pile` and the rest — has to be
+        /// cloned back before the board is added, or the board finds nothing
+        /// and throws.
+        /// </summary>
+        private void StartPlaying()
+        {
+            var uid = GetComponent<UIDocument>();
+            var root = uid.rootVisualElement;
+            if (root == null) return;
+
+            root.Clear();
+
+            if (uid.visualTreeAsset == null)
+            {
+                // Nothing to rebuild the board from. Say so on the screen
+                // rather than leaving the player looking at an empty panel,
+                // which is the failure this project spent a day on already.
+                root.Add(Message("the board's layout is missing — " +
+                                 "DebugGame.uxml is not assigned to the UIDocument"));
+                return;
+            }
+
+            uid.visualTreeAsset.CloneTree(root);
+            enabled = false;
+            if (GetComponent<DebugGameView>() == null)
+                gameObject.AddComponent<DebugGameView>();
         }
 
         private static void Round(VisualElement e, float radius)

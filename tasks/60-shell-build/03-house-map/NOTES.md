@@ -245,3 +245,53 @@ owner ran the game and was dropped into room 3 with no explanation and nothing
 chosen, which was partly a leftover test save on the device, and partly this:
 nothing connects the map to the board in either direction. Wiring the tap needs
 `DebugGameView` to accept a starting room, which it does not today.
+
+## The numbers climb, and the lit one starts the game — 2026-08-28
+
+Two things the owner hit within a minute of looking at the previous version.
+
+### "9 на самом верху, 12 под ней" — the order made no sense
+
+It made sense from the inside, which is the trap. Each room sat where its
+*picture* belonged in a house: the attic art under the roof, the kitchen on the
+ground floor, all measured off the background (`ROOM-PLACEMENT.md`). That was
+right while the cells were photographs of rooms. The moment they became numbers,
+the number was the only thing on screen, and a scattered sequence reads as a
+mistake however principled the scatter is.
+
+Now: odd left, even right, bottom to top, 11 and 12 alone under the roof.
+`ios-numbers-in-order.png`.
+
+**What was given up, so nobody restores it by accident.** Room 9's art is an
+attic and it now sits mid-house. Room 12's is a reading nook and still lands
+under the roof by luck of the numbering. Having both properties needs the two
+sloped-ceiling pictures to *be* rooms 11 and 12 — a reassignment of which
+picture belongs to which room number, which is a data change and not a layout
+one. Worth doing; not worth doing quietly.
+
+### A lit button that does nothing
+
+The owner tapped the glowing room and the game did not start. A plaque that
+lights up is a promise, and this one made it while nothing was wired behind it.
+
+`HouseMapView.StartPlaying` now runs on a tap of the open room, and only that
+room — the other eleven are `PickingMode.Ignore`, because a locked room that
+reacts is a different lie.
+
+It needed no room parameter. Exactly one room is ever open and it is always the
+save's cursor, which is where the board starts anyway — `AccessFor` makes that
+true and a test walks the whole game asserting it. So "tap the open room" and
+"start the board" turned out to be the same instruction.
+
+The one real piece of plumbing: the map calls `root.Clear()` when it takes over,
+which destroys the UXML skeleton the board needs. `StartPlaying` clones
+`visualTreeAsset` back before adding `DebugGameView`, and says so on screen if
+that asset is missing rather than leaving an empty panel.
+
+**Verified by an actual tap, on Android.** `android-tap-before.png` is the map
+with room 1 lit; `android-tap-starts-room-1.png` is what `adb shell input tap`
+produced: "Room 1 of 12 · pile 1 of 1". The same tap could not be automated on
+the iOS simulator — posting a synthetic click needs macOS accessibility
+permission the terminal does not hold — so **iOS is verified for the layout by
+screenshot and for the tap only by sharing the code path with Android.** A human
+tap on the simulator is the outstanding check.

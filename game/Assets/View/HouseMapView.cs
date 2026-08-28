@@ -561,12 +561,30 @@ namespace CatShelter.View
             // visible is indistinguishable from a tap that was not registered.
             ShowOpening(root);
 
-            // Not here, next frame. This runs inside a pointer callback, and
-            // the element under the finger is in the tree the swap destroys —
-            // UI Toolkit is still walking the propagation path through it.
-            // Clearing the panel mid-dispatch is how the tap came to fire, log
-            // itself, throw nothing, and leave the map exactly where it was.
-            root.schedule.Execute(() => SwapInBoard(uid, root));
+            // Not here, and not on the very next tick either.
+            //
+            // Two separate reasons, and the second one was measured after the
+            // first version shipped looking finished:
+            //
+            // 1. This runs inside a pointer callback, and the element under the
+            //    finger is in the tree the swap destroys — UI Toolkit is still
+            //    walking the propagation path through it. Clearing the panel
+            //    mid-dispatch is how the tap came to fire, log itself, throw
+            //    nothing, and leave the map exactly where it was.
+            //
+            // 2. `ShowOpening` above is pointless without this delay. Scheduled
+            //    for the next tick, the swap ran before the panel repainted, so
+            //    the veil was created and destroyed without ever reaching the
+            //    screen — six screenshots taken in the second after a tap all
+            //    showed the map, unchanged. A loading indicator nobody can see
+            //    is worse than none: it looks like the problem is solved.
+            //
+            // 120ms is about seven frames — enough that the veil is certainly
+            // painted. It then stays on screen through the swap for free: the
+            // board build blocks the main thread for roughly a second and a
+            // half, no repaint happens during it, and the last painted frame is
+            // the veil.
+            root.schedule.Execute(() => SwapInBoard(uid, root)).ExecuteLater(120);
         }
 
         /// <summary>

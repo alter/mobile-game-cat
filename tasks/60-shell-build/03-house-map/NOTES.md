@@ -405,3 +405,35 @@ Nothing in the level files or the code refers to a room's *theme*, only its
 number, so this is a change of picture and not of content. The uncropped
 delivery originals are unaffected; `git show` on the previous commit recovers
 either file if the swap is ever judged wrong.
+
+## A loading indicator nobody could see — 2026-08-28
+
+The owner played it and named the defect exactly: "кликаю - ничего не
+происходит, похоже, там загрузка идет... юзер не понимает что происходит,
+кликает и раздражается, что все зависло." Building the board takes about a
+second and a half of level and sprite loading, and the screen just sat there.
+
+`ShowOpening` puts a veil over the map the instant the room is tapped — the
+words "Opening the room…" and a bar that **slides back and forth rather than
+filling**, because the work behind it has no measurable progress and a number
+that jumps 0→100 lies more than no number at all. It also swallows further taps,
+which is the other half of what the owner described.
+
+**And the first version of it did nothing at all.** The swap was scheduled for
+the next scheduler tick, which arrives before the panel repaints, so the veil
+was created and destroyed without ever reaching the screen. Measured, not
+guessed: six screenshots taken in the second after a tap all showed the map,
+unchanged, while the log showed `swap: clearing 4 children` — the fourth child
+being the veil that nobody saw.
+
+The swap now waits 120ms, about seven frames. The veil then stays visible
+through the whole build for free: the board build blocks the main thread, no
+repaint happens during it, and the last painted frame is the veil.
+
+**Not visually confirmed.** The fix follows from a measured cause, but I have
+not seen the veil on screen: synthetic clicks stopped landing, and the reason is
+worth recording because it wasted three rounds — **the Simulator window moves
+and closes on its own**. `simctl terminate`/`launch` can leave the app running
+with no window at all, and between two runs the window jumped from (629,71) to
+(482,82). Any coordinate computed before that move points at nothing. Read the
+window's position immediately before every click, or click nothing.

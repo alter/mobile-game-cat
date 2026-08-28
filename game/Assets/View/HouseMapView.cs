@@ -124,7 +124,10 @@ namespace CatShelter.View
             // and every cell is a percentage of that box.
             var houseBox = new VisualElement();
             houseBox.style.position = Position.Absolute;
-            houseBox.pickingMode = PickingMode.Ignore;
+            // Left pickable. It carries no handler of its own, and marking a
+            // parent Ignore is the first thing to suspect when a child stops
+            // answering taps — which is exactly what happened here.
+            houseBox.pickingMode = PickingMode.Position;
             background.Add(houseBox);
 
             var artWidth = backgroundArt != null ? backgroundArt.width : 0;
@@ -463,12 +466,28 @@ namespace CatShelter.View
                 // game did not start, and the screen had promised that it
                 // would. The other eleven stay inert on purpose — a locked
                 // room that reacts is a different lie.
+                // Fires once however the tap arrives. ClickEvent alone was
+                // not enough to trust: it worked on Android and did nothing on
+                // the iOS simulator, and the difference was not visible from
+                // the code. PointerUp is the lower-level event underneath it,
+                // and the guard keeps a tap that produces both from starting
+                // the game twice.
+                var fired = false;
+                void Fire()
+                {
+                    if (fired) return;
+                    fired = true;
+                    onTap();
+                }
+
                 plaque.pickingMode = PickingMode.Position;
-                plaque.RegisterCallback<ClickEvent>(_ => onTap());
+                plaque.RegisterCallback<ClickEvent>(_ => Fire());
+                plaque.RegisterCallback<PointerUpEvent>(_ => Fire());
                 // The whole cell is the target, not just the plaque, so a
                 // thumb landing near the edge still counts.
                 wrapper.pickingMode = PickingMode.Position;
-                wrapper.RegisterCallback<ClickEvent>(_ => onTap());
+                wrapper.RegisterCallback<ClickEvent>(_ => Fire());
+                wrapper.RegisterCallback<PointerUpEvent>(_ => Fire());
             }
             else
             {
@@ -478,6 +497,28 @@ namespace CatShelter.View
 
             wrapper.Add(plaque);
             return wrapper;
+        }
+
+        /// <summary>
+        /// Record a failure of the map's own doing, beside the save.
+        ///
+        /// Kept from the hunt that produced it: "the button does nothing" has
+        /// two very different causes — the tap never arrived, or it arrived and
+        /// what it triggered failed — and from outside the app they look
+        /// identical. UI Toolkit swallows what an event callback throws, so
+        /// without a line like this the second case is silent on a device.
+        /// </summary>
+        private static void Tapped(string what)
+        {
+            try
+            {
+                System.IO.File.AppendAllText(
+                    System.IO.Path.Combine(Application.persistentDataPath, "tap.txt"),
+                    what + "\n");
+            }
+            catch (System.Exception)
+            {
+            }
         }
 
         /// <summary>
@@ -498,25 +539,47 @@ namespace CatShelter.View
         private void StartPlaying()
         {
             var uid = GetComponent<UIDocument>();
-            var root = uid.rootVisualElement;
+            var root = uid != null ? uid.rootVisualElement : null;
             if (root == null) return;
 
-            root.Clear();
+            // Not here, next frame. This runs inside a pointer callback, and
+            // the element under the finger is in the tree the swap destroys —
+            // UI Toolkit is still walking the propagation path through it.
+            // Clearing the panel mid-dispatch is how the tap came to fire, log
+            // itself, throw nothing, and leave the map exactly where it was.
+            root.schedule.Execute(() => SwapInBoard(uid, root));
+        }
 
-            if (uid.visualTreeAsset == null)
+        /// <summary>
+        /// Replace the map with the board. Runs a frame after the tap, never
+        /// during it.
+        /// </summary>
+        private void SwapInBoard(UIDocument uid, VisualElement root)
+        {
+            try
             {
-                // Nothing to rebuild the board from. Say so on the screen
-                // rather than leaving the player looking at an empty panel,
-                // which is the failure this project spent a day on already.
-                root.Add(Message("the board's layout is missing — " +
-                                 "DebugGame.uxml is not assigned to the UIDocument"));
-                return;
-            }
+                root.Clear();
 
-            uid.visualTreeAsset.CloneTree(root);
-            enabled = false;
-            if (GetComponent<DebugGameView>() == null)
-                gameObject.AddComponent<DebugGameView>();
+                if (uid.visualTreeAsset == null)
+                {
+                    root.Add(Message("the board's layout is missing — " +
+                                     "DebugGame.uxml is not assigned to the UIDocument"));
+                    return;
+                }
+
+                uid.visualTreeAsset.CloneTree(root);
+                enabled = false;
+                if (GetComponent<DebugGameView>() == null)
+                    gameObject.AddComponent<DebugGameView>();
+            }
+            catch (System.Exception e)
+            {
+                // The event dispatcher swallows what a callback throws. This
+                // one does not get to be silent.
+                Tapped($"swap failed — {e.GetType().Name}: {e.Message}");
+                root.Clear();
+                root.Add(Message($"could not open the room: {e.Message}"));
+            }
         }
 
         private static void Round(VisualElement e, float radius)

@@ -295,3 +295,47 @@ the iOS simulator — posting a synthetic click needs macOS accessibility
 permission the terminal does not hold — so **iOS is verified for the layout by
 screenshot and for the tap only by sharing the code path with Android.** A human
 tap on the simulator is the outstanding check.
+
+## The tap fired, logged itself, threw nothing — and the map stayed put
+
+The first version of the tap looked like it worked and did not. The owner
+reported it plainly: "1 кнопка светится - кликаю и ничего не происходит".
+
+Two separate causes, and the first one hid the second for an hour.
+
+**The wrong one I chased.** `houseBox` was `PickingMode.Ignore`, which looked
+like the obvious culprit for a child that will not answer a tap. It was not —
+Ignore excludes the element itself, not its children — but it was plausible
+enough to spend two builds on.
+
+**The one that mattered.** `StartPlaying` rebuilt the panel from inside the
+pointer callback: `root.Clear()` destroys the very element UI Toolkit is still
+walking the propagation path through. The handler ran, wrote its log line,
+threw nothing that any log recorded, and the map stayed exactly where it was.
+The swap now runs one frame later via `root.schedule.Execute`, and its body is
+wrapped so a failure lands in `tap.txt` and on the screen instead of vanishing —
+UI Toolkit swallows what an event callback throws.
+
+### What actually established this, and what did not
+
+Two of my own measurements were wrong before the real one landed, and both are
+worth recording because they are easy to repeat:
+
+- **A screenshot comparison proves nothing if the first screenshot is of a
+  screen that had not finished drawing.** "The click changed 98.8% of the
+  pixels" was the board appearing 20 seconds after launch, not the tap doing
+  anything. The simulator needs ~30 seconds before a screenshot means anything.
+- **A synthetic click needs the Simulator window to exist**, and it disappears
+  on its own — `xcrun simctl terminate`/`launch` can leave the app running with
+  no window at all. Three "the tap does nothing" results were clicks posted at
+  coordinates where no window was. `tap_ios.sh` in the session scratchpad
+  re-locates the window and re-derives the mapping on every call for this
+  reason, and still reports when the window is gone rather than clicking blind.
+
+**Evidence.** `android-tap-opens-room-1.png` — final build, `adb shell input
+tap` on the lit room, "Room 1 of 12 · pile 1 of 1". `ios-tap-opens-room-1.png` —
+same result on the iOS simulator, from the build that introduced the deferred
+swap. The final build's only difference from that one is the removal of
+temporary probes, and its tap has **not** been re-confirmed on iOS: the
+Simulator window could not be brought back from the shell afterwards. Android
+carries the final build; iOS carries the fix.

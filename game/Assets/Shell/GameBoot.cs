@@ -18,6 +18,7 @@ namespace CatShelter.Shell
             // an error nobody can read is how a black screen costs a day. See
             // DeviceLog for what that day looked like.
             DeviceLog.Attach();
+            ForceLanguageIfRequested();
 
             // Analytics sink: GameAnalytics when analytics-keys.txt exists
             // beside the save (70-analytics/01 NOTES.md has the one-minute
@@ -40,6 +41,57 @@ namespace CatShelter.Shell
             EveningReminder.Reschedule();
             Feedback.Attach(gameObject);
             StartCoroutine(EveningReminder.DebugRequestNow(this));
+        }
+
+        /// <summary>
+        /// Play in a chosen language without touching the device's own.
+        ///
+        /// Drop a `lang.txt` beside the save holding one `SystemLanguage` name —
+        /// `Japanese`, `Arabic`, `ChineseSimplified`. Anything unreadable or
+        /// unknown is ignored and the device decides, as always.
+        ///
+        /// This exists because of what checking seventeen languages costs
+        /// otherwise. The only other way in is the device's own language, and
+        /// changing that on an Android emulator means `setprop` plus a shell
+        /// restart plus waiting for it to come back — about a minute and a half
+        /// each, before a single screenshot. Seventeen languages across four
+        /// screens on two platforms is not a thing anyone does at that price,
+        /// which means it does not get done, which is how a game ships with its
+        /// German button text running off the edge.
+        ///
+        /// A checking tool, on the same convention as `capture.txt`, `coat.txt`
+        /// and `glyphs.txt`: no player has a way to create this file, and if one
+        /// somehow did, the worst case is the game speaking a language they
+        /// asked for.
+        /// </summary>
+        private static void ForceLanguageIfRequested()
+        {
+            try
+            {
+                var path = System.IO.Path.Combine(Application.persistentDataPath, "lang.txt");
+                if (!System.IO.File.Exists(path)) return;
+
+                var wanted = System.IO.File.ReadAllText(path).Trim();
+                if (wanted.Length == 0) return;
+
+                if (!System.Enum.TryParse<SystemLanguage>(wanted, ignoreCase: true,
+                        out var language))
+                {
+                    Debug.LogWarning($"[GameBoot] lang.txt says '{wanted}', which is " +
+                                     "not a SystemLanguage — using the device's own");
+                    return;
+                }
+
+                // Through `For`, not by naming a table: a language with no table
+                // gets English here exactly as it would on a real device, so the
+                // fallback is exercised rather than bypassed.
+                Copy.Current = Copy.For(language);
+                Debug.Log($"[GameBoot] lang.txt: {language}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[GameBoot] could not read lang.txt: {e.Message}");
+            }
         }
 
         /// <summary>
@@ -337,6 +389,7 @@ namespace CatShelter.Shell
             }
             FontFallbacks.Attach(uid.rootVisualElement);
             ApplyTextDirection(uid);
+            LayoutAudit.Attach(uid.rootVisualElement);
             // The capture screen replaces the board when asked for. It is not
             // yet the game's first screen — that arrives with 10-skip-default-cat,
             // which decides what happens with no photo at all. Until then it is

@@ -1,0 +1,6 @@
+# Rendered cats. Cheap to regenerate — one second per set — and there is no
+# version of them worth keeping, because the only question ever asked of them
+# is "what does the code look like RIGHT NOW". A committed picture of a cat
+# from last week is the same trap as the coat cache that served stale cats on
+# the device for two days.
+out/

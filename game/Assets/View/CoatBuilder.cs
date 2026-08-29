@@ -44,12 +44,31 @@ namespace CatShelter.View
         private const float Midtone = 0.459f;
 
         /// <summary>
-        /// How far light and shadow move away from that colour. At 1.6 the
-        /// deepest shadow on the drawing (v = 0.02) lands at 0.30 of the coat
-        /// colour and the brightest highlight (v = 1.0) at 1.89, clipped — the
-        /// same range the drawing has, carried onto whatever colour the cat is.
+        /// How far light and shadow move away from that colour.
+        ///
+        /// Was 1.6, chosen to carry the drawing's own range onto whatever colour
+        /// the cat is: the deepest shadow (v = 0.02) landing at 0.30 of the coat
+        /// colour and the brightest highlight (v = 1.0) at 1.89. The right
+        /// instinct and the wrong number, for a reason the drawing itself
+        /// supplies. These are renders of silver tabbies with photographic
+        /// contrast, and dividing by the mid-tone multiplies whatever range it
+        /// is handed by about three — so it was not carrying the drawing's range
+        /// across, it was trebling it. What clipped at the top was the
+        /// countershading; what crushed at the bottom was the stripes.
+        ///
+        /// Lowered to 1.35 on 2026-08-29 against build/coat-harness. It is the
+        /// point where a solid cat stops showing bands and a tabby is still
+        /// plainly a tabby: measured on the lying cat at 256, the tabby's
+        /// high-frequency spread falls only from 0.210 to 0.186 while the share
+        /// of her clipped to pure white falls from 19% to 5% and her crushed
+        /// area from 7.4% to 3.5%. Below about 1.2 the tabby goes flat too,
+        /// which trades one wrong cat for another.
+        ///
+        /// <see cref="Fit"/> is the other half of this and was added at the same
+        /// time: the range that remains is now rolled off at both ends instead
+        /// of being cut off.
         /// </summary>
-        private const float Contrast = 1.6f;
+        private const float Contrast = 1.35f;
 
         /// <summary>Coat colours, from the six base_color values. Multiplied
         /// into the greyscale base, so its light and shadow survive.</summary>
@@ -102,6 +121,34 @@ namespace CatShelter.View
         /// is a fallback nobody fixes, and one repeated every frame is noise
         /// nobody reads.</summary>
         private static readonly HashSet<string> _warned = new();
+
+        /// <summary>
+        /// A window into the middle of <see cref="Deband"/>: called with each
+        /// intermediate greyscale field by name, when anything is listening.
+        /// Null in the game, so it costs a null check per stage and nothing else.
+        ///
+        /// This exists because the striped "solid" cat could not be diagnosed
+        /// from the outside. Deband reported `lifted 201104px, value scaled back
+        /// x0.83` on the device while the stripes stayed plainly visible, and
+        /// that one line is compatible with half a dozen different failures —
+        /// the closing not reaching across a stripe, the relief gate putting the
+        /// line back, the protection box covering the flank, the lift being
+        /// undone by the rescale. Telling them apart means looking at the fields
+        /// themselves, and there was no way to look at them.
+        ///
+        /// build/coat-harness writes each one out as a picture.
+        /// </summary>
+        public static Action<string, float[], int, int> Stages;
+
+        /// <summary>
+        /// How the last <see cref="Deband"/> divided the body up. Reported
+        /// beside the pixel count because that count on its own is what hid this
+        /// pass's failure for two days: `lifted 201104px` reads like work being
+        /// done, and it was true while the output was identical to the input.
+        /// What tells the difference is how much of her was never a candidate —
+        /// a fifth of the cat, as it turned out, including her whole forehead.
+        /// </summary>
+        private static int _protectedPx, _unmovedPx;
 
         /// <summary>
         /// The silhouette for these traits: <c>cat_&lt;state&gt;_&lt;fur&gt;_base</c>.
@@ -361,7 +408,12 @@ namespace CatShelter.View
         ///
         /// One number, and the old files are simply never named again.
         /// </summary>
-        private const int CoatVersion = 2;
+        /// <summary>
+        /// 4 since 2026-08-29: the eye guard changes what every non-tabby cat
+        /// looks like, and anyone who ran the intervening build has a cat with
+        /// her eyes rubbed out sitting in the cache under version 3.
+        /// </summary>
+        private const int CoatVersion = 4;
 
         private static string CachePath(string key)
         {
@@ -914,9 +966,7 @@ namespace CatShelter.View
                 {
                     float lit = 0.25f + v * 1.9f;
                     px[i] = new Color32(
-                        (byte)Mathf.Clamp(eye.r * 255f * lit, 0, 255),
-                        (byte)Mathf.Clamp(eye.g * 255f * lit, 0, 255),
-                        (byte)Mathf.Clamp(eye.b * 255f * lit, 0, 255),
+                        Fit(eye.r * lit), Fit(eye.g * lit), Fit(eye.b * lit),
                         px[i].a);
                     continue;
                 }
@@ -946,12 +996,64 @@ namespace CatShelter.View
                 shade = Mathf.Lerp(shade, 0.62f + v * 0.48f, white);
 
                 px[i] = new Color32(
-                    (byte)Mathf.Clamp(target.r * 255f * shade, 0, 255),
-                    (byte)Mathf.Clamp(target.g * 255f * shade, 0, 255),
-                    (byte)Mathf.Clamp(target.b * 255f * shade, 0, 255),
+                    Fit(target.r * shade),
+                    Fit(target.g * shade),
+                    Fit(target.b * shade),
                     px[i].a);
             }
             return px;
+        }
+
+        /// <summary>
+        /// One channel of the tinted coat, in 0..1, brought into a byte without
+        /// throwing away what is at the ends.
+        ///
+        /// This used to be a plain clamp, and the clamp is the reason a white cat
+        /// and a black cat both came out as featureless shapes.
+        ///
+        /// Work it through for white. The palette entry is 0.96, the mid-tone the
+        /// shading is centred on is 0.459, and the contrast is 1.6 — so a pixel
+        /// clips as soon as `shade` passes 1/0.96, which is a lightness of 0.471,
+        /// four thousandths above the mid-tone. Half a white cat is above her own
+        /// mid-tone by construction. Measured on the lying cat: 39% of her body at
+        /// exactly 255,255,255, all of it joined up across the chest and the front
+        /// legs, which is the "blot" in the owner's report seen from the other
+        /// side — not a mark, a region where the picture ran out of numbers.
+        /// Black has the same failure mirrored, at the bottom, where the deepest
+        /// shadow lands below zero and a quarter of the modelling under her chin
+        /// and between her legs becomes one flat black.
+        ///
+        /// A clamp is a cliff. What is wanted at both ends is a ramp: keep the
+        /// middle of the range exactly as computed, because that is where almost
+        /// every pixel is and it is where the palette was measured, and bend the
+        /// last fifth so that it approaches the limit without ever reaching it.
+        /// An exponential does that with no parameter to tune beyond where it
+        /// starts, it is smooth at the join, and it is monotonic — a lighter pixel
+        /// stays lighter than a darker one, which is the whole of what "keeps its
+        /// modelling" means.
+        ///
+        /// The cost is that a coat can no longer reach pure white or pure black.
+        /// Neither should: these are drawings of animals in a warm room, and the
+        /// props they sit beside have no pure black or pure white in them either.
+        /// </summary>
+        private static byte Fit(float v)
+        {
+            const float Knee = 0.80f;   // the top fifth is bent
+            const float Toe = 0.06f;    // and the bottom sixteenth
+
+            if (v > Knee)
+            {
+                float over = (v - Knee) / (1f - Knee);
+                v = Knee + (1f - Knee) * (1f - Mathf.Exp(-over));
+            }
+            else if (v < Toe)
+            {
+                // Mirror of the shoulder. Zero still maps to zero, so a fully
+                // transparent or fully unlit pixel is unchanged.
+                v = v <= 0f ? 0f : Toe * (1f - Mathf.Exp(-v / Toe));
+            }
+
+            return (byte)Mathf.Clamp(v * 255f, 0f, 255f);
         }
 
         private static readonly Color White = new(0.97f, 0.96f, 0.93f);
@@ -1059,15 +1161,86 @@ namespace CatShelter.View
         private const float ContourWindow = 0.005f;
 
         /// <summary>
-        /// How much relief in the debanded form counts as flat fur, and how
-        /// much counts as one part of the cat passing in front of another.
-        /// Below the floor nothing is put back and the bands go completely;
-        /// above ReliefFull the drawing's line is kept whole. Taken from the
-        /// measured spread quoted in <see cref="Deband"/>: striped flank sits
-        /// at 0.003–0.006, the tail's contour at 0.041.
+        /// How much of the drawing's own fine lines is put back after the bands
+        /// have been lifted off. One number for the whole cat, deliberately.
+        ///
+        /// This replaced a per-pixel gate on 2026-08-29, and the reason is worth
+        /// keeping, because the gate was a good idea that this artwork defeats.
+        ///
+        /// It measured the local relief of the form under each line, on the
+        /// argument that a contour is where one part of the cat passes in front
+        /// of another — so the form changes across it — while a stripe is paint
+        /// on fur whose form does not change. The argument is sound. What is not
+        /// available is a measurement of it. Taken from the closing it is a
+        /// feedback loop: a closing leaves a plateau where it filled a band, the
+        /// plateau's edges lie on the band's edges, and the gate opens widest
+        /// exactly where the stripes are — measured on the lying cat at 256,
+        /// p50 0.0165 and p90 0.0482 against a gate saturating at 0.035, which
+        /// put 68% of the median stripe straight back and 100% of the deepest
+        /// tenth. Taken from a blur instead, which was the obvious repair, it
+        /// gets worse rather than better — p50 0.0237 — because the local spread
+        /// of a blurred cat is dominated by her own modelling, the roll of the
+        /// ribs and the shading down a leg, and that is large everywhere.
+        ///
+        /// Underneath both attempts is a fact about the delivered art that no
+        /// filter gets around: on the standing cat (state 2) the flank stripes
+        /// are drawn as thin curved lines, the same width and the same depth as
+        /// the contour round her tail. The file already recorded this once —
+        /// "no window and no threshold on depth separates those" — and a second
+        /// heuristic was stacked on top instead of the conclusion being taken.
+        /// The conclusion is that they cannot be told apart locally, and a pass
+        /// that pretends otherwise will always be putting back some stripes and
+        /// erasing some contours; the only choice is which way it errs.
+        ///
+        /// For a cat the player is meant to recognise as HERS, it must err
+        /// towards flat. A solid cat with a faint toe line lost is a cat; a
+        /// solid cat with tabby stripes is somebody else's cat, which is the
+        /// complaint that started this.
+        ///
+        /// Swept on the harness against the same cat rendered as a tabby, which
+        /// is the only scale that means anything here — the tabby is what the
+        /// drawing looks like untouched. On the lying cat at 256 the finished
+        /// picture's high-frequency spread runs 0.041 at 0, 0.049 at 0.15 and
+        /// 0.057 at 0.35, against the tabby's 0.186. 0.15 sits where the drawn
+        /// lines are still there to be seen up close — the split between the
+        /// toes, the line under the chin, the edge where the tail crosses the
+        /// flank — and where nothing on her flank reads as a band at the size
+        /// she is actually drawn. Above that the flank starts to stripe again
+        /// for no gain in the face, which has its own protection and does not
+        /// depend on this number.
         /// </summary>
-        private const float ReliefFloor = 0.015f;
-        private const float ReliefFull = 0.035f;
+        private const float LineKeep = 0.15f;
+
+        /// <summary>
+        /// How much of the drawing's broad modelling a non-tabby cat keeps.
+        ///
+        /// This is the second complaint, and unlike the stripes it is not a bug
+        /// in a filter — it is a property of the artwork that no filter can be
+        /// asked to fix. All three delivered silhouettes are pictures of silver
+        /// tabbies, and a silver tabby is drawn with a chest, belly and paws far
+        /// lighter than her back. That gradient is broader than any window, so
+        /// neither a closing nor an opening touches it; it is the form.
+        ///
+        /// Measured on the lying cat at 256: after every band has been removed
+        /// in both directions the form still spans 0.51 to 0.88, and Tint then
+        /// multiplies whatever range it is given by about three. A white cat
+        /// came out with 39% of her body at pure white, in one connected patch
+        /// over the chest and the front legs. That is what the owner saw and
+        /// described, of his brown-and-cream cat, as a patch covering half the
+        /// animal.
+        ///
+        /// 0.45 keeps enough that the light still falls where it was drawn — the
+        /// back lighter than the flank, shadow under the chin and between the
+        /// legs — and not so much that a solid cat is born wearing a bib. It
+        /// applies only where Deband runs, so a tabby, whose countershading is
+        /// correct for her, keeps all of it.
+        ///
+        /// This is a repair and not a cure, and it should be said plainly: the
+        /// cure is a silhouette drawn without stripes and with a neutral value,
+        /// which would make both this constant and the whole debanding pass
+        /// unnecessary.
+        /// </summary>
+        private const float FormKeep = 0.45f;
 
         /// <summary>
         /// Takes the drawn tabby markings off, and leaves everything else.
@@ -1081,8 +1254,28 @@ namespace CatShelter.View
         /// erases the bands and touches nothing else, because only the bands are
         /// darker than their own neighbourhood.
         ///
-        /// Highlights are left alone: only darker-than-neighbourhood pixels move.
-        /// A cat that had her highlights flattened too would come out plastic.
+        /// Highlights used to be left alone, on the argument that a cat whose
+        /// highlights were flattened too would come out plastic. That was
+        /// wrong, and it is half of the second complaint the owner made.
+        ///
+        /// The delivered silhouettes are not neutral drawings with stripes added
+        /// on top; they are pictures of TABBIES, and a tabby's countershading is
+        /// drawn into them at photographic strength — a chest, belly and paws
+        /// far lighter than the back, over a third of the animal. That is a
+        /// highlight by this pass's old definition, so it was preserved intact,
+        /// and on a solid cat it reads as a pale blot rather than as modelling.
+        /// The owner's words for it, on his own cat, were that it was not
+        /// stripes but a patch taking up half the animal.
+        ///
+        /// So the lift now runs BOTH ways: a pixel is moved to the form whether
+        /// it sits below it or above it. A bright band a stripe's width across
+        /// is no more part of a solid cat than a dark one is.
+        ///
+        /// What that alone does not fix is the part of the countershading that
+        /// is broader than any window — the whole underside being lighter than
+        /// the whole back. That is not texture, it is the form itself, and
+        /// removing it would flatten the cat into a paper cut-out. It is
+        /// compressed instead; see <see cref="FormKeep"/>.
         ///
         /// Two things are protected, and they are protected because they are
         /// also dark and also small — the same description as a stripe. The eyes
@@ -1116,11 +1309,50 @@ namespace CatShelter.View
             // from a drawing is exactly what the operator is for.
             var closed = MinFilter(MaxFilter(light, body, w, h, radius),
                                    body, w, h, radius);
+            // The closing removes what is DARKER than its window. An OPENING —
+            // local minimum then local maximum — removes what is lighter, and a
+            // solid cat needs both.
+            //
+            // Added 2026-08-29. Without it the drawn countershading survives
+            // whole: the chest, belly and front paws of every one of these
+            // silhouettes are drawn far lighter than the back, because they are
+            // drawings of tabbies, and every solid cat inherited a pale bib she
+            // had no trait for. Running the opening after the closing means the
+            // pass no longer has an opinion about which direction a band goes in,
+            // only about how wide it is, which is the only thing it can actually
+            // measure.
+            var opened = MaxFilter(MinFilter(closed, body, w, h, radius),
+                                   body, w, h, radius);
             // One gentle blur afterwards, over a third of the radius: closing
             // leaves small flat plateaus where the bands were, and the fur
             // around them is not flat.
-            var smooth = BoxBlur(BoxBlur(closed, body, w, h, Mathf.Max(1, radius / 3), horizontal: true),
+            var smooth = BoxBlur(BoxBlur(opened, body, w, h, Mathf.Max(1, radius / 3), horizontal: true),
                                  body, w, h, Mathf.Max(1, radius / 3), horizontal: false);
+
+            // And now flatten what is left of the drawing's own modelling.
+            //
+            // `smooth` at this point is the form with every band gone in either
+            // direction, and it still spans 0.51 to 0.88 on the lying cat: her
+            // underside is drawn two-thirds again as light as her back. That is
+            // the countershading of a silver tabby, and Tint below then stretches
+            // whatever range it is handed by another factor of three. A white cat
+            // came out with 39% of her body clipped to pure white, all of it in
+            // one connected patch across the chest and front legs — the blot.
+            //
+            // Some modelling has to survive or she is a paper cut-out, so the
+            // spread is scaled towards the body's own mean rather than removed.
+            // Everything above and below moves in, the mean does not move, and
+            // the light still falls the way the artist drew it — less far.
+            float formMean = 0f; int formCount = 0;
+            for (int i = 0; i < px.Length; i++)
+                if (body[i]) { formMean += smooth[i]; formCount++; }
+            if (formCount > 0)
+            {
+                formMean /= formCount;
+                for (int i = 0; i < px.Length; i++)
+                    if (body[i])
+                        smooth[i] = formMean + (smooth[i] - formMean) * FormKeep;
+            }
 
             // The same operator again, over a window the width of a LINE.
             //
@@ -1141,37 +1373,37 @@ namespace CatShelter.View
             var fine = MinFilter(MaxFilter(light, body, w, h, fineRadius),
                                  body, w, h, fineRadius);
 
-            // And put it back only where the FORM is turning.
+            // And put back a fixed share of it — see <see cref="LineKeep"/> for
+            // the two measured attempts at deciding this per pixel and why
+            // neither can work on the delivered art.
             //
-            // Restoring every fine line everywhere does not work, and why is
-            // worth keeping. On the standing cat (state 2) the drawn stripes are
-            // as narrow and as deep as the tail's contour is on the sitting one:
-            // measured on the silhouettes themselves, the fine closing fills the
-            // state-2 flank stripes to 0.178 at the 90th percentile against
-            // 0.097 at the tail contour's median. No window and no threshold on
-            // depth separates those, and the attempt that ignored this gave the
-            // standing cat her stripes back — removal on her flank fell from
-            // 61% to 21%.
-            //
-            // What does separate them is what lies UNDER the line. A contour is
-            // where one part of the animal passes in front of another, so the
-            // debanded form itself changes across it; a stripe is painted on fur
-            // whose form does not change at all. Over the same regions the local
-            // spread of `smooth` is 0.041 at the tail's contour against 0.006 on
-            // the sitting cat's striped flank and 0.003 on the standing cat's.
-            //
-            // So the line goes back in proportion to the relief beneath it.
-            int reliefRadius = Mathf.Max(2, radius / 2);
-            var mean = BoxBlur(BoxBlur(smooth, body, w, h, reliefRadius, horizontal: true),
-                               body, w, h, reliefRadius, horizontal: false);
-            var sq = new float[px.Length];
-            for (int i = 0; i < px.Length; i++) if (body[i]) sq[i] = smooth[i] * smooth[i];
-            var meanSq = BoxBlur(BoxBlur(sq, body, w, h, reliefRadius, horizontal: true),
-                                 body, w, h, reliefRadius, horizontal: false);
-            var relief = new float[px.Length];
-            for (int i = 0; i < px.Length; i++)
-                if (body[i])
-                    relief[i] = Mathf.Sqrt(Mathf.Max(0f, meanSq[i] - mean[i] * mean[i]));
+            // The subtraction itself is the honest half of this pass and it is
+            // worth stating plainly, because it is the part that does the work.
+            // Write `deep = smooth - light` for how far a pixel sits below the
+            // form, and `narrow = fine - light` for how far it sits below its
+            // own neighbourhood at a line's width. Then `deep - narrow` is
+            // exactly the BAND component: what is dark over a stripe's width but
+            // not over a line's. Lifting by that and leaving `narrow` alone is
+            // the decomposition, and `smooth - (fine - light)` is it written out.
+            // In the core of a stripe `narrow` is near zero and the whole band
+            // goes; on a drawn line `narrow` is the line's own depth and all of
+            // it would stay, which is where LineKeep chooses to keep only some.
+
+            if (Stages != null)
+            {
+                Stages("light", light, w, h);
+                Stages("closed", closed, w, h);
+                Stages("smooth", smooth, w, h);
+                Stages("fine", fine, w, h);
+                var em = MaskOf(masks, baseName, CoatMasks.Eyes);
+                if (em != null) Stages("eyesmask", em, w, h);
+                // Both, and separately. `eyesmask` is empty on all three shipped
+                // poses and `eyeguard` is not, and a picture of the two side by
+                // side is the shortest way to see that — which is the diagnosis
+                // that took two days and a rubbed-out face to arrive at.
+                var eg = MaskOf(masks, baseName, CoatMasks.EyeGuard);
+                if (eg != null) Stages("eyeguard", eg, w, h);
+            }
 
             // What to protect: her face.
             //
@@ -1183,13 +1415,32 @@ namespace CatShelter.View
             // face at all — measured, it is the stripes, which are as dark as an
             // eye and cover far more of her.
             //
-            // The eyes' own bounding box has none of those failures, and since
-            // the detector now finds them at 256 as well as 512
-            // (CoatMasks.FindEyes), it is available wherever this runs. The band
-            // stays underneath as a fallback: a cat whose eyes are shut is one
-            // of the three shipped poses, and a face is not something to lose to
-            // a heuristic that missed.
-            var eyes = MaskOf(masks, baseName, CoatMasks.Eyes);
+            // The eyes' own bounding box has none of those failures — but it has
+            // to come from a detector that actually fires, and until 2026-08-29
+            // this read CoatMasks.Eyes, which never has.
+            //
+            // That claim was checked rather than assumed, after the sitting cat
+            // came back from this pass with her eyes rubbed out. Across all three
+            // shipped poses, at 256 and at 512, `CoatMasks.Eyes` is EMPTY: its
+            // size floor rejects five of the six eye blobs on this artwork, and
+            // on the sitting cat its pairing rule rejects the sixth as well
+            // because her head is turned down and her eyes are not level. So
+            // every pose has always fallen through to the muzzle band below, and
+            // the eye-anchored box was code that had never once executed.
+            //
+            // The band is placed at a fixed fraction of the figure's height, and
+            // that is the whole of why the poses differ: measured over the eye
+            // pixels of each, the protection it grants is 1.00 on the standing
+            // cat, 0.58 on the sitting one and 0.33 on the lying one. State 2 is
+            // fine by luck. State 1 keeps only the far eye's lid, which happens
+            // to fall inside the band, and loses the near eye entirely.
+            //
+            // CoatMasks.EyeGuard is the same search with its two acceptance rules
+            // relaxed to what this job actually needs; see the note there. The
+            // band stays underneath as a fallback, because a cat whose eyes are
+            // shut is a pose this art could still deliver, and a face is not
+            // something to lose to a heuristic that missed.
+            var eyes = MaskOf(masks, baseName, CoatMasks.EyeGuard);
             int fx0 = int.MaxValue, fx1 = int.MinValue, fy0 = int.MaxValue, fy1 = int.MinValue;
             if (eyes != null)
                 for (int i = 0; i < eyes.Length; i++)
@@ -1202,9 +1453,42 @@ namespace CatShelter.View
 
             bool haveFace = fx1 > fx0;
             float span = haveFace ? fx1 - fx0 : 0f;
-            // Half an eye-span out to the sides and up, a whole one down for the
-            // muzzle. Rows run bottom-up, so down the face is decreasing y.
-            float padX = span * 0.45f, padUp = span * 0.45f, padDown = span * 1.05f;
+            // A third of an eye-span out to the sides and up, three-quarters of
+            // one down for the muzzle. Rows run bottom-up, so down the face is
+            // decreasing y.
+            //
+            // Was 0.45/0.45/1.05 until 2026-08-29, and that box, together with
+            // the much larger fallback below it, protected 3109 of the lying
+            // cat's 15005 body pixels — a fifth of her, at full drawn contrast,
+            // including her whole forehead and the M drawn on it. Whatever the
+            // rest of this pass achieved, a fifth of the animal was never
+            // debanded at all, and it was the fifth a player looks at.
+            //
+            // The box can be this much smaller now because it is no longer
+            // carrying the whole job. It was sized when the only alternative to
+            // protection was total flattening; LineKeep now returns a share of
+            // every fine dark line everywhere on the cat, so the nose, the mouth
+            // line and the split of the lip survive on their own merits, as
+            // narrow marks, wherever they happen to be. What the box still does
+            // is hold the immediate area of the eyes and muzzle at full strength,
+            // because that is the one place where losing a line costs the cat her
+            // expression rather than a little texture.
+            // Asymmetric, and deliberately mean UPWARD.
+            //
+            // Below the eyes is the muzzle — nose, mouth line, the split of the
+            // lip — which is what a player reads as the cat's expression and
+            // what no narrow-line rule recovers. Above the eyes is the forehead,
+            // and on these silhouettes the forehead carries the tabby M, the
+            // single most legible tabby marking there is. The box wants to reach
+            // generously into the first and barely into the second.
+            //
+            // Measured on the harness when the eye guard first started firing:
+            // at the old 0.25 up with a 0.7-span feather the protection reached
+            // 0.95 of an eye-span above the eyes, which on the sitting cat is her
+            // entire forehead, and a solid cream cat's high-frequency spread went
+            // from 0.043 to 0.086 against a tabby's 0.166 — half the stripes
+            // back, bought for nothing, since the eyes are below that reach.
+            float padX = span * 0.24f, padUp = span * 0.22f, padDown = span * 0.55f;
 
             int top = h, bottom = -1;
             for (int i = 0; i < px.Length; i++)
@@ -1216,9 +1500,19 @@ namespace CatShelter.View
                 }
             if (bottom < 0) return px;
 
-            // The fallback head box, for when the eyes are not found — which is
-            // the common case at the 256 the board builds at, because the drawn
-            // stripes fill the darkest percentiles the eye detector works in.
+            // The fallback head box, for when no dark feature is found on the
+            // head at all — a cat drawn with her eyes shut, which is a pose this
+            // art could still deliver.
+            //
+            // It used to be the path every cat took, and that is worth leaving
+            // written down, because it was quietly carrying the whole job while
+            // the eye-anchored code above it read as though it were. Being a
+            // band at a fixed fraction of the figure's height, it cannot follow
+            // a head: measured over the eye pixels of each shipped pose it
+            // grants 1.00 of protection to the standing cat, 0.58 to the sitting
+            // one and 0.33 to the lying one. Nothing chose those numbers; they
+            // are where the constant happened to fall on three drawings, and two
+            // of the three cats paid for it with an eye.
             //
             // A band of top rows alone is not enough: it protects the whole
             // width, so a LYING cat keeps the stripes on her back and gets a
@@ -1227,7 +1521,6 @@ namespace CatShelter.View
             // gives the head's horizontal extent, and the box is the two
             // together.
             int height = bottom - top;
-            int headFrom = bottom - Mathf.RoundToInt(height * 0.42f);
             int earsFrom = bottom - Mathf.RoundToInt(height * 0.12f);
             int hx0 = w, hx1 = -1;
             for (int y = earsFrom; y <= bottom; y++)
@@ -1237,13 +1530,46 @@ namespace CatShelter.View
                         if (x < hx0) hx0 = x;
                         if (x > hx1) hx1 = x;
                     }
-            // Half again to each side: the cheeks are wider than the ears.
-            float earPad = hx1 > hx0 ? (hx1 - hx0) * 0.5f : 0f;
+            // A quarter again to each side: the cheeks are wider than the ears.
+            // Was half again, alongside a box running down 42% of the figure,
+            // and the two together are what protected a fifth of the cat.
+            float earPad = hx1 > hx0 ? (hx1 - hx0) * 0.25f : 0f;
 
-            // Feathered over an eighth of her height. A hard edge to the
+            // The muzzle, not the head.
+            //
+            // This box used to run from the top of the figure down through 42%
+            // of her height — the whole head and the shoulders under it — on the
+            // reasoning that a face is not something to lose to a heuristic that
+            // missed. But protecting the head protects the forehead, and the
+            // forehead is where these silhouettes carry the tabby M. A solid cat
+            // kept a drawn M between her ears in every render this project has
+            // ever produced, and it is the single most legible tabby marking a
+            // cat has.
+            //
+            // What genuinely cannot be recovered from a narrow-line rule is the
+            // small dark mass of the nose and the mouth line under it, so that is
+            // what the fallback holds now: a band around a fifth of the way down
+            // from the top of the head, a ninth of her height deep. Everything
+            // above it — forehead, ears, the M — is debanded like the rest of her.
+            // A quarter of the figure's height down from the top of the head,
+            // seven hundredths deep. That is where these three poses put the
+            // nose: CoatMasks.PlaceOf independently estimates the eyes at
+            // `bottom - height * 0.18` and the muzzle a further 0.075 below, and
+            // this band is the same place arrived at from the other direction.
+            //
+            // The band was two hundredths higher and half again as deep until it
+            // was looked at on the harness, and at that size its feathered upper
+            // edge reached the forehead — so the M drawn between these kittens'
+            // ears was still half protected, on the very cat whose whole purpose
+            // is not to be a tabby. It is the most recognisable tabby marking
+            // there is and it was the last one left.
+            float muzzleCy = bottom - height * 0.25f;
+            float muzzleHalfY = height * 0.07f;
+
+            // Feathered over a twelfth of her height. A hard edge to the
             // protection reads as a seam across the shoulders — it did, and it
             // was the first thing visible on the harness.
-            float feather = Mathf.Max(1f, height * 0.12f);
+            float feather = Mathf.Max(1f, height * 0.045f);
 
             // The protection is a BOX WITH SOFT SIDES, and every side is soft.
             //
@@ -1268,7 +1594,7 @@ namespace CatShelter.View
                 boxHalfX = (fx1 + padX - (fx0 - padX)) * 0.5f;
                 boxCy = (fy0 - padDown + fy1 + padUp) * 0.5f;
                 boxHalfY = (fy1 + padUp - (fy0 - padDown)) * 0.5f;
-                margin = Mathf.Max(1f, span * 0.7f);
+                margin = Mathf.Max(1f, span * 0.25f);
             }
             else
             {
@@ -1276,15 +1602,16 @@ namespace CatShelter.View
                 float rx = hx1 > hx0 ? hx1 + earPad : w - 1;
                 boxCx = (lx + rx) * 0.5f;
                 boxHalfX = (rx - lx) * 0.5f;
-                // Upwards the head runs to the top of the figure and beyond;
-                // there is nothing above her to feather into.
-                boxCy = (headFrom + bottom + feather) * 0.5f;
-                boxHalfY = (bottom + feather - headFrom) * 0.5f;
+                boxCy = muzzleCy;
+                boxHalfY = muzzleHalfY;
                 margin = feather;
             }
 
             var dst = new Color32[px.Length];
             Array.Copy(px, dst, px.Length);
+            _protectedPx = _unmovedPx = 0;
+            var keptField = Stages != null ? new float[px.Length] : null;
+            var wantField = Stages != null ? new float[px.Length] : null;
             int lifted = 0;
             for (int i = 0; i < px.Length; i++)
             {
@@ -1296,20 +1623,54 @@ namespace CatShelter.View
                 float outY = (Mathf.Abs(py - boxCy) - boxHalfY) / margin;
                 float t = Mathf.Clamp01(Mathf.Max(outX, outY));
                 float keep = 1f - t * t * (3f - 2f * t);   // smoothstep, inverted
-                if (keep >= 0.999f) continue;
+                if (keptField != null) keptField[i] = keep;
+                if (wantField != null) wantField[i] = light[i];
+                if (keep >= 0.999f) { _protectedPx++; continue; }
 
-                // Lift to the fur around the bands, then put the line back — as
-                // much of it as the relief underneath asks for.
+                // Lift to the fur around the bands, then put back the share of
+                // the drawing's own fine lines that LineKeep asks for.
                 float here = light[i];
-                float line = Mathf.Clamp01((relief[i] - ReliefFloor)
-                                           / (ReliefFull - ReliefFloor));
-                float want = smooth[i] - line * (fine[i] - here);
-                if (want > smooth[i]) want = smooth[i];
-                if (want <= here + 0.004f) continue;
+                float want = smooth[i] - LineKeep * (fine[i] - here);
+                // No `if (want <= here) continue` any more. That single line was
+                // what let the drawn countershading through untouched: it made
+                // the pass one-directional, so a band lighter than its
+                // surroundings — which is what the chest and belly of every one
+                // of these tabby silhouettes is — was never a candidate for
+                // removal at all. See the note on this method.
+                if (Mathf.Abs(want - here) <= 0.004f) { _unmovedPx++; continue; }
                 if (keep > 0f) want = Mathf.Lerp(want, here, keep);
+                if (wantField != null) wantField[i] = want;
 
                 // Scaled, not replaced: the hue of the fur is in the ratio
                 // between the channels, and setting a lightness would grey it.
+                //
+                // The ceiling of 3.5 bounds how far the darkest 5% of the
+                // drawing can be lifted, and on these silhouettes the darkest 5%
+                // is her eyes.
+                //
+                // It was described here as "the only thing standing between a
+                // solid cat and a blank face", and that was true when it was
+                // written and is the reason it was not enough. A ceiling is a
+                // limit on the RATIO, so what it saves is a pixel that is very
+                // much darker than the fur it is being lifted towards — a black
+                // pupil — and what it does not save is an eye drawn in mid-tone.
+                // The sitting cat's near eye is a wide grey almond whose lift
+                // never reaches 3.5, so it was raised exactly onto the value of
+                // the cheek around it and vanished, leaving the thin dark line
+                // of its rim behind: the "faint wireframe where the eye was"
+                // in the owner's report. The lying cat lost one eye the same way
+                // and kept the other, which is why the pose read as fine.
+                //
+                // What actually protects an eye is knowing where it is, which is
+                // now CoatMasks.EyeGuard's job. This ceiling stays as the second
+                // line — it costs nothing and it is the thing that still holds
+                // if the guard ever misses — but it is not the defence.
+                //
+                // The price is that a mark deeper than 3.5x its target keeps
+                // some of its depth, and the tabby M between these kittens' ears
+                // is exactly that deep. A solid cat still carries a faint M. It
+                // is the last drawn marking left on her, and the cure for it is
+                // art without an M in it rather than another constant here.
                 float k = Mathf.Min(want / Mathf.Max(here, 0.02f), 3.5f);
                 dst[i] = new Color32(
                     (byte)Mathf.Clamp(px[i].r * k, 0, 255),
@@ -1352,6 +1713,17 @@ namespace CatShelter.View
                         dst[i].a);
                 }
                 Debug.Log($"[Deband] lifted {lifted}px, value scaled back x{back:F2}");
+                Debug.Log($"[Deband] body {n}px  protected {_protectedPx}  " +
+                          $"unmoved {_unmovedPx}  lifted {lifted}");
+            }
+            if (Stages != null)
+            {
+                Stages("keep", keptField, w, h);
+                Stages("want", wantField, w, h);
+                var outLight = new float[px.Length];
+                for (int i = 0; i < px.Length; i++)
+                    if (body[i]) outLight[i] = (dst[i].r + dst[i].g + dst[i].b) / 765f;
+                Stages("debanded", outLight, w, h);
             }
             return dst;
         }

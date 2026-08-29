@@ -37,6 +37,33 @@ namespace CatShelter.View
     public static class CoatMasks
     {
         public const string Eyes = "eyes";
+
+        /// <summary>
+        /// Where the face must not be flattened — as distinct from
+        /// <see cref="Eyes"/>, which is where it may be RECOLOURED.
+        ///
+        /// Two jobs were sharing one mask and they want opposite things. Tinting
+        /// an eye green demands precision: a mask that strays onto an eyelid
+        /// paints a green streak across the cat's face, so <see cref="Eyes"/> is
+        /// deliberately strict and stays empty rather than guess. Protecting an
+        /// eye from the debander demands the opposite: over-reaching costs a
+        /// little texture on a cheek, which nobody will ever notice, while
+        /// under-reaching costs the cat her eyes, which is the one thing every
+        /// player looks at first.
+        ///
+        /// Holding both to the strict standard is what produced the regression
+        /// this exists to close. On 2026-08-29 the eye-anchored protection in
+        /// CoatBuilder.Deband was written on the belief that the detector had
+        /// been fixed to fire at 256; it had not. Measured afterwards, across
+        /// every one of the three shipped poses and at both 256 and 512,
+        /// <see cref="FindEyes"/> returns an EMPTY mask — it has never once
+        /// fired on the delivered art. So the eye protection was dead code, and
+        /// every pose fell through to a fallback band placed at a fixed fraction
+        /// of the figure's height. That band happens to land on the eyes of the
+        /// standing cat and above the eyes of the sitting one, which is the
+        /// whole of why state 1 lost her eyes and state 2 did not.
+        /// </summary>
+        public const string EyeGuard = "eye_guard";
         public const string MarkChest = "mark_chest";
         public const string MarkPaws = "mark_paws";
         public const string MarkFace = "mark_face";
@@ -74,6 +101,7 @@ namespace CatShelter.View
 
             var eyes = FindEyes(body, lum, w, h, top, bottom);
             masks[Eyes] = eyes;
+            masks[EyeGuard] = FindEyeGuard(body, lum, w, h, top, bottom);
 
             FindEyeCentre(eyes, w, out float eyeY, out float eyeX, out bool haveEyes);
             // Head box: the upper 42% of the figure.
@@ -400,6 +428,69 @@ namespace CatShelter.View
             if (bestA == null) return result;
             foreach (var i in bestA) result[i] = 1f;
             foreach (var i in bestB) result[i] = 1f;
+            return result;
+        }
+
+        /// <summary>
+        /// The dark features on the head that the debander must leave alone.
+        ///
+        /// The same search as <see cref="FindEyes"/> with both of its acceptance
+        /// rules relaxed, because it is answering an easier question. FindEyes
+        /// must be sure enough to hand Tint a set of pixels to paint green; this
+        /// only has to be right about roughly where the face is.
+        ///
+        /// Both rules had to go, and the measurements are worth keeping because
+        /// they say what the shipped art actually looks like. Taken at 256, the
+        /// eye blobs are 48px and 36px on the sitting cat, 80px and 65px on the
+        /// standing one and 37px and 36px on the lying one, while the largest
+        /// thing that is not an eye is 10px. FindEyes' size floor is 0.0011 of
+        /// the picture — 72px at 256 — so it rejected FIVE of those six blobs,
+        /// and at 512 it rejects five of six again. That one constant is why the
+        /// detector has never fired on this artwork at any size.
+        ///
+        /// The pairing rule fails separately and only on the sitting cat. Her
+        /// head is tucked down and turned away, so the near eye is a wide almond
+        /// and the far one a narrow slit thirteen rows higher — 6.6% of her
+        /// height apart, against a tolerance of 6%. A rule about anatomy that
+        /// assumes both eyes are at the same height assumes the cat is facing
+        /// the camera, and one of the three shipped poses is not.
+        ///
+        /// 0.0004 of the picture is 26px at 256 and 105px at 512: below every
+        /// eye at both sizes and comfortably above the speckle. Grouping by the
+        /// largest blob's own row, rather than testing a pair for symmetry,
+        /// drops an ear or a nose far above or below without demanding that the
+        /// two eyes be level.
+        /// </summary>
+        private static float[] FindEyeGuard(bool[] body, float[] lum, int w, int h,
+                                            int top, int bottom)
+        {
+            var result = new float[body.Length];
+            int height = bottom - top;
+            if (height <= 0) return result;
+
+            var values = new List<float>();
+            for (int i = 0; i < body.Length; i++) if (body[i]) values.Add(lum[i]);
+            if (values.Count == 0) return result;
+            values.Sort();
+            float threshold = values[Mathf.Clamp((int)(values.Count * 0.06f), 0, values.Count - 1)];
+
+            int bandBottom = bottom - Mathf.RoundToInt(height * 0.45f);
+            var dark = new bool[body.Length];
+            for (int i = 0; i < body.Length; i++)
+                dark[i] = body[i] && lum[i] < threshold && i / w > bandBottom;
+
+            var found = Blobs(dark, w, h, Mathf.Max(8, Mathf.RoundToInt(w * h * 0.0004f)));
+            if (found.Count == 0) return result;
+
+            // The largest dark thing on the head, and everything level with it.
+            int biggest = 0;
+            for (int i = 1; i < found.Count; i++)
+                if (found[i].Count > found[biggest].Count) biggest = i;
+            float row = MeanRow(found[biggest], w);
+
+            foreach (var blob in found)
+                if (Mathf.Abs(MeanRow(blob, w) - row) <= height * 0.12f)
+                    foreach (var i in blob) result[i] = 1f;
             return result;
         }
 

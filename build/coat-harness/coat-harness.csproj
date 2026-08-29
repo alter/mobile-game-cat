@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Renders a coat to a PNG without Unity, without a device and without a
+       15-minute Android build.
+
+       This exists because the coat pass could only ever be looked at on a
+       phone. Every change to CoatBuilder cost a rebuild, an install, a
+       photograph and a screenshot, and the loop was slow enough that the
+       stripes survived on a "solid" cat for two days with nobody able to see
+       whether a given constant helped or hurt. The three cats the owner fed
+       into the game on 2026-08-29 all came back unrecognisable, and that was
+       the moment the loop had to be shortened.
+
+       CoatBuilder.cs and CoatMasks.cs are compiled here from Assets/ directly —
+       the same sources Unity compiles, never a copy — against the small
+       UnityEngine shim in Shim/. The shim is honest about what it does not
+       implement: the RenderTexture blit path throws rather than pretending, so
+       a source that takes it fails here loudly instead of silently rendering
+       something the device would not.  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>9</LangVersion>
+    <RollForward>Major</RollForward>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>coat-harness</AssemblyName>
+    <RootNamespace>CatShelter.Harness</RootNamespace>
+    <!-- The game sources carry XML docs that reference Unity types the shim
+         does not declare; missing-doc and cref warnings are noise here. -->
+    <NoWarn>$(NoWarn);CS1591;CS1574;CS0414;CS0169;CS8321</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../game/Assets/Core/CatTraits.cs" />
+    <Compile Include="../../game/Assets/Core/CatSpot.cs" />
+    <Compile Include="../../game/Assets/View/CoatBuilder.cs" />
+    <Compile Include="../../game/Assets/View/CoatMasks.cs" />
+  </ItemGroup>
+</Project>

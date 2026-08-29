@@ -91,10 +91,41 @@ namespace CatShelter.Shell
             _written = 0;
         }
 
+        /// <summary>
+        /// Every log line this game writes is tagged `[Something]` — `[Board]`,
+        /// `[CaptureScreen]`, `[GameBoot]`, `[Fonts]`. Unity's own warnings are
+        /// not. That one convention is what lets this file take our warnings
+        /// without drowning in the engine's.
+        /// </summary>
+        private static bool Ours(string message) =>
+            message != null && message.Length > 1 && message[0] == '[';
+
         private static void OnLog(string message, string stackTrace, LogType type)
         {
-            if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert)
-                return;
+            // Errors, exceptions and assertions always. Warnings only when they
+            // are ours.
+            //
+            // Warnings were dropped entirely until 2026-08-29, and a full
+            // playthrough showed what that cost: on iOS the capture screen
+            // failed with `Could not create inference context` — the single
+            // largest failure on that screen, the one that stops a photograph
+            // becoming a cat — and `errors.txt` stayed EMPTY through it, because
+            // the site logs it as a warning (`CaptureScreen.cs:193`). A file
+            // whose whole job is to explain a run with no console attached, silent
+            // through exactly the failure it exists for.
+            //
+            // Raising that one call site to an error would have been the wrong
+            // fix: a photograph that cannot be read is not a fault in the app,
+            // and lying about severity to get into a file is how severity stops
+            // meaning anything. Widening the file is the honest change — but
+            // only to OUR warnings. Unity's are not diagnostics about this game:
+            // the same playthrough produced a screenful of JNI signature
+            // warnings from one share, and they would have filled the fifty
+            // lines this file keeps.
+            var keep = type == LogType.Error || type == LogType.Exception
+                       || type == LogType.Assert
+                       || (type == LogType.Warning && Ours(message));
+            if (!keep) return;
             if (_path == null || _written >= MaxEntries) return;
 
             _written++;

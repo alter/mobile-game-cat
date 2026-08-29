@@ -563,12 +563,25 @@ namespace CatShelter.View
                 var roomNo = _level != null
                     ? RoomPlan.RoomNumber(_level.RoomId).ToString("00", CultureInfo.InvariantCulture)
                     : "01";
-                _catCard.Build(uid.rootVisualElement, _catTexture,
+                // 512, not the board's 256. The portrait in the corner is 52
+                // points; here she is nearly the whole width of the screen, and
+                // at 256 every stair-step of her outline was four pixels tall.
+                // For the default cat this is a baked file and costs nothing;
+                // for a cat built from a photograph it is one build, cached to
+                // disk, paid on a screen most players never open.
+                var big = CoatBuilder.TryBuildFor(CatStateTraits, _progress?.CatState ?? 1, 512);
+                _catCard.Build(uid.rootVisualElement, big != null ? big : _catTexture,
                                SpriteNamed($"Art/share_room_{roomNo}"), RenderShareCard);
                 _catCard.OnClose = () => Debug.Log("[Board] cat card closed");
                 _catCard.OnShareTapped = () => Debug.Log("[Board] share tapped");
             }
-            Debug.Log("[Board] cat card opened");
+            // Before Show, and on every open: the bowl arrives after room 4 and
+            // the blanket after room 8, and this card object outlives both
+            // boundaries. See CatCardScreen.SetRewards.
+            var state = _progress?.CatState ?? PlayerProgress.CatStateFor(0);
+            _catCard.SetRewards(state);
+
+            Debug.Log($"[Board] cat card opened, state={state}");
             _catCard.Show();
         }
 
@@ -861,6 +874,7 @@ namespace CatShelter.View
                 Debug.Log($"[Board] tap {itemId} refused " +
                           $"(over={_board.IsOver})");
                 Flinch(source);
+                Shell.Feedback.Refused();
                 return;
             }
             Debug.Log($"[Board] took {itemId}, shelf={_board.Shelf.Occupied}, " +

@@ -207,6 +207,21 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Aquí está",
                 ["meet.name_placeholder"] = "¿Cómo se llama?",
                 ["meet.confirm"] = "Es ella",
+                // "Michi" is what a Latin American calls a cat when she is
+                // being fond of it, and it is also what she writes on the
+                // name tag — the same double life "Kitty" has in English, and
+                // the reason it is the right answer rather than a literal
+                // "Gatita". It carries the feminine this table already chose
+                // with "la gatita".
+                //
+                // The es-419 / Spain split shows here and is decided the way
+                // the class note says: Spain's own generic is "misi" or
+                // "minino", but "michi" travelled out of Mexico through the
+                // internet and is read without friction in Madrid, while
+                // "minino" in Guadalajara would read as a book word. At worst
+                // slightly foreign in the smaller market, not wrong in the
+                // larger one.
+                ["cat.default_name"] = "Michi",
 
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
@@ -341,6 +356,21 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Aqui está ela",
                 ["meet.name_placeholder"] = "Qual é o nome dela?",
                 ["meet.confirm"] = "É ela",
+                // "Mimi" — it echoes the miado, it is affectionate without
+                // being baby-talk, and it sits in the top ten Brazilian names
+                // for a female cat, which is exactly the plainness "Kitty" has.
+                //
+                // Not "Frajola", the other name that only ever goes to cats in
+                // Brazil: that is Sylvester from Looney Tunes, so it is a
+                // borrowed brand and a black-and-white cat both, and this
+                // kitten's coat is copied from the player's own photograph.
+                //
+                // The same four letters as the Indonesian table below, and
+                // that is not a copy-paste: two unrelated languages arriving at
+                // the same nursery syllables for a cat is a fact about cat
+                // names, not an oversight. Checked against the alternatives in
+                // both and kept in both because it is the best answer in both.
+                ["cat.default_name"] = "Mimi",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Não tem gata nesta. Tente uma foto em que ela apareça maior.",
@@ -468,6 +498,17 @@ namespace CatShelter.Shell
                 ["meet.title"] = "La voici",
                 ["meet.name_placeholder"] = "Comment s'appelle-t-elle ?",
                 ["meet.confirm"] = "C'est elle",
+                // "Minette" — the affectionate French word for a female cat,
+                // used as her name for as long as anyone has been naming cats,
+                // and still inside the ten most common in France. Feminine, so
+                // it agrees with the "la petite chatte" this table chose over
+                // the masculine "chaton".
+                //
+                // Not "Minou", which is the same word in the masculine and is
+                // the one this table would have had to reject anyway; and not
+                // "Chatte", which is the animal and, alone in a name field,
+                // reads as the vulgar sense rather than as a name.
+                ["cat.default_name"] = "Minette",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Pas de chatte ici. Essayez une photo où elle tient plus de place.",
@@ -623,6 +664,18 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Da ist sie",
                 ["meet.name_placeholder"] = "Wie heißt sie?",
                 ["meet.confirm"] = "Das ist sie",
+                // "Minka" — the classic German cat name, plain, feminine, and
+                // one a real person writes rather than a word she uses.
+                //
+                // "Mieze" was the obvious candidate and is deliberately not
+                // taken. It is the German for "kitty" in the *generic* sense —
+                // "Miezekatze" — and this table already calls the animal "die
+                // kleine Katze"; a name that is also the common noun for the
+                // thing it names reads, in a field labelled "Wie heißt sie?",
+                // as though the player never answered. English gets away with
+                // that because "Kitty" long ago hardened into a name as well.
+                // German's has not, so the name is the one that has: Minka.
+                ["cat.default_name"] = "Minka",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Hier ist keine Katze. Versuch ein Foto, auf dem sie größer ist.",
@@ -746,6 +799,17 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Eccola qui",
                 ["meet.name_placeholder"] = "Come si chiama?",
                 ["meet.confirm"] = "È lei",
+                // "Micia" — the ordinary affectionate Italian for a female
+                // cat, and a name Italians give as readily as they use it,
+                // which is the double life "Kitty" has. Feminine, so it agrees
+                // with the "la gattina" this table runs on.
+                //
+                // Capitalised, which is the whole difference between the noun
+                // and the name; the German entry above explains why that is
+                // not enough on its own in German and is enough here — "micia"
+                // is a caress rather than the dictionary word, which is
+                // "gatta".
+                ["cat.default_name"] = "Micia",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Qui non c'è nessuna gatta. Prova una foto in cui si vede più grande.",
@@ -876,6 +940,25 @@ namespace CatShelter.Shell
                 ["meet.title"] = "İşte o",
                 ["meet.name_placeholder"] = "Adı ne?",
                 ["meet.confirm"] = "Evet, o",
+                // "Mırmır" — from the purr, the way "Мурка" is in Russian, and
+                // one of the handful of names Turkish lists as its own rather
+                // than as an import. Ordinary, warm, and no gender to get
+                // wrong, which is this table's situation throughout.
+                //
+                // **Not "Pamuk", and the reason is the coat shader, not
+                // taste.** Pamuk is cotton, and it is the most common Turkish
+                // cat name precisely because it is given to WHITE cats. This
+                // kitten's coat is copied from the player's own photograph
+                // (`capture.hint`: "Oyundaki yavru kedi onun rengini alacak"),
+                // so a default name that asserts a colour is a name that is
+                // wrong for most players the moment the shader runs. Same
+                // objection to "Tekir", which is a tabby, and to "Sarman",
+                // which is a ginger. "Mırmır" describes a sound every cat
+                // makes and no coat at all.
+                //
+                // Six characters and two dotted-less ı, which the font build
+                // already had to cover for "yığın" and "açılıyor".
+                ["cat.default_name"] = "Mırmır",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Burada kedi görünmüyor. Onun daha büyük göründüğü bir fotoğraf deneyin.",
@@ -1004,6 +1087,25 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Ini dia",
                 ["meet.name_placeholder"] = "Siapa namanya?",
                 ["meet.confirm"] = "Ya, dia",
+                // "Mimi" — at the head of every Indonesian list of ordinary
+                // cat names, short, affectionate, and no gender to get wrong.
+                // See the Portuguese entry for why the same four letters
+                // standing in two tables is a real answer twice and not a
+                // copy-paste.
+                //
+                // Not "Pus", which is the closer literal match — it is what an
+                // Indonesian actually says to call a cat, so it is "Kitty" in
+                // the generic half of its meaning. It is also used as a name,
+                // and it was still rejected: three letters that spell an
+                // English word for wound discharge, in a Latin-script field
+                // that an English-reading reviewer, store screenshot or press
+                // shot will pass through. The Indonesian player would never
+                // see that; everyone auditing the build would.
+                //
+                // Not "Oyen", the ginger cat of the last few years' Indonesian
+                // internet — it names a colour, and this coat comes from the
+                // player's photograph. Same objection as Turkish "Pamuk".
+                ["cat.default_name"] = "Mimi",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Tidak ada kucing di sini. Coba foto yang memperlihatkan dia lebih besar.",
@@ -1152,6 +1254,21 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Đây rồi",
                 ["meet.name_placeholder"] = "Tên mèo là gì?",
                 ["meet.confirm"] = "Đúng là mèo ấy",
+                // "Miu" — the one-syllable name Vietnamese guides put first
+                // when they say a cat's name should be one or two syllables,
+                // and the sound a Vietnamese uses to call one. Ordinary, warm,
+                // no gender and no colour asserted.
+                //
+                // Not "Mun", the other very common one: mun is ebony, it goes
+                // to black cats, and this coat is copied from the player's
+                // photograph. Not "Mèo", which is simply the word "cat" — the
+                // German entry explains why a bare common noun in a field
+                // asking for a name reads as an unanswered question.
+                //
+                // Three plain ASCII letters, alone in this table in needing no
+                // diacritic at all, so it is also the one Vietnamese value
+                // that cannot fail on a font missing stacked tone marks.
+                ["cat.default_name"] = "Miu",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Không thấy con mèo nào. Thử tấm ảnh có mèo lớn hơn nhé.",

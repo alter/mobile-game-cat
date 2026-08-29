@@ -52,7 +52,70 @@ namespace CatShelter.View
         private TextField _nameField;
         private CatTraits _traits;
 
+        /// <summary>
+        /// What is in the field, exactly as it is drawn. For a cat the player
+        /// has never renamed that is the TRANSLATED default — not
+        /// <see cref="Cat.DefaultName"/>, which is what gets stored. See
+        /// <see cref="Shown"/> for why the two differ; <see cref="Confirm"/>
+        /// is what converts back.
+        /// </summary>
         public string CurrentName => _nameField?.value;
+
+        /// <summary>
+        /// The stored name as the player should see it.
+        ///
+        /// 2026-08-29. `Cat.DefaultName` is the literal "Kitty" and stays
+        /// that way in every language: it is part of the save format,
+        /// `Core` is engine-free by a rule this project checks, so it cannot
+        /// read `Shell.Copy`, and a save must mean the same cat after the
+        /// phone's language changes. The defect a seventeen-language sweep
+        /// found was not that the constant is English — it is that the
+        /// constant was reaching the screen. So the swap happens here, at the
+        /// one place the name is drawn, and only for a name that is still the
+        /// untouched default: anything the player typed herself is hers and is
+        /// shown back to her verbatim, whatever language it is in.
+        /// </summary>
+        private static string Shown(string stored) =>
+            stored == Cat.DefaultName ? Shell.Copy.Of("cat.default_name") : stored;
+
+        /// <summary>
+        /// The inverse, applied on the way out so the two cannot drift.
+        ///
+        /// Without it, a player who opened this screen and confirmed without
+        /// editing would have the translated name written into her save as a
+        /// literal, and her cat would stop being the default cat — she would
+        /// carry a Japanese name onto an English phone, and
+        /// <see cref="Cat.Skipped"/> would no longer describe the same animal.
+        /// Trimmed before comparing, because <see cref="Cat"/>'s own
+        /// constructor trims and a trailing space would otherwise store a
+        /// name one character different from the default.
+        ///
+        /// A player who deliberately types the translated name gets
+        /// `Cat.DefaultName` stored instead of her own identical string. The
+        /// outcome she can see is the same string on the same screen, so this
+        /// costs her nothing.
+        /// </summary>
+        private static string Stored(string shown) =>
+            shown?.Trim() == Shell.Copy.Of("cat.default_name") ? Cat.DefaultName : shown;
+
+        /// <summary>
+        /// Is the language the game is speaking written right to left?
+        ///
+        /// Asked the same way GameBoot asks it, and for the same reason it has
+        /// to be asked twice: `Copy.For` answers English for any language with
+        /// no table, so "are we in Arabic" is only a real question once "does
+        /// Arabic exist" has been answered yes. Compared without it, every
+        /// English player becomes an Arabic one the day the table is deleted.
+        /// </summary>
+        private static bool RightToLeft
+        {
+            get
+            {
+                var arabic = Shell.Copy.For(SystemLanguage.Arabic);
+                return !ReferenceEquals(arabic, Shell.Copy.English)
+                       && ReferenceEquals(Shell.Copy.Current, arabic);
+            }
+        }
 
         public void Build(VisualElement parent, CatTraits traits, string initialName = null)
         {
@@ -105,13 +168,34 @@ namespace CatShelter.View
             nameWrap.style.width = 220;
             nameWrap.style.marginBottom = 20;
 
-            _nameField = new TextField { value = initialName ?? "" };
+            // Shown, not stored: an unrenamed cat arrives here as the literal
+            // "Kitty" (GameBoot passes `saved?.Name` on the way back in) and
+            // must not be shown that way to a player reading Japanese.
+            _nameField = new TextField { value = Shown(initialName) ?? "" };
             _nameField.style.width = Length.Percent(100);
+            // The typed name starts from the side the language reads from. In
+            // Arabic a name pinned to the left is a name in the wrong corner of
+            // its own field, which is what the sweep photographed on 2026-08-29.
+            // Set on the inner input as well as the field: the field is a
+            // container, and the alignment that matters belongs to the element
+            // actually drawing the text.
+            if (RightToLeft)
+            {
+                _nameField.style.unityTextAlign = TextAnchor.MiddleRight;
+                var input = _nameField.Q(TextField.textInputUssName);
+                if (input != null) input.style.unityTextAlign = TextAnchor.MiddleRight;
+            }
 
             var placeholder = new Label(Shell.Copy.Of("meet.name_placeholder"));
             placeholder.style.position = Position.Absolute;
-            placeholder.style.left = 6;
-            placeholder.style.top = 4;
+            // Pinned to the side the language reads from, not always the left.
+            // In Arabic the field's own text starts at the right edge, so a hint
+            // at the left is a hint in the wrong place — caught by the
+            // seventeen-language sweep on 2026-08-29, which also measured it two
+            // points too tall for its box, hence the room below.
+            if (RightToLeft) placeholder.style.right = 6;
+            else placeholder.style.left = 6;
+            placeholder.style.top = 2;
             placeholder.style.color = new Color(ink.r, ink.g, ink.b, 0.45f);
             placeholder.pickingMode = PickingMode.Ignore;
             placeholder.style.display = string.IsNullOrEmpty(_nameField.value)
@@ -123,7 +207,13 @@ namespace CatShelter.View
             nameWrap.Add(_nameField);
             nameWrap.Add(placeholder);
 
-            var confirm = new Button(Confirm) { text = Shell.Copy.Of("meet.confirm") };
+            // Through Buttons, not `new Button`: a bare one wears UI Toolkit's
+            // default theme — a grey rectangle — which is what this screen and
+            // the capture screen showed in all seventeen languages until the
+            // sweep on 2026-08-29 photographed it. This is the moment she meets
+            // her cat; the one control on it should not look like a debug stub.
+            var confirm = Buttons.Primary(Shell.Copy.Of("meet.confirm"), Confirm);
+            confirm.style.minWidth = 160;
 
             _root.Add(title);
             _root.Add(portrait);
@@ -141,7 +231,13 @@ namespace CatShelter.View
             // Cat.DefaultName — the same rule the skip path (50-photo/10)
             // relies on, so a player who reaches this field and leaves it
             // empty still ends up with a named cat.
-            var cat = new Cat(_nameField.value, _traits);
+            //
+            // Stored() is the other half of that: a field still holding the
+            // translated default goes back to Cat.DefaultName, so the save
+            // carries the canonical value in all seventeen languages and the
+            // constant remains the single thing every other file compares
+            // against.
+            var cat = new Cat(Stored(_nameField.value), _traits);
             OnNamed?.Invoke(cat);
         }
     }

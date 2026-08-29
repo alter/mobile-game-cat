@@ -346,6 +346,31 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Here she is",
                 ["meet.name_placeholder"] = "What's her name?",
                 ["meet.confirm"] = "That's her",
+                // 2026-08-29. The kitten's name before the player types one.
+                //
+                // The stored value is `Core/Cat.cs`'s `DefaultName`, and it
+                // stays the literal "Kitty" in every language: it is part of
+                // the save format, `Core` is engine-free and cannot read this
+                // table, and a save written on a Japanese phone must still
+                // mean the same cat when the phone's language changes. What is
+                // TRANSLATED is only what the player is SHOWN —
+                // `MeetYourCatScreen` swaps a name equal to `Cat.DefaultName`
+                // for this key on the way into the field, and swaps it back on
+                // the way out, so the two never drift.
+                //
+                // English keeps "Kitty" on purpose, and that is the one place
+                // this key is allowed to equal `Cat.DefaultName`: it is the
+                // reference table, and the constant was named after it.
+                //
+                // Width is not a constraint here and the arithmetic is worth
+                // recording so nobody re-derives it: the field is 220 units
+                // (`MeetYourCatScreen.Build`, `nameWrap.style.width = 220`,
+                // the TextField at 100% of it) at the default theme's 12px,
+                // which is roughly forty Latin characters. The longest value
+                // across all seventeen tables is seven. A name is short by
+                // nature and none of these tables had to trade meaning for
+                // room — unlike `capture.title`, which did.
+                ["cat.default_name"] = "Kitty",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "No cat in this one. Try a photo where she fills more of the frame.",
@@ -540,6 +565,25 @@ namespace CatShelter.Shell
                 ["meet.title"] = "Вот она",
                 ["meet.name_placeholder"] = "Как её зовут?",
                 ["meet.confirm"] = "Это она",
+                // "Мурка" — от «мурлыкать», и это ровно тот регистр, в котором
+                // написано английское "Kitty": не шутка, не бренд и не
+                // сюсюканье, а самая обыкновенная кошачья кличка, которую
+                // живой человек действительно впишет в поле.
+                //
+                // Это единственная строка во всей таблице, где котёнок
+                // получает род, и он женский — против решения, записанного в
+                // шапке. Противоречия нет: там речь о МЕСТОИМЕНИИ для игрового
+                // котёнка, а «котёнок» мужского рода, поэтому местоимение
+                // опускается. Кличка местоимением не управляет — «Мурка» стоит
+                // в поле сама по себе, ни одна другая строка на неё не
+                // согласуется, — и женская кличка возвращает ту самую «she»,
+                // которую 12-copy-english выбрал нарочно, ничего не ломая.
+                //
+                // Не «Мурзик» (он же в примере из cat-shelter-mvp.md, раздел 4)
+                // и не «Барсик»: обе клички мужские. Не «Муся» — она столь же
+                // распространена, но это уменьшительное от «Мария», и рядом с
+                // именем игрока читается как человеческое имя, а не кошачье.
+                ["cat.default_name"] = "Мурка",
 
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in

@@ -204,6 +204,22 @@ namespace CatShelter.Shell
                 ["meet.title"] = "她来了",
                 ["meet.name_placeholder"] = "她叫什么名字？",
                 ["meet.confirm"] = "就是她",
+                // 小咪 — the stock Chinese cat name, and the closest thing any
+                // of these seventeen languages has to an exact "Kitty": 咪 is
+                // the sound a person makes to call a cat, 小 makes it a name
+                // rather than a call. Two characters, ordinary to the point of
+                // being a joke about how ordinary it is, which is the register.
+                //
+                // **Not the bare 咪咪, which is the more famous form and was
+                // rejected on purpose.** It is the same word doubled and is
+                // what the dictionaries actually gloss as the Chinese term of
+                // endearment for a cat — but it is also current slang for
+                // breasts. Everywhere else in this table that would not matter,
+                // because a sentence supplies the context; here it does not,
+                // because a name sits alone in a field with nothing around it
+                // to disambiguate. 小咪 is read by the same people as the same
+                // kind of name and carries none of it.
+                ["cat.default_name"] = "小咪",
 
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
@@ -335,6 +351,18 @@ namespace CatShelter.Shell
                 ["meet.title"] = "她來了",
                 ["meet.name_placeholder"] = "她叫什麼名字？",
                 ["meet.confirm"] = "就是她",
+                // Identical to the Simplified table, and this is the one value
+                // in the whole file where that is the right answer rather than
+                // an unconverted leftover: neither 小 nor 咪 was ever
+                // simplified, so the Taiwan spelling of this name IS these two
+                // characters, and 小咪 is as ordinary in Taipei as it is in
+                // Shanghai. Changing it to differ would be inventing a
+                // difference the language does not have.
+                //
+                // The class note above counts eleven deliberate lexical
+                // substitutions between these two tables; this key is not a
+                // twelfth and is not a missed one.
+                ["cat.default_name"] = "小咪",
 
                 // --- the four outcomes ---------------------------------------
                 // 試試看 rather than the mainland's bare 試試 — the Taiwan
@@ -501,6 +529,24 @@ namespace CatShelter.Shell
                 // (MeetYourCatScreen.cs:78-81), and this one has room to spare.
                 ["meet.title"] = "この子です",
                 ["meet.name_placeholder"] = "お名前は？",
+                // タマ — the name that IS "a cat's name" in Japanese. Not the
+                // most-registered name of this year (that has been ムギ for
+                // seven years running, and ラテ and ルナ behind it); the one
+                // everybody answers with when asked what a cat is called, the
+                // way an English speaker answers "Fluffy" or "Kitty" without
+                // owning a cat named either.
+                //
+                // That gap between "most common" and "default" is the whole
+                // choice. ムギ is a name a particular person chose in 2019;
+                // タマ is the one the language keeps for a cat with no name
+                // yet — which is exactly what this key is for. It is plain and
+                // a little old-fashioned, which suits a quiet game read by
+                // women 30-55 better than a trend does.
+                //
+                // Katakana, not たま: Japanese pet names are conventionally
+                // written in katakana, and the two characters are the ones
+                // every ranking and every dictionary entry prints.
+                ["cat.default_name"] = "タマ",
                 // The player's own line, so 〜します rather than a bare noun:
                 // she is choosing, and the button says so.
                 ["meet.confirm"] = "この子にします",
@@ -661,6 +707,24 @@ namespace CatShelter.Shell
                 // (MeetYourCatScreen.cs:78-81), and this one has room to spare.
                 ["meet.title"] = "이 아이예요",
                 ["meet.name_placeholder"] = "이름이 뭐예요?",
+                // 나비 — the traditional Korean name for a cat, to the point
+                // that 「나비야」 is how an older Korean calls one she has never
+                // met. Two syllables, plain, and the exact counterpart of
+                // English "Kitty": a word that became the name every unnamed
+                // cat gets.
+                //
+                // It happens to mean "butterfly", and the etymology is
+                // genuinely unsettled — one story is the cat's face, another
+                // an old word for "quick". Neither matters here, because no
+                // Korean hears the insect when it is a cat being called; what
+                // matters is that it asserts no colour and no sex, and this
+                // kitten's coat comes from the player's own photograph.
+                //
+                // Not 「냥이」 or 「야옹이」 — the class note above already rules
+                // those out of the running text as the aegyo register that
+                // section 2 of cat-shelter-mvp.md puts next to pink glitter,
+                // and a name is no place to smuggle them back in.
+                ["cat.default_name"] = "나비",
                 // The player's own line, so -ㄹ래요 again: she is choosing, and
                 // the button says so.
                 ["meet.confirm"] = "이 아이로 할래요",
@@ -821,6 +885,32 @@ namespace CatShelter.Shell
                 ["meet.title"] = "นี่คือเธอ",
                 ["meet.name_placeholder"] = "เธอชื่ออะไร",
                 ["meet.confirm"] = "ใช่เธอเลย",
+                // **Thai has no stock cat name, and this is one of the two
+                // tables where that had to be said rather than papered over.**
+                // Japanese has タマ and Korean has 나비 — a single name the
+                // language keeps for a cat nobody has named yet. Thai does not.
+                // Thai names a cat for what it looks like or what it is the
+                // colour of: ส้ม (orange), กะทิ (coconut milk), ปุยฝ้าย
+                // (cotton), เต้าหู้ (tofu), ถ่าน (charcoal). Every one of those
+                // lists is a list of coats.
+                //
+                // Which rules the whole method out here, and not on taste: this
+                // kitten's coat is copied from the player's own cat
+                // (`capture.hint` — "ลูกแมวในเกม จะได้สีขนของเธอ"), so a
+                // default name that names a colour is a name that is wrong for
+                // most players the second the shader runs.
+                //
+                // So: เหมียว, the sound a Thai cat makes and the word a Thai
+                // uses for one — "แมวเหมียว" is simply what a cat is called.
+                // It is the generic-word-used-as-a-name that "Kitty" is, it
+                // asserts no coat, and a Thai reader takes it as a name here
+                // because the field asked for one. It is a construction rather
+                // than a convention, and that is the honest description of it.
+                //
+                // One word, no clause-space: the spaces elsewhere in this table
+                // are line-break points for a wrapping label, and a name that
+                // wraps in the middle would be worse than one that does not.
+                ["cat.default_name"] = "เหมียว",
 
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
@@ -997,6 +1087,44 @@ namespace CatShelter.Shell
                 ["meet.title"] = "ها هي ذي",
                 ["meet.name_placeholder"] = "ما اسمها؟",
                 ["meet.confirm"] = "هذه هي",
+                // مشمش — apricot, and the name that turns up first on every
+                // list of what Arabs actually call their cats, from Cairo to
+                // the Gulf. Ordinary, affectionate, no exclamation in it, and
+                // it takes no grammatical gender from the player, which is the
+                // constraint this whole table is written around.
+                //
+                // It is a food name and not a coat name, and that distinction
+                // is doing work: Turkish "Pamuk" and Indonesian "Oyen" were
+                // both rejected in the Latin file for naming a colour this
+                // kitten's coat may not be. Arabic cat names are food names as
+                // a class — سمسم, لوزة, سكر, عنبر — so مشمش is heard the way
+                // "Peaches" is in English, as a fond name, not as a claim about
+                // the animal's fur.
+                //
+                // Not the colloquial بسّة or بسبس, which are the literal
+                // register match — بسّة is "pussycat" and بس بس is the call. The
+                // table is Modern Standard by its class note, they are dialect,
+                // and مشمش is the one that crosses every dialect unchanged.
+                //
+                // **Right-to-left, and this is the one string on the screen
+                // where the unconfigured bidi engine is worse than usual.** The
+                // class note above records the whole risk: `PanelSettings.asset`
+                // has no ICU data and no text settings, so nothing reorders or
+                // shapes Arabic, and the expected symptom is disconnected
+                // letters running the wrong way. A name in an editable
+                // `TextField` adds a caret and a selection to that, and neither
+                // has been seen on a device. Two things were done about it here
+                // rather than nothing: the value is four letters, the shortest
+                // it can be while still being a real name, and it is pure
+                // Arabic with no Latin run inside it — so it is a single
+                // right-to-left run with no direction change for the missing
+                // algorithm to get wrong, unlike `card.caption`, which embeds
+                // "Sootpaw". The value is written in logical order with no
+                // manual reversal and no presentation forms, exactly as the
+                // rest of this table is: the day a shaper is switched on it is
+                // right, and until then the fix is `PanelSettings.asset` and
+                // not this file.
+                ["cat.default_name"] = "مشمش",
 
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
@@ -1171,6 +1299,40 @@ namespace CatShelter.Shell
                 ["meet.title"] = "यह रही वह",
                 ["meet.name_placeholder"] = "इसका नाम क्या है?",
                 ["meet.confirm"] = "यही है",
+                // **Hindi has no conventional default cat name, and this is
+                // the least confident value in all seventeen tables.** Said
+                // plainly because the brief asked for it to be. Japanese keeps
+                // タマ and Korean keeps 나비 for a cat nobody has named; Hindi
+                // keeps nothing. Cats are far less often kept as named
+                // housepets in the Hindi belt than dogs are, urban owners who
+                // do keep them very largely give English names, and the Hindi
+                // Wikipedia article on बिल्ली reaches for the English "pussy
+                // cat" as the familiar name for one. There was no convention to
+                // find and none is claimed.
+                //
+                // What is here instead: मिनी. An ordinary, short, feminine
+                // Indian pet name — the register of a name a real person writes
+                // rather than a dictionary word — which agrees with the नन्ही
+                // बिल्ली this table chose to carry the English "she", and which
+                // asserts no coat colour, the objection that removed the
+                // strongest candidates in Turkish, Indonesian, Vietnamese and
+                // Thai.
+                //
+                // Not बिल्ली, the common noun, for the reason set out at the
+                // German entry: in a field asking इसका नाम क्या है? a bare
+                // "cat" reads as an unanswered question. Not चीकू, which is
+                // genuinely common on Indian pets and is a sapodilla — a food
+                // name, so the Arabic argument would allow it, but it goes to
+                // dogs at least as often and reads as a child's pet.
+                //
+                // **This is the value to hand to a native reader first** if the
+                // game ever gets one, ahead of the Traditional Chinese table
+                // the class note already names.
+                //
+                // No nukta and no conjunct: four plain Devanagari codepoints,
+                // so unlike साफ़ and नक़्शा this one cannot break on a font that
+                // omits U+093C.
+                ["cat.default_name"] = "मिनी",
 
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in

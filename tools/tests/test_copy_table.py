@@ -476,6 +476,142 @@ def test_format_placeholders_are_balanced():
 NO_ARG_CALL = re.compile(r'Copy\.Of\("([a-z0-9_.]+)"\s*\)')
 
 
+# 2026-08-29. The kitten's default name, and the one key in the table whose
+# English value is also a constant in another file — `Core/Cat.cs`'s
+# `DefaultName`. The four checks below exist because a seventeen-language sweep
+# on an Android device found that name rendering as the literal "Kitty" in all
+# seventeen, Japanese, Arabic and Hindi included.
+#
+# `Core` is engine-free by a rule this project holds to, so it cannot read
+# `Shell.Copy` and the constant cannot move. What changes is what the player is
+# SHOWN: `MeetYourCatScreen` swaps a name equal to `Cat.DefaultName` for
+# `Copy.Of("cat.default_name")` on the way into the field, and back on the way
+# out. That splits one value across two files and one direction of a swap
+# across two methods, which is four new ways to be silently wrong — one per
+# check.
+DEFAULT_NAME_KEY = "cat.default_name"
+CAT_CS = ROOT / "game/Assets/Core/Cat.cs"
+CORE_DEFAULT_NAME = re.compile(
+    r'const\s+string\s+DefaultName\s*=\s*"((?:[^"\\]|\\.)*)"')
+
+
+def test_the_default_cat_name_is_in_every_table():
+    # Implied by test_every_language_has_exactly_the_reference_keys, and
+    # written out anyway: that check reports a sorted list of missing keys, and
+    # this one names the defect. A language without this key renders
+    # "[cat.default_name]" in the name field on the one screen the whole
+    # project exists for.
+    for name, table in sorted(tables().items()):
+        assert DEFAULT_NAME_KEY in table, \
+            f"{name} has no {DEFAULT_NAME_KEY} — its player would meet a cat called " \
+            f"[{DEFAULT_NAME_KEY}], or worse, called Kitty"
+
+
+def test_the_default_cat_name_is_translated_in_every_language():
+    # THE DEFECT, and the reason it cannot come back quietly.
+    #
+    # test_no_value_was_left_untranslated already forbids an English value in
+    # any other table, so this is not new coverage — it is a named failure.
+    # That check reports "Japanese still holds the English string for:
+    # ['cat.default_name']" among however many other keys were pasted, and the
+    # next person to see it has to work out from the key name that a Japanese
+    # player was being shown an English cat's name. This one says so.
+    #
+    # It is also the check that survives if the exemption list ever grows: the
+    # app's own name is deliberately identical everywhere, and the day somebody
+    # decides a *name* is like a brand and adds this key to
+    # SAME_IN_EVERY_LANGUAGE, they have to delete this test to do it, and this
+    # comment is what they read first.
+    all_tables = tables()
+    english = all_tables[REFERENCE][DEFAULT_NAME_KEY]
+    for name, table in sorted(all_tables.items()):
+        if name == REFERENCE:
+            continue
+        # .get, not [ ]: a table missing the key is
+        # test_the_default_cat_name_is_in_every_table's failure to report, and
+        # a KeyError raised here would bury that message under a traceback
+        # about this check instead.
+        if DEFAULT_NAME_KEY not in table:
+            continue
+        assert table[DEFAULT_NAME_KEY] != english, (
+            f"{name}[{DEFAULT_NAME_KEY}] is {english!r} — the English name. This is "
+            f"the exact defect the key was added for: a sweep across all seventeen "
+            f"languages found the kitten called {english!r} in every one of them, "
+            f"Japanese, Arabic and Hindi included. Several languages have a "
+            f"conventional default cat name a real person would write; where one "
+            f"does not, the table's comment has to say so and say what was chosen "
+            f"instead.")
+
+
+def test_the_english_default_cat_name_matches_the_constant_in_core():
+    # The one check here that reads outside `Shell`, and the only one that can
+    # catch the two halves of this drifting apart.
+    #
+    # `Cat.DefaultName` is the STORED name and stays English in every language:
+    # it is part of the save format, and a save written on a Japanese phone has
+    # to mean the same cat when the phone's language changes.
+    # `MeetYourCatScreen` therefore recognises "the cat has not been renamed"
+    # by comparing the stored name against that constant, and substitutes this
+    # table's value for it.
+    #
+    # So English's value is not free. If the constant becomes "Mittens" and
+    # this table still says "Kitty", an English player is shown "Kitty" for a
+    # cat stored as "Mittens" — every other check in this file passes, because
+    # nothing else here has ever had a reason to open `Core`.
+    assert CAT_CS.exists(), f"{CAT_CS} is gone — this check is not running"
+    match = CORE_DEFAULT_NAME.search(strip_noise(CAT_CS.read_text()))
+    assert match, (
+        f"no `const string DefaultName = \"...\"` in {CAT_CS.name} — either it was "
+        f"renamed, in which case MeetYourCatScreen's substitution no longer "
+        f"compiles, or it stopped being a literal constant, in which case this "
+        f"check needs rewriting rather than deleting")
+    assert tables()[REFERENCE][DEFAULT_NAME_KEY] == match.group(1), (
+        f"{REFERENCE}[{DEFAULT_NAME_KEY}] is "
+        f"{tables()[REFERENCE][DEFAULT_NAME_KEY]!r} but Cat.DefaultName is "
+        f"{match.group(1)!r}. These two are one value in two files: the constant "
+        f"is what gets SAVED, this table is what gets SHOWN, and the screen "
+        f"matches one against the other to tell an unrenamed cat from a named "
+        f"one. Change them in the same commit.")
+
+
+def test_the_raw_default_name_constant_is_never_read_without_the_table():
+    # `tasks/60-shell-build/16-localisation-ready/NOTES.md` proposed this as a
+    # tripwire on 2026-08-27, in the form "assert `Cat.DefaultName` appears
+    # nowhere in View/Shell", and correctly predicted the failure: the easy way
+    # to build the meet-your-cat screen is `nameField.value = Cat.DefaultName`,
+    # a bare symbol reference with no string literal anywhere, which the
+    # sentence-scanning checks in this file can never see no matter which
+    # directories they are pointed at.
+    #
+    # It cannot be written as "appears nowhere" any more, because the fix needs
+    # the constant: recognising an unrenamed cat IS a comparison against it.
+    # What is actually required is weaker and is the real rule — a file that
+    # reads the raw constant must also reach for the translation, in the same
+    # file, so the substitution and the thing it substitutes for are never
+    # separated.
+    #
+    # This is a coarse check and says so: it proves the two appear together,
+    # not that they are wired together correctly. What proves the wiring is the
+    # screen itself, and that needs a device.
+    lookup = f'Copy.Of("{DEFAULT_NAME_KEY}")'
+    seen = False
+    for path, text in sources():
+        stripped = strip_noise(text)
+        if "Cat.DefaultName" not in stripped:
+            continue
+        seen = True
+        assert lookup in stripped, (
+            f"{path.name} reads Cat.DefaultName but never calls {lookup}. The "
+            f"constant is the STORED name and is English in every language; "
+            f"putting it on screen is how the kitten came to be called Kitty in "
+            f"all seventeen. Show {lookup} instead, and keep the constant for "
+            f"comparing against.")
+    assert seen, (
+        "no file in View/Shell reads Cat.DefaultName — the display-time "
+        "substitution this check guards has been removed, or moved somewhere "
+        "this file does not scan")
+
+
 def test_keys_read_without_arguments_have_no_placeholders():
     # The trap this task was warned about, closed for every language at once.
     # EveningReminder.cs reads "notification.title" through the overload that

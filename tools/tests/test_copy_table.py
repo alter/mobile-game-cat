@@ -1,9 +1,19 @@
-"""Tasks 60-shell-build/16 and /12: the copy lives in one table, in English.
+"""Tasks 60-shell-build/16 and /12: the copy lives in tables, one per language.
 
 Reads the sources because View and Shell are not compiled by build/core-tests,
 so no C# test can see them.
+
+2026-08-28, when Russian was added: the checks that used to read Copy.cs as one
+flat table now read it as a set of them, and four failures that a second
+language makes possible are new here — a key present in one language and not
+another, a key no language but English has, a placeholder count that differs
+between languages, and a value left sitting in English. The third is the one
+with teeth: a translation that drops a `{0}` prints the literal characters
+`{0}` on a player's screen, and a translation that *adds* one to a key called
+through the no-argument `Copy.Of` does the same on a lock screen.
 """
 import re
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -44,8 +54,49 @@ EXEMPT = {
 SWIFT_EXEMPT = set()
 
 
+# Copy.cs holds one
+#   public static readonly IReadOnlyDictionary<string, string> <Language> = ...
+# per language. Sliced on the declaration line rather than by matching braces:
+# every table opens one, a table runs to the next declaration or to the end of
+# the file, and nothing else in the file has that exact modifier list — the
+# `Tables` map is private, `For` and `Current` are not readonly.
+TABLE_DECL = re.compile(
+    r"public\s+static\s+readonly\s+IReadOnlyDictionary<string,\s*string>\s+(\w+)\s*=")
+
+# One entry. The value may be a single literal or several joined with "+"
+# across lines ("lose.body", "capture.hint", "house.complete.body").
+ENTRY = re.compile(
+    r'\["([a-z0-9_.]+)"\]\s*=\s*((?:"(?:[^"\\]|\\.)*"\s*(?:\+\s*)?)+),')
+LITERAL_PIECE = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
+# The reference language. Every other table is checked against it rather than
+# against the union of all of them: a union has no author and cannot say which
+# side of a mismatch is the mistake.
+REFERENCE = "English"
+
+
+def table_bodies() -> list[tuple[str, str]]:
+    text = strip_noise(COPY.read_text())
+    marks = [(m.group(1), m.start()) for m in TABLE_DECL.finditer(text)]
+    assert marks, "no language table found in Copy.cs — these checks are not running"
+    return [(name,
+             text[start:(marks[i + 1][1] if i + 1 < len(marks) else len(text))])
+            for i, (name, start) in enumerate(marks)]
+
+
+def tables() -> dict[str, dict[str, str]]:
+    out = {}
+    for name, body in table_bodies():
+        out[name] = {key: "".join(LITERAL_PIECE.findall(value))
+                     for key, value in ENTRY.findall(body)}
+    assert REFERENCE in out, f"Copy.cs has no {REFERENCE} table to check against"
+    return out
+
+
 def keys() -> set[str]:
-    return set(re.findall(r'\["([a-z0-9_.]+)"\]\s*=', COPY.read_text()))
+    """The reference language's keys. Every other language having exactly
+    these is its own test below, so the rest of this file needs only one set."""
+    return set(tables()[REFERENCE])
 
 
 def sources():
@@ -69,10 +120,11 @@ def strip_noise(text: str) -> str:
     return text
 
 
-def test_the_table_is_not_empty_and_has_no_duplicate_keys():
-    raw = re.findall(r'\["([a-z0-9_.]+)"\]\s*=', COPY.read_text())
-    assert len(raw) > 20
-    assert len(raw) == len(set(raw)), "a duplicate key silently wins or loses"
+def test_every_table_is_not_empty_and_has_no_duplicate_keys():
+    for name, body in table_bodies():
+        raw = [key for key, _ in ENTRY.findall(body)]
+        assert len(raw) > 20, f"{name}: {len(raw)} entries parsed — is it being read at all?"
+        assert len(raw) == len(set(raw)), f"{name}: a duplicate key silently wins or loses"
 
 
 # A sentence: two or more words, at least one space, starting with a capital.
@@ -175,18 +227,105 @@ def test_every_declared_key_is_used():
     assert not unused, f"unused keys: {sorted(unused)}"
 
 
-def test_the_copy_is_english():
-    # Task 12-copy-english: zero non-English strings anywhere a player can see
-    # them. Cyrillic is the one that would actually turn up here. Swift is
-    # included: it can reach the player exactly as View/Shell can, over
-    # UnitySendMessage (60-shell-build/16 VERIFY).
-    cyrillic = re.compile(r"[а-яА-ЯёЁ]")
-    for path, text in (list(sources()) + list(swift_sources())
-                       + [(COPY, COPY.read_text())]):
+CYRILLIC = re.compile(r"[а-яА-ЯёЁ]")
+
+
+def test_no_cyrillic_outside_the_copy_table():
+    # Task 12-copy-english, narrowed on 2026-08-28 rather than dropped. Until
+    # Russian existed this also covered Copy.cs, and it cannot any more; what
+    # it was actually protecting is unchanged, and is the stronger half — that
+    # no translated word reaches a player from anywhere except a table. A
+    # Cyrillic string in a View file is a string no other language can ever
+    # override. Swift is included: it reaches the player exactly as View/Shell
+    # can, over UnitySendMessage (60-shell-build/16 VERIFY).
+    for path, text in (list(sources()) + list(swift_sources())):
         for line in text.splitlines():
             if line.strip().startswith("//"):
                 continue
-            assert not cyrillic.search(line), f"{path.name}: {line.strip()}"
+            assert not CYRILLIC.search(line), f"{path.name}: {line.strip()}"
+
+
+def test_the_english_table_is_english():
+    # The other half of the check above, now that Copy.cs is allowed Cyrillic:
+    # it is allowed it in the Russian table and nowhere else. A Russian value
+    # pasted into the English table is invisible to every other check here —
+    # the key exists, the placeholders match, it is used — and shows a
+    # Cyrillic sentence to an English player.
+    for key, value in sorted(tables()[REFERENCE].items()):
+        assert not CYRILLIC.search(value), f"{REFERENCE}[{key}] is not English: {value}"
+
+
+def test_every_language_has_exactly_the_reference_keys():
+    # Both directions, and they fail differently. A key missing from a
+    # language renders as "[win.next]" on that player's button — Copy.Of's
+    # deliberate loud fallback, which is right for a typo caught in a
+    # screenshot and wrong for a language shipped with a hole in it. A key a
+    # language has and English does not is copy no call site can reach, which
+    # is a translator's work thrown away silently.
+    all_tables = tables()
+    assert len(all_tables) >= 2, \
+        "only one table in Copy.cs — this file's cross-language checks prove nothing"
+    reference = set(all_tables[REFERENCE])
+    for name, table in sorted(all_tables.items()):
+        missing = sorted(reference - set(table))
+        extra = sorted(set(table) - reference)
+        assert not missing, f"{name} is missing keys {REFERENCE} has: {missing}"
+        assert not extra, f"{name} has keys {REFERENCE} does not: {extra}"
+
+
+PLACEHOLDER = re.compile(r"\{(\d+)\}")
+
+
+def test_placeholders_are_identical_in_every_language():
+    # Counted per index, not totalled: "{0} in {0}" and "{0} in {1}" have the
+    # same number of placeholders and are not the same format string. A
+    # translation that drops one prints nothing where a name should be; one
+    # that keeps a {1} the English no longer passes throws FormatException at
+    # the moment the card is shown.
+    all_tables = tables()
+    reference = all_tables[REFERENCE]
+    for name, table in sorted(all_tables.items()):
+        if name == REFERENCE:
+            continue
+        for key, value in sorted(table.items()):
+            if key not in reference:
+                continue        # test_every_language_has_exactly_the_reference_keys owns that
+            want = Counter(PLACEHOLDER.findall(reference[key]))
+            got = Counter(PLACEHOLDER.findall(value))
+            assert got == want, (
+                f"{name}[{key}]: placeholders {sorted(got.elements())} do not match "
+                f"{REFERENCE}'s {sorted(want.elements())} — the difference reaches "
+                f"the screen as literal braces or as a FormatException")
+
+
+# The app's own name. The one string that is meant to be identical everywhere:
+# a caption naming something no store search finds sends nobody anywhere.
+SAME_IN_EVERY_LANGUAGE = {"card.game_name"}
+
+
+def test_no_value_was_left_untranslated():
+    # A key added to English and copied into the other tables to get this file
+    # green is the failure mode a parity check invites. Caught cheaply: an
+    # identical string in two languages is either the app's name or an
+    # oversight, and the first is a list of one.
+    all_tables = tables()
+    reference = all_tables[REFERENCE]
+    for name, table in sorted(all_tables.items()):
+        if name == REFERENCE:
+            continue
+        same = sorted(key for key, value in table.items()
+                      if key not in SAME_IN_EVERY_LANGUAGE
+                      and reference.get(key) == value)
+        assert not same, f"{name} still holds the {REFERENCE} string for: {same}"
+
+
+def test_every_table_is_selectable_by_a_device_language():
+    # A table nothing maps to is a language that never reaches a player, and
+    # every other check in this file would pass while it sat there.
+    text = strip_noise(COPY.read_text())
+    for name, _ in table_bodies():
+        assert re.search(rf"\[SystemLanguage\.\w+\]\s*=\s*{name}\b", text), \
+            f"{name} is a table no device language selects — add it to Copy.Tables"
 
 
 def test_analytics_names_are_not_in_the_table():
@@ -197,11 +336,38 @@ def test_analytics_names_are_not_in_the_table():
 
 
 def test_format_placeholders_are_balanced():
-    # A string with {0} reached through the no-argument Of() renders literally.
-    text = COPY.read_text()
-    for key, value in re.findall(r'\["([a-z0-9_.]+)"\]\s*=\s*"((?:[^"\\]|\\.)*)"', text):
-        if "{" not in value:
-            continue
-        indices = sorted(int(n) for n in re.findall(r"\{(\d+)\}", value))
-        assert indices == list(range(len(set(indices)))), \
-            f"{key}: placeholders {indices} are not 0..n"
+    # string.Format indexes into the argument array, so a value whose
+    # placeholders are not 0..n throws on the n it was never passed. Checked in
+    # every language: the English one being 0..n says nothing about a
+    # translation that renumbered them to put the name last.
+    for name, table in sorted(tables().items()):
+        for key, value in sorted(table.items()):
+            if "{" not in value:
+                continue
+            indices = sorted(int(n) for n in PLACEHOLDER.findall(value))
+            assert indices == list(range(len(set(indices)))), \
+                f"{name}[{key}]: placeholders {indices} are not 0..n"
+
+
+# `Copy.Of("key")` with nothing after the key — the un-formatted overload.
+NO_ARG_CALL = re.compile(r'Copy\.Of\("([a-z0-9_.]+)"\s*\)')
+
+
+def test_keys_read_without_arguments_have_no_placeholders():
+    # The trap this task was warned about, closed for every language at once.
+    # EveningReminder.cs reads "notification.title" through the overload that
+    # takes no arguments and does no formatting, so a "{0}" added to that value
+    # — in English or in a translation, by someone reasonably wanting the
+    # kitten's typed name in it — is delivered to a lock screen as the four
+    # characters `{0}`. The key and its call site have to change together, and
+    # this fails until they do.
+    no_args = set()
+    for _, text in sources():
+        no_args |= set(NO_ARG_CALL.findall(strip_noise(text)))
+    assert no_args, "no un-formatted Copy.Of call found — this check is not running"
+    for name, table in sorted(tables().items()):
+        for key in sorted(no_args & set(table)):
+            assert "{" not in table[key], (
+                f"{name}[{key}] has a placeholder, but every call site reads it "
+                f"through Copy.Of(key) with no arguments — it would print the "
+                f"braces verbatim. Change the call site in the same commit.")

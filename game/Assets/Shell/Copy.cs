@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace CatShelter.Shell
 {
@@ -20,19 +21,56 @@ namespace CatShelter.Shell
     public static class Copy
     {
         private static IReadOnlyDictionary<string, string> _current;
+        private static IReadOnlyDictionary<SystemLanguage,
+            IReadOnlyDictionary<string, string>> _tables;
 
         /// <summary>
-        /// Swap this to change language. One table per language, added as a
-        /// file; nothing else in the game changes.
+        /// Every language the game speaks, by the value Unity reports for the
+        /// device. Adding a third is one entry here and one table below;
+        /// nothing else in the game, and no call site, changes.
+        ///
+        /// A lazy property and not a static field, for the reason recorded at
+        /// <see cref="Current"/>: a field initialised from `English` and
+        /// `Russian` would read whichever of them is declared after it as
+        /// null. Evaluated on first use, both tables are certainly built.
+        /// </summary>
+        private static IReadOnlyDictionary<SystemLanguage,
+            IReadOnlyDictionary<string, string>> Tables =>
+            _tables ??= new Dictionary<SystemLanguage,
+                IReadOnlyDictionary<string, string>>
+            {
+                [SystemLanguage.English] = English,
+                [SystemLanguage.Russian] = Russian,
+            };
+
+        /// <summary>
+        /// The table for a language, English for every language without one.
+        /// English is the fallback rather than the nearest match because there
+        /// is no nearest match to compute: two tables, and a player whose
+        /// phone is in Polish is better served by a language she may read than
+        /// by one chosen for her by a similarity rule this game cannot check.
+        /// </summary>
+        public static IReadOnlyDictionary<string, string> For(SystemLanguage language) =>
+            Tables.TryGetValue(language, out var table) ? table : English;
+
+        /// <summary>
+        /// The language the game is speaking. Chosen from the device on first
+        /// use; settable, so a test — or a future in-game language switch —
+        /// can override it without touching a call site.
         ///
         /// A property with a lazy default rather than `= English`: static
         /// fields initialise in declaration order, so a field assigned from
         /// `English` above its declaration gets null — which is exactly what
         /// happened, and it took the whole game down on launch.
+        ///
+        /// `Application.systemLanguage` is a main-thread call, which every
+        /// caller of `Of` already is (UI build, and EveningReminder's
+        /// coroutine). If that ever stops being true, set `Current` from
+        /// `GameBoot` at startup rather than making this thread-safe.
         /// </summary>
         public static IReadOnlyDictionary<string, string> Current
         {
-            get => _current ??= English;
+            get => _current ??= For(Application.systemLanguage);
             set => _current = value;
         }
 
@@ -198,6 +236,29 @@ namespace CatShelter.Shell
                 // rewrite the caption anyway.
                 ["house.complete.caption"] = "Every room in {0} is clean.",
 
+                // --- the house map -------------------------------------------
+                // These four lived as literals inside HouseMapView until
+                // 2026-08-28. The map is the FIRST screen the game shows, so
+                // a Russian player met the game in English before reaching a
+                // single translated string — the one place where an untranslated
+                // literal costs the most.
+                //
+                // The title lost its "12 rooms". The house on the screen has
+                // twelve rooms drawn on it, numbered; counting them for the
+                // player was a caption explaining a picture that does not need
+                // one, and it would have gone stale the day room 13 arrived.
+                ["map.title"] = "Your house",
+                ["map.legend"] =
+                    "tap the lit number to play it   ·   ticked rooms are done   " +
+                    "·   dim rooms are still locked",
+                ["map.no_levels"] = "no levels loaded — nothing to map",
+                // {0} is the system's own reason, and it arrives in the system
+                // language rather than this table's. Kept anyway: a player who
+                // reports "it says it could not open the room" has told us
+                // more than one who reports a blank screen.
+                ["map.room_failed"] = "could not open the room: {0}",
+                ["map.map_failed"] = "could not open the map: {0}",
+
                 // --- levels missing or broken ---------------------------------
                 // Shipped level data is gated before release (test_ship_levels.py,
                 // HeadlessRunTests): this should never fire. It exists as the
@@ -285,6 +346,208 @@ namespace CatShelter.Shell
                 ["notification.channel"] = "Evening reminder",
                 ["notification.channel_description"] =
                     "One quiet message in the evening, on days you have not played.",
+            };
+
+        /// <summary>
+        /// Russian, 2026-08-28. The owner and the first players read Russian,
+        /// and until today a Russian player posted "Look at the kitten I have
+        /// in Sootpaw" to a Russian-speaking feed.
+        ///
+        /// Written against the screens, not against the English: every value
+        /// below was read on the card, button or label it lands on, and the
+        /// narrow ones are called out where a longer word would wrap a line.
+        /// `12-copy-english/NOTES.md` records why each English string says what
+        /// it says; none of those decisions is reversed here, and where one of
+        /// them is a length limit it is a tighter limit in Russian, which runs
+        /// about a fifth longer for the same sentence.
+        ///
+        /// Three decisions that hold across the whole table, made once here
+        /// rather than argued at each key — the reasoning is in
+        /// `16-localisation-ready/NOTES.md`:
+        ///
+        ///  - **"вы", not "ты".** The audience is women 30-55
+        ///    (cat-shelter-mvp.md section 2). Most strings address nobody at
+        ///    all, which is the quieter option and is taken wherever it reads
+        ///    naturally.
+        ///  - **"котёнок", and no pronoun for her.** The English calls the
+        ///    kitten "she" everywhere on purpose (12-copy-english change 7).
+        ///    Russian has no ungendered way to keep that: "котёнок" is
+        ///    grammatically masculine and "кошечка" is the diminutive a
+        ///    Russian ear hears as baby-talk, which section 2 rules out along
+        ///    with pink and glitter. Russian drops subject pronouns freely, so
+        ///    the two places the English uses "she" for the game's kitten drop
+        ///    it instead of choosing a gender.
+        ///  - **"она" IS used for the player's own cat** — `capture.*` and
+        ///    `photo.*` — where it is a real cat with a real sex and "кошка"
+        ///    is the word a Russian cat owner uses.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Russian =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                // "В комнате чисто", not "Комната убрана": the card sits over
+                // the room's own before/after photographs and should name what
+                // they show, quietly. "Убрана" is the register of a report
+                // filed about the player's work; "чисто" is what a person says
+                // looking at the second picture.
+                ["win.room_clean.title"] = "В комнате чисто",
+                ["win.room_clean.body"] = "Котёнку здесь уже больше нравится.",
+                // "Куча", the same noun for the same object every time. The
+                // English picked "pile" over "corner" because the board said
+                // "pile"; the board has since lost its words entirely
+                // (DebugGameView.RenderHeader, 60-shell-build/01), so this is
+                // now the only place the unit is named at all — one more
+                // reason not to have two words for it.
+                ["win.corner.title"] = "Куча разобрана",
+                ["win.corner.body"] = "Котёнок подошёл посмотреть.",
+                ["win.next"] = "Дальше",
+
+                // --- the kitten's card, and sharing her --------------------
+                // NOT translated, and this is the one key that must stay
+                // identical in every language: it is the name the game is
+                // listed under. An app's name is not copy, and a caption that
+                // says a name no store search will find is a caption that
+                // sends nobody anywhere.
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Назад",
+                ["card.share_short"] = "Поделиться",
+                // {0} is the game's name.
+                ["card.caption"] = "Смотрите, какой у меня котёнок в {0}",
+                ["map.opening"] = "Открываем комнату…",
+                // "Было" / "Стало", which is how a Russian before-and-after is
+                // captioned — the pair is idiomatic and each word is shorter
+                // than the English it replaces, under a 116px pane.
+                ["win.before"] = "Было",
+                ["win.after"] = "Стало",
+
+                // --- losing a pile -------------------------------------------
+                // "Полки забиты": the shelves, plural, because there are three
+                // of them and the body immediately says every slot is taken.
+                ["lose.title"] = "Полки забиты",
+                // The rule, then that nothing is lost — the order and the job
+                // of the English (12-copy-english change 3). 73 characters
+                // against the English 76, so it wraps to the same three lines
+                // in `.game__card-body`'s 240px.
+                //
+                // No placeholder, exactly as in English: `DebugGameView.Finish`
+                // still passes `_levelIndex` and string.Format still ignores
+                // it. Putting a {0} back here would print the argument, and
+                // putting one in a key called with no arguments prints "{0}" —
+                // see notification.title.
+                ["lose.body"] =
+                    "Все ячейки заняты, и нет трёх одинаковых. " +
+                    "Куча вернётся такой, какой была.",
+                ["lose.replay"] = "Заново",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "Во всём доме чисто",
+                // Two sentences where the English has one clause and a comma:
+                // the relative clause Russian would need ("котёнок, которому
+                // больше некуда прятать находки") is a line longer than the
+                // card can spare under two photographs, and a full stop costs
+                // nothing here. Same image, same ending.
+                ["house.complete.body"] =
+                    "Все двенадцать. И котёнку больше некуда прятать находки." +
+                    "\n\nНа этом дом пока заканчивается.",
+                // A different verb from card.share_short, as in English:
+                // "Поделиться" is already spent on the kitten's card, and this
+                // is a second, different moment.
+                ["house.complete.share"] = "Показать кому-нибудь",
+                // {0} is the game's name, same as card.caption.
+                ["house.complete.caption"] = "В {0} чисто во всех комнатах.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Ваш дом",
+                // Three clauses joined by the same interpunct as the English.
+                // "Отмеченные" rather than "с галочкой": the mark on a cleared
+                // room is a tick, and naming the glyph tells the player less
+                // than naming what it means.
+                ["map.legend"] =
+                    "нажмите на светлый номер   ·   отмеченные комнаты убраны   " +
+                    "·   тёмные пока закрыты",
+                ["map.no_levels"] = "уровни не загрузились — дом нечем заполнить",
+                ["map.room_failed"] = "не удалось открыть комнату: {0}",
+                ["map.map_failed"] = "не удалось открыть карту: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Чего-то не хватает",
+                // One instruction, and it is the one that can work — no "try
+                // again later", for the reason the English gives.
+                ["levels.unavailable.body"] =
+                    "Комнаты не загрузились. Пожалуйста, переустановите игру.",
+
+                // --- the photo screen ----------------------------------------
+                // THE TIGHTEST STRING IN THE TABLE. CaptureScreen builds this
+                // at fontSize 26 and never sets whiteSpace = Normal, so it
+                // cannot wrap: it has the panel's 390 units less 48 of padding,
+                // and every character past about 24 runs off the screen. This
+                // is 19. "Покажите нам свою кошку" is 23 and was dropped for
+                // that reason alone — "нам" adds nothing a Russian sentence
+                // needs.
+                ["capture.title"] = "Покажите свою кошку",
+                // The reason first, the framing advice second — the order the
+                // English pass settled on, and the advice is what keeps
+                // Vision's rejection rate down. "Окрас" is the word a Russian
+                // cat owner uses for a cat's colouring; "масть" is for horses.
+                ["capture.hint"] =
+                    "Котёнок в игре получит её окрас. " +
+                    "Пусть она займёт весь кадр, если получится.",
+                ["capture.camera"] = "Сфотографировать",
+                ["capture.gallery"] = "Выбрать из своих фото",
+                // In the player's voice, like the English. "Просто дайте
+                // котёнка" would be the literal reading and puts the player in
+                // the position of asking a favour; "хочу котёнка" is a person
+                // saying what she wants.
+                ["capture.skip"] = "Не сейчас — хочу котёнка",
+                ["capture.skipped"] = "Котёнок всё равно вас ждёт.",
+                ["capture.opening"] = "Открываем…",
+                ["capture.looking"] = "Смотрим…",
+                ["capture.colours"] = "Переносим её окрас…",
+                ["capture.cancelled"] = "Спешить некуда. Выберите, когда захотите.",
+
+                // --- meeting the cat ------------------------------------------
+                // Also fontSize 26 and also unwrapped (MeetYourCatScreen), and
+                // this one has room to spare.
+                ["meet.title"] = "Вот она",
+                ["meet.name_placeholder"] = "Как её зовут?",
+                ["meet.confirm"] = "Это она",
+
+                // --- the four outcomes ---------------------------------------
+                // Each says what happened and then offers a way forward, in
+                // that order, and none of them blames the player.
+                ["photo.no_animal"] = "Кошки здесь не видно. Попробуйте фото, где она крупнее.",
+                // "Славная" carries the English "Lovely" — a compliment to the
+                // dog, so that a refusal is not a rebuke.
+                ["photo.dog"] = "Похоже на собаку. Славная, но у нас приют для кошек.",
+                ["photo.unclear"] = "Кошка есть, но снимок размыт — окрас не разобрать. Ещё одно, пока она сидит смирно?",
+                // "Got her." — "она у нас", we have her now. Not "Готово",
+                // which is the register of a progress bar finishing.
+                ["photo.accepted"] = "Она у нас.",
+                ["photo.our_fault"] = "Что-то пошло не так на нашей стороне. Попробуете ещё раз?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
+                // reads this through `Copy.Of(key)` with no arguments, so a
+                // "{0}" here reaches a lock screen as the four literal
+                // characters. The same trap is why the kitten's typed name is
+                // still not in this line — see NOTES.md.
+                //
+                // "Ваш котёнок" was dropped: Russian notifications do not need
+                // the possessive, and without it the title fits a lock screen
+                // at 31 characters against the English 43.
+                ["notification.title"] = "Котёнок нашёл что-то за диваном",
+                // No subject. The English says "She is waiting" on purpose;
+                // Russian would have to say "он", because "котёнок" is
+                // masculine, and dropping the pronoun — which Russian does
+                // freely — keeps the line from assigning her a sex the English
+                // spent a change getting right.
+                ["notification.body"] = "Ждёт, чтобы показать. Когда у вас будет минутка.",
+
+                // Android only, and shown in system Settings rather than in
+                // the game.
+                ["notification.channel"] = "Вечернее напоминание",
+                ["notification.channel_description"] =
+                    "Одно тихое сообщение вечером — в те дни, когда вы не играли.",
             };
     }
 }

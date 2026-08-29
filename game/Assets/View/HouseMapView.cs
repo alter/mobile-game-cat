@@ -75,7 +75,7 @@ namespace CatShelter.View
             // second visit and not the first, which is the kind of bug that
             // gets blamed on the screenshot.
 
-            var title = new Label("house map: 12 rooms");
+            var title = new Label(Shell.Copy.Of("map.title"));
             title.style.fontSize = 15;
             title.style.color = (Color)new Color32(0x4A, 0x3B, 0x28, 0xFF);
             title.style.marginBottom = 12;
@@ -84,7 +84,7 @@ namespace CatShelter.View
             var loaded = LevelAssets.LoadAll();
             if (!loaded.CanStart)
             {
-                root.Add(Message("no levels loaded — nothing to map"));
+                root.Add(Message(Shell.Copy.Of("map.no_levels")));
                 return;
             }
 
@@ -177,9 +177,7 @@ namespace CatShelter.View
                       $"open={openRoom}");
             root.Add(background);
 
-            var legend = new Label(
-                "tap the lit number to play it   ·   ticked rooms are done   " +
-                "·   dim rooms are still locked");
+            var legend = new Label(Shell.Copy.Of("map.legend"));
             legend.style.fontSize = 10;
             legend.style.whiteSpace = WhiteSpace.Normal;
             legend.style.maxWidth = Length.Percent(92);
@@ -809,7 +807,7 @@ namespace CatShelter.View
                 Debug.LogError($"[HouseMap] swap failed — {e}");
                 Tapped($"swap failed — {e.GetType().Name}: {e.Message}");
                 root.Clear();
-                root.Add(Message($"could not open the room: {e.Message}"));
+                root.Add(Message(Shell.Copy.Of("map.room_failed", e.Message)));
             }
         }
 
@@ -972,7 +970,7 @@ namespace CatShelter.View
                 Debug.LogError($"[HouseMap] back failed — {e}");
                 Tapped($"back failed — {e.GetType().Name}: {e.Message}");
                 root.Clear();
-                root.Add(Message($"could not open the map: {e.Message}"));
+                root.Add(Message(Shell.Copy.Of("map.map_failed", e.Message)));
             }
         }
 

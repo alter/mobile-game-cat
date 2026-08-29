@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Task 90-android/photo. Gradle merges this into the app's manifest (Unity
+  Manual, "Android App Manifest": plug-in manifests are one of the sources
+  merged into the final Android App Manifest).
+
+  NOT ONE <uses-permission>. That is the whole design, and it is the reason
+  the system photo picker was chosen over ACTION_PICK:
+
+    - MediaStore.ACTION_PICK_IMAGES runs in the MediaProvider's own process
+      and hands back a URI the caller has already been granted read access
+      to: "the caller gets read access to user picked items even without
+      storage permissions"
+      (developer.android.com/reference/android/provider/MediaStore
+      #ACTION_PICK_IMAGES). The guide page describes the picker at length but
+      does not contain that sentence; the reference page does, so the
+      reference page is what is cited.
+      With the floor at 33 the picker is simply there, so this is the only
+      gallery path: no ACTION_GET_CONTENT fallback, no Play-services
+      backport, no availability shim.
+    - ACTION_PICK would need READ_MEDIA_IMAGES (READ_EXTERNAL_STORAGE below
+      33) to read what it hands back. That is the one permission this design
+      exists to avoid, and the reason it is not here is not "we might need
+      it" - it is that nothing in this plug-in ever touches a MediaStore row.
+    - ACTION_IMAGE_CAPTURE delegates to the camera app, which holds the
+      camera permission itself. The caller needs android.permission.CAMERA
+      only if it DECLARES it: "Note: if you app targets M and above and
+      declares as using the CAMERA permission which is not granted, then
+      attempting to use this action will result in a SecurityException."
+      (developer.android.com/reference/android/provider/MediaStore
+      #ACTION_IMAGE_CAPTURE - quoted with its own typo, "if you app").
+      Declaring it here would therefore add a runtime prompt and buy nothing,
+      so it is not declared.
+
+  That keeps 60-shell-build/17-permission-audit's standard: every permission
+  justified or removed - here, removed by construction.
+
+  <queries> is not a permission. It is Android 11 package visibility
+  (developer.android.com/training/package-visibility): without it
+  resolveActivity() returns null for intents this app does not handle itself,
+  which would hide the camera button on every device and send every gallery
+  pick down the fallback path. startActivity is not filtered, but the "is this
+  possible at all?" checks are, and this plug-in makes three of them.
+
+  The proxy Activity exists because onActivityResult belongs to
+  UnityPlayerGameActivity, which is Unity's and not ours to override. A
+  translucent, no-title activity that launches the real picker and forwards
+  the result is the standard shape for a Unity Android plug-in that needs a
+  result back. android:exported="false" because nothing outside the app has
+  any business starting it.
+
+  ${applicationId} is an Android Gradle Plugin manifest placeholder; AGP
+  substitutes the application's real id when it merges a library manifest.
+  CatPicker.java rebuilds the same authority at runtime from
+  getPackageName(). If those two ever disagree, getUriForFile throws
+  IllegalArgumentException rather than handing the camera the wrong place to
+  write.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <queries>
+        <!-- Is there a camera app to delegate to? -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <!-- The system photo picker. Guaranteed present at minSdk 33; this
+             only lets resolveActivity confirm it before an intent is fired,
+             so a stripped Android image declines cleanly instead of throwing
+             ActivityNotFoundException. The <data> has to mirror the
+             setType("image/*") on the intent itself, or the filter does not
+             match. There is no GET_CONTENT entry: with the floor at 33 there
+             is no fallback path left to declare. -->
+        <intent>
+            <action android:name="android.provider.action.PICK_IMAGES" />
+            <data android:mimeType="image/*" />
+        </intent>
+    </queries>
+
+    <application>
+        <activity
+            android:name="com.catshelter.picker.CatPickActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density" />
+
+        <provider
+            android:name="com.catshelter.picker.CatPickFileProvider"
+            android:authorities="${applicationId}.catpick"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/catpick_paths" />
+        </provider>
+    </application>
+
+</manifest>

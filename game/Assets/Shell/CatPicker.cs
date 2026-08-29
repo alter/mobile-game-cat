@@ -41,11 +41,37 @@ namespace CatShelter.Shell
             {
 #if UNITY_IOS && !UNITY_EDITOR
                 return CatPicker_hasCamera();
+#elif UNITY_ANDROID && !UNITY_EDITOR
+                try
+                {
+                    using var plugin = new AndroidJavaClass(AndroidPlugin);
+                    // Two questions on the Java side, and both have to answer
+                    // yes: is there a camera in this device, and is there an
+                    // app willing to drive it. See CatPicker.java.
+                    return plugin.CallStatic<bool>("hasCamera");
+                }
+                catch (Exception e)
+                {
+                    // A question that cannot be answered is answered "no". A
+                    // hidden button costs the player one way in; a dead one
+                    // costs her the screen.
+                    Debug.LogWarning($"[CatPicker] hasCamera failed: {e.Message}");
+                    return false;
+                }
 #else
                 return false;
 #endif
             }
         }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        /// <summary>
+        /// Assets/Plugins/Android/CatPicker.androidlib. Java rather than a
+        /// DllImport, and the same four callbacks arrive by the same route:
+        /// UnityPlayer.UnitySendMessage to the GameObject below.
+        /// </summary>
+        private const string AndroidPlugin = "com.catshelter.picker.CatPicker";
+#endif
 
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern void CatPicker_openGallery();
@@ -70,28 +96,63 @@ namespace CatShelter.Shell
             }
         }
 
-        /// <summary>Open the system gallery. Needs no photo-library permission:
-        /// PHPicker runs out of process and hands over only what was picked.</summary>
+        /// <summary>Open the system gallery. Needs no photo-library permission
+        /// on either platform, and that is not a coincidence: PHPicker on iOS
+        /// and <c>MediaStore.ACTION_PICK_IMAGES</c> on Android both run out of
+        /// process and hand over only what was picked. Two platforms, one
+        /// permission audit that stays empty
+        /// (60-shell-build/17-permission-audit).</summary>
         public static void PickFromGallery(Action<byte[]> onPicked, Action<string> onFailed)
         {
             Instance.Begin(onPicked, onFailed);
 #if UNITY_IOS && !UNITY_EDITOR
             CatPicker_openGallery();
+#elif UNITY_ANDROID && !UNITY_EDITOR
+            Instance.CallAndroid("openGallery");
 #else
             Instance.Fail("unsupported");
 #endif
         }
 
-        /// <summary>Open the camera. Requires NSCameraUsageDescription.</summary>
+        /// <summary>Open the camera. Requires NSCameraUsageDescription on iOS.
+        /// On Android it requires no permission at all, because the plug-in
+        /// delegates to the camera app rather than opening the camera itself —
+        /// and would require one the moment it declared
+        /// android.permission.CAMERA, which is why it does not.</summary>
         public static void CaptureWithCamera(Action<byte[]> onPicked, Action<string> onFailed)
         {
             Instance.Begin(onPicked, onFailed);
 #if UNITY_IOS && !UNITY_EDITOR
             CatPicker_openCamera();
+#elif UNITY_ANDROID && !UNITY_EDITOR
+            Instance.CallAndroid("openCamera");
 #else
             Instance.Fail("unsupported");
 #endif
         }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        /// <summary>
+        /// Fire-and-forget into the Java plug-in. A throw here means the
+        /// plug-in is not in the build at all — a stripped class, a missing
+        /// .androidlib — and that is "unavailable", the same code iOS sends
+        /// for a device that cannot do this. The callback still fires exactly
+        /// once, which is the whole contract.
+        /// </summary>
+        private void CallAndroid(string method)
+        {
+            try
+            {
+                using var plugin = new AndroidJavaClass(AndroidPlugin);
+                plugin.CallStatic(method);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[CatPicker] {method} failed: {e.Message}");
+                Fail("unavailable");
+            }
+        }
+#endif
 
         private void Begin(Action<byte[]> onPicked, Action<string> onFailed)
         {
@@ -107,7 +168,7 @@ namespace CatShelter.Shell
             callback?.Invoke(reason);
         }
 
-        // --- called from Swift by name; do not rename ----------------------
+        // --- called from Swift and from Java by name; do not rename ---------
 
         private void OnPicked(string path)
         {
@@ -117,10 +178,14 @@ namespace CatShelter.Shell
             try
             {
                 var bytes = File.ReadAllBytes(path);
-                // The picker wrote this to the temporary directory; nothing
-                // else will clean it up, and a camera roll's worth of stale
-                // JPEGs is not something to leave behind.
+                // The picker wrote this to the temporary directory (Android:
+                // getCacheDir()/catpick); nothing else will clean it up, and a
+                // camera roll's worth of stale JPEGs is not something to leave
+                // behind. The Android plug-in also empties that directory at
+                // the start of every pick, for the case where this line never
+                // runs because the process died first.
                 File.Delete(path);
+                Debug.Log($"[CatPicker] read {bytes.Length} bytes from the picker");
                 callback?.Invoke(bytes);
             }
             catch (Exception e)
@@ -136,8 +201,9 @@ namespace CatShelter.Shell
         private void OnPickCancelled(string _) => Fail("cancelled");
 
         // reason is already a fixed code from CatPicker.swift ("read_failed",
-        // "save_failed", "no_window") — never a sentence; see the class
-        // summary above.
+        // "save_failed", "no_window") or from CatPickActivity.java
+        // ("read_failed", "no_window", "unavailable") — never a sentence; see
+        // the class summary above.
         private void OnPickFailed(string reason) => Fail(reason);
 
         // what is "camera" today and only ever a bare code, not prose; the

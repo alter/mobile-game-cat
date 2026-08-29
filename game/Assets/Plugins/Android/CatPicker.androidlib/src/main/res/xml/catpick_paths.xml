@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one directory this plug-in will ever serve a content:// URI from, and
+  the only place a photograph is ever written.
+
+  <cache-path> is getCacheDir() - "Represents files in the cache subdirectory
+  of your app's internal storage area. The root path of this subdirectory is
+  the same as the value returned by getCacheDir()"
+  (developer.android.com/reference/androidx/core/content/FileProvider,
+  "Specifying Available Files").
+
+  path="catpick/" must stay in step with CatPicker.DIRECTORY. name="photo" is
+  the URI path segment the camera app sees; it deliberately does not spell out
+  the real directory, which is what the name/path split is for.
+
+  Internal cache, not external and not MediaStore: a photograph written to
+  MediaStore.Images would land in the player's gallery and outlive the run,
+  which is the one thing this feature must never do. Internal cache also costs
+  no permission on any API level, and CatPicker empties this directory at the
+  start of every pick as well as after the bytes have been handed to Unity.
+-->
+<paths>
+    <cache-path name="photo" path="catpick/" />
+</paths>

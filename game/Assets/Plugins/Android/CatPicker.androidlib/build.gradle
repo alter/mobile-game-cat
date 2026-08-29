@@ -1,0 +1,77 @@
+// Task 90-android/photo: the Android half of Shell/CatPicker.cs and
+// Shell/CatPhoto.cs. Shaped exactly like CatShare.androidlib next door, which
+// is itself shaped like the one .androidlib Unity 6000.3 already ships
+// (Library/PackageCache/com.unity.mobile.notifications@*/Runtime/Android/
+// Plugins/mobilenotifications.androidlib/build.gradle): same plugin id, same
+// way of reading compileSdk/buildTools off :unityLibrary, same
+// api files('../libs/unity-classes.jar') for com.unity3d.player.UnityPlayer.
+//
+// A real library module rather than a loose .java file under
+// Assets/Plugins/Android, for the same reason CatShare needs one: this plug-in
+// carries resources (res/xml/catpick_paths.xml) and a manifest of its own (a
+// proxy Activity and a FileProvider), and a loose .java file can carry
+// neither.
+
+plugins {
+    id 'com.android.library'
+}
+
+// androidx.core 1.13.x requires compileSdk 34 or newer. Same floor, same
+// reason, as CatShare.androidlib.
+def compileSdkFor(unityLib) {
+    def version = unityLib.compileSdkVersion.find('\\d+').toInteger()
+    return version < 34 ? 34 : version
+}
+
+android {
+    namespace "com.catshelter.picker"
+
+    def unityLib = project(':unityLibrary').extensions.getByName('android')
+    compileSdkVersion compileSdkFor(unityLib)
+    buildToolsVersion unityLib.buildToolsVersion
+
+    defaultConfig {
+        // Matches ProjectSettings AndroidMinSdkVersion: 33.
+        //
+        // 33 is exactly what this plug-in wants and nothing here wants more.
+        // MediaStore.ACTION_PICK_IMAGES is API 33, so on this floor it is
+        // simply there: no isPhotoPickerAvailable() shim, no SdkExtensions
+        // check, no Play-services backport, and no ACTION_GET_CONTENT
+        // fallback. Everything else is older still - ACTION_IMAGE_CAPTURE and
+        // FileProvider predate the project, BitmapRegionDecoder's byte-array
+        // newInstance without the deprecated boolean is 31, and
+        // android.media.ExifInterface's InputStream constructor is 24.
+        //
+        // This must not be allowed to drift below the app's own floor: AGP
+        // fails the manifest merge if a library asks for more than the
+        // application, which is the loud failure we want rather than
+        // ACTION_PICK_IMAGES quietly running on a device that has never had
+        // it.
+        minSdkVersion 33
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // com.unity3d.player.UnityPlayer, for currentActivity and
+    // UnitySendMessage. Relative to where Unity copies this folder in the
+    // generated Gradle project (a sibling of unityLibrary/libs).
+    api files('../libs/unity-classes.jar')
+
+    // androidx.core.content.FileProvider, for the camera's EXTRA_OUTPUT URI.
+    // Needs android.useAndroidX=true, which is already in
+    // Assets/Plugins/Android/gradleTemplate.properties for CatShare.
+    implementation 'androidx.core:core:1.13.1'
+
+    // Same kotlin-stdlib duplicate-class problem CatShare.androidlib
+    // documents (https://issuetracker.google.com/278545487): androidx.core
+    // 1.13 pulls kotlin-stdlib 1.8.22 while something else here still asks
+    // for kotlin-stdlib-jdk7/jdk8 1.6.21, and :launcher's
+    // checkReleaseDuplicateClasses fails on the overlap. The BOM aligns them.
+    // `api` so the constraint reaches the consuming module.
+    api platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
+}

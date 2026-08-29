@@ -32,6 +32,38 @@ namespace CatShelter.Shell
             // app:open, the denominator every other number is read against.
             Core.Analytics.AppOpen();
 
+            // Start Google Play services fetching the subject-segmentation
+            // module now, at the first instruction of the app's life, because
+            // the download is what decides whether the player's FIRST cat is
+            // read properly or guessed.
+            //
+            // The model is not in our APK — it cannot be, ML Kit publishes
+            // subject segmentation only as a Play services optional module
+            // (see CatVision.androidlib/build.gradle). Until it lands, every
+            // call throws "Waiting for the subject segmentation optional module
+            // to be downloaded", CatVision reports no mask, and CatCoat falls
+            // back to the old centre-of-frame colour mean — one of six colours,
+            // pattern always "solid".
+            //
+            // Which is exactly what the owner saw on 2026-08-30: a black, a
+            // white and a brown cat photographed in one room came back as three
+            // identical ginger cats. The whole point of the reading is the first
+            // photograph, and the first photograph was the one guaranteed to
+            // miss it.
+            //
+            // `Prepare` was written for this — its own summary says "so the
+            // first photograph a player picks does not pay for the download" —
+            // and until now it was called from nowhere. Third time tonight that
+            // a finished piece of this game turned out to have no caller:
+            // CaptureScreen.AskWorker and CatCardScreen's Hide were the others.
+            //
+            // Here rather than on the capture screen, though its summary
+            // suggests that: boot is earlier by the whole of the loading screen
+            // and the room choice, and the download needs every second it can
+            // get. It does not block, it returns ready/requested/unavailable,
+            // and off Android it is a no-op.
+            Debug.Log($"[GameBoot] subject segmentation: {CatVision.Prepare()}");
+
             // Does nothing unless a `visiontest` folder was pushed into the
             // app container; see VisionSelfTest.
             VisionSelfTest.RunIfRequested();

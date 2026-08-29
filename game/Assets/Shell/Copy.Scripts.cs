@@ -232,7 +232,11 @@ namespace CatShelter.Shell
                 // "Got her." — she is with us now. Not 完成, which is the
                 // register of a progress bar finishing.
                 ["photo.accepted"] = "她到我们这儿了。",
-                ["photo.our_fault"] = "是我们这边出了问题。那张再试一次？",
+                // "那张再试一次？" until 2026-08-29: it named the same photo,
+                // which is the one thing that fails identically every time on
+                // every path that shows this line. See the English table. The
+                // tail is `capture.skipped`, the button standing below.
+                ["photo.our_fault"] = "是我们这边出了问题。换一张也许就行，小猫都会等着你的。",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -374,7 +378,9 @@ namespace CatShelter.Shell
                 // 這裡, not 這兒: the 兒 suffix is northern-mainland speech and
                 // reads as an accent in Taipei.
                 ["photo.accepted"] = "她到我們這裡了。",
-                ["photo.our_fault"] = "是我們這邊出了問題。那張再試一次？",
+                // "那張再試一次？" until 2026-08-29 — see the English table.
+                // The tail is `capture.skipped`, the button standing below.
+                ["photo.our_fault"] = "是我們這邊出了問題。換一張也許就行，小貓都會等著你的。",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added — see the Simplified
@@ -562,7 +568,13 @@ namespace CatShelter.Shell
                 // 謙譲語 on purpose, and the only place in the table: this is
                 // the moment the game takes custody of somebody's real cat.
                 ["photo.accepted"] = "お預かりしました。",
-                ["photo.our_fault"] = "こちらで問題が起きました。同じ写真をもう一度お願いできますか。",
+                // "同じ写真をもう一度お願いできますか。" until 2026-08-29 — it
+                // asked for the SAME photograph, which is precisely the one
+                // thing that fails the same way every time. See the English
+                // table. The tail is `capture.skipped`, the button below.
+                ["photo.our_fault"] =
+                    "こちらで問題が起きました。別の写真ならうまくいくかもしれません。" +
+                    "どちらでも、子猫は待っています。",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -740,7 +752,13 @@ namespace CatShelter.Shell
                 // "Got her." — she is with us now. Not 완료, which is the
                 // register of a progress bar finishing.
                 ["photo.accepted"] = "이제 저희가 데리고 있어요.",
-                ["photo.our_fault"] = "저희 쪽에서 문제가 생겼어요. 그 사진으로 한 번 더 해볼까요?",
+                // "그 사진으로 한 번 더 해볼까요?" until 2026-08-29 — "그 사진",
+                // that same photo, is the one retry that cannot work. See the
+                // English table. The tail is `capture.skipped`, the button
+                // standing below.
+                ["photo.our_fault"] =
+                    "저희 쪽에서 문제가 생겼어요. 다른 사진이면 될 수도 있어요. " +
+                    "그래도 아기 고양이는 기다리고 있어요.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -922,7 +940,15 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "ดูเหมือนสุนัข น่ารักนะ แต่ที่นี่เป็นบ้านพักของแมว",
                 ["photo.unclear"] = "มีแมวอยู่ แต่เบลอเกินกว่าจะลอกสีขน อีกรูปตอนเธออยู่นิ่ง ๆ ได้ไหม",
                 ["photo.accepted"] = "รับเธอไว้แล้ว",
-                ["photo.our_fault"] = "มีบางอย่างผิดพลาดทางเรา ลองรูปนั้นอีกครั้งไหม",
+                // "ลองรูปนั้นอีกครั้งไหม" until 2026-08-29 — "รูปนั้น", that same
+                // picture, is the retry that cannot work. See the English
+                // table. The tail is `capture.skipped`, the button below.
+                //
+                // Clause-spaced by hand, like the rest of this table: Thai
+                // writes no spaces between words and this build ships no ICU
+                // dictionary to break lines with (NOTES-scripts.md), so the
+                // spaces here ARE the line-break opportunities.
+                ["photo.our_fault"] = "มีบางอย่างผิดพลาดทางเรา รูปอื่นอาจใช้ได้ ลูกแมว รออยู่เสมอ",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -1137,7 +1163,13 @@ namespace CatShelter.Shell
                 ["photo.unclear"] = "هناك قطّة، لكنّ الصورة ضبابية ولا يمكن نقل ألوانها. صورة أخرى وهي ساكنة؟",
                 // "Got her." — she is with us now.
                 ["photo.accepted"] = "أصبحت عندنا.",
-                ["photo.our_fault"] = "حدث خطأ من جهتنا. تلك الصورة مرّة أخرى؟",
+                // "تلك الصورة مرّة أخرى؟" until 2026-08-29 — "تلك الصورة", that
+                // same picture, is the one retry that cannot work. See the
+                // English table. The tail is `capture.skipped`, the button
+                // standing below.
+                ["photo.our_fault"] =
+                    "حدث خطأ من جهتنا. قد تنفع صورة أخرى، " +
+                    "والهرّة بانتظارك على أيّ حال.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -1344,7 +1376,12 @@ namespace CatShelter.Shell
                 ["photo.unclear"] = "बिल्ली तो है, पर धुँधली — रंग नहीं उतर पाएगा। एक और, जब वह शांत बैठी हो?",
                 // "Got her." — she is with us now.
                 ["photo.accepted"] = "वह अब हमारे पास है।",
-                ["photo.our_fault"] = "हमारी तरफ़ कुछ गड़बड़ हो गई। वही फ़ोटो एक बार और?",
+                // "वही फ़ोटो एक बार और?" until 2026-08-29 — "वही फ़ोटो", that very
+                // photo, is the one retry that cannot work. See the English
+                // table. The tail is `capture.skipped`, the button below.
+                ["photo.our_fault"] =
+                    "हमारी तरफ़ कुछ गड़बड़ हो गई। कोई दूसरी फ़ोटो शायद चल जाए, " +
+                    "और नन्ही बिल्ली वैसे भी आपका इंतज़ार कर रही है।",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52

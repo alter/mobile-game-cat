@@ -1279,6 +1279,64 @@ namespace CatShelter.View
 
             if (_endingKitten != null) _endingKitten.style.display = DisplayStyle.Flex;
             if (_endingActions != null) _endingActions.style.display = DisplayStyle.Flex;
+
+            ShowTheWayOff();
+        }
+
+        /// <summary>
+        /// Put the plaque that leads back to the house ON TOP of the ending
+        /// card, so the last screen of the game is not a room with the door
+        /// painted on.
+        ///
+        /// **The complaint, from a full playthrough on 2026-08-29.** After the
+        /// twelfth room the card appears and there is nothing to do. It carries
+        /// no primary button by design — `ShowCard(..., null, null, ...)` — the
+        /// back arrow in the corner does not answer a tap, and there is no
+        /// close. The game's last impression is being trapped.
+        ///
+        /// **Why the arrow was inert, and why that reason has expired.** The
+        /// plaque is `HouseMapView.AddReturnToMap`'s, inserted BEFORE the
+        /// overlay in `game-root` on purpose: an element in front of the card's
+        /// scrim is dimmed by it and cannot be tapped through it, which is
+        /// wanted while a card is up. That doc names the danger exactly —
+        /// `Finish` used to CLEAR the save when the house was finished, so
+        /// leaving to the map from this card would have put a player who
+        /// cleared twelve rooms back at room 1 with no way to argue. Since
+        /// 2026-08-29 this branch does the opposite: it WRITES the board and
+        /// the progress (`Shell.SaveFile.Write(GameSave.Write(_board,
+        /// _progress))`, a few lines above), so the map redraws a house with
+        /// twelve ticks on it. The exit is now safe on this one card, and only
+        /// on this one — the lose card still clears the save and its plaque
+        /// stays where it is.
+        ///
+        /// **Moved, not rebuilt.** Later siblings paint later and are picked
+        /// first, so re-adding the same element at the end of the same parent
+        /// is the whole fix: no second exit to keep in step with the first, no
+        /// navigation logic duplicated out of `HouseMapView`, and the button a
+        /// player has been pressing all game is the button that works here.
+        /// Nothing about the card itself changes — it says what it said, offers
+        /// what it offered, and still does not propose starting over.
+        ///
+        /// A board reached through `board.txt` has no plaque to lift, because
+        /// nothing put one there: that flag is documented in `GameBoot` as
+        /// having no way back to the map on purpose. Said out loud in the log
+        /// rather than passed over, because "the ending card had no exit" is
+        /// exactly the report this method exists to answer.
+        /// </summary>
+        private void ShowTheWayOff()
+        {
+            var host = _overlay?.parent;
+            var plaque = host?.Q("to-map");
+            if (plaque == null || plaque.parent != host)
+            {
+                Debug.LogWarning("[Board] ending card: no to-map plaque to lift — " +
+                                 "this board was not entered from the house map");
+                return;
+            }
+
+            host.Remove(plaque);
+            host.Add(plaque);
+            Debug.Log("[Board] ending card: the way back to the house is above it");
         }
 
         private void HideEndingExtras()

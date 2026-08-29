@@ -234,7 +234,14 @@ namespace CatShelter.Shell
                 // "Got her." — she is with us now, not "Listo", which is the
                 // register of a progress bar finishing.
                 ["photo.accepted"] = "Ya está con nosotros.",
-                ["photo.our_fault"] = "Algo falló de nuestro lado. ¿Lo intentas otra vez?",
+                // "¿Lo intentas otra vez?" until 2026-08-29: the one
+                // instruction on the screen that could only fail again. Another
+                // photo is the move that can work, and the second half is
+                // `capture.skipped` word for word — it names the button
+                // standing right below.
+                ["photo.our_fault"] =
+                    "Algo falló de nuestro lado. Otra foto puede funcionar, " +
+                    "y una gatita te espera igual.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -378,7 +385,12 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "Parece um cachorro. Lindo, mas este abrigo é para gatas.",
                 ["photo.unclear"] = "Tem uma gata, mas está borrada demais para copiar a cor. Mais uma, com ela parada?",
                 ["photo.accepted"] = "Ela está com a gente.",
-                ["photo.our_fault"] = "Algo deu errado do nosso lado. Tenta de novo?",
+                // "Tenta de novo?" until 2026-08-29 — see the English table for
+                // why a retry was the one move guaranteed to fail. The tail is
+                // `capture.skipped`, which is the button below this line.
+                ["photo.our_fault"] =
+                    "Algo deu errado do nosso lado. Outra foto pode dar certo, " +
+                    "e uma gatinha espera por você de todo jeito.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -517,7 +529,11 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "On dirait un chien. Beau, mais ce refuge est pour les chats.",
                 ["photo.unclear"] = "Une chatte, mais trop floue pour copier sa robe. Une autre, pendant qu'elle ne bouge pas ?",
                 ["photo.accepted"] = "Elle est chez nous.",
-                ["photo.our_fault"] = "Quelque chose a échoué de notre côté. On réessaie ?",
+                // "On réessaie ?" until 2026-08-29 — see the English table. The
+                // tail is `capture.skipped`, the button standing below.
+                ["photo.our_fault"] =
+                    "Quelque chose a échoué de notre côté. Une autre photo peut marcher, " +
+                    "et un chaton vous attend de toute façon.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -684,7 +700,12 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "Das sieht nach einem Hund aus. Schön, aber dieses Heim ist für Katzen.",
                 ["photo.unclear"] = "Eine Katze, aber zu unscharf für ihr Fell. Noch eines, während sie still hält?",
                 ["photo.accepted"] = "Sie ist bei uns.",
-                ["photo.our_fault"] = "Bei uns ist etwas schiefgegangen. Versuchst du es noch einmal?",
+                // "Versuchst du es noch einmal?" until 2026-08-29 — see the
+                // English table. The tail is `capture.skipped`, the button
+                // standing below.
+                ["photo.our_fault"] =
+                    "Bei uns ist etwas schiefgegangen. Ein anderes Foto klappt vielleicht, " +
+                    "und ein Kätzchen wartet so oder so auf dich.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note. "Deine" dropped for
@@ -817,7 +838,11 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "Sembra un cane. Bello, ma questo rifugio è per gatte.",
                 ["photo.unclear"] = "C'è una gatta, ma è troppo sfocata per copiare il mantello. Un'altra, mentre sta ferma?",
                 ["photo.accepted"] = "Ora è con noi.",
-                ["photo.our_fault"] = "Qualcosa è andato storto da parte nostra. Vuoi riprovare?",
+                // "Vuoi riprovare?" until 2026-08-29 — see the English table.
+                // The tail is `capture.skipped`, the button standing below.
+                ["photo.our_fault"] =
+                    "Qualcosa è andato storto da parte nostra. Un'altra foto può funzionare, " +
+                    "e una gattina ti aspetta comunque.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -967,7 +992,12 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "Bu bir köpeğe benziyor. Çok tatlı, ama burası kediler için bir barınak.",
                 ["photo.unclear"] = "Kedi var ama rengini almak için fazla bulanık. O dururken bir tane daha?",
                 ["photo.accepted"] = "O artık bizde.",
-                ["photo.our_fault"] = "Bizim tarafımızda bir şey ters gitti. Bir daha denemek ister misiniz?",
+                // "Bir daha denemek ister misiniz?" until 2026-08-29 — see the
+                // English table. The tail is `capture.skipped`, the button
+                // standing below.
+                ["photo.our_fault"] =
+                    "Bizim tarafımızda bir şey ters gitti. Başka bir fotoğraf işe yarayabilir, " +
+                    "bir yavru kedi yine de sizi bekliyor.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -1114,7 +1144,11 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "Ini sepertinya anjing. Lucu, tapi tempat ini untuk kucing.",
                 ["photo.unclear"] = "Ada kucing, tapi terlalu buram untuk menyalin warnanya. Sekali lagi, saat dia diam?",
                 ["photo.accepted"] = "Dia sudah bersama kami.",
-                ["photo.our_fault"] = "Ada yang salah di pihak kami. Coba sekali lagi?",
+                // "Coba sekali lagi?" until 2026-08-29 — see the English table.
+                // The tail is `capture.skipped`, the button standing below.
+                ["photo.our_fault"] =
+                    "Ada yang salah di pihak kami. Foto lain mungkin berhasil, " +
+                    "dan seekor anak kucing tetap menunggu Anda.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -1277,7 +1311,12 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "Trông giống một chú chó. Dễ thương lắm, nhưng nhà này dành cho mèo.",
                 ["photo.unclear"] = "Có mèo, nhưng ảnh mờ quá nên không chép được màu lông. Thêm một tấm lúc mèo ngồi yên nhé?",
                 ["photo.accepted"] = "Mèo về với nhà rồi.",
-                ["photo.our_fault"] = "Có gì đó hỏng ở phía bên này. Thử lại tấm ấy nhé?",
+                // "Thử lại tấm ấy nhé?" until 2026-08-29, and it named the one
+                // move that could only fail again — "tấm ấy", that same photo.
+                // The tail is `capture.skipped`, the button standing below.
+                ["photo.our_fault"] =
+                    "Có gì đó hỏng ở phía bên này. Một tấm khác có thể được, " +
+                    "và vẫn có một chú mèo con đang đợi bạn.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.

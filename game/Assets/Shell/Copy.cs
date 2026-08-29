@@ -377,7 +377,38 @@ namespace CatShelter.Shell
                 ["photo.dog"] = "That looks like a dog. Lovely, but this shelter is for cats.",
                 ["photo.unclear"] = "A cat, but too blurry to copy her colours. One more, holding still?",
                 ["photo.accepted"] = "Got her.",
-                ["photo.our_fault"] = "Something went wrong on our side. Try that one again?",
+                // THE ONE MESSAGE ON THIS SCREEN THAT IS NOT ABOUT THE PHOTO.
+                // Three paths reach it and none of them is a judgement about
+                // the picture: the recogniser could not run at all
+                // (CaptureScreen.Handle, `answer.Failed`), the crop failed
+                // after a cat was found, or the picker itself failed with any
+                // code but "cancelled" — including "unavailable", which means
+                // there is no picker on this device to open.
+                //
+                // The second sentence read "Try that one again?" until
+                // 2026-08-29, and it was the one instruction on the screen
+                // guaranteed not to work. Every path above fails the same way
+                // on the same photo, every time: a picture the decoder cannot
+                // read is not readable on the second tap, and a picker that
+                // will not open does not open twice. It sent a player who had
+                // done nothing wrong into a loop, and the loop looked like her
+                // fault because she was the one repeating it.
+                //
+                // What replaces it is two things that can actually happen. A
+                // DIFFERENT photo is a real move — the failures above are about
+                // this file and this moment, not about her cat — and the skip
+                // control is standing right underneath, which is why the line
+                // ends by pointing at it in the same words `capture.skipped`
+                // uses. The first sentence is unchanged: it was already true
+                // and already put the fault where it belongs.
+                //
+                // No placeholder, and none may be added: `CaptureScreen` reads
+                // this through `Copy.Of(key)` with no arguments. A reason code
+                // formatted into a sentence here is exactly what "capture.failed"
+                // did, and why it is gone (see above).
+                ["photo.our_fault"] =
+                    "Something went wrong on our side. Another photo may work — " +
+                    "and a kitten is waiting either way.",
 
                 // --- the evening reminder ------------------------------------
                 // The kitten never gets sick: a discovery, not a chore and not
@@ -596,7 +627,15 @@ namespace CatShelter.Shell
                 // "Got her." — "она у нас", we have her now. Not "Готово",
                 // which is the register of a progress bar finishing.
                 ["photo.accepted"] = "Она у нас.",
-                ["photo.our_fault"] = "Что-то пошло не так на нашей стороне. Попробуете ещё раз?",
+                // "Попробуете ещё раз?" until 2026-08-29 — the same false
+                // instruction the English carried, and false for the same
+                // reason: every path that shows this line fails identically on
+                // the same photo. "Другое фото" is the move that can work;
+                // "котёнок всё равно ждёт" is `capture.skipped` word for word,
+                // because it names the button standing right below.
+                ["photo.our_fault"] =
+                    "Что-то пошло не так на нашей стороне. Может помочь другое фото — " +
+                    "и котёнок всё равно вас ждёт.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52

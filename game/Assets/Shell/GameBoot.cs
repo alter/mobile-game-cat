@@ -428,25 +428,17 @@ namespace CatShelter.Shell
             FontFallbacks.Attach(uid.rootVisualElement);
             ApplyTextDirection(uid);
             LayoutAudit.Attach(uid.rootVisualElement);
-            // The capture screen replaces the board when asked for. It is not
-            // yet the game's first screen — that arrives with 10-skip-default-cat,
-            // which decides what happens with no photo at all. Until then it is
-            // reachable for checking, by dropping a `capture.txt` next to the save.
-            // A photo accepted here now leads straight into meet-your-cat
+            // The capture screen on demand, for checking: drop a `capture.txt`
+            // next to the save. Since 50-photo/10 it is also the game's own
+            // first screen — the first-run branch further down — and this flag
+            // now means "offer the photograph again, whatever is already
+            // saved", which is exactly what a first-run gate takes away.
+            // A photo accepted here leads straight into meet-your-cat
             // (50-photo/09): traits in, her named cat out.
             if (CaptureRequested())
             {
                 Debug.Log("[GameBoot] branch=capture");
-                var screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
-                SafeBuild("the capture screen", uid.rootVisualElement,
-                          () => screen.Build(uid.rootVisualElement));
-                screen.OnAccepted = photo => Report($"accepted a {photo.Length}-byte photo");
-                screen.OnCatReady = traits =>
-                {
-                    Report($"cat ready ({traits.Origin}): {traits}");
-                    screen.Hide();
-                    ShowMeetYourCat(uid.rootVisualElement, traits);
-                };
+                var screen = ShowCapture(uid.rootVisualElement);
 
                 // capture.txt may name a photo in the same folder: the pipeline
                 // then runs on it without anyone tapping, which is the only way
@@ -466,6 +458,7 @@ namespace CatShelter.Shell
                 {
                     StartCoroutine(RunAndReport(screen, named));
                 }
+                BootState("capture", uid);
                 return;
             }
 
@@ -543,6 +536,46 @@ namespace CatShelter.Shell
                 return;
             }
 
+            // **The photograph comes first, and it comes once** (50-photo/10).
+            //
+            // Everything behind it worked and nobody could reach it. The
+            // capture screen, the animal recognition, the colour estimate, the
+            // crop and the marks have been finished and measured since 28.08,
+            // and until today the only way to see any of it was to push a
+            // `capture.txt` into the app container by hand. The game promises
+            // "it is her cat" and no player was ever asked for a cat. A full
+            // playthrough on both platforms on 2026-08-29 is what said so out
+            // loud.
+            //
+            // **Asked once, not every launch.** The gate is the saved cat, not
+            // a "have we asked" flag: the two would be one fact kept in two
+            // places, and the day they disagree the game either asks a player
+            // who already has a cat or shows the map to one who has none. The
+            // save is written the moment she confirms a name
+            // (<see cref="ShowMeetYourCat"/>), so quitting before that means
+            // being asked again — which is right, because she never answered.
+            //
+            // **Skipping is a supported path, not a dead end.** The skip
+            // control is on the capture screen already; what it lacked was a
+            // screen to be on. It hands `CatTraits.Default` to the same
+            // meet-your-cat screen a photographed cat reaches, so a player who
+            // skips is named, saved and playing with no camera, no permission
+            // and no network — the two conditions this task's VERIFY names.
+            // The share of players who take it is one of the numbers this
+            // project watches (cat-shelter-mvp.md section 5); recording that
+            // number is 70-analytics and not this.
+            //
+            // Placed after every debug flag above and before the map below, so
+            // `board.txt`, `coat.txt`, `meet.txt` and `glyphs.txt` still open
+            // what they name on a device that has never met a cat.
+            if (!HasACat())
+            {
+                Debug.Log("[GameBoot] branch=first-run");
+                ShowCapture(uid.rootVisualElement);
+                BootState("first-run", uid);
+                return;
+            }
+
             // **The house map is the game's first screen** (60-shell-build/03).
             //
             // Until 2026-08-28 this line built the board, and the map was
@@ -590,8 +623,58 @@ namespace CatShelter.Shell
         }
 
         /// <summary>
+        /// Has this player already answered the question the first run asks?
+        ///
+        /// The saved cat IS the answer, which is why nothing else is stored to
+        /// remember that it was asked. `CatSave.Read` returns null for a
+        /// missing file and for a corrupt one alike (its own promise), and both
+        /// mean the same thing here: there is no cat to play as, so offer the
+        /// photograph. A player whose save was damaged is asked once more
+        /// rather than dropped into the house with `CatTraits.Default` and no
+        /// idea where her cat went.
+        /// </summary>
+        private static bool HasACat()
+        {
+            return CatShelter.Core.CatSave.Read(CatShelter.Shell.CatSaveFile.Read()) != null;
+        }
+
+        /// <summary>
+        /// Build the capture screen and wire what comes after it.
+        ///
+        /// One method for both callers — the `capture.txt` flag and the first
+        /// run — so the checking route exercises the player's route rather than
+        /// a parallel copy of it. The flag adds a stubbed Vision answer and a
+        /// photo to push through the pipeline; everything else, including where
+        /// an accepted or skipped cat goes next, is the same code.
+        /// </summary>
+        private CatShelter.View.CaptureScreen ShowCapture(VisualElement root)
+        {
+            var screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
+            SafeBuild("the capture screen", root, () => screen.Build(root));
+            screen.OnAccepted = photo => Report($"accepted a {photo.Length}-byte photo");
+            screen.OnCatReady = traits =>
+            {
+                // Both ways off this screen arrive here: a photograph the
+                // pipeline finished with, and the skip control's fixed
+                // `CatTraits.Default`. They are indistinguishable from this
+                // point on except by `traits.Origin`, which is the whole point
+                // of the skip path — she gets a real cat, not a lesser one.
+                Report($"cat ready ({traits.Origin}): {traits}");
+                screen.Hide();
+                ShowMeetYourCat(root, traits);
+            };
+            return screen;
+        }
+
+        /// <summary>
         /// Build and show 50-photo/09, wired to persist the named cat
-        /// beside the board save the moment she confirms it.
+        /// beside the board save the moment she confirms it — and then to
+        /// take her into the house.
+        ///
+        /// Confirming used to do the first half only. Measured by a pixel diff
+        /// across the tap on 2026-08-29: the screen before and the screen after
+        /// were identical files. The name was saved and the player was left
+        /// looking at the cat she had just named with nothing to press.
         /// </summary>
         private void ShowMeetYourCat(VisualElement root, CatShelter.Core.CatTraits traits,
                                      string initialName = null)
@@ -600,9 +683,118 @@ namespace CatShelter.Shell
             screen.Build(root, traits, initialName);
             screen.OnNamed = cat =>
             {
+                // Saved BEFORE the swap, not after it. The house map's own
+                // build reads the disk, and a cat written afterwards would be a
+                // cat the first screen of the game does not know about; worse,
+                // anything thrown on the way to the map would cost her the name
+                // she just typed.
                 CatShelter.Shell.CatSaveFile.Write(CatShelter.Core.CatSave.Write(cat));
                 Report($"cat named: {cat.Name}");
+                GoToTheHouse(root);
             };
+        }
+
+        /// <summary>
+        /// Leave meet-your-cat for the house map — the game's first screen for
+        /// everyone who already has a cat, and now the screen the photo flow
+        /// hands over to.
+        ///
+        /// **Not during the tap, and not on the next tick either.** Both rules
+        /// are HouseMapView.StartPlaying's, learned there and holding here for
+        /// the same two reasons: the element under the finger is inside the
+        /// tree this swap destroys, and UI Toolkit is still walking the
+        /// propagation path through it; and a waiting indicator that is created
+        /// and destroyed before a repaint is worse than none, because it looks
+        /// like the problem is solved. 120ms is that file's measured number and
+        /// this is the same panel — do not change one without the other.
+        ///
+        /// The map's own Build() clears the panel, which is what takes the
+        /// meet-your-cat tree and the veil off screen; the two screens'
+        /// components are destroyed here so nothing is left holding elements
+        /// that no longer exist.
+        /// </summary>
+        private void GoToTheHouse(VisualElement root)
+        {
+            if (root == null) return;
+            Waiting(root);
+            root.schedule.Execute(() =>
+            {
+                foreach (var s in GetComponents<CatShelter.View.MeetYourCatScreen>())
+                    Destroy(s);
+                foreach (var s in GetComponents<CatShelter.View.CaptureScreen>())
+                    Destroy(s);
+
+                Debug.Log("[GameBoot] branch=map (after the photograph)");
+                SafeBuild("the house map", root, () =>
+                {
+                    if (GetComponent<CatShelter.View.HouseMapView>() == null)
+                        gameObject.AddComponent<CatShelter.View.HouseMapView>();
+                });
+            }).ExecuteLater(120);
+        }
+
+        /// <summary>
+        /// A bar that slides back and forth over whatever is on screen, and no
+        /// words on it.
+        ///
+        /// The house map is not free — it parses all thirty-seven level files
+        /// through `LevelAssets.LoadAll` before it can draw a single room, and
+        /// that blocks the main thread for over a second. The owner played a
+        /// build where a tap bought that silence and read it exactly as a
+        /// person would: "кликаю - ничего не происходит... юзер не понимает что
+        /// происходит, кликает и раздражается, что все зависло."
+        ///
+        /// Wordless on purpose, and it is the same choice
+        /// `HouseMapView.ShowOpening(root, null)` already makes on the way back
+        /// from the board: there is no honest one-word label for this moment
+        /// that is not either "Loading" — engine vocabulary the game uses
+        /// nowhere — or a new copy key in seventeen tables for something on
+        /// screen for a second and a half. Not a percentage either: the work
+        /// behind it has no measurable progress and a number that jumps 0 to
+        /// 100 lies more than no number does.
+        /// </summary>
+        private static void Waiting(VisualElement root)
+        {
+            var veil = new VisualElement { name = "waiting" };
+            veil.style.position = Position.Absolute;
+            veil.style.left = veil.style.right = veil.style.top = veil.style.bottom = 0;
+            veil.style.backgroundColor = new Color(0.957f, 0.918f, 0.847f, 0.92f);
+            veil.style.alignItems = Align.Center;
+            veil.style.justifyContent = Justify.Center;
+            // Swallows further taps: the name field is still under this until
+            // the map replaces it, and a second "That's her" would write the
+            // save twice and schedule a second map.
+            veil.pickingMode = PickingMode.Position;
+
+            var track = new VisualElement();
+            track.style.width = 168;
+            track.style.height = 5;
+            track.style.backgroundColor = new Color(0.84f, 0.78f, 0.66f);
+            track.style.borderTopLeftRadius = track.style.borderTopRightRadius =
+                track.style.borderBottomLeftRadius =
+                    track.style.borderBottomRightRadius = 3;
+
+            // Offset with `left` on a relatively-positioned child, not with an
+            // absolute one: the same shape HouseMapView's veil uses, and it is
+            // the shape that was actually seen moving on a device.
+            var bar = new VisualElement();
+            bar.style.height = Length.Percent(100);
+            bar.style.width = Length.Percent(34);
+            bar.style.backgroundColor = new Color(0.20f, 0.16f, 0.12f);
+            bar.style.borderTopLeftRadius = bar.style.borderTopRightRadius =
+                bar.style.borderBottomLeftRadius =
+                    bar.style.borderBottomRightRadius = 3;
+            track.Add(bar);
+            veil.Add(track);
+            root.Add(veil);
+
+            var step = 0;
+            veil.schedule.Execute(() =>
+            {
+                step = (step + 1) % 40;
+                var t = step < 20 ? step : 40 - step;   // 0..20..0
+                bar.style.left = Length.Percent(t * 3.3f);
+            }).Every(28);
         }
     }
 }

@@ -34,6 +34,22 @@ namespace CatShelter.View
         // so it is added here rather than sent back to be redrawn.
         private static readonly Color32 Ink = new(0x4A, 0x3B, 0x28, 0xFF);
 
+        /// <summary>
+        /// The lightness the coat colour is pinned to. Measured off the shipped
+        /// silhouette rather than chosen: the body of `cat_2_short_base`
+        /// averages 0.459 of full light. A pixel at this value comes out the
+        /// palette colour exactly.
+        /// </summary>
+        private const float Midtone = 0.459f;
+
+        /// <summary>
+        /// How far light and shadow move away from that colour. At 1.6 the
+        /// deepest shadow on the drawing (v = 0.02) lands at 0.30 of the coat
+        /// colour and the brightest highlight (v = 1.0) at 1.89, clipped — the
+        /// same range the drawing has, carried onto whatever colour the cat is.
+        /// </summary>
+        private const float Contrast = 1.6f;
+
         /// <summary>Coat colours, from the six base_color values. Multiplied
         /// into the greyscale base, so its light and shadow survive.</summary>
         private static readonly Dictionary<string, Color> Coats = new()
@@ -45,7 +61,15 @@ namespace CatShelter.View
             // it to 13 and the cat reads.
             ["ginger"] = new Color(186f / 255f, 108f / 255f, 52f / 255f),
             ["grey"] = new Color(0.60f, 0.62f, 0.65f),
-            ["black"] = new Color(0.28f, 0.26f, 0.26f),
+            // Darkened 2026-08-29, and the reason is the shading change above:
+            // the palette was tuned against the old multiply, where every value
+            // came out roughly half of what was written. Pinned to the mid-tone
+            // instead, 0.28 rendered a black cat at 0.25 of full light — a
+            // grey-brown tabby. The black cats in the reference photographs
+            // measure 0.08, 0.18 and 0.23 (cat_11, cat_04, cat_08), so 0.17
+            // puts her in the middle of what a black cat actually looks like
+            // and keeps the drawn light and shadow.
+            ["black"] = new Color(0.18f, 0.17f, 0.17f),
             ["white"] = new Color(0.96f, 0.94f, 0.90f),
             // Cream is the other coat that warning names. Darkened by the same
             // proportion rather than to a measured value, because the delivery
@@ -842,12 +866,29 @@ namespace CatShelter.View
                     continue;
                 }
 
-                // White fur is light fur, not the coat's own shading in white:
-                // multiplying a white marking by the greyscale value gave grey
-                // paws, which is what the pattern grid showed. The shading is
-                // compressed instead of applied at full depth, so the marking
-                // keeps its modelling and still reads as white.
-                float shade = Mathf.Lerp(v * 1.35f, 0.62f + v * 0.48f, white);
+                // The drawing's light is used as MODELLING around the coat
+                // colour, not as a multiplier up from black.
+                //
+                // Multiplying was the first version and it put a ceiling on the
+                // whole palette. The silhouette's own body averages 0.459 of
+                // full light, so `v * 1.35` averages 0.62, and a white cat —
+                // whose palette entry is 0.96 — came out at 0.51 measured over
+                // the body: mid-grey. Every colour was squeezed into 0.17..0.51
+                // and no cat could read as light-coloured at all. A white cat
+                // was not merely wrong, it was unreachable by construction.
+                //
+                // Centring on the drawing's mid-tone fixes that without losing
+                // the modelling: a pixel at the mid-tone comes out the coat
+                // colour exactly, darker pixels fall towards black and lighter
+                // ones rise towards white, in proportion. White lands near
+                // white, black stays black, and the light and shadow the artist
+                // drew survive in both.
+                float shade = 1f + Contrast * (v - Midtone) / Midtone;
+
+                // White markings keep the old treatment, compressed rather than
+                // applied at full depth: they are already the lightest thing on
+                // the cat and want less range, not more.
+                shade = Mathf.Lerp(shade, 0.62f + v * 0.48f, white);
 
                 px[i] = new Color32(
                     (byte)Mathf.Clamp(target.r * 255f * shade, 0, 255),

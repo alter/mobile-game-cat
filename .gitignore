@@ -43,3 +43,9 @@ analytics-keys.txt
 #    to type keys straight into it.
 game/Assets/Resources/GameAnalytics/
 game/Assets/Resources/GameAnalytics.meta
+
+# Шубы, построенные BakeTraitSet по снимкам из fixtures/reference-photos.
+# Это отчёт, а не содержимое игры: пересобираются одной командой, и держать
+# 3 МБ выходных картинок в истории незачем. Показания, из которых они
+# строятся, в tools/traits/reference-readings.json — вот они версионируются.
+tools/traits/out/

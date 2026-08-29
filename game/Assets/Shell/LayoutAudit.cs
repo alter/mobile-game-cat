@@ -62,13 +62,22 @@ namespace CatShelter.Shell
             if (_attached || root == null || !Requested) return;
             _attached = true;
 
-            // Debounced onto the next frame: during a layout pass the numbers
-            // are half-computed, and an audit that runs mid-pass invents faults
-            // that are not there.
-            root.RegisterCallback<GeometryChangedEvent>(_ =>
-                root.schedule.Execute(() => Walk(root)).ExecuteLater(0));
+            // On a timer, not on the root's GeometryChangedEvent.
+            //
+            // The first version listened to the root and so audited exactly once
+            // per launch. The Android sweep caught that and I had not: the root's
+            // own geometry does not change when one screen is swapped for another
+            // of the same size, so tapping from the map to the board to the cat
+            // card fired no event and ran no audit. Every screen past the first
+            // went unmeasured while the report read "0 faults" — a silence about
+            // screens nobody had looked at, which is the worst kind of green.
+            //
+            // A second apart is often enough to catch a screen a tap opened,
+            // cheap enough not to matter (this runs only when `lang.txt` asks
+            // for it), and indifferent to which element moved.
+            root.schedule.Execute(() => Walk(root)).Every(1000);
 
-            Debug.Log("[Layout] audit on");
+            Debug.Log("[Layout] audit on, every 1000ms");
         }
 
         private static void Walk(VisualElement root)

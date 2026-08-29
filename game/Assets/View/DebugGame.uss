@@ -407,6 +407,19 @@
     padding-right: 24px;
     align-items: center;
     min-width: 260px;
+    /* Until 2026-08-29 there was no maximum, and nothing noticed while the game
+       spoke two languages. Measured across seventeen on a 1080px screen: the
+       card ran 830px in English and 1062px in Indonesian — nine pixels of margin
+       a side. Nothing was clipped; the card had simply stopped being a card and
+       become a panel.
+
+       The widener was the title, which had no width of its own to obey and so
+       laid itself out on one line however long that line came out. The body was
+       already capped at 240.
+
+       320 leaves the body its designed width plus the 48 of padding, and holds
+       35 units of margin a side on a 390-unit panel. */
+    max-width: 320px;
 }
 
 .game__card-title {
@@ -414,6 +427,11 @@
     color: #4A3B28;
     -unity-font-style: bold;
     margin-bottom: 8px;
+    /* Wraps, now that there is an edge to wrap against. A German or Indonesian
+       title on two centred lines is a title; the same title pushing the card to
+       the screen edge is a layout bug. */
+    white-space: normal;
+    -unity-text-align: middle-center;
 }
 
 .game__card-body {

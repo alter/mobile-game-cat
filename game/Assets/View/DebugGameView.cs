@@ -1303,6 +1303,15 @@ namespace CatShelter.View
             _endingActions.style.flexDirection = FlexDirection.Row;
             _endingActions.style.alignItems = Align.Center;
             _endingActions.style.justifyContent = Justify.Center;
+            // Wraps, because the card no longer stretches to hold it. "Show
+            // someone" is twelve characters in English and twenty-two in
+            // Indonesian, and something has to give: before the card was capped
+            // (DebugGame.uss, 2026-08-29) what gave was the card, which grew to
+            // nine pixels off the edge of a 1080px screen. The heart dropping
+            // under a long button is a worse arrangement than the English one
+            // and a better one than a card that fills the screen.
+            _endingActions.style.flexWrap = Wrap.Wrap;
+            _endingActions.style.maxWidth = Length.Percent(100);
 
             // "Show someone". Hidden, not disabled, while nothing has been
             // wired to compose the picture — see RenderEndingCard.

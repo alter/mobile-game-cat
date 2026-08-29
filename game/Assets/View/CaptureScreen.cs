@@ -94,8 +94,21 @@ namespace CatShelter.View
             _message.style.color = ink;
             _message.style.unityTextAlign = TextAnchor.MiddleCenter;
 
-            _camera = new Button(() => Pick(fromCamera: true)) { text = Shell.Copy.Of("capture.camera") };
-            _gallery = new Button(() => Pick(fromCamera: false)) { text = Shell.Copy.Of("capture.gallery") };
+            // Through Buttons, not `new Button`. A bare Button wears UI
+            // Toolkit's default theme — a grey rectangle with a grey hairline —
+            // which is what this screen showed in all seventeen languages until
+            // 2026-08-29, when the sweep photographed it. Buttons.cs exists so
+            // that a control in this game looks like this game; the two screens
+            // built after it were simply never moved over.
+            //
+            // Taking the photograph is the prominent one; the gallery is the
+            // quiet alternative beside it.
+            _camera = Buttons.Primary(Shell.Copy.Of("capture.camera"),
+                                      () => Pick(fromCamera: true));
+            _gallery = Buttons.Secondary(Shell.Copy.Of("capture.gallery"),
+                                         () => Pick(fromCamera: false));
+            _camera.style.marginBottom = Buttons.Gap;
+            _gallery.style.marginBottom = Buttons.Gap;
 
             // A camera the device does not have is not a button to grey out,
             // it is a button not to show: an iPad without one, or a simulator.
@@ -106,7 +119,10 @@ namespace CatShelter.View
             // players who skip is one of the numbers this project watches
             // (cat-shelter-mvp.md section 5), so the control has to be plainly
             // there rather than hidden away.
-            _skip = new Button(Skip) { text = Shell.Copy.Of("capture.skip") };
+            // Quiet, like the gallery: skipping is supported, not steered
+            // towards. It was the only one of the three that already read as a
+            // choice rather than a default control, and only by accident.
+            _skip = Buttons.Secondary(Shell.Copy.Of("capture.skip"), Skip);
 
             _busy = new Label(Shell.Copy.Of("capture.looking"));
             _busy.style.color = ink;

@@ -95,58 +95,96 @@ namespace CatShelter.Shell
         }
 
         /// <summary>
-        /// Arabic reads right to left, and by default this game draws it left to
-        /// left — every letter present, the sentence backwards.
+        /// Puts the languages that need Unity 6's other text engine onto it, and
+        /// leaves the rest exactly where they were.
         ///
-        /// Measured, not assumed. The glyph harness draws a probe of four alifs
-        /// and a meem, "اااام", chosen so nobody needs to read Arabic to judge
-        /// it: an alif is a bare stroke, a meem is a small loop, and laid out
-        /// correctly the loop sits on the LEFT. On an Android device on
-        /// 2026-08-29 the standard text generator put the loop on the RIGHT and
-        /// the advanced one put it on the left. That is the whole reason this
-        /// method exists.
+        /// Two different faults, one switch. Arabic came out backwards — every
+        /// letter present, the sentence reversed, because the standard generator
+        /// does no bidirectional reordering. Chinese came out with a full stop
+        /// alone at the start of a line, because the standard generator has no
+        /// rule against breaking there. Both are what the advanced generator,
+        /// rebased on HarfBuzz and ICU, is for.
         ///
-        /// Applied at the panel root so it cascades to every screen, and applied
-        /// **only for Arabic**. The advanced generator is a different text engine
-        /// with its own metrics; switching the whole game to it to fix one
-        /// language would silently re-lay out sixteen others that were tested on
-        /// the standard one. Thai and Devanagari were checked on the same screen
-        /// and came out identical under both, so they stay where they are.
+        /// Applied at the panel root so it reaches every screen, and applied to
+        /// **those languages only**. It is a different engine with its own
+        /// metrics: switching the whole game to it would silently re-lay out
+        /// thirteen languages that were photographed on the standard one, to fix
+        /// four. Korean and Thai were checked and stay where they are — the
+        /// reasons are beside the list below.
         ///
-        /// Costs nothing for everyone else: a stylesheet that is never loaded
-        /// and a class that is never added.
+        /// Costs nothing for everyone else: a stylesheet never loaded and a class
+        /// never added.
         /// </summary>
         private static void ApplyTextDirection(UIDocument uid)
         {
             var root = uid != null ? uid.rootVisualElement : null;
             if (root == null) return;
 
-            // The language the copy actually resolved to, not the device's, so a
-            // table removed from Copy takes its text direction with it.
+            // Which languages need the other text engine, and why each one does.
             //
-            // Both halves matter. `For` answers English for any language it has
-            // no table for, so comparing against it alone would turn every
-            // English player's screen right-to-left the day the Arabic table is
-            // deleted — the check has to establish that Arabic exists as well as
-            // that we are in it.
-            var arabic = Copy.For(SystemLanguage.Arabic);
-            if (ReferenceEquals(arabic, Copy.English)) return;
-            if (!ReferenceEquals(Copy.Current, arabic)) return;
+            // Arabic: it reads right to left and the standard generator does no
+            // reordering. The glyph harness draws a probe of four alifs and a
+            // meem — an alif is a bare stroke, a meem a loop, so nobody needs to
+            // read Arabic to judge it — and on a device the standard generator
+            // put the loop on the wrong side. The sentence was backwards.
+            //
+            // Chinese and Japanese: line breaking. These scripts break between
+            // any two characters, and the rule that a line may not BEGIN with a
+            // full stop or a comma is a rule the standard generator does not
+            // have. The seventeen-language sweep on 2026-08-29 photographed the
+            // result on the "shelf jammed" card: 。 alone at the head of line
+            // two, in both simplified and traditional. The advanced generator
+            // carries ICU's line-breaking rules and does not do that.
+            //
+            // Korean is deliberately absent: it breaks on spaces like a European
+            // language, and the sweep found nothing wrong with it. So is Thai,
+            // which has no spaces at all — it needs a dictionary this build does
+            // not ship (`m_ICUDataAsset: {fileID: 0}`), and the advanced
+            // generator would not supply one. Its strings are clause-spaced by
+            // hand instead; see NOTES-scripts.md.
+            var rtl = false;
+            var advanced = false;
+
+            foreach (var language in new[]
+                     {
+                         SystemLanguage.Arabic,
+                         SystemLanguage.ChineseSimplified,
+                         SystemLanguage.ChineseTraditional,
+                         SystemLanguage.Chinese,
+                         SystemLanguage.Japanese,
+                     })
+            {
+                var table = Copy.For(language);
+                // `For` answers English for a language it has no table for, so
+                // comparing against it alone would put every English player on
+                // the other engine the day one of these tables is deleted. The
+                // check has to establish that the table exists as well as that
+                // we are in it.
+                if (ReferenceEquals(table, Copy.English)) continue;
+                if (!ReferenceEquals(Copy.Current, table)) continue;
+
+                advanced = true;
+                if (language == SystemLanguage.Arabic) rtl = true;
+                break;
+            }
+
+            if (!advanced) return;
 
             var sheet = Resources.Load<StyleSheet>("UI/AdvancedText");
             if (sheet == null)
             {
                 // Loud: the alternative is shipping Arabic backwards and finding
                 // out from a review in a language nobody here reads.
-                Debug.LogError("[GameBoot] Arabic needs Resources/UI/AdvancedText.uss " +
-                               "and it is missing — text will read backwards");
+                Debug.LogError("[GameBoot] Resources/UI/AdvancedText.uss is missing — " +
+                               "Arabic will read backwards and CJK will break lines " +
+                               "on a full stop");
                 return;
             }
 
             root.styleSheets.Add(sheet);
             root.AddToClassList("advanced-text");
-            root.AddToClassList("rtl");
-            Debug.Log("[GameBoot] arabic: advanced text generator, direction rtl");
+            if (rtl) root.AddToClassList("rtl");
+            Debug.Log($"[GameBoot] advanced text generator on, rtl={rtl}");
         }
 
         private static bool CaptureRequested()

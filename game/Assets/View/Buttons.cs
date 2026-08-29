@@ -115,9 +115,24 @@ namespace CatShelter.View
         public static Button Secondary(string label, Action onClick)
         {
             var b = Bare(onClick, Cream, Ink, borderWidth: 2f);
-            b.style.height = MinTarget;
+            // minHeight, not height, and a label that may wrap.
+            //
+            // A fixed height with an unwrappable label is a promise that every
+            // language is about as long as English. German is not: on the
+            // capture screen "Not now — I want a kitten" comes out as "Jetzt
+            // nicht — ich will ein Kätzchen", which the layout audit measured
+            // at 315pt of text in a 299pt box on 2026-08-29. It happened not to
+            // clip on a 1080px phone, with the letters running border to border
+            // and no padding left; on anything narrower it would have.
+            //
+            // Two lines in a taller button is the right answer to a long
+            // sentence. The button keeps its minimum tap target either way.
+            b.style.minHeight = MinTarget;
+            b.style.paddingTop = b.style.paddingBottom = 8;
             b.style.paddingLeft = b.style.paddingRight = 16;
-            b.Add(Text(label, Ink));
+            var text = Text(label, Ink);
+            text.style.whiteSpace = WhiteSpace.Normal;
+            b.Add(text);
             return b;
         }
 

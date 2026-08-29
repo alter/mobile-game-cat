@@ -49,3 +49,7 @@ game/Assets/Resources/GameAnalytics.meta
 # 3 МБ выходных картинок в истории незачем. Показания, из которых они
 # строятся, в tools/traits/reference-readings.json — вот они версионируются.
 tools/traits/out/
+
+# Мусор Finder. Четыре штуки успели попасть в историю и менялись при каждом
+# открытии папки, засоряя каждый git status.
+.DS_Store

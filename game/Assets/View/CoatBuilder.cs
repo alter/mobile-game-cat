@@ -148,6 +148,22 @@ namespace CatShelter.View
             var masks = CoatMasks.Build(px, w, h, seed: baseCoat.name.GetHashCode());
 
             px = Reshape(px, w, h, Waist[state]);
+
+            // The drawing's own silhouette, kept before any fur is grown on it.
+            //
+            // `Outline` needs it. The rim is a dilation of whatever it is given,
+            // and given the tufted alpha it dilates around every strand as well
+            // as around the cat — a strand sticking out 23 pixels grows an
+            // 8-pixel ink blob at its root, and nine clumps of them turn the
+            // lower edge into a scalloped crust. Reported off an iOS playthrough
+            // on 2026-08-29 as "an aliased outline with stray hairs escaping the
+            // mask", and it is worst in state 1, where Neglect is 1.0 and the
+            // tufts are at full strength.
+            //
+            // The rim belongs to the drawing, not to the fur standing off it.
+            var drawn = new bool[px.Length];
+            for (int i = 0; i < px.Length; i++) drawn[i] = px[i].a > 200;
+
             px = Weather(px, w, h, Neglect[state], seed: 5);
 
             // The stripes come off for every cat that is not a tabby.
@@ -164,7 +180,7 @@ namespace CatShelter.View
                 px = Deband(px, w, h, masks, baseCoat.name);
             px = Tint(px, traits, masks, baseCoat.name);
             px = Marks(px, w, h, traits, masks, baseCoat.name);
-            px = Outline(px, w, h, Mathf.RoundToInt(w * 0.016f));
+            px = Outline(px, w, h, Mathf.RoundToInt(w * 0.016f), drawn);
 
             var result = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: false)
             {
@@ -1018,6 +1034,42 @@ namespace CatShelter.View
         }
 
         /// <summary>
+        /// Half the window the stripes are closed over, as a share of the
+        /// width. A stripe on the shipped silhouette is about 2% across, and
+        /// the narrowest thing that must survive — the gap between the legs —
+        /// is nearer 10%.
+        /// </summary>
+        private const float DebandWindow = 0.05f;
+
+        /// <summary>
+        /// Half the window a CONTOUR is closed over: the width of the darkest
+        /// lines in the drawing rather than of its bands.
+        ///
+        /// The two together are what let a stripe go and a tail stay. Measured
+        /// on 2026-08-29: on a solid cream cat in the sitting pose the tail's
+        /// own outline survived on 17% of its length against 67% on the same
+        /// cat as a tabby, and sweeping <see cref="DebandWindow"/> from 5% down
+        /// to 1.5% did not move that number above 24% — it only brought the
+        /// stripes back (high-frequency spread 0.107 to 0.123 against the
+        /// tabby's 0.157). A single closing cannot tell the two apart, because
+        /// the tail's contour is NARROWER than a stripe, and a closing removes
+        /// the narrow first. Any radius that erases a 20-pixel ring has already
+        /// erased the 5-pixel line beside it.
+        /// </summary>
+        private const float ContourWindow = 0.005f;
+
+        /// <summary>
+        /// How much relief in the debanded form counts as flat fur, and how
+        /// much counts as one part of the cat passing in front of another.
+        /// Below the floor nothing is put back and the bands go completely;
+        /// above ReliefFull the drawing's line is kept whole. Taken from the
+        /// measured spread quoted in <see cref="Deband"/>: striped flank sits
+        /// at 0.003–0.006, the tail's contour at 0.041.
+        /// </summary>
+        private const float ReliefFloor = 0.015f;
+        private const float ReliefFull = 0.035f;
+
+        /// <summary>
         /// Takes the drawn tabby markings off, and leaves everything else.
         ///
         /// The stripes are the one thing on this drawing that is high-frequency
@@ -1042,10 +1094,7 @@ namespace CatShelter.View
                                         Dictionary<string, float[]> masks,
                                         string baseName)
         {
-            // 5% of the width. A stripe on the shipped silhouette is about 2%
-            // across, and the narrowest thing that must survive — the gap
-            // between the legs — is nearer 10%.
-            int radius = Mathf.Max(2, Mathf.RoundToInt(w * 0.05f));
+            int radius = Mathf.Max(2, Mathf.RoundToInt(w * DebandWindow));
 
             var body = new bool[px.Length];
             var light = new float[px.Length];
@@ -1072,6 +1121,57 @@ namespace CatShelter.View
             // around them is not flat.
             var smooth = BoxBlur(BoxBlur(closed, body, w, h, Mathf.Max(1, radius / 3), horizontal: true),
                                  body, w, h, Mathf.Max(1, radius / 3), horizontal: false);
+
+            // The same operator again, over a window the width of a LINE.
+            //
+            // This is what keeps the cat's drawn edges when her bands go. A
+            // closing fills any dark feature narrower than its window, so the
+            // difference between a pixel and the fine closing is exactly "how
+            // much darker than a line's width this pixel is" — nonzero on the
+            // contour round the tail, on the split between two toes, on the
+            // line under the chin, and ZERO in the middle of a stripe, which is
+            // far too wide for this window to bridge.
+            //
+            // Subtracting that difference back from the coarse target lifts the
+            // bands to the fur around them and leaves the drawing's own lines
+            // sitting at the same depth below it. One extra pass at a sixth of
+            // the coarse radius; the cost is a few per cent of a build that is
+            // already cached to disk.
+            int fineRadius = Mathf.Max(2, Mathf.RoundToInt(w * ContourWindow));
+            var fine = MinFilter(MaxFilter(light, body, w, h, fineRadius),
+                                 body, w, h, fineRadius);
+
+            // And put it back only where the FORM is turning.
+            //
+            // Restoring every fine line everywhere does not work, and why is
+            // worth keeping. On the standing cat (state 2) the drawn stripes are
+            // as narrow and as deep as the tail's contour is on the sitting one:
+            // measured on the silhouettes themselves, the fine closing fills the
+            // state-2 flank stripes to 0.178 at the 90th percentile against
+            // 0.097 at the tail contour's median. No window and no threshold on
+            // depth separates those, and the attempt that ignored this gave the
+            // standing cat her stripes back — removal on her flank fell from
+            // 61% to 21%.
+            //
+            // What does separate them is what lies UNDER the line. A contour is
+            // where one part of the animal passes in front of another, so the
+            // debanded form itself changes across it; a stripe is painted on fur
+            // whose form does not change at all. Over the same regions the local
+            // spread of `smooth` is 0.041 at the tail's contour against 0.006 on
+            // the sitting cat's striped flank and 0.003 on the standing cat's.
+            //
+            // So the line goes back in proportion to the relief beneath it.
+            int reliefRadius = Mathf.Max(2, radius / 2);
+            var mean = BoxBlur(BoxBlur(smooth, body, w, h, reliefRadius, horizontal: true),
+                               body, w, h, reliefRadius, horizontal: false);
+            var sq = new float[px.Length];
+            for (int i = 0; i < px.Length; i++) if (body[i]) sq[i] = smooth[i] * smooth[i];
+            var meanSq = BoxBlur(BoxBlur(sq, body, w, h, reliefRadius, horizontal: true),
+                                 body, w, h, reliefRadius, horizontal: false);
+            var relief = new float[px.Length];
+            for (int i = 0; i < px.Length; i++)
+                if (body[i])
+                    relief[i] = Mathf.Sqrt(Mathf.Max(0f, meanSq[i] - mean[i] * mean[i]));
 
             // What to protect: her face.
             //
@@ -1145,36 +1245,66 @@ namespace CatShelter.View
             // was the first thing visible on the harness.
             float feather = Mathf.Max(1f, height * 0.12f);
 
+            // The protection is a BOX WITH SOFT SIDES, and every side is soft.
+            //
+            // Both boxes below used to be all-or-nothing on three of their four
+            // sides: inside, `continue`; one pixel outside, the full lift. Only
+            // the fallback box's lower edge was ever feathered. A straight edge
+            // in the amount of lift is a straight edge in the picture, and this
+            // drawing has none of its own, so it is unmistakable — an iOS
+            // playthrough on 2026-08-29 found a razor-straight seam down the
+            // back of the lying cat (state 3), which is the right-hand side of
+            // the eye-anchored face box crossing her shoulder, with the box's
+            // top edge meeting it in a right angle.
+            //
+            // Feathering the box on all four sides costs nothing: the same
+            // pixels are protected, the boundary is simply no longer visible.
+            // The ramp is smoothstepped rather than linear so that the join at
+            // each end has no crease of its own.
+            float boxCx, boxCy, boxHalfX, boxHalfY, margin;
+            if (haveFace)
+            {
+                boxCx = (fx0 - padX + fx1 + padX) * 0.5f;
+                boxHalfX = (fx1 + padX - (fx0 - padX)) * 0.5f;
+                boxCy = (fy0 - padDown + fy1 + padUp) * 0.5f;
+                boxHalfY = (fy1 + padUp - (fy0 - padDown)) * 0.5f;
+                margin = Mathf.Max(1f, span * 0.7f);
+            }
+            else
+            {
+                float lx = hx1 > hx0 ? hx0 - earPad : 0f;
+                float rx = hx1 > hx0 ? hx1 + earPad : w - 1;
+                boxCx = (lx + rx) * 0.5f;
+                boxHalfX = (rx - lx) * 0.5f;
+                // Upwards the head runs to the top of the figure and beyond;
+                // there is nothing above her to feather into.
+                boxCy = (headFrom + bottom + feather) * 0.5f;
+                boxHalfY = (bottom + feather - headFrom) * 0.5f;
+                margin = feather;
+            }
+
             var dst = new Color32[px.Length];
             Array.Copy(px, dst, px.Length);
             int lifted = 0;
             for (int i = 0; i < px.Length; i++)
             {
                 if (!body[i]) continue;
-                float keep = 0f;
                 if (eyes != null && eyes[i] > 0.4f) continue;
-                if (haveFace)
-                {
-                    int y = i / w, x = i % w;
-                    if (x >= fx0 - padX && x <= fx1 + padX &&
-                        y >= fy0 - padDown && y <= fy1 + padUp) continue;
-                }
-                else
-                {
-                    int y = i / w, x = i % w;
-                    if (hx1 > hx0 && (x < hx0 - earPad || x > hx1 + earPad))
-                    {
-                        // Not under the head at all: deband in full.
-                    }
-                    else if (y >= headFrom) continue;
-                    else if (y >= headFrom - feather)
-                    {
-                        // Easing out of the protected head rather than stopping.
-                        keep = (y - (headFrom - feather)) / feather;
-                    }
-                }
 
-                float here = light[i], want = smooth[i];
+                int py = i / w, pxx = i % w;
+                float outX = (Mathf.Abs(pxx - boxCx) - boxHalfX) / margin;
+                float outY = (Mathf.Abs(py - boxCy) - boxHalfY) / margin;
+                float t = Mathf.Clamp01(Mathf.Max(outX, outY));
+                float keep = 1f - t * t * (3f - 2f * t);   // smoothstep, inverted
+                if (keep >= 0.999f) continue;
+
+                // Lift to the fur around the bands, then put the line back — as
+                // much of it as the relief underneath asks for.
+                float here = light[i];
+                float line = Mathf.Clamp01((relief[i] - ReliefFloor)
+                                           / (ReliefFull - ReliefFloor));
+                float want = smooth[i] - line * (fine[i] - here);
+                if (want > smooth[i]) want = smooth[i];
                 if (want <= here + 0.004f) continue;
                 if (keep > 0f) want = Mathf.Lerp(want, here, keep);
 
@@ -1357,7 +1487,12 @@ namespace CatShelter.View
         /// Built from the alpha edge, so it applies to every silhouette
         /// delivered later without anyone having to draw it.
         /// </summary>
-        private static Color32[] Outline(Color32[] px, int w, int h, int width)
+        /// <param name="drawn">The silhouette the artist delivered, before the
+        /// tufts were grown on it. The rim is a dilation of this and not of the
+        /// finished alpha, so a strand of matted fur no longer drags an ink blob
+        /// out with it — see <see cref="Build"/>.</param>
+        private static Color32[] Outline(Color32[] px, int w, int h, int width,
+                                         bool[] drawn)
         {
             if (width <= 0) return px;
             var dst = new Color32[px.Length];
@@ -1386,9 +1521,9 @@ namespace CatShelter.View
                     //
                     // A shadow pixel touches nothing solid, so it still keeps out
                     // of this and the shadow stays unringed.
-                    if (px[i].a > 40 && !TouchesBody(px, w, h, x, y)) continue;
+                    if (px[i].a > 40 && !TouchesBody(drawn, w, h, x, y)) continue;
 
-                    // Opaque pixel within `width`? Then this is rim.
+                    // Drawn pixel within `width`? Then this is rim.
                     bool near = false;
                     for (int dy = -width; dy <= width && !near; dy++)
                     {
@@ -1399,7 +1534,7 @@ namespace CatShelter.View
                             int sx = x + dx;
                             if (sx < 0 || sx >= w) continue;
                             if (dx * dx + dy * dy > width * width) continue;
-                            if (px[sy * w + sx].a > 200) { near = true; break; }
+                            if (drawn[sy * w + sx]) { near = true; break; }
                         }
                     }
                     if (!near) continue;
@@ -1418,7 +1553,7 @@ namespace CatShelter.View
         /// exactly the diagonals that made the gap look dashed rather than
         /// merely thin.
         /// </summary>
-        private static bool TouchesBody(Color32[] px, int w, int h, int x, int y)
+        private static bool TouchesBody(bool[] drawn, int w, int h, int x, int y)
         {
             for (int dy = -1; dy <= 1; dy++)
             {
@@ -1429,7 +1564,7 @@ namespace CatShelter.View
                     if (dx == 0 && dy == 0) continue;
                     int sx = x + dx;
                     if (sx < 0 || sx >= w) continue;
-                    if (px[sy * w + sx].a > 200) return true;
+                    if (drawn[sy * w + sx]) return true;
                 }
             }
             return false;

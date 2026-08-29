@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using CatShelter.Core;
 using CatShelter.Shell;
@@ -276,6 +277,43 @@ namespace CatShelter.View
                     Debug.LogWarning($"[CaptureScreen] colour '{colour}' rejected: {e.Message}");
                     traits = CatTraits.Default;
                 }
+            }
+
+            // Her distinctive marks, measured on the device from the same
+            // photograph — the one trait that says WHICH cat rather than what
+            // kind of cat. Everything above is a class characteristic: colour,
+            // pattern, fur, eyes, and where white sits. Six colours by six
+            // patterns by the rest come to 288 distinguishable cats; a patch on
+            // one paw is worth more than all of them together.
+            //
+            // Measured rather than described. The model can name a mark and
+            // will when asked, but it is guessing at a place from a photograph;
+            // the device has the segmentation mask and the animal's skeleton
+            // and can measure how far this cat's muzzle is from what a muzzle
+            // usually is. When the measurement produces nothing — an old phone,
+            // a pose Vision could not read — whatever the model said stands.
+            //
+            // Never fatal. A cat without marks is the cat we shipped yesterday;
+            // a screen that hangs because Vision threw is not.
+            try
+            {
+                var measured = Shell.CatMarks.Measure(prepared);
+                var spots = measured.ToSpots();
+                if (spots.Count > 0)
+                {
+                    traits = traits.WithSpots(spots);
+                    Debug.Log($"[CaptureScreen] measured {spots.Count} mark(s): " +
+                              string.Join("; ", spots.Select(s => s.ToString())));
+                }
+                else
+                {
+                    Debug.Log($"[CaptureScreen] no distinctive marks measured " +
+                              $"(rung {measured.rung})");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[CaptureScreen] marks not measured: {e.Message}");
             }
 
             OnCatReady?.Invoke(traits);

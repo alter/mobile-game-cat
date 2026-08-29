@@ -95,6 +95,19 @@ namespace CatShelter.Core
         /// <summary>Public so <see cref="CatSpot"/> can use the one table.</summary>
         internal static string CheckValue(string field, string value) => Check(field, value);
 
+        /// <summary>
+        /// The same cat with her distinctive marks filled in.
+        ///
+        /// Separate from the constructor because the two halves arrive from
+        /// different places and at different times: the class traits come from
+        /// the model or from the phone's own colour estimate, and the marks are
+        /// measured on the device from the same photograph. Neither waits for
+        /// the other, and this is where they meet.
+        /// </summary>
+        public CatTraits WithSpots(IReadOnlyList<CatSpot> spots) =>
+            new CatTraits(BaseColor, Pattern, FurLength, EyeColor, WhiteMarkings,
+                          Origin, spots);
+
         private static string Check(string field, string value)
         {
             if (value == null || !Allowed[field].Contains(value))

@@ -58,12 +58,27 @@ namespace CatShelter.Shell
         public const string AppStoreId = "";
 
         /// <summary>
-        /// Unity's stand-in when ProjectSettings has no applicationIdentifier,
-        /// which is where this project still is (`applicationIdentifier: {}`).
-        /// A Play listing under this package does not exist, so the heart stays
-        /// hidden on Android too until the game has a real package name.
+        /// Whether the game has a Play listing a player can actually reach.
+        ///
+        /// Set this to true the day the listing is published, and not before.
+        /// It is the Android twin of <see cref="AppStoreId"/>: a fact only the
+        /// owner knows, stated once, rather than inferred.
+        ///
+        /// It replaces an inference that failed. The old test was "the package
+        /// name is not Unity's `com.DefaultCompany` placeholder", which was a
+        /// fair proxy for "the owner has set a real identity" — right up until
+        /// 2026-08-28, when the package was renamed to `com.sootpaw.game` for
+        /// the app's own name. The rename silently turned the heart on. On
+        /// 2026-08-29 a full playthrough found it: tapping it left the game and
+        /// opened Chrome on `https://play.google.com/...` for an app that is not
+        /// in the store. The log line is in VERIFY-fullcycle-android.md.
+        ///
+        /// The lesson is worth keeping next to the constant. A guard that tests
+        /// a CORRELATE of the thing stops guarding the moment the correlate
+        /// moves, and it does so without a word. `AppStoreId` never had that
+        /// problem because it tests the thing itself.
         /// </summary>
-        private const string UnityDefaultPackagePrefix = "com.DefaultCompany";
+        public const bool PlayListingLive = false;
 
         /// <summary>
         /// Whether there is a review page to open. False in the editor, and
@@ -83,8 +98,8 @@ namespace CatShelter.Shell
 #elif UNITY_IOS
                 return !string.IsNullOrEmpty(AppStoreId);
 #elif UNITY_ANDROID
-                return !string.IsNullOrEmpty(Application.identifier)
-                       && !Application.identifier.StartsWith(UnityDefaultPackagePrefix);
+                // The listing, not the package name. See PlayListingLive.
+                return PlayListingLive && !string.IsNullOrEmpty(Application.identifier);
 #else
                 return false;
 #endif

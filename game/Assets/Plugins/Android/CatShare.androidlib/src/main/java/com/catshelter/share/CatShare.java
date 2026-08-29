@@ -1,6 +1,7 @@
 package com.catshelter.share;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
@@ -119,6 +120,23 @@ public final class CatShare {
             // somebody else's app. createChooser propagates the flag to
             // whichever target the player picks.
             send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            // The picture the player is about to send, shown to her before she
+            // sends it.
+            //
+            // EXTRA_STREAM alone is enough for the share to WORK — the target
+            // gets the file either way — but the Sharesheet draws its thumbnail
+            // from the ClipData, and without one it offers a sheet with the
+            // caption and no picture. Found in a full playthrough on
+            // 2026-08-29: the sheet came up reading "В Sootpaw чисто во всех
+            // комнатах" over blank space. For a feature whose entire purpose is
+            // showing somebody her cat, sending it unseen is the wrong last
+            // step.
+            //
+            // The label is what a target may show beside the file; the system's
+            // own wording surrounds it, so it stays a plain description rather
+            // than a sentence needing translation.
+            send.setClipData(ClipData.newUri(activity.getContentResolver(), "cat", uri));
 
             // null title: the Sharesheet supplies the system's own wording, in
             // the device's language. A title of ours would be one more English

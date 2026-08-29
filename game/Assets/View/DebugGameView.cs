@@ -1140,8 +1140,26 @@ namespace CatShelter.View
                 // not offer to start over — that is out of scope on purpose.
                 if (_plan.Next(_level) == null)
                 {
-                    Shell.SaveFile.Clear();
-                    Debug.Log("[Board] house complete");
+                    // The save is KEPT, with the progress in it.
+                    //
+                    // It used to be cleared here, and that quietly threw away
+                    // the whole game: progress is not stored anywhere else, so
+                    // a player who cleared all twelve rooms, saw the ending and
+                    // closed the app came back to `done=[], open=1` — a dirty
+                    // house, a state-1 kitten, no bowl and no blanket. Finishing
+                    // was indistinguishable from never having played. Found by
+                    // a full playthrough on 2026-08-29, on both platforms.
+                    //
+                    // `GameSave` has always been able to write `roomsdone`; no
+                    // caller ever passed a progress to it. The board in the file
+                    // is the finished one, which `SaveResume` will refuse — and
+                    // that is right, there is nothing to resume into. What
+                    // survives is the house.
+                    Shell.SaveFile.Write(GameSave.Write(_board, _progress));
+                    Debug.Log($"[Board] house complete, rooms done=" +
+                              $"[{string.Join(",", _progress.RoomsDone)}] " +
+                              $"cursor={_progress.CurrentRoom}/{_progress.CurrentPile} " +
+                              $"pileIndex={_level.PileIndex}");
                     ShowEndingCard();
                     return;
                 }

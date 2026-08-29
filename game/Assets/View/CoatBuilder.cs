@@ -1188,7 +1188,41 @@ namespace CatShelter.View
                     px[i].a);
                 lifted++;
             }
-            Debug.Log($"[Deband] lifted {lifted}px of {px.Length}");
+            // The bands are gone; now put the coat's own lightness back.
+            //
+            // Every pixel this pass touches gets LIGHTER, so the cat as a whole
+            // comes out lighter than she was drawn — and on a pale coat that
+            // clips. Measured on a cream cat in the sitting pose: 6% of her body
+            // at pure white, her chest a flat blank and her tail smeared into
+            // it, while the same cream cat as a tabby was fine. Found by
+            // uploading a photograph and looking at the screen it leads to.
+            //
+            // Removing a stripe is a statement about texture, not about how
+            // light she is. So the body's mean is measured before and after and
+            // scaled back — the bands stay gone, the coat keeps its value, and
+            // nothing clips.
+            float before = 0f, after = 0f; int n = 0;
+            for (int i = 0; i < px.Length; i++)
+            {
+                if (!body[i]) continue;
+                before += light[i];
+                after += (dst[i].r + dst[i].g + dst[i].b) / 765f;
+                n++;
+            }
+            if (n > 0 && after > 0.001f)
+            {
+                float back = (before / n) / (after / n);
+                for (int i = 0; i < px.Length; i++)
+                {
+                    if (!body[i]) continue;
+                    dst[i] = new Color32(
+                        (byte)Mathf.Clamp(dst[i].r * back, 0, 255),
+                        (byte)Mathf.Clamp(dst[i].g * back, 0, 255),
+                        (byte)Mathf.Clamp(dst[i].b * back, 0, 255),
+                        dst[i].a);
+                }
+                Debug.Log($"[Deband] lifted {lifted}px, value scaled back x{back:F2}");
+            }
             return dst;
         }
 

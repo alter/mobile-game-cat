@@ -240,11 +240,23 @@ namespace CatShelter.View
                 return new PlayerProgress(pilesPerRoom);
             }
 
-            // Rooms are played in order, so everything before the cursor is
-            // finished. Derived here rather than read, for the same reason as
-            // the cursor: nothing writes `roomsdone` either.
+            // `roomsdone` when the save carries it, derivation when it does not.
+            //
+            // The derivation — "rooms before the current one are finished" — is
+            // right while the player is moving through the house, and it cannot
+            // express the one state that matters most: the house FINISHED.
+            // There is no room after the twelfth to stand in, so the last room's
+            // own tick had nowhere to come from.
+            //
+            // Since 2026-08-29 the ending writes the progress into the save, so
+            // a finished house says so in as many words. Old saves have no such
+            // line and fall back to the derivation, which is exactly what they
+            // meant.
             var done = new List<int>();
-            for (int i = 1; i < room; i++) done.Add(i);
+            if (saved.RoomsDone != null && saved.RoomsDone.Count > 0)
+                done.AddRange(saved.RoomsDone);
+            else
+                for (int i = 1; i < room; i++) done.Add(i);
 
             try
             {

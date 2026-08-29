@@ -213,17 +213,34 @@ namespace CatShelter.View
 
             px = Weather(px, w, h, Neglect[state], seed: 5);
 
-            // The stripes come off for every cat that is not a tabby.
+            // The stripes come off for every cat that is not a tabby — but only
+            // while the drawing HAS stripes, and since 2026-08-29 it does not.
             //
-            // This is what the striped silhouette was commissioned FOR. Stripes
-            // can be taken off a drawing that has them; they cannot be put onto
-            // one that does not. Leaving them on meant a black cat, a white cat
-            // and a calico all came out as the same tabby in three colours —
-            // the photograph, the model and five traits reduced to a colour
-            // picker. `pattern` is one of the five things read off the player's
-            // cat, and until 2026-08-29 it was the one that changed nothing a
-            // player could see.
-            if (traits.Pattern != "tabby")
+            // The whole pass exists to subtract a tabby that the artwork drew
+            // in. Three silhouettes with a plain, even coat arrived that
+            // evening, and against them subtraction has nothing to take and
+            // everything to lose: run on the plain art it wiped the standing
+            // cat's eyes to two faint rings and left a black wedge in her ear,
+            // while the eye check passed at 86% — on an even coat a faint ring
+            // still scores contrast against a uniform cheek. That measurement
+            // could not see the damage, and the picture could.
+            //
+            // Sniffing the drawing at runtime was tried and rejected: the share
+            // of the body a closing changes is 52–62% on the plain art against
+            // 72–81% on the striped, and nine points is not a margin to hang a
+            // switch on. The closing moves the body's own modelling too, so the
+            // number measures shading as much as banding.
+            //
+            // So it is a stated fact about the project, not a guess: the bases
+            // are plain. Whoever brings striped art back turns this on and
+            // reads the paragraph above first.
+            //
+            // Kept rather than deleted — with all of Deband, FormKeep and
+            // LineKeep behind it — because a hand-drawn `pattern_tabby` mask is
+            // still an open task (40-art/04-cat-layers), and the day a drawing
+            // with a coat pattern returns, this is the code that takes it off.
+            const bool basesHaveDrawnStripes = false;
+            if (basesHaveDrawnStripes && traits.Pattern != "tabby")
                 px = Deband(px, w, h, masks, baseCoat.name);
             px = Tint(px, traits, masks, baseCoat.name);
             px = Marks(px, w, h, traits, masks, baseCoat.name);
@@ -923,7 +940,31 @@ namespace CatShelter.View
                 var m = MaskOf(masks, baseName, $"mark_{marking}");
                 if (m != null) markings.Add(m);
             }
-            var eyeMask = MaskOf(masks, baseName, CoatMasks.Eyes);
+            // Eye colour stays off, and the plain silhouettes are the reason it
+            // now has to be said out loud rather than left to happen.
+            //
+            // On the striped art `CoatMasks.Eyes` never once fired — its size
+            // floor rejected five of the six blobs — so this branch was dead and
+            // the decision of 2026-08-29 ("do not paint eyes until a real pupil
+            // mask exists") cost nothing to keep. The plain art changed that:
+            // with no stripes competing, the mask finds the eyes on state 1, and
+            // the result is worse than doing nothing. These cats are drawn with
+            // a light iris and a dark pupil, and multiplying one colour through
+            // the whole blob flattens both into a green almond — beside the
+            // untouched states 2 and 3, which keep a dark pupil and a highlight,
+            // it is plainly the poorer eye.
+            //
+            // Worse than poorer: it fires on ONE state of three. The same cat
+            // would have green eyes sitting and dark eyes standing, and a cat
+            // whose eyes change when she stands up is not her cat.
+            //
+            // Turn this on when a pupil mask exists (40-art/04-cat-layers) and
+            // when it fires on all three states — not before, and not because
+            // the mask happened to start working.
+            const bool paintEyeColour = false;
+            var eyeMask = paintEyeColour
+                ? MaskOf(masks, baseName, CoatMasks.Eyes)
+                : null;
 
             for (int i = 0; i < px.Length; i++)
             {
@@ -1831,12 +1872,62 @@ namespace CatShelter.View
             return dst;
         }
 
+        /// <summary>
+        /// A mask by name: the drawn file if one exists, otherwise the one
+        /// computed from the silhouette.
+        ///
+        /// The drawn file is brought to the working size, and that line is the
+        /// whole reason this method is not four lines long. Masks are drawn at
+        /// 1024, the size of the silhouette on disk, but the coat is built from
+        /// a `Downscale`d copy — 256 for the board, 512 for the card. Without
+        /// the resize a drawn mask returns a 1024×1024 array that the caller
+        /// then walks with a 256×256 index: the first 65 536 entries of a
+        /// 1024-wide picture are its top 64 rows, which on every one of these
+        /// files is empty margin above the cat's ears. The mask applied
+        /// perfectly and to nothing.
+        ///
+        /// Found on 2026-08-29, the first day a drawn mask existed. The hook
+        /// itself is older than that and was described in `40-art/04-cat-layers`
+        /// as "CoatBuilder picks each one up with no code change" — true of the
+        /// lookup, false of the arithmetic, and untestable until there was a
+        /// file to pick up. Any of the masks that task would have produced
+        /// would have failed the same silent way.
+        ///
+        /// The working size is taken from the computed masks rather than passed
+        /// in: they are built at it by construction, and threading a width and
+        /// height through seven call sites to re-state a fact already in the
+        /// dictionary would be the more fragile change.
+        /// </summary>
         private static float[] MaskOf(Dictionary<string, float[]> computed,
                                       string baseName, string maskName)
         {
             var drawn = Resources.Load<Texture2D>($"Art/{baseName}_{maskName}");
             if (drawn != null)
             {
+                int want = 0;
+                foreach (var any in computed.Values) { want = any.Length; break; }
+
+                if (want > 0 && drawn.width * drawn.height != want)
+                {
+                    int side = Mathf.RoundToInt(Mathf.Sqrt(want));
+                    if (side * side == want)
+                    {
+                        var scaled = Downscale(drawn, side);
+                        if (scaled != null) drawn = scaled;
+                    }
+                    else
+                    {
+                        // Non-square working size is not something this project
+                        // produces, and guessing at one would put the mask half
+                        // a cat out of place. Silence beats a wrong marking.
+                        Debug.LogWarning($"[CoatBuilder] drawn mask {maskName} " +
+                                         $"ignored: cannot fit {drawn.width}×{drawn.height} " +
+                                         $"to {want} px");
+                        return computed.TryGetValue(maskName, out var fallback)
+                            ? fallback : null;
+                    }
+                }
+
                 var px = ReadPixels(drawn);
                 var m = new float[px.Length];
                 for (int i = 0; i < px.Length; i++)

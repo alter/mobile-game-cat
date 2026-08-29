@@ -59,4 +59,19 @@ dependencies {
     // NOT in Unity's default gradle properties. See
     // Assets/Plugins/Android/gradleTemplate.properties.
     implementation 'androidx.core:core:1.13.1'
+
+    // androidx.core 1.13 brings kotlin-stdlib 1.8.22, and something else in
+    // this build (Unity's own or GameAnalytics') still asks for
+    // kotlin-stdlib-jdk7/jdk8 1.6.21. Since Kotlin 1.8 those two artefacts were
+    // folded into kotlin-stdlib, so both are on the classpath and every class
+    // in them is duplicated — `:launcher:checkReleaseDuplicateClasses` fails
+    // with about forty of them. Google's own issue tracker calls this out:
+    // https://issuetracker.google.com/278545487 — "Mixing Kotlin versions 1.8+
+    // and 1.7- causes duplicate classes. Root cause is change in publishing".
+    //
+    // The BOM is the fix JetBrains publishes for it: it aligns jdk7/jdk8 to the
+    // same version, where they are empty stubs that simply depend on
+    // kotlin-stdlib. `api` rather than `implementation` so the constraint
+    // reaches the consuming module, which is where the duplicate check runs.
+    api platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
 }

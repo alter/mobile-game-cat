@@ -52,18 +52,73 @@ namespace CatShelter.Shell
         /// not clear it, and that guess is exactly what
         /// <c>fixtures/reference-photos</c> is for.
         ///
-        /// The reference set cannot settle it yet: see NOTES-marks.md, neither
-        /// iOS 17 request runs in the simulator, so no photograph has ever been
-        /// through this code.
+        /// Measured 2026-08-29 over all 41 reference photographs, by compiling
+        /// this very plugin for macOS and running it there
+        /// (`tools/marks-probe`). The earlier note here said the reference set
+        /// "cannot settle it yet" because neither iOS 17 request runs in the
+        /// simulator. That was true about the simulator and wrong about the
+        /// question: Vision is a macOS framework too, both requests are
+        /// macOS 14+, and `CatMarks.swift` compiles against the macOS SDK
+        /// unchanged. 31 of the 41 photographs reach the full rung there.
+        ///
+        /// **And the number is not a threshold on `delta` at all.** The run
+        /// showed why: every place carries a baseline that has nothing to do
+        /// with the individual cat.
+        ///
+        ///   paw_right +23   eye_left  +17   chin     +11   chest    +2
+        ///   paw_left  +22   eye_right +16   flank     +6   tail_tip -2
+        ///   paws      +17   muzzle    +16   forehead  +3
+        ///
+        /// A muzzle is paler than a back on essentially every cat; paws catch
+        /// the light; an eye is not fur at all. Judged against the cat's own
+        /// body median, those places fire on nearly every photograph — 12.2 L*
+        /// was the MEDIAN of all 250 measurements, so a flat threshold there
+        /// marks half of every cat. That is the class-versus-individual
+        /// distinction again, one level down: "lighter than her own back" is
+        /// still a fact about cats, not about this cat.
+        ///
+        /// What identifies is the residual: how far this cat's muzzle is from
+        /// what a muzzle usually is. Hence <see cref="Baseline"/> and a
+        /// threshold in spreads rather than in L*.
         /// </summary>
-        public const double Threshold = 18.0;
+        public const double Threshold = 1.5;
 
         /// <summary>
-        /// How sure Vision must be of a joint before any place resting on it is
-        /// reported. Passed to the native side, which drops the place entirely
-        /// when a joint it needs falls below — a wrong mark is worse than a
-        /// missing one. Also not measured.
+        /// What each place looks like on an ordinary cat, in L* against her own
+        /// body median, and how much it varies. Both measured over the 25 real
+        /// and blurry cats of the reference set; the spread has a floor of 6 so
+        /// a place with few samples cannot produce a huge score from noise.
+        ///
+        /// A table of eleven numbers rather than a model. It ships as a
+        /// constant because it describes cats, not this player's cat, and it is
+        /// re-derivable by anyone with a Mac in one command.
         /// </summary>
+        public static readonly IReadOnlyDictionary<string, (double Median, double Spread)>
+            Baseline = new Dictionary<string, (double, double)>
+            {
+                ["muzzle"] = (15.7, 22.8),
+                ["forehead"] = (3.1, 18.9),
+                ["eye_left"] = (17.5, 21.6),
+                ["eye_right"] = (16.1, 20.7),
+                ["chin"] = (11.0, 20.2),
+                ["chest"] = (2.4, 17.0),
+                ["paw_left"] = (21.8, 19.5),
+                ["paw_right"] = (22.7, 18.9),
+                ["flank"] = (6.5, 12.5),
+                ["tail_tip"] = (-2.4, 27.4),
+                ["paws"] = (16.7, 28.4),
+            };
+
+        /// <summary>
+        /// How unusual this place is on this cat, in spreads. Zero means she is
+        /// an ordinary cat there; the sign says lighter or darker than ordinary.
+        /// A place with no baseline scores 0 — unknown is not evidence.
+        /// </summary>
+        public static double Unusualness(MeasuredMark mark) =>
+            Baseline.TryGetValue(mark.place, out var norm)
+                ? (mark.delta - norm.Median) / Math.Max(norm.Spread, 6.0)
+                : 0.0;
+
         public const double MinLandmarkConfidence = 0.5;
 
 #if UNITY_IOS && !UNITY_EDITOR
@@ -217,7 +272,7 @@ namespace CatShelter.Shell
         {
             if (!Measured || marks == null) return Array.Empty<CatSpot>();
             return marks
-                .Where(m => !m.grouped && m.Strength >= threshold)
+                .Where(m => !m.grouped && Math.Abs(CatMarks.Unusualness(m)) >= threshold)
                 .OrderByDescending(m => m.Strength)
                 .Take(CatTraits.MaxSpots)
                 .Select(m => new CatSpot(m.place, m.Shade))

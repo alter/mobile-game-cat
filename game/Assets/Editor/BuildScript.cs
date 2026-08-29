@@ -81,7 +81,23 @@ public static class BuildScript
         UseTarget(BuildTargetGroup.Android, BuildTarget.Android);
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
-        PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel25;
+        // 33 (Android 13) since 2026-08-29, up from 25 (Android 7.1, 2016).
+        //
+        // Set here AND in ProjectSettings.asset, and the pair is a trap: this
+        // line runs before every build and overwrites the asset, so editing the
+        // asset alone changes nothing and the APK keeps shipping the old floor.
+        // That is exactly what happened when the floor was first raised — the
+        // committed value said 33 and every build still declared 25.
+        //
+        // Why 33 rather than higher or lower. It is the highest level that buys
+        // anything: the system photo picker is native there, so no Play-services
+        // backport path exists to write or test, and the media permissions split
+        // there, so the game can ask for NO storage permission at all
+        // (60-shell-build/17-permission-audit). 34 and 35 buy nothing we use.
+        // The cost is real and worth stating: by April 2026 figures a floor of
+        // 33 reaches about 69% of devices where 30 reaches 87% — the steepest
+        // single step on the whole scale.
+        PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel33;
         // Play rejects uploads built against an SDK more than a year behind;
         // "highest installed" keeps that from being a surprise at upload time.
         PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevelAuto;

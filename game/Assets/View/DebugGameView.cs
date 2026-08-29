@@ -572,7 +572,15 @@ namespace CatShelter.View
                 var big = CoatBuilder.TryBuildFor(CatStateTraits, _progress?.CatState ?? 1, 512);
                 _catCard.Build(uid.rootVisualElement, big != null ? big : _catTexture,
                                SpriteNamed($"Art/share_room_{roomNo}"), RenderShareCard);
-                _catCard.OnClose = () => Debug.Log("[Board] cat card closed");
+                // Hide(), not Destroy(): the card is expensive enough to build
+                // (see the comment above on 21.8s of unwanted startup work)
+                // that it is kept alive and reused on every later tap, same as
+                // the board underneath it — Hide just flips display back off.
+                _catCard.OnClose = () =>
+                {
+                    Debug.Log("[Board] cat card closed");
+                    _catCard.Hide();
+                };
                 _catCard.OnShareTapped = () => Debug.Log("[Board] share tapped");
             }
             // Before Show, and on every open: the bowl arrives after room 4 and

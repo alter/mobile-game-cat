@@ -148,7 +148,21 @@ namespace CatShelter.View
             for (int i = 0; i < body.Length; i++)
                 dark[i] = body[i] && lum[i] < threshold && i / w > bandBottom;
 
-            var found = Blobs(dark, w, h, 150);
+            // A share of the picture, not 150 pixels flat.
+            //
+            // 150 stood here until 2026-08-28 and made this whole pass depend on
+            // the size it happened to be run at. At the board's 256 the eye blobs
+            // come out under 150 pixels, so no pair was ever found and no eye was
+            // ever coloured — the cats kept the dark eyes they were drawn with,
+            // and that is every screenshot this project has taken. The moment the
+            // cat card asked for 512 the same eyes were four times the area,
+            // cleared 150 easily, and turned into flat green blobs on the one
+            // screen a player would post. A rule about anatomy must not change
+            // its answer because the texture got bigger.
+            //
+            // 0.23% of the picture is what 150 was at 256, so the game looks
+            // exactly as it did — at every size.
+            var found = Blobs(dark, w, h, Mathf.Max(24, Mathf.RoundToInt(w * h * 0.0023f)));
             if (found.Count < 2) return result;   // eyes shut: nothing to colour
 
             // The pair at the same height and of comparable size. Without this

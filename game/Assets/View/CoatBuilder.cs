@@ -342,9 +342,13 @@ namespace CatShelter.View
             // given the game a photograph — is baked into Resources at build
             // time by Assets/Editor/BakeDefaultCoats.cs. Nothing is computed for
             // her at all, on any launch, ever.
-            if (IsDefault(traits) && size <= 256)
+            if (IsDefault(traits) && size <= 512)
             {
-                var baked = Resources.Load<Texture2D>($"Art/coat_default_{state}");
+                // Two are baked: 256 for the board's portrait and 512 for the
+                // cat card, where she is nearly the width of the screen. Asking
+                // for anything above 256 gets the larger one.
+                var baked = Resources.Load<Texture2D>(
+                    size > 256 ? $"Art/coat_card_{state}" : $"Art/coat_default_{state}");
                 if (baked != null)
                 {
                     _builtCache[key] = baked;
@@ -813,12 +817,28 @@ namespace CatShelter.View
                 if (white > 0.01f)
                     target = Color.Lerp(target, White, white * 0.92f);
 
-                // Eyes last and flat: they are the one part that is not fur, so
-                // they take their colour rather than a shaded version of it.
+                // Eyes keep their modelling. Flat colour stood here until
+                // 2026-08-28 — every pixel of the blob set to the same green,
+                // pupil and highlight alike — and it was never seen, because the
+                // mask that feeds it never fired at the size the game ran at.
+                // The first time it did fire, at 512 on the cat card, she had two
+                // flat green discs for eyes.
+                //
+                // These cats are drawn with one dark eye mass and a specular dot,
+                // not with a separable iris, so the colour is multiplied through
+                // the drawing's own light instead of replacing it: the dark of
+                // the eye stays dark, the highlight stays a highlight, and what
+                // changes is the hue. The lift is there because the blob was
+                // chosen for being the darkest sixth of a percent of the cat —
+                // multiplied raw, a green eye would come out black.
                 if (eyeMask != null && eyeMask[i] > 0.5f)
                 {
+                    float lit = 0.25f + v * 1.9f;
                     px[i] = new Color32(
-                        (byte)(eye.r * 255f), (byte)(eye.g * 255f), (byte)(eye.b * 255f), px[i].a);
+                        (byte)Mathf.Clamp(eye.r * 255f * lit, 0, 255),
+                        (byte)Mathf.Clamp(eye.g * 255f * lit, 0, 255),
+                        (byte)Mathf.Clamp(eye.b * 255f * lit, 0, 255),
+                        px[i].a);
                     continue;
                 }
 
@@ -888,9 +908,25 @@ namespace CatShelter.View
                 {
                     int i = y * w + x;
                     if (px[i].a > 200) continue;          // inside, leave alone
+
                     // The shadow is part of the drawing, not a hole in it:
                     // outlining it draws a dark ring around the cat's shadow.
-                    if (px[i].a > 40) continue;
+                    // So half-transparent pixels are normally left alone —
+                    // EXCEPT the ones that touch her body.
+                    //
+                    // Those are not background at all: they are the silhouette's
+                    // own soft edge, one pixel of pale anti-aliasing lying
+                    // between the ink outside and the fur inside. Skipping them
+                    // left a light hairline all the way around her. On the board
+                    // she is 120 points wide and it is invisible; on the cat card
+                    // she is nearly the full width of the screen, the source is
+                    // 256, and at that magnification the hairline reads as a
+                    // dashed line — as if she had been cut out with scissors.
+                    // Seen on Android on 2026-08-28.
+                    //
+                    // A shadow pixel touches nothing solid, so it still keeps out
+                    // of this and the shadow stays unringed.
+                    if (px[i].a > 40 && !TouchesBody(px, w, h, x, y)) continue;
 
                     // Opaque pixel within `width`? Then this is rim.
                     bool near = false;
@@ -914,6 +950,29 @@ namespace CatShelter.View
                     dst[i] = new Color32(Ink.r, Ink.g, Ink.b, a);
                 }
             return dst;
+        }
+
+        /// <summary>
+        /// Does this pixel sit right against something solid? Eight neighbours,
+        /// not four: a diagonal step is where a hairline shows first, and it is
+        /// exactly the diagonals that made the gap look dashed rather than
+        /// merely thin.
+        /// </summary>
+        private static bool TouchesBody(Color32[] px, int w, int h, int x, int y)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                int sy = y + dy;
+                if (sy < 0 || sy >= h) continue;
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    int sx = x + dx;
+                    if (sx < 0 || sx >= w) continue;
+                    if (px[sy * w + sx].a > 200) return true;
+                }
+            }
+            return false;
         }
     }
 }

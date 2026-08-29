@@ -1,0 +1,78 @@
+// Task 50-photo/05: the Android half of Shell/CatVision.cs, the counterpart of
+// Plugins/iOS/CatVision.swift. Modelled on CatShare.androidlib next door -
+// same plugin id, same way of reading compileSdk/buildTools off :unityLibrary.
+//
+// Unlike CatShare this module has NO dependency on unity-classes.jar: the
+// Context arrives as an argument from C# instead of being fetched from
+// UnityPlayer.currentActivity inside Java. That is what lets
+// tools/tests/android-vision compile these exact sources and run them under
+// androidx.test on an emulator - a Unity-free class can be instrumented, a
+// class that reaches for UnityPlayer.currentActivity cannot.
+
+plugins {
+    id 'com.android.library'
+}
+
+def compileSdkFor(unityLib) {
+    def version = unityLib.compileSdkVersion.find('\\d+').toInteger()
+    return version < 34 ? 34 : version
+}
+
+android {
+    namespace "com.catshelter.vision"
+
+    def unityLib = project(':unityLibrary').extensions.getByName('android')
+    compileSdkVersion compileSdkFor(unityLib)
+    buildToolsVersion unityLib.buildToolsVersion
+
+    defaultConfig {
+        // ProjectSettings AndroidMinSdkVersion is 33. The two ML Kit artefacts
+        // below declare 21 (image-labeling) and 24 (subject-segmentation), so
+        // nothing here holds the floor down, and nothing in this plug-in is
+        // guarded on an API level: every call it makes existed well before 33.
+        minSdkVersion 33
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // "Is it a cat" - BUNDLED, model inside the APK.
+    //
+    // The AAR carries assets/mlkit_label_default_model/
+    // mobile_ica_8bit_with_metadata_tflite, 3 042 638 bytes, whose appended
+    // metadata zip holds 0-labels-en.txt: 447 labels, "Cat" at index 118 and
+    // "Dog" at index 360 (both checked by unzipping the artefact, see
+    // tasks/50-photo/05-vision-plugin/NOTES-android.md).
+    //
+    // Bundled rather than com.google.android.gms:play-services-mlkit-image-labeling
+    // on purpose: the thin variant's AAR contains no model at all, so the
+    // species answer would depend on Play services and on a first-run
+    // download. This is the rung that has to work on a device with no Play
+    // services and no network, because it is the one that decides whether the
+    // player is told "that is not a cat".
+    implementation 'com.google.mlkit:image-labeling:17.0.9'
+
+    // "Where is she" - UNBUNDLED, model lives in Google Play services.
+    //
+    // There is no com.google.mlkit:segmentation-subject: subject segmentation
+    // is published only as a play-services artefact (checked against
+    // dl.google.com/dl/android/maven2/com/google/mlkit/group-index.xml). Its
+    // AAR carries no assets/ entry, which is the same fact from the other
+    // side - nothing about this model is in our APK.
+    //
+    // SubjectSegmenter extends com.google.android.gms.common.api.OptionalModuleApi,
+    // so ModuleInstallClient governs the download. CatVision.java treats its
+    // absence as a rung, not as a failure.
+    implementation 'com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1'
+
+    // Same kotlin-bom pin as CatShare.androidlib, for the same reason: ML Kit
+    // pulls kotlin-stdlib 1.8+ while something else in the Unity build still
+    // asks for kotlin-stdlib-jdk7/jdk8 1.6.21, and the two duplicate every
+    // class in :launcher:checkReleaseDuplicateClasses.
+    // https://issuetracker.google.com/278545487
+    api platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
+}

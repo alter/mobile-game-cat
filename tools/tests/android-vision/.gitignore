@@ -1,0 +1,8 @@
+# Gradle output, and the two files run.sh generates.
+build/
+app/build/
+.gradle/
+local.properties
+out.jsonl
+out-offline.jsonl
+out-playstore.jsonl

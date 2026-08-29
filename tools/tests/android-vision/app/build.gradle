@@ -1,0 +1,86 @@
+plugins {
+    id 'com.android.application'
+}
+
+// The plug-in this harness exists to measure. Nothing is copied: these are the
+// files Unity will compile into the app, compiled here by a second build so
+// they can be run under androidx.test on an emulator.
+def plugin = file('../../../../game/Assets/Plugins/Android/CatVision.androidlib/src/main')
+
+android {
+    namespace 'com.catshelter.visionprobe'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.catshelter.visionprobe'
+        // Same floor as the plug-in's own build.gradle and as
+        // ProjectSettings AndroidMinSdkVersion.
+        minSdk 33
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        ndk {
+            // ProjectSettings AndroidTargetArchitectures: 2 is ARM64 only, and
+            // the APK in game/build/android carries lib/arm64-v8a and nothing
+            // else. The size A/B below is only comparable if this matches.
+            abiFilters 'arm64-v8a'
+        }
+    }
+
+    sourceSets {
+        main {
+            // -PnoMlKit is the control arm of the size A/B: no ML Kit, and so
+            // no plug-in either, since the plug-in would not compile without
+            // it. The difference between the two APKs is therefore "the two
+            // artefacts plus our own three classes", which is the number that
+            // actually matters to a download.
+            java.srcDirs = project.hasProperty('noMlKit') ? [] : [new File(plugin, 'java')]
+            // The plug-in's real manifest, not a copy: this is what puts the
+            // com.google.mlkit.vision.DEPENDENCIES hint through the AGP
+            // manifest merger, which is the only place it can be shown to
+            // survive into an APK.
+            manifest.srcFile new File(plugin, 'AndroidManifest.xml')
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // The APK-size A/B. `-PnoMlKit` builds the same application without the two
+    // ML Kit artefacts; the difference between the two APKs is what the choice
+    // costs. See run.sh.
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    // Three arms of the size measurement, all building the same source:
+    //   (default)     bundled labeller  + unbundled segmenter   - what ships
+    //   -PthinLabeler unbundled labeller + unbundled segmenter
+    //   -PnoMlKit     neither, and no plug-in                   - the control
+    // ImageLabeling.getClient(ImageLabelerOptions) is the same call for the
+    // bundled and the thin artefact, so swapping them changes not one line of
+    // CatVision.java - which is what makes the arms comparable.
+    if (!project.hasProperty('noMlKit')) {
+        if (project.hasProperty('thinLabeler')) {
+            implementation 'com.google.android.gms:play-services-mlkit-image-labeling:16.0.8'
+        } else {
+            implementation 'com.google.mlkit:image-labeling:17.0.9'
+        }
+        implementation 'com.google.android.gms:play-services-mlkit-subject-segmentation:16.0.0-beta1'
+    }
+
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}

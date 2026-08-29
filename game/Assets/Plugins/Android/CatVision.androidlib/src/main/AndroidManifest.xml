@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Task 50-photo/05, Android side.
+
+  No permission is declared here and none is needed. The photograph arrives as
+  a byte[] the C# side already holds; this plug-in opens no file, no camera and
+  no socket of its own. INTERNET reaches the merged manifest anyway - Unity
+  declares it, and so does com.google.mlkit:image-labeling for its remote
+  config - but nothing in CatVision.java uses it, and the bundled label model
+  is read from the APK's own assets.
+
+  The one entry is ML Kit's install-time model hint. Subject segmentation is an
+  optional Google Play services module, not a file in our APK; without this
+  line the first photograph a player takes would be the thing that triggers the
+  download. With it, Play services fetches the module while the app installs,
+  so the mask is usually there before it is first asked for.
+
+  It is a hint and nothing rests on it: a device with no Play services never
+  acts on it, and CatVision.java falls back to whole-image labelling either
+  way. See "Degrading" in tasks/50-photo/05-vision-plugin/NOTES-android.md.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="subject_segment" />
+    </application>
+
+</manifest>

@@ -152,6 +152,36 @@ namespace CatShelter.View
         public void Show() => _root.style.display = DisplayStyle.Flex;
         public void Hide() => _root.style.display = DisplayStyle.None;
 
+        /// <summary>
+        /// Which gifts she has been given yet.
+        ///
+        /// Until 28.08 the bowl and the blanket were simply always there, from
+        /// the first room onward, which quietly threw away the whole point of
+        /// task 60-shell-build/05: they arrive after the 4th and the 8th room,
+        /// as a visible sign that the care happened. A gift the player already
+        /// owns before doing anything is scenery.
+        ///
+        /// The boundaries are not written here. They are
+        /// <see cref="CatShelter.Core.PlayerProgress.CatStateFor"/>'s own —
+        /// bowl from state 2, blanket from state 3 — because the MVP puts the
+        /// rewards on exactly the same two boundaries as the cat's growth, and
+        /// two copies of the numbers 4 and 8 would eventually disagree.
+        ///
+        /// Called on every open, not once from Build: this card object outlives
+        /// several rooms, and a player who has just earned the bowl should see
+        /// it the next time they open the card, not the next time they restart.
+        ///
+        /// Deliberately no animation, no glint, no "NEW" badge — the art brief
+        /// asks for a gift, not a booster.
+        /// </summary>
+        public void SetRewards(int catState)
+        {
+            if (_bowl != null)
+                _bowl.style.display = catState >= 2 ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_blanket != null)
+                _blanket.style.display = catState >= 3 ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
         // --- the notch -------------------------------------------------------
 
         /// <summary>

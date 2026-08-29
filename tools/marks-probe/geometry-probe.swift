@@ -28,6 +28,65 @@ import ImageIO
 
 struct Point { var x: Double; var y: Double }
 
+/// Where the cat's head is, found from the shape of the silhouette instead of
+/// from "the top of the picture".
+///
+/// The top-band rule is transcribed from `CoatMasks`, where it is correct: our
+/// three drawings are all of an upright kitten, so her ears really are the
+/// highest thing in the frame. A photograph is not so obliging — a cat lying on
+/// her side has her head at one END, not at the top — and the first measurement
+/// showed the cost: the muzzle landed 18.6% of her own size away from where
+/// Vision put her nose.
+///
+/// A cat is a long blob with a blunt end and a thin one. So: the principal axis
+/// of the mask, then the width profile along it. The tail end stays thin for a
+/// long run; the head end is wide. Whichever end is thinner over its last fifth
+/// is the tail, and the head is the other one. No model, no data, no megabytes
+/// — arithmetic over the same mask Android already gets.
+func headEndFromShape(_ mask: [Bool], _ w: Int, _ h: Int) -> (head: Point, tail: Point)? {
+    var n = 0.0, sx = 0.0, sy = 0.0
+    for y in 0..<h { for x in 0..<w where mask[y * w + x] {
+        n += 1; sx += Double(x); sy += Double(y) } }
+    guard n > 20 else { return nil }
+    let cx = sx / n, cy = sy / n
+
+    // Principal axis by the covariance of the filled pixels.
+    var xx = 0.0, yy = 0.0, xy = 0.0
+    for y in 0..<h { for x in 0..<w where mask[y * w + x] {
+        let dx = Double(x) - cx, dy = Double(y) - cy
+        xx += dx * dx; yy += dy * dy; xy += dx * dy } }
+    xx /= n; yy /= n; xy /= n
+    let theta = 0.5 * atan2(2 * xy, xx - yy)
+    let ax = cos(theta), ay = sin(theta)
+
+    // Project every pixel onto the axis, and record how far it sits off it.
+    var lo = Double.greatestFiniteMagnitude, hi = -Double.greatestFiniteMagnitude
+    var samples: [(t: Double, off: Double)] = []
+    for y in 0..<h { for x in 0..<w where mask[y * w + x] {
+        let dx = Double(x) - cx, dy = Double(y) - cy
+        let t = dx * ax + dy * ay
+        samples.append((t, abs(-dx * ay + dy * ax)))
+        if t < lo { lo = t }
+        if t > hi { hi = t } } }
+    guard hi > lo else { return nil }
+
+    // Mean thickness over the outer fifth at each end.
+    let fifth = (hi - lo) * 0.2
+    var loSum = 0.0, loN = 0.0, hiSum = 0.0, hiN = 0.0
+    for s in samples {
+        if s.t < lo + fifth { loSum += s.off; loN += 1 }
+        if s.t > hi - fifth { hiSum += s.off; hiN += 1 }
+    }
+    guard loN > 0, hiN > 0 else { return nil }
+    let loThick = loSum / loN, hiThick = hiSum / hiN
+
+    // The blunt end is the head.
+    let headT = loThick > hiThick ? lo : hi
+    let tailT = loThick > hiThick ? hi : lo
+    return (Point(x: cx + ax * headT, y: cy + ay * headT),
+            Point(x: cx + ax * tailT, y: cy + ay * tailT))
+}
+
 /// The same rules as `CoatMasks.PlaceOf`, over a mask instead of a drawing.
 /// Deliberately a transcription rather than an improvement: if it is allowed to
 /// diverge, the comparison stops meaning anything.
@@ -177,6 +236,7 @@ for name in names {
     }
 
     let guessed = placesFromMask(mask, w, h)
+    let shaped = headEndFromShape(mask, w, h)
     var diffs: [String] = []
     // Distance as a fraction of the cat's own diagonal, so a big photograph and
     // a small one are on the same scale.
@@ -191,6 +251,14 @@ for name in names {
         let d = ((mine.x - truth.x) * (mine.x - truth.x)
                  + (mine.y - truth.y) * (mine.y - truth.y)).squareRoot() / size
         diffs.append("\"\(place)\":\(String(format: "%.3f", d))")
+    }
+
+    // The shape-based head, against the same nose. Reported beside the
+    // top-band answer rather than instead of it: the comparison is the point.
+    if let truth = joints["muzzle"], let head = shaped?.head, size > 1 {
+        let d = ((head.x - truth.x) * (head.x - truth.x)
+                 + (head.y - truth.y) * (head.y - truth.y)).squareRoot() / size
+        diffs.append("\"muzzle_by_shape\":\(String(format: "%.3f", d))")
     }
     print("{\"file\":\"\(name)\",\"comparable\":true,\"off\":{\(diffs.joined(separator: ","))}}")
 }

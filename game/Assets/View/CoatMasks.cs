@@ -80,14 +80,42 @@ namespace CatShelter.View
             int headBottom = bottom - Mathf.RoundToInt(height * 0.42f);
             if (!haveEyes)
             {
+                // The middle of the HEAD, not of the figure.
+                //
+                // `(left + right) * 0.5f` stood here and it is the centre of the
+                // whole silhouette — tail included. The cat's head is at one end
+                // and her tail at the other, so that point lands on her flank,
+                // and every marking placed from it went there too: on
+                // 2026-08-29 a black tuxedo cat came out with her white bib on
+                // her side and her white muzzle on her cheek. Invisible until
+                // the stripes came off, and wrong the whole time.
+                //
+                // The head is the top 30% of the figure, and its own horizontal
+                // extent is the only honest place to centre a face on.
+                int headBand = bottom - Mathf.RoundToInt(height * 0.30f);
+                int hl = w, hr = -1;
+                for (int y = headBand; y <= bottom; y++)
+                    for (int x = 0; x < w; x++)
+                        if (body[y * w + x])
+                        {
+                            if (x < hl) hl = x;
+                            if (x > hr) hr = x;
+                        }
+
                 eyeY = bottom - height * 0.20f;
-                eyeX = (left + right) * 0.5f;
+                eyeX = hr > hl ? (hl + hr) * 0.5f : (left + right) * 0.5f;
             }
 
+            // Blur halved on 2026-08-29. It was chosen when the drawn stripes
+            // ran over everything and a marking only had to suggest itself
+            // through them; with the stripes coming off a non-tabby cat
+            // (CoatBuilder.Deband) the same softness reads as a smudge floating
+            // on the shoulder rather than as a white bib. A marking on a real
+            // cat has an edge — a soft one, not none.
             masks[MarkFace] = Blur(Ellipse(w, h, eyeY - height * 0.10f, eyeX,
-                                           height * 0.11f, width * 0.11f), w, h, 10, body);
+                                           height * 0.11f, width * 0.11f), w, h, 5, body);
             masks[MarkChest] = Blur(Ellipse(w, h, headBottom - height * 0.10f, eyeX,
-                                            height * 0.13f, width * 0.10f), w, h, 12, body);
+                                            height * 0.13f, width * 0.10f), w, h, 6, body);
 
             var paws = new float[px.Length];
             int pawTop = top + Mathf.RoundToInt(height * 0.14f);
@@ -162,7 +190,18 @@ namespace CatShelter.View
             //
             // 0.23% of the picture is what 150 was at 256, so the game looks
             // exactly as it did — at every size.
-            var found = Blobs(dark, w, h, Mathf.Max(24, Mathf.RoundToInt(w * h * 0.0023f)));
+            // 0.0023 of the picture until 2026-08-29, which was 150 pixels at
+            // 256 — and the eyes on the shipped silhouettes come out just under
+            // that at the size the board builds at. So the pair was found at 512
+            // and not at 256, and anything anchored to the eyes worked on the
+            // cat card and silently did nothing on the board. That cost a solid
+            // cat her whole face when the debander asked where not to touch.
+            //
+            // 0.0011 is about 72 pixels at 256 and 288 at 512: below both eyes
+            // at both sizes, and still far above the speckle the threshold is
+            // there to reject. The pair test below — same height, comparable
+            // size — is what actually keeps ears and stripes out, not this.
+            var found = Blobs(dark, w, h, Mathf.Max(16, Mathf.RoundToInt(w * h * 0.0011f)));
             if (found.Count < 2) return result;   // eyes shut: nothing to colour
 
             // The pair at the same height and of comparable size. Without this

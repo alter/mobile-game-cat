@@ -148,6 +148,19 @@ namespace CatShelter.View
 
             px = Reshape(px, w, h, Waist[state]);
             px = Weather(px, w, h, Neglect[state], seed: 5);
+
+            // The stripes come off for every cat that is not a tabby.
+            //
+            // This is what the striped silhouette was commissioned FOR. Stripes
+            // can be taken off a drawing that has them; they cannot be put onto
+            // one that does not. Leaving them on meant a black cat, a white cat
+            // and a calico all came out as the same tabby in three colours —
+            // the photograph, the model and five traits reduced to a colour
+            // picker. `pattern` is one of the five things read off the player's
+            // cat, and until 2026-08-29 it was the one that changed nothing a
+            // player could see.
+            if (traits.Pattern != "tabby")
+                px = Deband(px, w, h, masks, baseCoat.name);
             px = Tint(px, traits, masks, baseCoat.name);
             px = Outline(px, w, h, Mathf.RoundToInt(w * 0.016f));
 
@@ -315,10 +328,28 @@ namespace CatShelter.View
         }
 
         /// <summary>Where a built coat is kept between launches.</summary>
+        /// <summary>
+        /// Bumped whenever this file changes what a coat looks like.
+        ///
+        /// The cache on disk had no version until 2026-08-29, and that is worse
+        /// than it sounds: a coat is written once, from a photograph, and read
+        /// on every launch thereafter. Every improvement to the builder — the
+        /// stripes coming off a solid cat, the palette, the markings finding the
+        /// chest instead of the flank — reached only players who had never built
+        /// a cat. Everyone else kept the cat the old code drew, for good. It was
+        /// caught the way anything like this is caught: the coat harness went on
+        /// showing striped "solid" cats after the stripes had demonstrably been
+        /// removed.
+        ///
+        /// One number, and the old files are simply never named again.
+        /// </summary>
+        private const int CoatVersion = 2;
+
         private static string CachePath(string key)
         {
             var safe = key.Replace('/', '_').Replace('@', '_').Replace(',', '-');
-            return System.IO.Path.Combine(Application.persistentDataPath, $"coat_{safe}.png");
+            return System.IO.Path.Combine(Application.persistentDataPath,
+                                          $"coat_v{CoatVersion}_{safe}.png");
         }
 
         private static Texture2D LoadCached(string key, int size)
@@ -910,6 +941,281 @@ namespace CatShelter.View
         /// worth drawing, and each one improves the game the moment it lands —
         /// no code changes, no all-or-nothing milestone.
         /// </summary>
+        /// <summary>
+        /// Takes the drawn tabby markings off, and leaves everything else.
+        ///
+        /// The stripes are the one thing on this drawing that is high-frequency
+        /// and dark: rings round the legs and tail, bands off the spine, the M
+        /// on the forehead. Blur the cat's own light over a radius wider than a
+        /// stripe and narrower than her body, and what is left is the form —
+        /// belly lighter than back, legs shaded, ears modelled — with the bands
+        /// gone. Lifting every pixel that is darker than that blur towards it
+        /// erases the bands and touches nothing else, because only the bands are
+        /// darker than their own neighbourhood.
+        ///
+        /// Highlights are left alone: only darker-than-neighbourhood pixels move.
+        /// A cat that had her highlights flattened too would come out plastic.
+        ///
+        /// Two things are protected, and they are protected because they are
+        /// also dark and also small — the same description as a stripe. The eyes
+        /// (mask from CoatMasks) and the muzzle (the same ellipse `mark_face`
+        /// uses, so the nose and mouth line survive). Without them a solid cat
+        /// loses her face, which is a worse trade than keeping a forehead M.
+        /// </summary>
+        private static Color32[] Deband(Color32[] px, int w, int h,
+                                        Dictionary<string, float[]> masks,
+                                        string baseName)
+        {
+            // 5% of the width. A stripe on the shipped silhouette is about 2%
+            // across, and the narrowest thing that must survive — the gap
+            // between the legs — is nearer 10%.
+            int radius = Mathf.Max(2, Mathf.RoundToInt(w * 0.05f));
+
+            var body = new bool[px.Length];
+            var light = new float[px.Length];
+            for (int i = 0; i < px.Length; i++)
+            {
+                body[i] = px[i].a > 200;
+                if (body[i]) light[i] = (px[i].r + px[i].g + px[i].b) / 765f;
+            }
+
+            // A morphological CLOSING, not a blur.
+            //
+            // Blurring was the first attempt and it does not work: a blur
+            // averages the stripes together with the fur, so the value it
+            // offers is itself dragged down by the very bands being removed,
+            // and they come back softer instead of going. Closing — take the
+            // local maximum, then the local minimum over the same window —
+            // deletes any dark feature narrower than the window outright and
+            // leaves everything broader untouched. Removing thin dark marks
+            // from a drawing is exactly what the operator is for.
+            var closed = MinFilter(MaxFilter(light, body, w, h, radius),
+                                   body, w, h, radius);
+            // One gentle blur afterwards, over a third of the radius: closing
+            // leaves small flat plateaus where the bands were, and the fur
+            // around them is not flat.
+            var smooth = BoxBlur(BoxBlur(closed, body, w, h, Mathf.Max(1, radius / 3), horizontal: true),
+                                 body, w, h, Mathf.Max(1, radius / 3), horizontal: false);
+
+            // What to protect: her face.
+            //
+            // Anchored to the eyes that were actually found, because everything
+            // else tried here failed. `mark_face` is placed from the mean of the
+            // eye blobs and walks onto a cheek. A band of top rows works for a
+            // sitting cat and cuts a lying one across the back, and leaves a
+            // hard seam where it ends. The darkest 2% of the drawing is not the
+            // face at all — measured, it is the stripes, which are as dark as an
+            // eye and cover far more of her.
+            //
+            // The eyes' own bounding box has none of those failures, and since
+            // the detector now finds them at 256 as well as 512
+            // (CoatMasks.FindEyes), it is available wherever this runs. The band
+            // stays underneath as a fallback: a cat whose eyes are shut is one
+            // of the three shipped poses, and a face is not something to lose to
+            // a heuristic that missed.
+            var eyes = MaskOf(masks, baseName, CoatMasks.Eyes);
+            int fx0 = int.MaxValue, fx1 = int.MinValue, fy0 = int.MaxValue, fy1 = int.MinValue;
+            if (eyes != null)
+                for (int i = 0; i < eyes.Length; i++)
+                    if (eyes[i] > 0.5f)
+                    {
+                        int y = i / w, x = i % w;
+                        if (x < fx0) fx0 = x; if (x > fx1) fx1 = x;
+                        if (y < fy0) fy0 = y; if (y > fy1) fy1 = y;
+                    }
+
+            bool haveFace = fx1 > fx0;
+            float span = haveFace ? fx1 - fx0 : 0f;
+            // Half an eye-span out to the sides and up, a whole one down for the
+            // muzzle. Rows run bottom-up, so down the face is decreasing y.
+            float padX = span * 0.45f, padUp = span * 0.45f, padDown = span * 1.05f;
+
+            int top = h, bottom = -1;
+            for (int i = 0; i < px.Length; i++)
+                if (body[i])
+                {
+                    int y = i / w;
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+                }
+            if (bottom < 0) return px;
+
+            // The fallback head box, for when the eyes are not found — which is
+            // the common case at the 256 the board builds at, because the drawn
+            // stripes fill the darkest percentiles the eye detector works in.
+            //
+            // A band of top rows alone is not enough: it protects the whole
+            // width, so a LYING cat keeps the stripes on her back and gets a
+            // straight seam across her middle. Her ears are still the highest
+            // thing on her, though, whatever the pose — so the top of the figure
+            // gives the head's horizontal extent, and the box is the two
+            // together.
+            int height = bottom - top;
+            int headFrom = bottom - Mathf.RoundToInt(height * 0.42f);
+            int earsFrom = bottom - Mathf.RoundToInt(height * 0.12f);
+            int hx0 = w, hx1 = -1;
+            for (int y = earsFrom; y <= bottom; y++)
+                for (int x = 0; x < w; x++)
+                    if (body[y * w + x])
+                    {
+                        if (x < hx0) hx0 = x;
+                        if (x > hx1) hx1 = x;
+                    }
+            // Half again to each side: the cheeks are wider than the ears.
+            float earPad = hx1 > hx0 ? (hx1 - hx0) * 0.5f : 0f;
+
+            // Feathered over an eighth of her height. A hard edge to the
+            // protection reads as a seam across the shoulders — it did, and it
+            // was the first thing visible on the harness.
+            float feather = Mathf.Max(1f, height * 0.12f);
+
+            var dst = new Color32[px.Length];
+            Array.Copy(px, dst, px.Length);
+            for (int i = 0; i < px.Length; i++)
+            {
+                if (!body[i]) continue;
+                float keep = 0f;
+                if (eyes != null && eyes[i] > 0.4f) continue;
+                if (haveFace)
+                {
+                    int y = i / w, x = i % w;
+                    if (x >= fx0 - padX && x <= fx1 + padX &&
+                        y >= fy0 - padDown && y <= fy1 + padUp) continue;
+                }
+                else
+                {
+                    int y = i / w, x = i % w;
+                    if (hx1 > hx0 && (x < hx0 - earPad || x > hx1 + earPad))
+                    {
+                        // Not under the head at all: deband in full.
+                    }
+                    else if (y >= headFrom) continue;
+                    else if (y >= headFrom - feather)
+                    {
+                        // Easing out of the protected head rather than stopping.
+                        keep = (y - (headFrom - feather)) / feather;
+                    }
+                }
+
+                float here = light[i], want = smooth[i];
+                if (want <= here + 0.004f) continue;
+                if (keep > 0f) want = Mathf.Lerp(want, here, keep);
+
+                // Scaled, not replaced: the hue of the fur is in the ratio
+                // between the channels, and setting a lightness would grey it.
+                float k = Mathf.Min(want / Mathf.Max(here, 0.02f), 3.5f);
+                dst[i] = new Color32(
+                    (byte)Mathf.Clamp(px[i].r * k, 0, 255),
+                    (byte)Mathf.Clamp(px[i].g * k, 0, 255),
+                    (byte)Mathf.Clamp(px[i].b * k, 0, 255),
+                    px[i].a);
+            }
+            return dst;
+        }
+
+        /// <summary>
+        /// The lightest value within <paramref name="radius"/>, per axis, over
+        /// the body only. Run twice — once each way — this is a square window.
+        ///
+        /// Naive rather than deque-based: at the 512 a photograph's cat is built
+        /// at, this is about 26 million comparisons per pass and the coat is
+        /// built once and then cached, on disk and in memory. The clever version
+        /// is worth writing the day that stops being true.
+        /// </summary>
+        private static float[] MaxFilter(float[] src, bool[] body, int w, int h, int radius)
+            => Extremum(src, body, w, h, radius, wantMax: true);
+
+        /// <summary>The darkest value within the same window; the other half of
+        /// the closing.</summary>
+        private static float[] MinFilter(float[] src, bool[] body, int w, int h, int radius)
+            => Extremum(src, body, w, h, radius, wantMax: false);
+
+        private static float[] Extremum(float[] src, bool[] body, int w, int h,
+                                        int radius, bool wantMax)
+        {
+            var pass = new float[src.Length];
+            var dst = new float[src.Length];
+
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x;
+                    if (!body[i]) continue;
+                    float best = src[i];
+                    for (int k = Mathf.Max(0, x - radius); k <= Mathf.Min(w - 1, x + radius); k++)
+                    {
+                        int j = y * w + k;
+                        if (!body[j]) continue;
+                        if (wantMax ? src[j] > best : src[j] < best) best = src[j];
+                    }
+                    pass[i] = best;
+                }
+
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int i = y * w + x;
+                    if (!body[i]) continue;
+                    float best = pass[i];
+                    for (int k = Mathf.Max(0, y - radius); k <= Mathf.Min(h - 1, y + radius); k++)
+                    {
+                        int j = k * w + x;
+                        if (!body[j]) continue;
+                        if (wantMax ? pass[j] > best : pass[j] < best) best = pass[j];
+                    }
+                    dst[i] = best;
+                }
+            return dst;
+        }
+
+        /// <summary>
+        /// One axis of a box blur over the body only, by running sum — O(1) per
+        /// pixel rather than O(radius), because this runs at 512 on a phone for
+        /// a cat built from a photograph.
+        ///
+        /// Averaged over the body pixels in the window rather than all of them,
+        /// so the blur does not drag the background in and wash out the edge.
+        /// </summary>
+        private static float[] BoxBlur(float[] src, bool[] body, int w, int h,
+                                       int radius, bool horizontal)
+        {
+            var dst = new float[src.Length];
+            int outer = horizontal ? h : w, inner = horizontal ? w : h;
+
+            for (int o = 0; o < outer; o++)
+            {
+                float sum = 0f;
+                int count = 0;
+
+                int Index(int k) => horizontal ? o * w + k : k * w + o;
+
+                for (int k = 0; k <= radius && k < inner; k++)
+                {
+                    int i = Index(k);
+                    if (body[i]) { sum += src[i]; count++; }
+                }
+
+                for (int k = 0; k < inner; k++)
+                {
+                    int at = Index(k);
+                    dst[at] = count > 0 ? sum / count : src[at];
+
+                    int add = k + radius + 1, drop = k - radius;
+                    if (add < inner)
+                    {
+                        int i = Index(add);
+                        if (body[i]) { sum += src[i]; count++; }
+                    }
+                    if (drop >= 0)
+                    {
+                        int i = Index(drop);
+                        if (body[i]) { sum -= src[i]; count--; }
+                    }
+                }
+            }
+            return dst;
+        }
+
         private static float[] MaskOf(Dictionary<string, float[]> computed,
                                       string baseName, string maskName)
         {

@@ -321,16 +321,20 @@ namespace CatShelter.Shell
                 // someone who had not been told what the picture is for. The
                 // reason comes first now; the advice, which is what keeps
                 // Vision's rejection rate down, survives in the second half.
+                // No "her" for the player's cat, from 2026-08-30 — see the note
+                // above `meet.title`. "gets her colours" and "fill the frame
+                // with her" became "those colours" and no object at all; the
+                // sentence was never about the animal's sex and loses nothing.
                 ["capture.hint"] =
-                    "The kitten in the game gets her colours. " +
-                    "Fill the frame with her if you can.",
+                    "The kitten in the game gets those colours. " +
+                    "Fill the frame if you can.",
                 ["capture.camera"] = "Take a photo",
                 ["capture.gallery"] = "Choose one I have",
                 ["capture.skip"] = "Not now — give me a kitten",
                 ["capture.skipped"] = "A kitten is waiting for you either way.",
                 ["capture.opening"] = "Opening…",
                 ["capture.looking"] = "Looking…",
-                ["capture.colours"] = "Copying her colours…",
+                ["capture.colours"] = "Copying the colours…",
                 ["capture.cancelled"] = "No rush. Pick one whenever you like.",
                 // "capture.failed" = "That did not work: {0}" lived here
                 // until 2026-08-27. It formatted a raw reason string from
@@ -343,9 +347,24 @@ namespace CatShelter.Shell
                 // translated anyway.
 
                 // --- meeting the cat ------------------------------------------
-                ["meet.title"] = "Here she is",
-                ["meet.name_placeholder"] = "What's her name?",
-                ["meet.confirm"] = "That's her",
+                // The player's cat is not "she" any more, from 2026-08-30.
+                //
+                // 12-copy-english chose "she" deliberately, and for the game's
+                // OWN kitten it is still right: she is a character, she has a
+                // sex because the writing gave her one, and every table below
+                // keeps her. This screen is the other thing. It shows the animal
+                // the player just photographed, and roughly half of pet cats are
+                // male — so on the one screen whose entire job is to say "this
+                // is YOUR cat", the copy told half the owners it was not.
+                //
+                // "They" for a single animal, and "the one" where "them" would
+                // read plural. Japanese and Korean solved this before anybody
+                // noticed there was a problem — 「この子」 and 이 아이, "this
+                // little one" — and they are the model the other fifteen tables
+                // were brought to.
+                ["meet.title"] = "Here they are",
+                ["meet.name_placeholder"] = "What's their name?",
+                ["meet.confirm"] = "That's the one",
                 // 2026-08-29. The kitten's name before the player types one.
                 //
                 // The stored value is `Core/Cat.cs`'s `DefaultName`, and it
@@ -373,10 +392,15 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "Kitty",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "No cat in this one. Try a photo where she fills more of the frame.",
+                ["photo.no_animal"] = "No cat in this one. Try a photo where the cat fills more of the frame.",
                 ["photo.dog"] = "That looks like a dog. Lovely, but this shelter is for cats.",
-                ["photo.unclear"] = "A cat, but too blurry to copy her colours. One more, holding still?",
-                ["photo.accepted"] = "Got her.",
+                ["photo.unclear"] = "A cat, but too blurry to copy the colours. One more, holding still?",
+                // "Got her." until 2026-08-30. "Got you." keeps the whole point
+                // of it — the small delight of catching something — by speaking
+                // TO the cat instead of about her, which is what a person does
+                // at that moment anyway. "Got them." was the mechanical fix and
+                // reads plural.
+                ["photo.accepted"] = "Got you.",
                 // THE ONE MESSAGE ON THIS SCREEN THAT IS NOT ABOUT THE PHOTO.
                 // Three paths reach it and none of them is a judgement about
                 // the picture: the recogniser could not run at all
@@ -462,9 +486,28 @@ namespace CatShelter.Shell
         ///    with pink and glitter. Russian drops subject pronouns freely, so
         ///    the two places the English uses "she" for the game's kitten drop
         ///    it instead of choosing a gender.
-        ///  - **"она" IS used for the player's own cat** — `capture.*` and
-        ///    `photo.*` — where it is a real cat with a real sex and "кошка"
-        ///    is the word a Russian cat owner uses.
+        ///  - **No pronoun for the player's own cat either**, since
+        ///    2026-08-30. This rule used to say the opposite: "она" IS used in
+        ///    `capture.*` and `photo.*`, "where it is a real cat with a real sex
+        ///    and «кошка» is the word a Russian cat owner uses".
+        ///
+        ///    The second half of that is false, and it is the half the rule
+        ///    rested on. «Кошка» is the word for the SPECIES. About their own
+        ///    animal a Russian says «мой кот» or «моя кошка», by its sex — and
+        ///    roughly half of pet cats are male. "A real cat with a real sex"
+        ///    was the correct observation and it argues the other way: because
+        ///    the sex is real, and unknown to us, it is the one thing the copy
+        ///    must not assert.
+        ///
+        ///    The same trick already used for the game's own kitten fixes it:
+        ///    Russian drops subject pronouns freely, so they are dropped here
+        ///    too. Two strings read BETTER for it — "Как зовут?" over "Как её
+        ///    зовут?", where the pronoun carried nothing because both speakers
+        ///    are looking at the same animal.
+        ///
+        ///    Found by the owner, who asked why the cat is always female. The
+        ///    rule had been in this file, argued and wrong, since the Russian
+        ///    pass.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Russian =
             new Dictionary<string, string>
@@ -566,17 +609,28 @@ namespace CatShelter.Shell
                 // at fontSize 26 and never sets whiteSpace = Normal, so it
                 // cannot wrap: it has the panel's 390 units less 48 of padding,
                 // and every character past about 24 runs off the screen. This
-                // is 19. "Покажите нам свою кошку" is 23 and was dropped for
+                // is 16. "Покажите нам свою кошку" is 23 and was dropped for
                 // that reason alone — "нам" adds nothing a Russian sentence
                 // needs.
-                ["capture.title"] = "Покажите свою кошку",
+                //
+                // "Покажите свою кошку" stood here until 2026-08-30 and told
+                // half the players their cat was female. It is a question now
+                // instead of an instruction, which costs nothing: the two
+                // buttons under it already say what to do, so the title is free
+                // to be the warmer thing a person would actually ask.
+                ["capture.title"] = "Кто у вас живёт?",
                 // The reason first, the framing advice second — the order the
                 // English pass settled on, and the advice is what keeps
                 // Vision's rejection rate down. "Окрас" is the word a Russian
                 // cat owner uses for a cat's colouring; "масть" is for horses.
+                //
+                // Both pronouns dropped on 2026-08-30 — "её окрас" and "пусть
+                // она займёт". Russian lets a sentence carry no subject at all,
+                // and "пусть займёт весь кадр" is if anything the more natural
+                // instruction: the frame is what the sentence is about.
                 ["capture.hint"] =
-                    "Котёнок в игре получит её окрас. " +
-                    "Пусть она займёт весь кадр, если получится.",
+                    "Котёнок в игре получит этот окрас. " +
+                    "Пусть займёт весь кадр, если получится.",
                 ["capture.camera"] = "Сфотографировать",
                 ["capture.gallery"] = "Выбрать из своих фото",
                 // In the player's voice, like the English. "Просто дайте
@@ -587,46 +641,69 @@ namespace CatShelter.Shell
                 ["capture.skipped"] = "Котёнок всё равно вас ждёт.",
                 ["capture.opening"] = "Открываем…",
                 ["capture.looking"] = "Смотрим…",
-                ["capture.colours"] = "Переносим её окрас…",
+                ["capture.colours"] = "Переносим окрас…",
                 ["capture.cancelled"] = "Спешить некуда. Выберите, когда захотите.",
 
                 // --- meeting the cat ------------------------------------------
                 // Also fontSize 26 and also unwrapped (MeetYourCatScreen), and
                 // this one has room to spare.
-                ["meet.title"] = "Вот она",
-                ["meet.name_placeholder"] = "Как её зовут?",
-                ["meet.confirm"] = "Это она",
-                // "Мурка" — от «мурлыкать», и это ровно тот регистр, в котором
-                // написано английское "Kitty": не шутка, не бренд и не
-                // сюсюканье, а самая обыкновенная кошачья кличка, которую
-                // живой человек действительно впишет в поле.
+                // No pronoun for the player's cat, since 2026-08-30. "Вот она",
+                // "Как её зовут?" and "Это она" stood here and told the owner of
+                // a male cat, on the one screen that exists to say "this is
+                // YOUR cat", that it was not.
                 //
-                // Это единственная строка во всей таблице, где котёнок
-                // получает род, и он женский — против решения, записанного в
-                // шапке. Противоречия нет: там речь о МЕСТОИМЕНИИ для игрового
-                // котёнка, а «котёнок» мужского рода, поэтому местоимение
-                // опускается. Кличка местоимением не управляет — «Мурка» стоит
-                // в поле сама по себе, ни одна другая строка на неё не
-                // согласуется, — и женская кличка возвращает ту самую «she»,
-                // которую 12-copy-english выбрал нарочно, ничего не ломая.
+                // "Как зовут?" is not a compromise — it is the better Russian.
+                // The pronoun in "Как её зовут?" was carrying nothing: both
+                // speakers are looking at the same animal.
                 //
-                // Не «Мурзик» (он же в примере из cat-shelter-mvp.md, раздел 4)
-                // и не «Барсик»: обе клички мужские. Не «Муся» — она столь же
-                // распространена, но это уменьшительное от «Мария», и рядом с
-                // именем игрока читается как человеческое имя, а не кошачье.
-                ["cat.default_name"] = "Мурка",
+                // "Знакомьтесь" for the title because the screen is an
+                // introduction and that is the word for one. "Так и есть" for
+                // the button because what the player is confirming is a
+                // likeness, and agreeing with a likeness is what the phrase is
+                // for — "Это она" was doing that job and naming a sex to do it.
+                ["meet.title"] = "Знакомьтесь",
+                ["meet.name_placeholder"] = "Как зовут?",
+                ["meet.confirm"] = "Так и есть",
+                // Здесь стояла «Мурка», и рассуждение под ней было длинным и
+                // почти верным. Оно звучало так: это единственная строка, где
+                // котёнок получает род, и женская кличка возвращает то самое
+                // «she», которое английский текст выбрал нарочно.
+                //
+                // Опорой служило английское «she». 2026-08-30 эта опора убрана:
+                // английский больше не называет пол кошки игрока, потому что
+                // примерно половина домашних кошек — коты, а `MeetYourCatScreen`
+                // (строка 79) показывает эту кличку как имя кошки. То есть кот
+                // игрока звался Муркой на том самом экране, который существует
+                // ради слов «это ваша кошка».
+                //
+                // «Котёнок» вместо клички — не отступление, а то же решение,
+                // что и в английском. «Kitty» там никогда не было женским
+                // именем: это общее слово, поставленное в поле имени, пока
+                // хозяин не впишет своё. По-русски такое общее слово — «котёнок»,
+                // и оно уже выбрано этим текстом для игрового котёнка везде.
+                //
+                // Довод против, честно: кличка живее общего слова, и «Мурка»
+                // была тем, что человек и правда впишет. Но вписывать будет
+                // хозяин, а до того лучше не давать коту женское имя.
+                ["cat.default_name"] = "Котёнок",
 
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
                 // that order, and none of them blames the player.
-                ["photo.no_animal"] = "Кошки здесь не видно. Попробуйте фото, где она крупнее.",
+                ["photo.no_animal"] = "Кошки здесь не видно. Попробуйте снимок покрупнее.",
                 // "Славная" carries the English "Lovely" — a compliment to the
                 // dog, so that a refusal is not a rebuke.
                 ["photo.dog"] = "Похоже на собаку. Славная, но у нас приют для кошек.",
-                ["photo.unclear"] = "Кошка есть, но снимок размыт — окрас не разобрать. Ещё одно, пока она сидит смирно?",
-                // "Got her." — "она у нас", we have her now. Not "Готово",
-                // which is the register of a progress bar finishing.
-                ["photo.accepted"] = "Она у нас.",
+                ["photo.unclear"] = "Кошка есть, но снимок размыт — окрас не разобрать. Ещё одно, пока сидит смирно?",
+                // "Поймали!" — не «Готово», которое звучит как закончившаяся
+                // полоска загрузки. Радость, а не отчёт.
+                //
+                // Здесь стояло «Она у нас» — калька с английского "Got her.",
+                // и оно несло ровно то же тепло. Его пришлось заменить не
+                // потому, что оно хуже, а потому, что «она» здесь про кошку
+                // игрока, а она бывает котом. «Поймали!» держит ту же радость и
+                // ничего не утверждает о поле.
+                ["photo.accepted"] = "Поймали!",
                 // "Попробуете ещё раз?" until 2026-08-29 — the same false
                 // instruction the English carried, and false for the same
                 // reason: every path that shows this line fails identically on

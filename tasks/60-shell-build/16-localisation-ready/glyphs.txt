@@ -15,20 +15,20 @@ U+2026, the middle dot U+00B7 that separates map.legend's clauses, the
 em dash U+2014, and every combining mark — Thai vowels and tone marks,
 Arabic shadda and hamza, Devanagari matras and the nukta U+093C.
 
-ChineseSimplified (187 characters)
- 0Saoptw{}·—…。一三不东个么之也了二些享亮人什从以们会但你候傍像儿先全关养册再净出分别到前加动勾十占卡原发只叫可号名后喜回图在地坐堆复天太她好子字安容小少就已干座开张很得急恢息想戏我房所打找拍拾拿捡换描提收整新方时是晚暂暗更有条来架样格次欢正每毛沙没消游满点爱狗猫玩用画的相看着码空等糊经给继续能色藏行装西要让试话请走趁载边过返还这进选那都醒里重问间静面题，：？
+ChineseSimplified (189 characters)
+ 0Saoptw{}·—…。一三不东个么之也了二些享亮人什从以们会但你候傍像儿先全关养册再净出分别到前加动勾十占卡原发只叫可号名后咪喜回图在地坐堆复天太好子字安家容小少就已干座开张很得急恢息想戏我房所打找拍拾拿捡换描提收整新方时是晚暂暗更有条来架样格次欢正每毛沙没消游满点爱狗猫玩用画的相看着码空等糊经给继续能色藏行装西要让许试话请走趁载边过返还这进选那都醒里重问间静面题，：？
 
-ChineseTraditional (187 characters)
- 0Saoptw{}·—…。一三不之也乾了二些享亮人什以但佔你來個們候傍像先入全再出分別到則前動勾十卡原只叫可名問喜回圖在地坐堆天太她好子字安容小少就已座張很後得從復急恢息想愛我戲房所打找拍拾拿描提換撿收整新方是時晚暗暫更會有東架格模樣次歡正每毛沒沙淨滿狗玩用畫發的相看碼空等簿糊給經繼續能色著藏號行裝裡西要訊試話請讓貓走趁載返這進遊過選還邊那都醒重開間關靜面題養麼點，：？
+ChineseTraditional (190 characters)
+ 0Saoptw{}·—…。一三不之也乾了二些享亮人什以但佔你來個們候傍像先入全再出分別到則前動勾十卡原只叫可名咪問喜回圖在地坐堆天太好子字安家容小少就已座張很後得從復急恢息想愛我戲房所打找拍拾拿描提換撿收整新方是時晚暗暫更會有東架格模樣次歡正每毛沒沙淨滿狗玩用畫發的相看碼空等簿糊給經繼續能色著藏號行裝裡西要訊許試話請讓貓走趁載返這進遊過選還邊那都醒重開間關隻靜面題養麼點，：？
 
-Japanese (157 characters)
- 0Saoptw{}·…、。あいうおかがきぎくけこさしじすずせぜそぞただちっつづてでとどなにのはばぱぶへべぼまみめもやよらりるれろわをんァアェクゲソチッフプムリー一三二今会何元入共写出前十取号同名問図地埋場夜大子家屋山度待後急戻所手押持撮日明暗有来枚棚次毛気片犬猫画番直真知置色見読起足込通遊選部開隠静面預題願：？
+Japanese (159 characters)
+ 0Saoptw{}·…、。あいうおかがきぎくけこさしじすずせぜそぞただちっつづてでとどなにのはばぱぶへべぼまみめもやよらりるれろわをんァアェクゲソタチッフプマムリー一三二今会何元入共写出別前十取号同名問図地埋場夜大子家屋山度待後急戻所手押持撮日明暗有来枚棚次毛気片犬猫画番直真知置色見読起足込通遊選部開隠静面預題：？
 
-Korean (176 characters)
- ,.0:?Saoptw{}·—…가간강같개것게겠겼고공군그금급기길까깨끗나날네녁놀놓누는다담대더데도돌돼됐된될두뒤득든들따때라래러려로르를름리림만말면모못문뭐뭔미반밝방번보볼부불빠쁘사색생서선설세소속수숨시싶아안않알았양어없에여열예오온옮왔요용우운워원웠유으은을음의이읽임있자장저전정제졌조좋주중지직진집쪽찍찼찾체치크키터털파편하한할해했호화후흐희히
+Korean (178 characters)
+ ,.0:?Saoptw{}·—…가간강같개것게겠겼고공군그금급기길까깨끗나날네녁놀놓누는다담대더데도돌돼됐된될두뒤득든들따때라래러려로르른를름리림만말면모못문뭐뭔미반밝방번보볼부불비빠쁘사색생서선설세소속수숨시싶아안않알았양어없에여열예오온옮왔요용우운워원웠유으은을음의이읽임있자장저전정제졌조좋주중지직진집쪽찍찼찾체치크키터털파편하한할해했호화후흐희히
 
-Thai (61 characters)
- 0:Saoptw{}·กขคงจฉชซณดตถทธนบปผพฟมยรลวสหอะัาำิีึืุูเแโใไๆ็่้—…
+Thai (60 characters)
+ 0:Saoptw{}·กขคงจฉชซณดตถทนบปผพฟมยรลวสหอะัาำิีึืุูเแโใไๆ็่้—…
 
 Arabic (58 characters)
  .0:Saoptw{}·،؟ءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوىيًٍَُّ—…
@@ -36,8 +36,8 @@ Arabic (58 characters)
 Hindi (69 characters)
  ,0:?Saoptw{}·ँंअआइईउएऐऔकखगघचछजझटठडढतथदधनपफबभमयरलवशसह़ािीुूृेैॉोौ्।—…
 
-COMBINED (668 characters)
- ,.0:?Saoptw{}·،؟ءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوىيًٍَُّँंअआइईउएऐऔकखगघचछजझटठडढतथदधनपफबभमयरलवशसह़ािीुूृेैॉोौ्।กขคงจฉชซณดตถทธนบปผพฟมยรลวสหอะัาำิีึืุูเแโใไๆ็่้—…、。あいうおかがきぎくけこさしじすずせぜそぞただちっつづてでとどなにのはばぱぶへべぼまみめもやよらりるれろわをんァアェクゲソチッフプムリー一三不东个么之也乾了二些享亮人什今从以们会但佔何你來個們候傍像儿元先入全共关养册再写净出分別别到則前加动動勾十占卡原发取只叫可号同名后問喜回図图圖在地坐埋堆場复夜大天太她好子字安家容小少就屋山已干度座开张張待很後得從復急恢息想愛戏我戲戻房所手打找押拍拾拿持捡换描提換撮撿收整新方日时明是時晚暂暗暫更會有条来東枚架样格棚模樣次欢歡正每毛気沒沙没消淨游满滿点爱片犬狗猫玩用画番畫發的直相看真着知码碼空等簿糊給經繼續经给继续置能色著藏號行装裝裡西要見訊試話読請讓让试话请貓走起趁足載载边込过返还这进选這通進遊過選還邊那部都醒里重開間關问间隠静靜面預題願题養麼點가간강같개것게겠겼고공군그금급기길까깨끗나날네녁놀놓누는다담대더데도돌돼됐된될두뒤득든들따때라래러려로르를름리림만말면모못문뭐뭔미반밝방번보볼부불빠쁘사색생서선설세소속수숨시싶아안않알았양어없에여열예오온옮왔요용우운워원웠유으은을음의이읽임있자장저전정제졌조좋주중지직진집쪽찍찼찾체치크키터털파편하한할해했호화후흐희히，：？
+COMBINED (673 characters)
+ ,.0:?Saoptw{}·،؟ءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوىيًٍَُّँंअआइईउएऐऔकखगघचछजझटठडढतथदधनपफबभमयरलवशसह़ािीुूृेैॉोौ्।กขคงจฉชซณดตถทนบปผพฟมยรลวสหอะัาำิีึืุูเแโใไๆ็่้—…、。あいうおかがきぎくけこさしじすずせぜそぞただちっつづてでとどなにのはばぱぶへべぼまみめもやよらりるれろわをんァアェクゲソタチッフプマムリー一三不东个么之也乾了二些享亮人什今从以们会但佔何你來個們候傍像儿元先入全共关养册再写净出分別别到則前加动動勾十占卡原发取只叫可号同名后咪問喜回図图圖在地坐埋堆場复夜大天太好子字安家容小少就屋山已干度座开张張待很後得從復急恢息想愛戏我戲戻房所手打找押拍拾拿持捡换描提換撮撿收整新方日时明是時晚暂暗暫更會有条来東枚架样格棚模樣次欢歡正每毛気沒沙没消淨游满滿点爱片犬狗猫玩用画番畫發的直相看真着知码碼空等簿糊給經繼續经给继续置能色著藏號行装裝裡西要見訊許試話読請讓让许试话请貓走起趁足載载边込过返还这进选這通進遊過選還邊那部都醒里重開間關问间隠隻静靜面預題题養麼點가간강같개것게겠겼고공군그금급기길까깨끗나날네녁놀놓누는다담대더데도돌돼됐된될두뒤득든들따때라래러려로르른를름리림만말면모못문뭐뭔미반밝방번보볼부불비빠쁘사색생서선설세소속수숨시싶아안않알았양어없에여열예오온옮왔요용우운워원웠유으은을음의이읽임있자장저전정제졌조좋주중지직진집쪽찍찼찾체치크키터털파편하한할해했호화후흐희히，：？
 
 Codepoints of the combined line, one per line, U+XXXX<TAB>character<TAB>Unicode name:
 U+0020	 	SPACE
@@ -164,7 +164,6 @@ U+0E14	ด	THAI CHARACTER DO DEK
 U+0E15	ต	THAI CHARACTER TO TAO
 U+0E16	ถ	THAI CHARACTER THO THUNG
 U+0E17	ท	THAI CHARACTER THO THAHAN
-U+0E18	ธ	THAI CHARACTER THO THONG
 U+0E19	น	THAI CHARACTER NO NU
 U+0E1A	บ	THAI CHARACTER BO BAIMAI
 U+0E1B	ป	THAI CHARACTER PO PLA
@@ -262,10 +261,12 @@ U+30A7	ェ	KATAKANA LETTER SMALL E
 U+30AF	ク	KATAKANA LETTER KU
 U+30B2	ゲ	KATAKANA LETTER GE
 U+30BD	ソ	KATAKANA LETTER SO
+U+30BF	タ	KATAKANA LETTER TA
 U+30C1	チ	KATAKANA LETTER TI
 U+30C3	ッ	KATAKANA LETTER SMALL TU
 U+30D5	フ	KATAKANA LETTER HU
 U+30D7	プ	KATAKANA LETTER PU
+U+30DE	マ	KATAKANA LETTER MA
 U+30E0	ム	KATAKANA LETTER MU
 U+30EA	リ	KATAKANA LETTER RI
 U+30FC	ー	KATAKANA-HIRAGANA PROLONGED SOUND MARK
@@ -336,6 +337,7 @@ U+53F7	号	CJK UNIFIED IDEOGRAPH-53F7
 U+540C	同	CJK UNIFIED IDEOGRAPH-540C
 U+540D	名	CJK UNIFIED IDEOGRAPH-540D
 U+540E	后	CJK UNIFIED IDEOGRAPH-540E
+U+54AA	咪	CJK UNIFIED IDEOGRAPH-54AA
 U+554F	問	CJK UNIFIED IDEOGRAPH-554F
 U+559C	喜	CJK UNIFIED IDEOGRAPH-559C
 U+56DE	回	CJK UNIFIED IDEOGRAPH-56DE
@@ -353,7 +355,6 @@ U+591C	夜	CJK UNIFIED IDEOGRAPH-591C
 U+5927	大	CJK UNIFIED IDEOGRAPH-5927
 U+5929	天	CJK UNIFIED IDEOGRAPH-5929
 U+592A	太	CJK UNIFIED IDEOGRAPH-592A
-U+5979	她	CJK UNIFIED IDEOGRAPH-5979
 U+597D	好	CJK UNIFIED IDEOGRAPH-597D
 U+5B50	子	CJK UNIFIED IDEOGRAPH-5B50
 U+5B57	字	CJK UNIFIED IDEOGRAPH-5B57
@@ -492,12 +493,14 @@ U+897F	西	CJK UNIFIED IDEOGRAPH-897F
 U+8981	要	CJK UNIFIED IDEOGRAPH-8981
 U+898B	見	CJK UNIFIED IDEOGRAPH-898B
 U+8A0A	訊	CJK UNIFIED IDEOGRAPH-8A0A
+U+8A31	許	CJK UNIFIED IDEOGRAPH-8A31
 U+8A66	試	CJK UNIFIED IDEOGRAPH-8A66
 U+8A71	話	CJK UNIFIED IDEOGRAPH-8A71
 U+8AAD	読	CJK UNIFIED IDEOGRAPH-8AAD
 U+8ACB	請	CJK UNIFIED IDEOGRAPH-8ACB
 U+8B93	讓	CJK UNIFIED IDEOGRAPH-8B93
 U+8BA9	让	CJK UNIFIED IDEOGRAPH-8BA9
+U+8BB8	许	CJK UNIFIED IDEOGRAPH-8BB8
 U+8BD5	试	CJK UNIFIED IDEOGRAPH-8BD5
 U+8BDD	话	CJK UNIFIED IDEOGRAPH-8BDD
 U+8BF7	请	CJK UNIFIED IDEOGRAPH-8BF7
@@ -536,12 +539,12 @@ U+95DC	關	CJK UNIFIED IDEOGRAPH-95DC
 U+95EE	问	CJK UNIFIED IDEOGRAPH-95EE
 U+95F4	间	CJK UNIFIED IDEOGRAPH-95F4
 U+96A0	隠	CJK UNIFIED IDEOGRAPH-96A0
+U+96BB	隻	CJK UNIFIED IDEOGRAPH-96BB
 U+9759	静	CJK UNIFIED IDEOGRAPH-9759
 U+975C	靜	CJK UNIFIED IDEOGRAPH-975C
 U+9762	面	CJK UNIFIED IDEOGRAPH-9762
 U+9810	預	CJK UNIFIED IDEOGRAPH-9810
 U+984C	題	CJK UNIFIED IDEOGRAPH-984C
-U+9858	願	CJK UNIFIED IDEOGRAPH-9858
 U+9898	题	CJK UNIFIED IDEOGRAPH-9898
 U+990A	養	CJK UNIFIED IDEOGRAPH-990A
 U+9EBC	麼	CJK UNIFIED IDEOGRAPH-9EBC
@@ -598,6 +601,7 @@ U+B7EC	러	HANGUL SYLLABLE REO
 U+B824	려	HANGUL SYLLABLE RYEO
 U+B85C	로	HANGUL SYLLABLE RO
 U+B974	르	HANGUL SYLLABLE REU
+U+B978	른	HANGUL SYLLABLE REUN
 U+B97C	를	HANGUL SYLLABLE REUL
 U+B984	름	HANGUL SYLLABLE REUM
 U+B9AC	리	HANGUL SYLLABLE RI
@@ -619,6 +623,7 @@ U+BCF4	보	HANGUL SYLLABLE BO
 U+BCFC	볼	HANGUL SYLLABLE BOL
 U+BD80	부	HANGUL SYLLABLE BU
 U+BD88	불	HANGUL SYLLABLE BUL
+U+BE44	비	HANGUL SYLLABLE BI
 U+BE60	빠	HANGUL SYLLABLE BBA
 U+C058	쁘	HANGUL SYLLABLE BBEU
 U+C0AC	사	HANGUL SYLLABLE SA

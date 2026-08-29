@@ -86,6 +86,28 @@ namespace CatShelter.Shell
         /// every string here addresses nobody at all, which is quieter still.
         /// The four strings that must address the player use 你, the ordinary
         /// second person a friend uses.
+        ///
+        /// **No 她 anywhere, and this is the one rule in the table that is
+        /// about the cat rather than about the player.** Until 2026-08-30 ten
+        /// strings here called the player's cat 她 — the written third person
+        /// that is unambiguously female on the page. It was carried over from
+        /// the English "she", which was itself a deliberate choice, and it was
+        /// wrong for the same reason there: the animal in the photograph is the
+        /// player's own, and about half of pet cats are male. A player whose
+        /// tom is on the screen is told he is a she, on every screen, starting
+        /// with the title of the one where they meet.
+        ///
+        /// Spoken Chinese would not have had the problem — tā is one sound —
+        /// but the writing has to pick a character, and 她 picks female. The
+        /// three ways out were 它 (the inanimate "it", which is what a form
+        /// would say about somebody's cat), 牠 (the animal third person, and
+        /// not current in Simplified writing at all), and dropping the pronoun.
+        /// **Dropping it is the one that costs nothing**, because Chinese drops
+        /// subject and possessive pronouns freely and a line without one reads
+        /// as MORE spoken rather than less. Where a noun was needed to keep the
+        /// sentence clear it is 猫咪 for the player's real cat — the ordinary
+        /// affectionate word, no sex in it — and 小猫 for the kitten in the
+        /// game, which is the word the rest of the table already uses.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> ChineseSimplified =
             new Dictionary<string, string>
@@ -143,7 +165,10 @@ namespace CatShelter.Shell
                 // comma is a line longer than the card can spare under two
                 // photographs.
                 ["house.complete.body"] =
-                    "十二个房间，全都收拾好了。小猫再也没有地方藏她捡到的东西。" +
+                    // "藏她捡到的东西" until 2026-08-30. The possessive is what
+                    // Chinese drops most freely of all, and 小猫 is the subject
+                    // of the same clause — nothing is ambiguous without it.
+                    "十二个房间，全都收拾好了。小猫再也没有地方藏捡到的东西。" +
                     "\n\n这座房子暂时就到这里。",
                 // A different verb from card.share_short, as in English: 分享
                 // is already spent on the kitten's card.
@@ -184,9 +209,17 @@ namespace CatShelter.Shell
                 // English pass settled on, and the advice is what keeps
                 // Vision's rejection rate down. 毛色 is the word a Chinese cat
                 // owner uses for a cat's colouring.
+                //
+                // "会用她的毛色…让她占满整个画面" until 2026-08-30. This is the
+                // string where the pronoun could not simply be dropped: the
+                // sentence has two cats in it, the one in the game and the one
+                // in the photograph, so something has to distinguish them. 你家
+                // 猫咪 — "your cat at home" — does it in the warmest register
+                // Chinese has for the animal, and the second clause then takes
+                // the bare 猫咪 because the reference is already established.
                 ["capture.hint"] =
-                    "游戏里的小猫会用她的毛色。" +
-                    "可以的话，让她占满整个画面。",
+                    "游戏里的小猫会用你家猫咪的毛色。" +
+                    "可以的话，让猫咪占满整个画面。",
                 ["capture.camera"] = "拍一张",
                 ["capture.gallery"] = "从相册里选",
                 // In the player's voice, like the English: a person saying
@@ -195,15 +228,32 @@ namespace CatShelter.Shell
                 ["capture.skipped"] = "小猫都会等着你的。",
                 ["capture.opening"] = "正在打开…",
                 ["capture.looking"] = "正在看…",
-                ["capture.colours"] = "正在描她的毛色…",
+                // "正在描她的毛色…" until 2026-08-30. A progress line has the
+                // screen to itself and needs no subject at all; without one it
+                // reads shorter and more spoken, which is what this row of
+                // three ellipsis strings is for.
+                ["capture.colours"] = "正在描毛色…",
                 ["capture.cancelled"] = "不着急，什么时候想选都行。",
 
                 // --- meeting the cat ------------------------------------------
                 // Also fontSize 26 and also unwrapped
                 // (MeetYourCatScreen.cs:78-81), and this one has room to spare.
-                ["meet.title"] = "她来了",
-                ["meet.name_placeholder"] = "她叫什么名字？",
-                ["meet.confirm"] = "就是她",
+                // "她来了" / "她叫什么名字？" / "就是她" until 2026-08-30 —
+                // the three strings the whole defect was really about, because
+                // they are the first three the player reads about her own cat.
+                //
+                // The title keeps the shape and swaps the pronoun for the noun:
+                // 小猫来了 is the same four beats and the same news. The
+                // placeholder drops the subject, which is what a Chinese
+                // speaker asking this question out loud does anyway — 叫什么名字
+                // is the question, 她 was never carrying any of it. The button
+                // becomes 这只, the classifier standing in for the animal:
+                // "this one it is", which is what Japanese この子にします and
+                // Korean 이 아이로 할래요 do with their own words for a small
+                // creature nobody has to sex.
+                ["meet.title"] = "小猫来了",
+                ["meet.name_placeholder"] = "叫什么名字？",
+                ["meet.confirm"] = "就是这只",
                 // 小咪 — the stock Chinese cat name, and the closest thing any
                 // of these seventeen languages has to an exact "Kitty": 咪 is
                 // the sound a person makes to call a cat, 小 makes it a name
@@ -224,14 +274,19 @@ namespace CatShelter.Shell
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
                 // that order, and none of them blames the player.
-                ["photo.no_animal"] = "这张里没看到猫。换一张她占得更满的试试。",
+                ["photo.no_animal"] = "这张里没看到猫。换一张猫咪占得更满的试试。",
                 // The compliment to the dog survives, so that a refusal is not
                 // a rebuke.
                 ["photo.dog"] = "这看着像狗。很可爱，不过这里是猫的收容所。",
-                ["photo.unclear"] = "有猫，但太糊了，描不出毛色。再来一张，趁她坐着别动？",
-                // "Got her." — she is with us now. Not 完成, which is the
-                // register of a progress bar finishing.
-                ["photo.accepted"] = "她到我们这儿了。",
+                ["photo.unclear"] = "有猫，但太糊了，描不出毛色。再来一张，趁猫咪坐着别动？",
+                // "The kitten's with us now." Not 完成, which is the register of
+                // a progress bar finishing.
+                //
+                // "她到我们这儿了。" until 2026-08-30. This is the moment the
+                // photograph becomes the game's kitten, so 小猫 is not a
+                // substitution here — it is the more accurate subject of the
+                // two, and it is the word the next screen opens with.
+                ["photo.accepted"] = "小猫到我们这儿了。",
                 // "那张再试一次？" until 2026-08-29: it named the same photo,
                 // which is the one thing that fails identically every time on
                 // every path that shows this line. See the English table. The
@@ -243,9 +298,15 @@ namespace CatShelter.Shell
                 // reads this through Copy.Of(key) with no arguments, so a "{0}"
                 // here reaches a lock screen as four literal characters.
                 ["notification.title"] = "小猫在沙发后面找到了东西",
-                // No 她 as subject: Chinese drops it freely, and the line reads
-                // as one breath rather than as a report about somebody.
-                ["notification.body"] = "她想拿给你看，等你有空的时候。",
+                // No subject: Chinese drops it freely, the title above has
+                // already named 小猫, and the line reads as one breath rather
+                // than as a report about somebody.
+                //
+                // The comment above said exactly this before 2026-08-30 while
+                // the string underneath it began with 她 — it described the
+                // sentence somebody meant to write rather than the one that
+                // shipped. Dropping the pronoun makes the note true.
+                ["notification.body"] = "想拿给你看，等你有空的时候。",
 
                 // Android only, and shown in system Settings rather than in
                 // the game.
@@ -272,6 +333,21 @@ namespace CatShelter.Shell
         /// wrong" rather than as localised. NOTES-scripts.md says the same
         /// thing at more length, and it is the first table to hand to a real
         /// reviewer if the game ever sells in Taipei.
+        ///
+        /// **No 她 here either, and the removal tracks the Simplified table
+        /// exactly.** The argument is written out in full at the Simplified
+        /// class note: ten strings called the player's own cat by the female
+        /// third person, about half of pet cats are male, and Chinese lets a
+        /// writer drop the pronoun instead of choosing one. Traditional
+        /// writing has one option Simplified does not — 牠, the third person
+        /// reserved for animals, which is current in Taiwan and would have read
+        /// as neither male nor female. It was NOT taken, for two reasons: it
+        /// would have split these two tables at ten keys where they have never
+        /// differed except by glyph and by the eleven listed words, and 牠 is
+        /// still a pronoun where the Simplified fix is a sentence that no
+        /// longer needs one. 這隻 rather than 這只 at `meet.confirm` is the
+        /// ordinary Traditional writing of the classifier and not a twelfth
+        /// lexical substitution.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> ChineseTraditional =
             new Dictionary<string, string>
@@ -309,7 +385,10 @@ namespace CatShelter.Shell
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "整座房子都乾淨了",
                 ["house.complete.body"] =
-                    "十二個房間，全都收拾好了。小貓再也沒有地方藏她撿到的東西。" +
+                    // "藏她撿到的東西" until 2026-08-30 — see the Simplified
+                    // table. The possessive is the one Chinese drops most
+                    // freely, and 小貓 is the subject of the same clause.
+                    "十二個房間，全都收拾好了。小貓再也沒有地方藏撿到的東西。" +
                     "\n\n這座房子暫時就到這裡。",
                 ["house.complete.share"] = "給別人看看",
                 // {0} is the game's name, same as card.caption.
@@ -336,9 +415,13 @@ namespace CatShelter.Shell
                 // Eight characters at fontSize 26, unwrapped, in 342 units —
                 // the same thirteen-character ceiling as the Simplified table.
                 ["capture.title"] = "讓我們看看你的貓",
+                // "會用她的毛色…讓她佔滿整個畫面" until 2026-08-30. Two cats in
+                // one sentence, so this is the one string where the pronoun
+                // could not simply go: 你家貓咪 names the one in the
+                // photograph, and the second clause takes the bare 貓咪.
                 ["capture.hint"] =
-                    "遊戲裡的小貓會用她的毛色。" +
-                    "可以的話，讓她佔滿整個畫面。",
+                    "遊戲裡的小貓會用你家貓咪的毛色。" +
+                    "可以的話，讓貓咪佔滿整個畫面。",
                 ["capture.camera"] = "拍一張",
                 // 相簿, not 相冊: the Taiwan word for a phone's photo library.
                 ["capture.gallery"] = "從相簿裡選",
@@ -346,15 +429,21 @@ namespace CatShelter.Shell
                 ["capture.skipped"] = "小貓都會等著你的。",
                 ["capture.opening"] = "正在打開…",
                 ["capture.looking"] = "正在看…",
-                ["capture.colours"] = "正在描她的毛色…",
+                // "正在描她的毛色…" until 2026-08-30: a progress line has the
+                // screen to itself and needs no subject.
+                ["capture.colours"] = "正在描毛色…",
                 // 不著急, with 著: Taiwan's standard writing of the word the
                 // mainland sets as 着.
                 ["capture.cancelled"] = "不著急，什麼時候想選都行。",
 
                 // --- meeting the cat ------------------------------------------
-                ["meet.title"] = "她來了",
-                ["meet.name_placeholder"] = "她叫什麼名字？",
-                ["meet.confirm"] = "就是她",
+                // "她來了" / "她叫什麼名字？" / "就是她" until 2026-08-30 — the
+                // three the defect was really about, and the reasoning is set
+                // out at the Simplified table. Noun for the title, no subject
+                // at all for the question, classifier for the button.
+                ["meet.title"] = "小貓來了",
+                ["meet.name_placeholder"] = "叫什麼名字？",
+                ["meet.confirm"] = "就是這隻",
                 // Identical to the Simplified table, and this is the one value
                 // in the whole file where that is the right answer rather than
                 // an unconverted leftover: neither 小 nor 咪 was ever
@@ -371,13 +460,16 @@ namespace CatShelter.Shell
                 // --- the four outcomes ---------------------------------------
                 // 試試看 rather than the mainland's bare 試試 — the Taiwan
                 // idiom carries the same softness the English "Try" has.
-                ["photo.no_animal"] = "這張裡沒看到貓。換一張她佔得更滿的試試看。",
+                ["photo.no_animal"] = "這張裡沒看到貓。換一張貓咪佔得更滿的試試看。",
                 ["photo.dog"] = "這看著像狗。很可愛，不過這裡是貓的收容所。",
                 // 太模糊了, not the mainland colloquial 太糊了.
-                ["photo.unclear"] = "有貓，但太模糊了，描不出毛色。再來一張，趁她坐著別動？",
+                ["photo.unclear"] = "有貓，但太模糊了，描不出毛色。再來一張，趁貓咪坐著別動？",
                 // 這裡, not 這兒: the 兒 suffix is northern-mainland speech and
-                // reads as an accent in Taipei.
-                ["photo.accepted"] = "她到我們這裡了。",
+                // reads as an accent in Taipei. "她到我們這裡了。" until
+                // 2026-08-30 — this is the moment the photograph becomes the
+                // game's kitten, so 小貓 is the truer subject as well as the
+                // sexless one.
+                ["photo.accepted"] = "小貓到我們這裡了。",
                 // "那張再試一次？" until 2026-08-29 — see the English table.
                 // The tail is `capture.skipped`, the button standing below.
                 ["photo.our_fault"] = "是我們這邊出了問題。換一張也許就行，小貓都會等著你的。",
@@ -386,7 +478,9 @@ namespace CatShelter.Shell
                 // NO PLACEHOLDER, and none may be added — see the Simplified
                 // table and EveningReminder.cs:52.
                 ["notification.title"] = "小貓在沙發後面找到了東西",
-                ["notification.body"] = "她想拿給你看，等你有空的時候。",
+                // No subject: the title above has already named 小貓.
+                // "她想拿給你看" until 2026-08-30.
+                ["notification.body"] = "想拿給你看，等你有空的時候。",
 
                 // Android only, and shown in system Settings rather than in
                 // the game. 訊息, not 消息: the Taiwan word for a message a
@@ -424,9 +518,24 @@ namespace CatShelter.Shell
         /// is the same choice the English pass made when it deleted
         /// "Room clean!".
         ///
-        /// Japanese drops the subject freely, so the English's deliberate
+        /// **Nothing in this table names the cat's sex, and after 2026-08-30
+        /// that is the rule rather than a side effect.** The note here used to
+        /// read: Japanese drops the subject freely, so the English's deliberate
         /// "she" for the kitten (12-copy-english change 7) is neither carried
-        /// nor contradicted: no line here assigns her a pronoun at all.
+        /// nor contradicted. That was true and it was recorded as a shrug — the
+        /// English had made a choice and Japanese had simply been unable to
+        /// copy it.
+        ///
+        /// The choice turned out to be the defect. The cat on the screen is
+        /// built from a photograph of the player's own, and about half of pet
+        /// cats are male, so "she" told a great many players their tom was a
+        /// queen on every screen they opened. The Chinese, Traditional Chinese
+        /// and Thai tables had all carried it and all had to be unpicked; this
+        /// one had nothing to unpick, and 「この子です」/「この子にします」 became
+        /// the model the other tables were rewritten against. What was an
+        /// accident of Japanese grammar is now a requirement: **no line in this
+        /// table may assign the kitten a sex**, and その子 — "that little one" —
+        /// is the word for her when a word is needed at all.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Japanese =
             new Dictionary<string, string>
@@ -611,10 +720,23 @@ namespace CatShelter.Shell
         /// is textbook Korean rather than spoken Korean, and most strings here
         /// address nobody at all, which is quieter again.
         ///
-        /// The kitten is 「아기 고양이」 and never 「냥이」 or 「야옹이」. Korean
-        /// has no third-person pronoun that a native speaker uses in running
-        /// text, so — as in Japanese — the English's deliberate "she" is
-        /// simply not carried, rather than replaced with something wrong.
+        /// The kitten is 「아기 고양이」 and never 「냥이」 or 「야옹이」.
+        ///
+        /// **Nothing in this table names the cat's sex, and after 2026-08-30
+        /// that is the rule rather than a side effect.** The note here used to
+        /// read: Korean has no third-person pronoun a native speaker uses in
+        /// running text, so — as in Japanese — the English's deliberate "she"
+        /// is simply not carried, rather than replaced with something wrong.
+        /// True, and recorded as a limitation.
+        ///
+        /// It was not a limitation. The kitten is drawn from a photograph of
+        /// the player's own cat and about half of pet cats are male, so the
+        /// English "she" was telling half its players the wrong thing about an
+        /// animal they know personally. 「이 아이예요」/「이 아이로 할래요」 — this
+        /// one, this little one — is what the Chinese and Thai tables were
+        /// rewritten to match. So: **no line in this table may assign the
+        /// kitten a sex**, and 그 아이 is the word for her when a word is
+        /// needed, which is once, in `capture.hint`.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Korean =
             new Dictionary<string, string>
@@ -801,6 +923,44 @@ namespace CatShelter.Shell
         /// (ไม่ต้องรีบ, ได้เลย) and from addressing the player as คุณ, the
         /// neutral polite second person. กรุณา appears once, on the one string
         /// that is genuinely an instruction.
+        ///
+        /// **น้อง for the cat, and never เธอ.** Eight strings called the
+        /// player's cat เธอ until 2026-08-30, and the irony is that this table
+        /// had already refused to let the game decide the SPEAKER's sex — that
+        /// is the whole ครับ/ค่ะ paragraph above — and then went and decided
+        /// the CAT's. เธอ is not neutral. Wiktionary marks the third-person
+        /// sense "commonly feminine"; the pronoun guides that teach it teach it
+        /// as the third person for a woman, against เขา, which they call as
+        /// neutral as a Thai pronoun gets. And the animal in the photograph is
+        /// the player's own, of which about half are toms.
+        ///
+        /// The three replacements considered, and why น้อง won:
+        ///
+        ///  - **มัน**, the pronoun Thai grammar actually reserves for animals.
+        ///    Not rude by the dictionary, and used constantly even in fond
+        ///    writing about pets — but there is a live argument among Thai
+        ///    speakers about exactly this, and one side hears มัน about a
+        ///    loved animal as coldness. A game about somebody's own cat does
+        ///    not get to take that bet;
+        ///  - **เค้า/เขา**, warm and genderless, and the one the pet brands
+        ///    use. Rejected for a collision: in the speech of younger women
+        ///    เค้า is also an affectionate "I", so a three-word string with no
+        ///    sentence around it can read as the cat talking about itself;
+        ///  - **น้อง**, the kinship term for a younger sibling — no sex in it
+        ///    (Wiktionary glosses both brother and sister, and records the use
+        ///    "as an affectionate title for an animal"), and it is what Thai
+        ///    cat owners and the Thai pet brands actually write: น้องแมว,
+        ///    น้องเหมียว, "ทำความรู้จักกับน้องเหมียวของคุณ".
+        ///
+        /// **น้อง is the same move as Japanese この子 and Korean 이 아이** — a
+        /// word for a small person in the family, borrowed for the animal,
+        /// carrying warmth and no sex at all. That is the register this defect
+        /// was fixed against in every table.
+        ///
+        /// Two exceptions, both at their keys: `photo.accepted`, where รับน้อง
+        /// is a fixed phrase meaning freshers' hazing and the pronoun had to go
+        /// entirely, and `notification.body`, which takes the full น้องเหมียว
+        /// because a lock screen arrives with no picture beside it.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Thai =
             new Dictionary<string, string>
@@ -885,8 +1045,13 @@ namespace CatShelter.Shell
                 // Vision's rejection rate down. Three clause-spaces, so it
                 // wraps. สีขน is the Thai for an animal's coat colour.
                 ["capture.hint"] =
-                    "ลูกแมวในเกม จะได้สีขนของเธอ " +
-                    "ถ้าทำได้ ให้เธออยู่เต็มเฟรม",
+                    // "สีขนของเธอ … ให้เธออยู่เต็มเฟรม" until 2026-08-30. The
+                    // swap pays a second dividend here: the sentence has two
+                    // cats in it, and ลูกแมวในเกม against น้อง now tells them
+                    // apart — the kitten in the game, and the little one in
+                    // front of the camera.
+                    "ลูกแมวในเกม จะได้สีขนของน้อง " +
+                    "ถ้าทำได้ ให้น้องอยู่เต็มเฟรม",
                 ["capture.camera"] = "ถ่ายรูป",
                 ["capture.gallery"] = "เลือกจากรูปที่มี",
                 // In the player's voice, like the English.
@@ -900,9 +1065,23 @@ namespace CatShelter.Shell
                 // --- meeting the cat ------------------------------------------
                 // Also fontSize 26 and also unwrapped
                 // (MeetYourCatScreen.cs:78-81).
-                ["meet.title"] = "นี่คือเธอ",
-                ["meet.name_placeholder"] = "เธอชื่ออะไร",
-                ["meet.confirm"] = "ใช่เธอเลย",
+                // "นี่คือเธอ" / "เธอชื่ออะไร" / "ใช่เธอเลย" until 2026-08-30 —
+                // the three strings that told half the players their tom was a
+                // queen, on the one screen whose whole job is to say "this is
+                // YOUR cat". Ten and twelve and ten characters, all well inside
+                // the unwrapped 342 units, and no internal space in any of
+                // them, which matters: a space is a line break in this build.
+                //
+                // `meet.name_placeholder` is the confident one — น้องชื่ออะไร
+                // is the formula Thai pet owners already write. The other two
+                // are the frame of the old string with น้อง dropped into it,
+                // which is sound Thai but is not quoted from anywhere; see the
+                // report. `ใช่เลย` with no pronoun at all was the safe
+                // alternative for the button and was not taken, because it
+                // stops naming the cat on the button that accepts her.
+                ["meet.title"] = "นี่คือน้อง",
+                ["meet.name_placeholder"] = "น้องชื่ออะไร",
+                ["meet.confirm"] = "ใช่น้องเลย",
                 // **Thai has no stock cat name, and this is one of the two
                 // tables where that had to be said rather than papered over.**
                 // Japanese has タマ and Korean has 나비 — a single name the
@@ -914,7 +1093,7 @@ namespace CatShelter.Shell
                 //
                 // Which rules the whole method out here, and not on taste: this
                 // kitten's coat is copied from the player's own cat
-                // (`capture.hint` — "ลูกแมวในเกม จะได้สีขนของเธอ"), so a
+                // (`capture.hint` — "ลูกแมวในเกม จะได้สีขนของน้อง"), so a
                 // default name that names a colour is a name that is wrong for
                 // most players the second the shader runs.
                 //
@@ -934,12 +1113,24 @@ namespace CatShelter.Shell
                 // Each says what happened and then offers a way forward, in
                 // that order, and none of them blames the player. All four are
                 // clause-spaced so the wrapping label can break them.
-                ["photo.no_animal"] = "รูปนี้ไม่มีแมว ลองรูปที่เธออยู่เต็มเฟรมกว่านี้",
+                ["photo.no_animal"] = "รูปนี้ไม่มีแมว ลองรูปที่น้องอยู่เต็มเฟรมกว่านี้",
                 // The compliment to the dog survives, so that a refusal is not
                 // a rebuke.
                 ["photo.dog"] = "ดูเหมือนสุนัข น่ารักนะ แต่ที่นี่เป็นบ้านพักของแมว",
-                ["photo.unclear"] = "มีแมวอยู่ แต่เบลอเกินกว่าจะลอกสีขน อีกรูปตอนเธออยู่นิ่ง ๆ ได้ไหม",
-                ["photo.accepted"] = "รับเธอไว้แล้ว",
+                ["photo.unclear"] = "มีแมวอยู่ แต่เบลอเกินกว่าจะลอกสีขน อีกรูปตอนน้องอยู่นิ่ง ๆ ได้ไหม",
+                // **The one string in the table where น้อง could not be used,
+                // and the reason is a collocation rather than a register.**
+                // "รับเธอไว้แล้ว" until 2026-08-30; the obvious repair,
+                // "รับน้องไว้แล้ว", walks straight into รับน้อง — the fixed
+                // Thai phrase for the hazing of first-year students, with its
+                // own Wikipedia article. A Thai reader would stumble over it on
+                // the warmest line in the game.
+                //
+                // So the pronoun goes entirely, which Thai allows freely and
+                // which the language does more readily than English does:
+                // "รับไว้แล้ว", taken in. It is a shade drier than the string
+                // it replaces, and that is the price of the collocation.
+                ["photo.accepted"] = "รับไว้แล้ว",
                 // "ลองรูปนั้นอีกครั้งไหม" until 2026-08-29 — "รูปนั้น", that same
                 // picture, is the retry that cannot work. See the English
                 // table. The tail is `capture.skipped`, the button below.
@@ -960,7 +1151,13 @@ namespace CatShelter.Shell
                 // the OS, and iOS and Android break Thai on whitespace for the
                 // same reason UI Toolkit does.
                 ["notification.title"] = "ลูกแมวเจอบางอย่าง หลังโซฟา",
-                ["notification.body"] = "เธอรออยู่ จะให้ดู เมื่อคุณมีเวลาสักครู่",
+                // "เธอรออยู่ …" until 2026-08-30, and the full น้องเหมียว here
+                // rather than the bare น้อง the rest of the table uses: a
+                // notification arrives on a lock screen with no picture of a
+                // cat beside it and no screen of context above it, and
+                // "น้องรออยู่" with nothing around it reads as a PERSON
+                // waiting. เหมียว settles it in one word.
+                ["notification.body"] = "น้องเหมียวรออยู่ จะให้ดู เมื่อคุณมีเวลาสักครู่",
 
                 // Android only, and shown in system Settings rather than in
                 // the game.
@@ -1002,6 +1199,45 @@ namespace CatShelter.Shell
         /// constructions (يُرجى, يُفضَّل). Possessive suffixes such as بيتك and
         /// بانتظارك are written identically for both genders once the
         /// diacritics are off, which they are.
+        ///
+        /// **The cat is a separate problem from the player, and Arabic is the
+        /// one table in this file that cannot fully solve it.** Everything
+        /// above is about not gendering the PLAYER. On 2026-08-30 the same
+        /// question was asked about the CAT, because the English had been
+        /// calling the player's own photographed animal "she" and about half of
+        /// pet cats are toms. Six strings here were rewritten; the honest
+        /// summary of what could and could not be done is this:
+        ///
+        ///  - **What worked.** Every string about the PHOTOGRAPHED cat now
+        ///    avoids agreeing with it: `ألوانها` became `الألوان`, `وهي ساكنة`
+        ///    became `في لحظة سكون`, `تملأ القطّة` was deleted outright, and
+        ///    `ما اسمها؟` — the feminine possessive that was the defect itself
+        ///    — became `ما الاسم؟`. Naming no possessor is the one move Arabic
+        ///    reliably allows.
+        ///  - **What could not be done.** There is no Arabic sentence about a
+        ///    single cat that assigns it no sex. The Japanese and Korean class
+        ///    notes state the rule as "no line in this table may assign the
+        ///    kitten a sex"; **Arabic cannot obey that rule and no attempt is
+        ///    made to fake it.** So the GAME's kitten stays الهرّة, feminine, a
+        ///    character the game keeps — which is what the English source still
+        ///    does deliberately at `notification.body`. `win.*`, `card.caption`,
+        ///    `house.complete.body`, `capture.skip`, `capture.skipped` and both
+        ///    notification strings are about that kitten and were left alone on
+        ///    purpose, not missed.
+        ///
+        /// **And قطّة is NOT the species-generic that Hindi बिल्ली is** — do
+        /// not import that argument here. Counts taken from the raw HTML of two
+        /// Nestlé Purina Arabia pages put قطتك at 32 and 71 against قطك at 7 and
+        /// 2, so قطّتك is indeed the unmarked way to say "your cat" to a reader
+        /// whose cat's sex is unknown, and `capture.title` keeps it for that
+        /// reason. But the same page switches to قطك with the agreement flipped
+        /// masculine, which a true generic would not do. قطّة is the DEFAULT,
+        /// not the neuter. That is why the fix here was to stop things agreeing
+        /// with the noun rather than to lean on the noun.
+        ///
+        /// `meet.title` and `meet.confirm` are medium confidence on REGISTER —
+        /// their grammar is not in doubt, the question is whether they sound
+        /// warm — and `ما الاسم؟` is flagged at its own key.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Arabic =
             new Dictionary<string, string>
@@ -1092,9 +1328,17 @@ namespace CatShelter.Shell
                 // English pass settled on, and the advice is what keeps
                 // Vision's rejection rate down. يُفضَّل keeps the advice
                 // impersonal where اجعليها would not.
+                //
+                // "ألوان قطّتك … أن تملأ القطّة الصورة" until 2026-08-30. Both
+                // halves named the photographed cat and both then had to agree
+                // with it. هذه الألوان — "these colours", the ones in the
+                // picture the player is looking at — needs no owner at all, and
+                // the second clause simply drops its subject. الهرّة stays: that
+                // is the kitten in the game, which this table keeps feminine on
+                // purpose (see the class note).
                 ["capture.hint"] =
-                    "ستأخذ الهرّة في اللعبة ألوان قطّتك. " +
-                    "ويُفضَّل أن تملأ القطّة الصورة كلّها.",
+                    "ستأخذ الهرّة في اللعبة هذه الألوان. " +
+                    "ويُفضَّل أن تملأ الصورة كلّها.",
                 // Verbal nouns, as on Arabic iOS and Android.
                 ["capture.camera"] = "التقاط صورة",
                 ["capture.gallery"] = "اختيار صورة موجودة",
@@ -1104,15 +1348,44 @@ namespace CatShelter.Shell
                 ["capture.skipped"] = "الهرّة بانتظارك على أيّ حال.",
                 ["capture.opening"] = "جارٍ الفتح…",
                 ["capture.looking"] = "جارٍ النظر…",
-                ["capture.colours"] = "جارٍ نقل ألوانها…",
+                // "جارٍ نقل ألوانها…" until 2026-08-30: the possessive suffix
+                // was the only gendered thing in it, and a progress line does
+                // not need to say whose colours these are.
+                ["capture.colours"] = "جارٍ نقل الألوان…",
                 ["capture.cancelled"] = "لا عجلة. الاختيار متاح في أيّ وقت.",
 
                 // --- meeting the cat ------------------------------------------
                 // Also fontSize 26 and also unwrapped
                 // (MeetYourCatScreen.cs:78-81).
-                ["meet.title"] = "ها هي ذي",
-                ["meet.name_placeholder"] = "ما اسمها؟",
-                ["meet.confirm"] = "هذه هي",
+                // "ها هي ذي" / "ما اسمها؟" / "هذه هي" until 2026-08-30 — three
+                // strings, and every one of them female: the presentative ها هي
+                // ذي, the possessive in اسمها, the demonstrative هذه. They are
+                // the first three things an Arabic player reads about the
+                // animal she has just photographed.
+                //
+                // Arabic has no "this little one" to reach for the way Japanese
+                // has この子, so none of the three is a translation of the old
+                // string — each sidesteps the sentence that forced the gender:
+                //
+                //  - أوّل لقاء, "a first meeting". A verbless noun phrase, which
+                //    is the one construction in Arabic with nothing in it to
+                //    agree. It names the occasion rather than the cat;
+                //  - هكذا تمامًا, "exactly so". هكذا is invariable, and the
+                //    button now confirms the likeness instead of the animal —
+                //    which is what the player is actually being asked;
+                //  - ما الاسم؟ — see below.
+                ["meet.title"] = "أوّل لقاء",
+                // **The highest-risk string in this table, and it is being
+                // shipped anyway.** ما الاسم؟ is grammatical and it is what
+                // every sibling table now does — Japanese お名前は？, Korean
+                // 이름이 뭐예요?, Chinese 叫什么名字？, Russian «Как зовут?» — but
+                // it is not ATTESTED as shipped Arabic UI copy, and the phrase
+                // that is attested is the bare label الاسم, which is precisely
+                // the vet-clinic register this whole pass exists to avoid.
+                // Keeping ما اسمها؟ was not an option: that feminine possessive
+                // is the defect itself. **Wants a native reader before launch.**
+                ["meet.name_placeholder"] = "ما الاسم؟",
+                ["meet.confirm"] = "هكذا تمامًا",
                 // مشمش — apricot, and the name that turns up first on every
                 // list of what Arabs actually call their cats, from Cairo to
                 // the Gulf. Ordinary, affectionate, no exclamation in it, and
@@ -1126,6 +1399,17 @@ namespace CatShelter.Shell
                 // a class — سمسم, لوزة, سكر, عنبر — so مشمش is heard the way
                 // "Peaches" is in English, as a fond name, not as a claim about
                 // the animal's fur.
+                //
+                // **It leans male, and that was checked rather than assumed on
+                // 2026-08-30.** The Arabic name lists that were consulted file
+                // مشمش under أسماء قطط ذكور and give مشمشة as the female form.
+                // Note which way that cuts: it is the mirror of the defect this
+                // pass removed, not another instance of it, and it is much the
+                // mildest thing in the file — a name, which real cats have
+                // whatever their sex, overwritten by the first thing the player
+                // types, and food names cross sexes freely in Arabic anyway.
+                // Confidence medium: this rests on name-list articles, not on a
+                // corpus count. Left as it stands.
                 //
                 // Not the colloquial بسّة or بسبس, which are the literal
                 // register match — بسّة is "pussycat" and بس بس is the call. The
@@ -1156,13 +1440,29 @@ namespace CatShelter.Shell
                 // Each says what happened and then offers a way forward, in
                 // that order, and none of them blames the player. All four are
                 // stated rather than commanded, which keeps them genderless.
-                ["photo.no_animal"] = "لا قطّة في هذه الصورة. صورة تملؤها القطّة أكثر ستنفع.",
+                // "صورة تملؤها القطّة أكثر ستنفع." until 2026-08-30 — the verb
+                // agreed with the cat and carried a feminine object suffix
+                // besides. صورة أقرب, "a closer photo", says the same thing to
+                // the player and agrees only with صورة.
+                ["photo.no_animal"] = "لا قطّة في هذه الصورة. صورة أقرب ستنفع.",
                 // The compliment to the dog survives, so that a refusal is not
                 // a rebuke.
                 ["photo.dog"] = "يبدو أنّه كلب. جميل، لكنّ هذا الملجأ للقطط.",
-                ["photo.unclear"] = "هناك قطّة، لكنّ الصورة ضبابية ولا يمكن نقل ألوانها. صورة أخرى وهي ساكنة؟",
-                // "Got her." — she is with us now.
-                ["photo.accepted"] = "أصبحت عندنا.",
+                // "نقل ألوانها … وهي ساكنة؟" until 2026-08-30: a feminine
+                // possessive and then a feminine circumstantial clause. الألوان
+                // owns nothing, and في لحظة سكون — "in a still moment" — is a
+                // prepositional phrase, which is the other Arabic construction
+                // with nothing in it to agree.
+                ["photo.unclear"] = "هناك قطّة، لكنّ الصورة ضبابية ولا يمكن نقل الألوان. صورة أخرى في لحظة سكون؟",
+                // "Got you." — spoken TO the cat, following the English.
+                //
+                // "أصبحت عندنا." until 2026-08-30, which was "she has become
+                // ours". Addressing the animal is what rescues this one:
+                // أمسكنا is first person plural and has no gender at all, and
+                // the ـك suffix is written with the same four letters for a
+                // male and a female cat once the diacritics are off — which
+                // they are, here as everywhere in this table.
+                ["photo.accepted"] = "أمسكنا بك.",
                 // "تلك الصورة مرّة أخرى؟" until 2026-08-29 — "تلك الصورة", that
                 // same picture, is the one retry that cannot work. See the
                 // English table. The tail is `capture.skipped`, the button
@@ -1210,9 +1510,44 @@ namespace CatShelter.Shell
         /// **नन्ही बिल्ली, not बिल्ली का बच्चा.** The dictionary phrase for a
         /// kitten is बिल्ली का बच्चा — "a cat's child" — which is three words,
         /// grammatically masculine, and reads like a caption in a school
-        /// textbook. नन्ही बिल्ली is "little cat", is feminine, and so carries
-        /// the English's deliberate "she" (12-copy-english change 7) without
-        /// any extra work.
+        /// textbook. नन्ही बिल्ली is "little cat", and it is the ordinary way
+        /// to say it.
+        ///
+        /// **This table was CHECKED on 2026-08-30 for the gendering defect and
+        /// deliberately left unchanged. Do not re-open it from scratch.** The
+        /// note here used to justify itself like this: नन्ही बिल्ली "is
+        /// feminine, and so carries the English's deliberate 'she'
+        /// (12-copy-english change 7) without any extra work." **That sentence
+        /// was wrong, and it was wrong in a way worth recording**, because the
+        /// English "she" turned out to be the defect — the cat is built from a
+        /// photograph of the player's own and about half of pet cats are male —
+        /// and every other table in this file had to be unpicked because of it.
+        ///
+        /// Hindi had nothing to unpick, and not for the reason the old note
+        /// gave. It does not "carry" the she. Hindi's third-person pronouns are
+        /// sexless — वह and इसका say nothing about the animal, which is why
+        /// `meet.title`, `meet.name_placeholder`, `meet.confirm` and
+        /// `photo.accepted` needed no work at all. What is left is verb and
+        /// adjective agreement, and agreement in Hindi follows the NOUN, not
+        /// the animal: बिल्ली is the unmarked species word — Platts glosses it
+        /// "female cat, cat (in general)" — and Indian journalism writes नर
+        /// बिल्लियां … चलाती हैं, feminine agreement on cats the sentence has
+        /// just called male. So दिख रही, बैठी and आ गई are a bill the noun
+        /// presents; they are not the game asserting a sex.
+        ///
+        /// **Confidence: medium, and stated as medium on purpose.** The
+        /// counter-evidence is real: बिल्ली is absent from the नित्य स्त्रीलिंग
+        /// lists (मक्खी, कोयल, तितली — the nouns with no masculine partner)
+        /// precisely because बिल्ला/बिलाव exists, so the pairing has not fully
+        /// bleached out the way it has in English "dog". The reading is
+        /// therefore "mostly concord", not "purely concord". It was still left
+        /// alone, on the rule this whole pass ran on: **a stilted string is
+        /// worse than a grammatically gendered one**, the alternatives all
+        /// force a नर/मादा prefix that would pick a sex outright, and neither
+        /// the writer nor the reviewer of this table reads Hindi.
+        ///
+        /// The one place Hindi does CHOOSE rather than agree is
+        /// `cat.default_name`, and that is flagged at the key.
         ///
         /// No exclamation mark anywhere, for the same reason as the other six.
         ///
@@ -1342,13 +1677,44 @@ namespace CatShelter.Shell
                 // cat" as the familiar name for one. There was no convention to
                 // find and none is claimed.
                 //
-                // What is here instead: मिनी. An ordinary, short, feminine
-                // Indian pet name — the register of a name a real person writes
-                // rather than a dictionary word — which agrees with the नन्ही
-                // बिल्ली this table chose to carry the English "she", and which
-                // asserts no coat colour, the objection that removed the
-                // strongest candidates in Turkish, Indonesian, Vietnamese and
-                // Thai.
+                // What is here instead: मिनी. An ordinary, short Indian pet
+                // name — the register of a name a real person writes rather
+                // than a dictionary word — which asserts no coat colour, the
+                // objection that removed the strongest candidates in Turkish,
+                // Indonesian, Vietnamese and Thai.
+                //
+                // **It reads as a girl's name, and after the 2026-08-30 pass
+                // that is a knowing trade rather than an unnoticed one.** It
+                // used to be defended here as agreeing "with the नन्ही बिल्ली
+                // this table chose to carry the English 'she'", and both halves
+                // of that have since fallen: the English no longer says "she"
+                // of the photographed cat, and बिल्ली's feminine agreement is
+                // concord rather than a claim (see the class note). So this key
+                // is now the ONE place in the Hindi table where the game picks
+                // a sex instead of inheriting one from grammar. मिनी is filed
+                // as a girl's name by the Indian baby-name sites, and a Hindi
+                // reader met a girl called मिनी twice in primary school — in
+                // Tagore's Kabuliwala and in the Class-2 reader नन्ही सुनहरी,
+                // where she rescues a kitten.
+                //
+                // It was kept anyway, on evidence rather than inertia: Hindi
+                // pet-name morphology is -ू for toms and -ी for queens, the
+                // Indian name guides split their desi cat lists into male and
+                // female with **no unisex section at all**, and every candidate
+                // checked lands on one list or the other. There is no warm,
+                // ordinary, sexless Hindi cat name to move to; the choice was
+                // between a female name and a male one.
+                //
+                // Two things make it much milder than the pronouns that were
+                // removed elsewhere: it is a NAME, which real cats have
+                // regardless of sex, and it is overwritten by the first thing
+                // the player types. The alternative that makes no claim at all
+                // is the empty string — `meet.name_placeholder` already stands
+                // in the empty field and does the work — and that was not taken
+                // here because it needs a check of every path that prints a
+                // name (`MeetYourCatScreen`, the card, the share caption) and
+                // this pass was a copy pass. **It is the change to make if the
+                // owner wants the Hindi table to assert nothing.**
                 //
                 // Not बिल्ली, the common noun, for the reason set out at the
                 // German entry: in a field asking इसका नाम क्या है? a bare

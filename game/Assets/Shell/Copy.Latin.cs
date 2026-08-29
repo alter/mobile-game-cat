@@ -33,13 +33,24 @@ namespace CatShelter.Shell
     ///    congratulate or rush — but the register that *sounds* like that is a
     ///    different one in each language, and copying Russian's "вы" into all
     ///    eight would be wrong in at least five.
-    ///  - **The kitten stays "she" wherever the language can carry it.** This
-    ///    is `12-copy-english` change 7, which Russian had to give up because
-    ///    "котёнок" is masculine. Six of these eight can keep it — Spanish,
-    ///    Portuguese, French, German and Italian all have a feminine word for a
-    ///    young cat that is ordinary and not baby-talk, so they use it. Turkish,
-    ///    Indonesian and Vietnamese have no grammatical gender at all and simply
-    ///    say "the kitten", which reads as neither.
+    ///  - **The GAME'S kitten stays "she" wherever the language can carry it.**
+    ///    This is `12-copy-english` change 7, which Russian had to give up
+    ///    because "котёнок" is masculine. Six of these eight can keep it —
+    ///    Spanish, Portuguese, French, German and Italian all have a feminine
+    ///    word for a young cat that is ordinary and not baby-talk, so they use
+    ///    it. Turkish, Indonesian and Vietnamese have no grammatical gender at
+    ///    all and simply say "the kitten", which reads as neither.
+    ///  - **The PLAYER'S OWN cat has no sex, from 2026-08-30.** Until then the
+    ///    rule above made no distinction, and `capture.*`, `meet.*` and
+    ///    `photo.*` called the photographed animal female in all five gendered
+    ///    tables. Roughly half of pet cats are male, so on the screens whose
+    ///    whole job is to say "this is YOUR cat" the copy told half the owners
+    ///    it was not. Fixed the way Japanese and Korean had it from the start
+    ///    — 「この子です」, 이 아이예요, "this little one" — and the way `Copy.cs`
+    ///    fixed English and Russian: the generic noun ("un gato", "un chat",
+    ///    "eine Katze") where the sentence needs a noun, a restructure that
+    ///    names no animal where it does not. Not one of these sentences was
+    ///    ever about the animal's sex, so none of them lost anything.
     ///  - **`card.game_name` is "Sootpaw" in every table**, exactly as in
     ///    Russian: it is the name the game is listed under, an app name is not
     ///    copy, and a caption naming something no store search finds sends
@@ -89,7 +100,11 @@ namespace CatShelter.Shell
         /// **"la gatita".** The diminutive of "gata" is the ordinary Spanish
         /// word for a kitten and carries the feminine the English spent a
         /// change getting right — no baby-talk problem, so the pronoun Russian
-        /// had to drop is kept here.
+        /// had to drop is kept here. **For the player's own cat it is "un
+        /// gato"**, the generic, from 2026-08-30: see the class note. Spanish
+        /// makes this cheap, because most of these sentences drop the subject
+        /// anyway ("¿Cómo se llama?", "donde salga más grande") and never had
+        /// to say a sex in the first place.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Spanish =
             new Dictionary<string, string>
@@ -182,7 +197,11 @@ namespace CatShelter.Shell
                 // (PanelSettings.asset, m_Match 1, so 390 is the narrow end)
                 // less 48 of padding. 18 characters, inside the ~24 the Russian
                 // pass measured as the ceiling.
-                ["capture.title"] = "Muéstranos tu gata",
+                //
+                // "Muéstranos tu gata" until 2026-08-30 — a female cat, asked
+                // of every player. "Gato" is the generic and costs one
+                // character less.
+                ["capture.title"] = "Muéstranos tu gato",
                 // The reason first, the framing advice second — the order the
                 // English pass settled on, and the advice is what keeps
                 // Vision's rejection rate down. "Pelaje" is the word a Spanish-
@@ -204,15 +223,24 @@ namespace CatShelter.Shell
                 // --- meeting the cat ------------------------------------------
                 // Also fontSize 26 and also unwrapped (MeetYourCatScreen.cs:78),
                 // and this one has room to spare.
+                // "Aquí está" and "¿Cómo se llama?" already named no sex and
+                // are untouched. "Es ella" did, and became "Así es" on
+                // 2026-08-30 — the same move as Russian's "Так и есть": what
+                // the player confirms is a likeness, and agreeing with a
+                // likeness is what the phrase is for.
                 ["meet.title"] = "Aquí está",
                 ["meet.name_placeholder"] = "¿Cómo se llama?",
-                ["meet.confirm"] = "Es ella",
+                ["meet.confirm"] = "Así es",
                 // "Michi" is what a Latin American calls a cat when she is
                 // being fond of it, and it is also what she writes on the
                 // name tag — the same double life "Kitty" has in English, and
                 // the reason it is the right answer rather than a literal
-                // "Gatita". It carries the feminine this table already chose
-                // with "la gatita".
+                // "Gatita". Kept on 2026-08-30 while the female names in the
+                // other tables went, because it takes no sex at all — "el
+                // michi" and "la michi" are both said — and this key is shown
+                // as the player's own cat's name (MeetYourCatScreen.cs:79).
+                // The line that stood here claimed it "carries the feminine
+                // this table already chose with la gatita"; it does not.
                 //
                 // The es-419 / Spain split shows here and is decided the way
                 // the class note says: Spain's own generic is "misi" or
@@ -226,13 +254,19 @@ namespace CatShelter.Shell
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
                 // that order, and none of them blames the player.
-                ["photo.no_animal"] = "Aquí no hay ninguna gata. Prueba con una foto donde salga más grande.",
+                // "gata" → "gato" throughout on 2026-08-30: the generic, which
+                // is what these three sentences always meant. "Con ella quieta"
+                // had no neutral form to fall back on, so it is "sin que se
+                // mueva" — no animal named, and one character shorter.
+                ["photo.no_animal"] = "Aquí no hay ningún gato. Prueba con una foto donde salga más grande.",
                 // "Precioso" agrees with "perro" — a compliment to the dog, so
                 // that a refusal is not a rebuke.
-                ["photo.dog"] = "Parece un perro. Precioso, pero este refugio es para gatas.",
-                ["photo.unclear"] = "Hay una gata, pero está muy borrosa para copiar su pelaje. ¿Otra, con ella quieta?",
-                // "Got her." — she is with us now, not "Listo", which is the
-                // register of a progress bar finishing.
+                ["photo.dog"] = "Parece un perro. Precioso, pero este refugio es para gatos.",
+                ["photo.unclear"] = "Hay un gato, pero está muy borroso para copiar su pelaje. ¿Otra, sin que se mueva?",
+                // Not "Listo", which is the register of a progress bar
+                // finishing. This one needed no change — "está" carries no
+                // sex — and the English it was written against has since
+                // become "Got you."
                 ["photo.accepted"] = "Ya está con nosotros.",
                 // "¿Lo intentas otra vez?" until 2026-08-29: the one
                 // instruction on the screen that could only fail again. Another
@@ -276,7 +310,9 @@ namespace CatShelter.Shell
         /// `house.complete.title` agree with the card.
         ///
         /// **"a gatinha"** — feminine and ordinary, so the English "she" is
-        /// kept rather than dropped.
+        /// kept rather than dropped, for the game's own kitten. **The player's
+        /// cat is "um gato"** from 2026-08-30, and "dela" is gone from
+        /// `capture.*` and `photo.*`: see the class note.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Portuguese =
             new Dictionary<string, string>
@@ -346,45 +382,64 @@ namespace CatShelter.Shell
                 // "Mostre para nós a sua gata" is 26 and would run off the
                 // screen; "para nós" adds nothing the sentence needs, the same
                 // cut the Russian pass made with "нам".
-                ["capture.title"] = "Mostre sua gata",
+                //
+                // "Mostre sua gata" until 2026-08-30 — a female cat, asked of
+                // every player. "Gato" is the generic and the same 15.
+                ["capture.title"] = "Mostre seu gato",
+                // "a cor dela" and "Deixe ela ocupar" until 2026-08-30. Both
+                // said *her* about the player's cat; neither sentence was
+                // about her sex. "Essa cor" points at the photo, and the
+                // subjunctive drops the subject the way the Spanish line
+                // beside it already did.
                 ["capture.hint"] =
-                    "A gatinha do jogo vai ficar com a cor dela. " +
-                    "Deixe ela ocupar o quadro todo, se der.",
+                    "A gatinha do jogo vai ficar com essa cor. " +
+                    "Que preencha o quadro todo, se der.",
                 ["capture.camera"] = "Tirar uma foto",
                 ["capture.gallery"] = "Escolher uma que eu tenho",
                 ["capture.skip"] = "Agora não — quero uma gatinha",
                 ["capture.skipped"] = "Uma gatinha espera por você de todo jeito.",
                 ["capture.opening"] = "Abrindo…",
                 ["capture.looking"] = "Olhando…",
-                ["capture.colours"] = "Copiando a cor dela…",
+                ["capture.colours"] = "Copiando a cor…",
                 ["capture.cancelled"] = "Sem pressa. Escolha quando quiser.",
 
                 // --- meeting the cat ------------------------------------------
-                ["meet.title"] = "Aqui está ela",
-                ["meet.name_placeholder"] = "Qual é o nome dela?",
-                ["meet.confirm"] = "É ela",
-                // "Mimi" — it echoes the miado, it is affectionate without
-                // being baby-talk, and it sits in the top ten Brazilian names
-                // for a female cat, which is exactly the plainness "Kitty" has.
+                // "Aqui está ela", "Qual é o nome dela?" and "É ela" until
+                // 2026-08-30 — three sexes asserted on the one screen that
+                // exists to say "this is YOUR cat". Portuguese drops the
+                // subject freely, so the first two lose only the pronoun that
+                // was carrying nothing: both speakers are looking at the same
+                // animal. "É isso mesmo" confirms the likeness, which is what
+                // the button was ever for.
+                ["meet.title"] = "Aqui está",
+                ["meet.name_placeholder"] = "Como se chama?",
+                ["meet.confirm"] = "É isso mesmo",
+                // "Mimi" until 2026-08-30, and its own note gave the reason it
+                // had to go: "the top ten Brazilian names for a FEMALE cat".
+                // MeetYourCatScreen.cs:79 shows this as the player's cat's
+                // name, so a male cat was called Mimi.
                 //
-                // Not "Frajola", the other name that only ever goes to cats in
-                // Brazil: that is Sylvester from Looney Tunes, so it is a
-                // borrowed brand and a black-and-white cat both, and this
-                // kitten's coat is copied from the player's own photograph.
+                // "Gatinho" is the same answer English and Russian reached —
+                // "Kitty" and «Котёнок» are not names either, they are the
+                // generic word standing in the field until the owner types
+                // hers. Masculine in form, like «котёнок», and that is the
+                // Portuguese generic rather than a claim about the animal.
                 //
-                // The same four letters as the Indonesian table below, and
-                // that is not a copy-paste: two unrelated languages arriving at
-                // the same nursery syllables for a cat is a fact about cat
-                // names, not an oversight. Checked against the alternatives in
-                // both and kept in both because it is the best answer in both.
-                ["cat.default_name"] = "Mimi",
+                // Not "Bichano", which is the closer register but reads as
+                // European; not "Frajola", which is Sylvester from Looney
+                // Tunes — a borrowed brand and a black-and-white cat both,
+                // when this kitten's coat comes from the player's photograph.
+                ["cat.default_name"] = "Gatinho",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "Não tem gata nesta. Tente uma foto em que ela apareça maior.",
+                // "gata" → "gato" throughout on 2026-08-30, the generic these
+                // three sentences always meant, and the pronouns for the
+                // player's cat dropped with it.
+                ["photo.no_animal"] = "Não tem gato nesta. Tente uma foto em que apareça maior.",
                 // "Lindo" agrees with "cachorro": the compliment is to the dog.
-                ["photo.dog"] = "Parece um cachorro. Lindo, mas este abrigo é para gatas.",
-                ["photo.unclear"] = "Tem uma gata, mas está borrada demais para copiar a cor. Mais uma, com ela parada?",
-                ["photo.accepted"] = "Ela está com a gente.",
+                ["photo.dog"] = "Parece um cachorro. Lindo, mas este abrigo é para gatos.",
+                ["photo.unclear"] = "Tem um gato, mas está borrado demais para copiar a cor. Mais uma, sem que se mexa?",
+                ["photo.accepted"] = "Já está com a gente.",
                 // "Tenta de novo?" until 2026-08-29 — see the English table for
                 // why a retry was the one move guaranteed to fail. The tail is
                 // `capture.skipped`, which is the button below this line.
@@ -414,24 +469,51 @@ namespace CatShelter.Shell
         /// be an infinitive ("Prendre une photo") and a status a present
         /// participle ("Ouverture…") — so the choice shows in six strings.
         ///
-        /// **"la chatonne" is not used.** "Chaton" is the ordinary word and is
-        /// masculine; the feminine "chatonne" exists but is rare enough to read
-        /// as a curiosity. French solves the "she" problem differently from
-        /// Russian: the kitten is "la petite chatte" where she is the subject
-        /// of a sentence — an ordinary phrase, not baby-talk — and plain
-        /// "chaton" where the sentence does not need her sex. The player's own
-        /// cat is "votre chatte", the word a French cat owner uses.
+        /// **The game's own kitten is "le chaton" in French, and only in
+        /// French, and not for the reason the other tables have.**
+        ///
+        /// She is female everywhere else by design (see `Copy.cs`, the note
+        /// above `meet.title`). This table used to make her "la petite chatte"
+        /// where she is the subject of a sentence, reasoning that it is an
+        /// ordinary phrase and not baby-talk. The grammar was right and the
+        /// word was not: **"chatte" is also the common vulgar French term for
+        /// the female genitals**, the exact register of English "pussy", and no
+        /// amount of surrounding context suppresses that reading.
+        ///
+        /// It was in six strings on 2026-08-30, and two of them are the worst
+        /// possible places for it. `notification.title` — "La petite chatte a
+        /// trouvé quelque chose derrière le canapé" — is a push notification,
+        /// which arrives on a lock screen where the player is not the only
+        /// person who may read it. `card.caption` — "Regardez la petite chatte
+        /// que j'ai dans {0}" — is the text a player posts in public, and reads
+        /// as a crude joke to any French speaker. (That key is currently unused
+        /// by any code, which is luck, not design: it ships in every table and
+        /// would go live the moment somebody wires the share text.)
+        ///
+        /// So the kitten is "le chaton" here. The cost is that French alone
+        /// loses her sex, which is a real loss and a small one. There is no way
+        /// to keep it: every feminine French word for a cat is "chatte".
+        ///
+        /// "La chatonne" is not the escape. It exists, and it is rare enough to
+        /// read as a curiosity.
+        ///
+        /// **The player's own cat is "votre chat"** from 2026-08-30. This line
+        /// used to read "votre chatte, the word a French cat owner uses" — true
+        /// of an owner whose cat is female, and about half are not. "Chat" is
+        /// the generic, and French generic masculine for an animal of unknown
+        /// sex is neutral in a way English "he" is not, so it is used without
+        /// apology where a pronoun cannot be dropped.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> French =
             new Dictionary<string, string>
             {
                 // --- finishing a pile ----------------------------------------
                 ["win.room_clean.title"] = "La pièce est propre",
-                ["win.room_clean.body"] = "La petite chatte s'y sent déjà mieux.",
+                ["win.room_clean.body"] = "Le chaton s'y sent déjà mieux.",
                 // "Tas", one noun for the object every time — the board names
                 // it nowhere else (DebugGameView.RenderHeader).
                 ["win.corner.title"] = "Tas rangé",
-                ["win.corner.body"] = "La petite chatte est venue voir.",
+                ["win.corner.body"] = "Le chaton est venu voir.",
                 ["win.next"] = "Suivant",
 
                 // --- the kitten's card, and sharing her --------------------
@@ -439,7 +521,7 @@ namespace CatShelter.Shell
                 ["card.close"] = "Retour",
                 ["card.share_short"] = "Partager",
                 // {0} is the game's name.
-                ["card.caption"] = "Regardez la petite chatte que j'ai dans {0}",
+                ["card.caption"] = "Regardez le chaton que j'ai dans {0}",
                 ["map.opening"] = "Ouverture de la pièce…",
                 ["win.before"] = "Avant",
                 ["win.after"] = "Après",
@@ -458,7 +540,7 @@ namespace CatShelter.Shell
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Toute la maison est propre",
                 ["house.complete.body"] =
-                    "Les douze, et une petite chatte qui n'a plus où cacher " +
+                    "Les douze, et un chaton qui n'a plus où cacher " +
                     "ses trouvailles." +
                     "\n\nLa maison s'arrête là, pour l'instant.",
                 // A different verb from card.share_short, as everywhere else.
@@ -489,13 +571,21 @@ namespace CatShelter.Shell
                 // chatte" is 26 and was dropped for that alone: "-nous" adds
                 // nothing the French sentence needs, the same cut Russian made
                 // with "нам" and Portuguese with "para nós".
-                ["capture.title"] = "Montrez votre chatte",
+                //
+                // "Montrez votre chatte" until 2026-08-30 — a female cat, asked
+                // of every player. "Chat" is the generic and two shorter.
+                ["capture.title"] = "Montrez votre chat",
                 // The reason first, the framing advice second. "Robe" is the
                 // word a French cat owner uses for a cat's coat and colouring;
                 // "pelage" is the fur itself and says less here.
+                //
+                // "sa robe" and "Qu'elle remplisse le cadre" until 2026-08-30.
+                // The second said *she* about the player's cat; "cette robe"
+                // points at the photograph instead, and the advice goes to the
+                // player, who is the one holding the phone.
                 ["capture.hint"] =
-                    "La petite chatte du jeu prendra sa robe. " +
-                    "Qu'elle remplisse le cadre, si possible.",
+                    "Le chaton du jeu prendra cette robe. " +
+                    "Remplissez le cadre, si possible.",
                 ["capture.camera"] = "Prendre une photo",
                 ["capture.gallery"] = "En choisir une à moi",
                 // In the player's voice, like the English.
@@ -507,28 +597,63 @@ namespace CatShelter.Shell
                 ["capture.cancelled"] = "Rien ne presse. Choisissez quand vous voulez.",
 
                 // --- meeting the cat ------------------------------------------
-                ["meet.title"] = "La voici",
-                ["meet.name_placeholder"] = "Comment s'appelle-t-elle ?",
-                ["meet.confirm"] = "C'est elle",
-                // "Minette" — the affectionate French word for a female cat,
-                // used as her name for as long as anyone has been naming cats,
-                // and still inside the ten most common in France. Feminine, so
-                // it agrees with the "la petite chatte" this table chose over
-                // the masculine "chaton".
+                // "La voici", "Comment s'appelle-t-elle ?" and "C'est elle"
+                // until 2026-08-30 — three sexes asserted on the one screen
+                // that exists to say "this is YOUR cat". French cannot drop a
+                // subject the way Russian can, so the title names the animal
+                // instead of pointing at it, and the placeholder asks for the
+                // name rather than about the bearer: "son" in "son nom" agrees
+                // with "nom", not with the cat, so it is free of the problem.
+                // "C'est bien ça" confirms a likeness, which is the button's
+                // whole job.
+                ["meet.title"] = "Voici votre chat",
+                ["meet.name_placeholder"] = "Quel est son nom ?",
+                ["meet.confirm"] = "C'est bien ça",
+                // "Minette" until 2026-08-30, and its own note gave the reason
+                // it had to go: "the affectionate French word for a FEMALE
+                // cat". MeetYourCatScreen.cs:79 shows this as the player's
+                // cat's name, so a male cat was called Minette.
                 //
-                // Not "Minou", which is the same word in the masculine and is
-                // the one this table would have had to reject anyway; and not
-                // "Chatte", which is the animal and, alone in a name field,
-                // reads as the vulgar sense rather than as a name.
-                ["cat.default_name"] = "Minette",
+                // "Minou" is the same word in the masculine, and the old note
+                // rejected it for exactly that — which is now the reason to
+                // take it. It is what a French speaker says to call any cat
+                // ("viens, minou"), which is the generic half of "Kitty", and
+                // it is also written on name tags, which is the other half.
+                //
+                // Still not "Chatte", which is the animal and, alone in a name
+                // field, reads as the vulgar sense rather than as a name.
+                ["cat.default_name"] = "Minou",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "Pas de chatte ici. Essayez une photo où elle tient plus de place.",
+                // "chatte" → "chat" on 2026-08-30, the generic. The advice in
+                // the second half goes to the player instead of describing the
+                // animal, which drops the last pronoun in this line.
+                ["photo.no_animal"] = "Pas de chat ici. Essayez une photo prise de plus près.",
                 // "Beau" agrees with "chien": the compliment is to the dog, so
                 // that a refusal is not a rebuke.
                 ["photo.dog"] = "On dirait un chien. Beau, mais ce refuge est pour les chats.",
-                ["photo.unclear"] = "Une chatte, mais trop floue pour copier sa robe. Une autre, pendant qu'elle ne bouge pas ?",
-                ["photo.accepted"] = "Elle est chez nous.",
+                // "pendant qu'il ne bouge pas" until 2026-08-30, and the note
+                // here defended it: "il" after "un chat" is the neutral French
+                // for an animal of unknown sex, and no restructure kept the
+                // advice without it.
+                //
+                // Half right. The generic masculine is genuinely neutral in
+                // French grammar, but this table had just finished removing
+                // every "elle" for the same animal, and a reader does not parse
+                // "il" as an unmarked default — it is the one word left on the
+                // screen that says which sex the cat is.
+                //
+                // And a restructure does keep the advice. "Sans bouger" carries
+                // exactly the instruction the blurred photo needs, and it lands
+                // the French where the English already was: "One more, holding
+                // still?" names nobody either, and carries the same small
+                // ambiguity about who is holding still — deliberately.
+                ["photo.unclear"] = "Un chat, mais trop flou pour copier sa robe. Une autre, sans bouger ?",
+                // "Elle est chez nous." until 2026-08-30. "Bienvenue" speaks
+                // TO the cat rather than about her, which is what a person does
+                // at that moment anyway — the same move English made with
+                // "Got you."
+                ["photo.accepted"] = "Bienvenue chez nous.",
                 // "On réessaie ?" until 2026-08-29 — see the English table. The
                 // tail is `capture.skipped`, the button standing below.
                 ["photo.our_fault"] =
@@ -539,13 +664,22 @@ namespace CatShelter.Shell
                 // NO PLACEHOLDER — see the Spanish note.
                 // "Votre" dropped, as in Russian and for the same reason: the
                 // possessive costs six characters on a lock screen and French
-                // does not need it. "La petite chatte" and not "Le chaton",
-                // because the body below has her as its subject and French
-                // cannot drop a subject pronoun the way Russian can — "il
-                // attend" would say *he*, which is the sex 12-copy-english
-                // change 7 spent a pass getting right.
-                ["notification.title"] = "La petite chatte a trouvé quelque chose derrière le canapé",
-                ["notification.body"] = "Elle attend de vous le montrer, quand vous aurez une minute.",
+                // does not need it.
+                //
+                // This note used to argue for "La petite chatte" over "Le
+                // chaton" here, on the grounds that the body below takes her as
+                // its subject and French cannot drop a subject pronoun the way
+                // Russian can, so "il attend" would say *he* and lose the sex
+                // that 12-copy-english spent a pass getting right.
+                //
+                // The argument was sound and it lost anyway, on 2026-08-30, to
+                // something it had not weighed: "chatte" is the vulgar French
+                // word for the female genitals — and this string is a PUSH
+                // NOTIFICATION, so it lands on a lock screen in front of
+                // whoever happens to be looking. See the class note above.
+                // "Il attend" it is, and the kitten is masculine in French.
+                ["notification.title"] = "Le chaton a trouvé quelque chose derrière le canapé",
+                ["notification.body"] = "Il attend de vous le montrer, quand vous aurez une minute.",
 
                 ["notification.channel"] = "Rappel du soir",
                 ["notification.channel_description"] =
@@ -574,6 +708,14 @@ namespace CatShelter.Shell
         /// Russian hit from the other side. "Die kleine Katze" is plain German,
         /// keeps the feminine, and lets `notification.body` say "sie". Where
         /// the sentence does not need her sex, "Kätzchen" stays.
+        ///
+        /// **The player's own cat gets no "sie"** from 2026-08-30. The species
+        /// noun "Katze" is untouched — a German cat owner says "meine Katze"
+        /// about a Kater, and `capture.title` and the `photo.*` lines where a
+        /// "Katze" stands right in front of the pronoun are plain grammatical
+        /// agreement, not a claim. What went is the bare "sie" with no noun
+        /// behind it, in `meet.*` and `photo.accepted`, which a reader can only
+        /// take as *she*.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> German =
             new Dictionary<string, string>
@@ -662,9 +804,14 @@ namespace CatShelter.Shell
                 // The reason first, the framing advice second. "Fell" is the
                 // word a German cat owner uses; "Fellzeichnung" is what a
                 // breed standard says.
+                //
+                // "ihr Fell" and "füllt sie das ganze Bild" until 2026-08-30 —
+                // both about the player's cat, and the second one a bare "sie"
+                // two words after a different cat. "Dieses Fell" points at the
+                // photograph, and the framing advice goes to the player.
                 ["capture.hint"] =
-                    "Die kleine Katze im Spiel bekommt ihr Fell. " +
-                    "Am besten füllt sie das ganze Bild.",
+                    "Die kleine Katze im Spiel bekommt dieses Fell. " +
+                    "Am besten ganz nah heran.",
                 ["capture.camera"] = "Foto aufnehmen",
                 ["capture.gallery"] = "Eines von meinen wählen",
                 // In the player's voice, like the English.
@@ -672,26 +819,39 @@ namespace CatShelter.Shell
                 ["capture.skipped"] = "Ein Kätzchen wartet so oder so auf dich.",
                 ["capture.opening"] = "Wird geöffnet…",
                 ["capture.looking"] = "Wir schauen…",
-                ["capture.colours"] = "Wir übernehmen ihr Fell…",
+                ["capture.colours"] = "Wir übernehmen das Fell…",
                 ["capture.cancelled"] = "Keine Eile. Wähle eines, wann du magst.",
 
                 // --- meeting the cat ------------------------------------------
                 // Also fontSize 26 and also unwrapped (MeetYourCatScreen.cs:78).
-                ["meet.title"] = "Da ist sie",
-                ["meet.name_placeholder"] = "Wie heißt sie?",
-                ["meet.confirm"] = "Das ist sie",
-                // "Minka" — the classic German cat name, plain, feminine, and
-                // one a real person writes rather than a word she uses.
+                // "Da ist sie", "Wie heißt sie?" and "Das ist sie" until
+                // 2026-08-30 — three bare "sie" with no noun anywhere near
+                // them, on the one screen that exists to say "this is YOUR
+                // cat". The first two now put the species noun where the
+                // pronoun was, which is agreement rather than a claim; the
+                // button confirms a likeness, which is all it ever did.
+                // "Da ist deine Katze" is 18 and "Wie heißt deine Katze?" 22,
+                // both inside their boxes.
+                ["meet.title"] = "Da ist deine Katze",
+                ["meet.name_placeholder"] = "Wie heißt deine Katze?",
+                ["meet.confirm"] = "Genau so",
+                // "Minka" until 2026-08-30, and its own note gave the reason it
+                // had to go: "the classic German cat name, plain, FEMININE".
+                // MeetYourCatScreen.cs:79 shows this as the player's cat's
+                // name, so a Kater was called Minka.
                 //
-                // "Mieze" was the obvious candidate and is deliberately not
-                // taken. It is the German for "kitty" in the *generic* sense —
-                // "Miezekatze" — and this table already calls the animal "die
-                // kleine Katze"; a name that is also the common noun for the
-                // thing it names reads, in a field labelled "Wie heißt sie?",
-                // as though the player never answered. English gets away with
-                // that because "Kitty" long ago hardened into a name as well.
-                // German's has not, so the name is the one that has: Minka.
-                ["cat.default_name"] = "Minka",
+                // "Mieze" was rejected here for being the generic — "Kitty" in
+                // the "Miezekatze" sense rather than a name — and that is now
+                // the reason to take it. English keeps "Kitty" and Russian
+                // moved to «Котёнок» on exactly this argument: what stands in
+                // the field before the owner types is not supposed to be a
+                // name, it is the word you use for a cat whose name you do not
+                // know yet.
+                //
+                // Not "Kätzchen", which is the grammatically safest answer —
+                // neuter, so it asserts nothing at all — and reads like a
+                // caption rather than like something anyone says to a cat.
+                ["cat.default_name"] = "Mieze",
 
                 // --- the four outcomes ---------------------------------------
                 ["photo.no_animal"] = "Hier ist keine Katze. Versuch ein Foto, auf dem sie größer ist.",
@@ -699,7 +859,11 @@ namespace CatShelter.Shell
                 // a rebuke.
                 ["photo.dog"] = "Das sieht nach einem Hund aus. Schön, aber dieses Heim ist für Katzen.",
                 ["photo.unclear"] = "Eine Katze, aber zu unscharf für ihr Fell. Noch eines, während sie still hält?",
-                ["photo.accepted"] = "Sie ist bei uns.",
+                // "Sie ist bei uns." until 2026-08-30 — a bare "sie" with no
+                // noun to agree with. "Willkommen" is said TO the cat, which
+                // is what a person does at that moment anyway, and is the same
+                // move English made with "Got you."
+                ["photo.accepted"] = "Willkommen bei uns.",
                 // "Versuchst du es noch einmal?" until 2026-08-29 — see the
                 // English table. The tail is `capture.skipped`, the button
                 // standing below.
@@ -733,7 +897,11 @@ namespace CatShelter.Shell
         /// familiarity Russian "ты" does.
         ///
         /// **"la gattina"** — the ordinary Italian word for a young female cat,
-        /// so the English "she" is kept.
+        /// so the English "she" is kept, for the game's own kitten. **The
+        /// player's cat is "un gatto"** from 2026-08-30, the generic: see the
+        /// class note. Italian pays almost nothing for it, because it drops
+        /// subjects — "Come si chiama?", "in cui si vede più grande" and "Ora è
+        /// con noi" were already free of the problem and are untouched.
         /// </summary>
         public static readonly IReadOnlyDictionary<string, string> Italian =
             new Dictionary<string, string>
@@ -799,7 +967,10 @@ namespace CatShelter.Shell
                 // --- the photo screen ----------------------------------------
                 // CANNOT WRAP — see the Spanish note. 21 characters, inside the
                 // ~24 the Russian pass measured as the ceiling.
-                ["capture.title"] = "Mostraci la tua gatta",
+                //
+                // "Mostraci la tua gatta" until 2026-08-30 — a female cat,
+                // asked of every player. "Gatto" is the generic, same 21.
+                ["capture.title"] = "Mostraci il tuo gatto",
                 // "Mantello" is the word an Italian cat owner uses for an
                 // animal's coat and its colouring; "pelo" is the fur itself
                 // and says less here.
@@ -817,26 +988,35 @@ namespace CatShelter.Shell
                 ["capture.cancelled"] = "Nessuna fretta. Scegli quando vuoi.",
 
                 // --- meeting the cat ------------------------------------------
-                ["meet.title"] = "Eccola qui",
+                // "Eccola qui" and "È lei" until 2026-08-30 — the "-la" and the
+                // "lei" were the player's cat, called female. The title names
+                // her instead of pointing, and the button confirms a likeness,
+                // which is all it ever did. "Come si chiama?" needed nothing:
+                // Italian had already dropped the subject.
+                ["meet.title"] = "Ecco il tuo gatto",
                 ["meet.name_placeholder"] = "Come si chiama?",
-                ["meet.confirm"] = "È lei",
-                // "Micia" — the ordinary affectionate Italian for a female
-                // cat, and a name Italians give as readily as they use it,
-                // which is the double life "Kitty" has. Feminine, so it agrees
-                // with the "la gattina" this table runs on.
+                ["meet.confirm"] = "Proprio così",
+                // "Micia" until 2026-08-30, and its own note gave the reason it
+                // had to go: "the ordinary affectionate Italian for a FEMALE
+                // cat". MeetYourCatScreen.cs:79 shows this as the player's
+                // cat's name, so a male cat was called Micia.
                 //
-                // Capitalised, which is the whole difference between the noun
-                // and the name; the German entry above explains why that is
-                // not enough on its own in German and is enough here — "micia"
-                // is a caress rather than the dictionary word, which is
-                // "gatta".
-                ["cat.default_name"] = "Micia",
+                // "Micio" is the same word in the masculine and keeps
+                // everything that made "Micia" right — a caress rather than
+                // the dictionary word, which is "gatto", and a thing Italians
+                // both say and write on a tag, which is the double life
+                // "Kitty" has. Capitalised, which is the whole difference
+                // between the noun and the name.
+                ["cat.default_name"] = "Micio",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "Qui non c'è nessuna gatta. Prova una foto in cui si vede più grande.",
+                // "gatta" → "gatto" throughout on 2026-08-30, the generic these
+                // three sentences always meant. Nothing else moved: Italian had
+                // already dropped every subject in them.
+                ["photo.no_animal"] = "Qui non c'è nessun gatto. Prova una foto in cui si vede più grande.",
                 // "Bello" agrees with "cane": the compliment is to the dog.
-                ["photo.dog"] = "Sembra un cane. Bello, ma questo rifugio è per gatte.",
-                ["photo.unclear"] = "C'è una gatta, ma è troppo sfocata per copiare il mantello. Un'altra, mentre sta ferma?",
+                ["photo.dog"] = "Sembra un cane. Bello, ma questo rifugio è per gatti.",
+                ["photo.unclear"] = "C'è un gatto, ma è troppo sfocato per copiare il mantello. Un'altra, mentre sta fermo?",
                 ["photo.accepted"] = "Ora è con noi.",
                 // "Vuoi riprovare?" until 2026-08-29 — see the English table.
                 // The tail is `capture.skipped`, the button standing below.
@@ -1119,9 +1299,9 @@ namespace CatShelter.Shell
                 ["meet.confirm"] = "Ya, dia",
                 // "Mimi" — at the head of every Indonesian list of ordinary
                 // cat names, short, affectionate, and no gender to get wrong.
-                // See the Portuguese entry for why the same four letters
-                // standing in two tables is a real answer twice and not a
-                // copy-paste.
+                // It stood in the Portuguese table too until 2026-08-30, where
+                // it was female and had to go; here it is neither, so it
+                // stays. (Comment updated only — no Indonesian value changed.)
                 //
                 // Not "Pus", which is the closer literal match — it is what an
                 // Indonesian actually says to call a cat, so it is "Kitty" in

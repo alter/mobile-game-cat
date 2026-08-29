@@ -13,19 +13,19 @@ key rather than inherited.
 
 ## 1. The glyph list — read this first
 
-`glyphs.txt` in this directory. **668 distinct characters** across the seven
+`glyphs.txt` in this directory. **673 distinct characters** across the seven
 tables, written by a script from the parsed string values, not by hand.
 
 | Language | Distinct characters |
 |---|---|
-| Chinese Simplified | 187 |
-| Chinese Traditional | 187 |
-| Japanese | 157 |
-| Korean | 176 |
-| Thai | 61 |
+| Chinese Simplified | 189 |
+| Chinese Traditional | 190 |
+| Japanese | 159 |
+| Korean | 178 |
+| Thai | 60 |
 | Arabic | 58 |
 | Hindi | 69 |
-| **Combined** | **668** |
+| **Combined** | **673** |
 
 The file carries three things: one line per language, a combined line, and a
 codepoint table (`U+XXXX`, the character, its Unicode name) so a font tool can

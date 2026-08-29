@@ -1,0 +1,28 @@
+/* Unity 6's advanced text generator, applied to one element at a time.
+ *
+ * The standard generator draws Arabic left to right: the RTL probe on the
+ * glyph screen (four alifs and a meem) came out with the loop on the RIGHT,
+ * which is the sentence backwards. Every glyph was there; the order was not.
+ *
+ * The advanced generator is the engine's own answer to that — bidirectional
+ * ordering and proper shaping. It is switched on per element rather than for
+ * the whole game, because it is a different text engine with its own metrics,
+ * and turning it on everywhere would quietly re-lay out every screen in the
+ * game to fix one language.
+ */
+.advanced-text {
+    -unity-text-generator: advanced;
+}
+
+/* Direction is a second, separate switch. The advanced generator shapes and
+ * reorders; `direction` tells it which way the paragraph runs. Unity does not
+ * yet support `auto`, which would decide from the characters themselves, so a
+ * right-to-left language has to say so.
+ *
+ * Applied together with .advanced-text, never alone: direction without the
+ * advanced generator moves the block and leaves the letters in the order they
+ * were, which is a different kind of wrong.
+ */
+.rtl {
+    direction: rtl;
+}

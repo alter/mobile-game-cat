@@ -42,6 +42,61 @@ namespace CatShelter.Shell
             StartCoroutine(EveningReminder.DebugRequestNow(this));
         }
 
+        /// <summary>
+        /// Arabic reads right to left, and by default this game draws it left to
+        /// left — every letter present, the sentence backwards.
+        ///
+        /// Measured, not assumed. The glyph harness draws a probe of four alifs
+        /// and a meem, "اااام", chosen so nobody needs to read Arabic to judge
+        /// it: an alif is a bare stroke, a meem is a small loop, and laid out
+        /// correctly the loop sits on the LEFT. On an Android device on
+        /// 2026-08-29 the standard text generator put the loop on the RIGHT and
+        /// the advanced one put it on the left. That is the whole reason this
+        /// method exists.
+        ///
+        /// Applied at the panel root so it cascades to every screen, and applied
+        /// **only for Arabic**. The advanced generator is a different text engine
+        /// with its own metrics; switching the whole game to it to fix one
+        /// language would silently re-lay out sixteen others that were tested on
+        /// the standard one. Thai and Devanagari were checked on the same screen
+        /// and came out identical under both, so they stay where they are.
+        ///
+        /// Costs nothing for everyone else: a stylesheet that is never loaded
+        /// and a class that is never added.
+        /// </summary>
+        private static void ApplyTextDirection(UIDocument uid)
+        {
+            var root = uid != null ? uid.rootVisualElement : null;
+            if (root == null) return;
+
+            // The language the copy actually resolved to, not the device's, so a
+            // table removed from Copy takes its text direction with it.
+            //
+            // Both halves matter. `For` answers English for any language it has
+            // no table for, so comparing against it alone would turn every
+            // English player's screen right-to-left the day the Arabic table is
+            // deleted — the check has to establish that Arabic exists as well as
+            // that we are in it.
+            var arabic = Copy.For(SystemLanguage.Arabic);
+            if (ReferenceEquals(arabic, Copy.English)) return;
+            if (!ReferenceEquals(Copy.Current, arabic)) return;
+
+            var sheet = Resources.Load<StyleSheet>("UI/AdvancedText");
+            if (sheet == null)
+            {
+                // Loud: the alternative is shipping Arabic backwards and finding
+                // out from a review in a language nobody here reads.
+                Debug.LogError("[GameBoot] Arabic needs Resources/UI/AdvancedText.uss " +
+                               "and it is missing — text will read backwards");
+                return;
+            }
+
+            root.styleSheets.Add(sheet);
+            root.AddToClassList("advanced-text");
+            root.AddToClassList("rtl");
+            Debug.Log("[GameBoot] arabic: advanced text generator, direction rtl");
+        }
+
         private static bool CaptureRequested()
         {
             try
@@ -280,6 +335,8 @@ namespace CatShelter.Shell
                 var root = uid.rootVisualElement;
                 root?.Clear();
             }
+            FontFallbacks.Attach(uid.rootVisualElement);
+            ApplyTextDirection(uid);
             // The capture screen replaces the board when asked for. It is not
             // yet the game's first screen — that arrives with 10-skip-default-cat,
             // which decides what happens with no photo at all. Until then it is
@@ -318,6 +375,22 @@ namespace CatShelter.Shell
                 {
                     StartCoroutine(RunAndReport(screen, named));
                 }
+                return;
+            }
+
+            // Which alphabets this build can actually draw, asked for the same
+            // way: drop a `glyphs.txt` beside the save. First of the harnesses,
+            // because a font that cannot draw a language makes every other
+            // screen in that language a lie.
+            if (CatShelter.View.GlyphCheckView.Requested)
+            {
+                Debug.Log("[GameBoot] branch=glyphs");
+                SafeBuild("the glyph check", uid.rootVisualElement, () =>
+                {
+                    if (GetComponent<CatShelter.View.GlyphCheckView>() == null)
+                        gameObject.AddComponent<CatShelter.View.GlyphCheckView>();
+                });
+                BootState("glyphs", uid);
                 return;
             }
 

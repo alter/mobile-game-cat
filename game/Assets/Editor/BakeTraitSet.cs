@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CatShelter.Core;
 using CatShelter.View;
 using UnityEditor;
 using UnityEngine;
+using Newtonsoft.Json;
 
 /// <summary>
 /// Builds a coat for every set of traits in a file, so a list of real cats can
@@ -55,14 +57,24 @@ public static class BakeTraitSet
 
         var built = 0;
         var failed = new List<string>();
-        foreach (var reading in Parse(File.ReadAllText(input)))
+        var readings = JsonConvert.DeserializeObject<List<Reading>>(File.ReadAllText(input));
+        if (readings == null)
+        {
+            Debug.LogError($"[Traits] {input} did not parse as a list of readings");
+            return;
+        }
+
+        foreach (var reading in readings)
         {
             CatTraits traits;
             try
             {
                 traits = new CatTraits(reading.BaseColor, reading.Pattern,
                                        reading.FurLength, reading.EyeColor,
-                                       reading.WhiteMarkings);
+                                       reading.WhiteMarkings,
+                                       TraitsOrigin.Photo,
+                                       reading.Spots?.Select(s => new CatSpot(s.Place, s.Shade))
+                                                     .ToArray());
             }
             catch (Exception e)
             {
@@ -93,7 +105,10 @@ public static class BakeTraitSet
             var name = Path.GetFileNameWithoutExtension(reading.File) + ".png";
             File.WriteAllBytes(Path.Combine(outDir, name), coat.EncodeToPNG());
             built++;
-            Debug.Log($"[Traits] {name}  {traits}");
+            var marks = traits.Spots.Count == 0
+                ? "no distinctive marks"
+                : string.Join("; ", traits.Spots.Select(s => s.ToString()));
+            Debug.Log($"[Traits] {name}  {traits}  —  {marks}");
         }
 
         Debug.Log($"[Traits] done, {built} built" +
@@ -101,65 +116,33 @@ public static class BakeTraitSet
                                     : ", none failed"));
     }
 
-    private readonly struct Reading
-    {
-        public readonly string File, BaseColor, Pattern, FurLength, EyeColor;
-        public readonly string[] WhiteMarkings;
-
-        public Reading(string file, string baseColor, string pattern,
-                       string furLength, string eyeColor, string[] markings)
-        {
-            File = file; BaseColor = baseColor; Pattern = pattern;
-            FurLength = furLength; EyeColor = eyeColor; WhiteMarkings = markings;
-        }
-    }
-
     /// <summary>
-    /// A small reader for this one shape, rather than a JSON dependency. The
-    /// same argument as Core/GameSave and Core/TraitsRequest: five string fields
-    /// and one string array does not justify pulling Newtonsoft into the editor
-    /// assembly, and JsonUtility cannot do arrays of strings inside a list
-    /// without a wrapper type anyway.
+    /// One entry of `tools/traits/reference-readings.json`, which is the
+    /// worker's own response shape.
+    ///
+    /// Read with Newtonsoft, which this project already depends on
+    /// (`com.unity.nuget.newtonsoft-json`). The first version of this file
+    /// split the text on braces by hand — the argument copied from Core, where
+    /// a JSON dependency really is unwelcome. It does not apply here: this is an
+    /// editor script, it runs on a desktop, and nothing it does ships. The
+    /// hand-rolled reader worked exactly until the data grew a nested object
+    /// (`spots`), at which point it cut every entry short and silently produced
+    /// unmarked cats with nothing in the log.
     /// </summary>
-    private static IEnumerable<Reading> Parse(string json)
+    private sealed class Reading
     {
-        foreach (var chunk in json.Split('{'))
-        {
-            if (!chunk.Contains("\"file\"")) continue;
-            yield return new Reading(
-                Field(chunk, "file"), Field(chunk, "base_color"),
-                Field(chunk, "pattern"), Field(chunk, "fur_length"),
-                Field(chunk, "eye_color"), Markings(chunk));
-        }
+        [JsonProperty("file")] public string File { get; set; }
+        [JsonProperty("base_color")] public string BaseColor { get; set; }
+        [JsonProperty("pattern")] public string Pattern { get; set; }
+        [JsonProperty("fur_length")] public string FurLength { get; set; }
+        [JsonProperty("eye_color")] public string EyeColor { get; set; }
+        [JsonProperty("white_markings")] public string[] WhiteMarkings { get; set; }
+        [JsonProperty("spots")] public SpotJson[] Spots { get; set; }
     }
 
-    private static string Field(string chunk, string name)
+    private sealed class SpotJson
     {
-        var at = chunk.IndexOf($"\"{name}\"", StringComparison.Ordinal);
-        if (at < 0) return null;
-        var open = chunk.IndexOf('"', chunk.IndexOf(':', at) + 1);
-        var close = chunk.IndexOf('"', open + 1);
-        return open < 0 || close < 0 ? null : chunk.Substring(open + 1, close - open - 1);
-    }
-
-    private static string[] Markings(string chunk)
-    {
-        var at = chunk.IndexOf("\"white_markings\"", StringComparison.Ordinal);
-        if (at < 0) return Array.Empty<string>();
-        var open = chunk.IndexOf('[', at);
-        var close = chunk.IndexOf(']', open + 1);
-        if (open < 0 || close < 0) return Array.Empty<string>();
-
-        var inside = chunk.Substring(open + 1, close - open - 1).Trim();
-        if (inside.Length == 0) return Array.Empty<string>();
-
-        var parts = inside.Split(',');
-        var list = new List<string>();
-        foreach (var part in parts)
-        {
-            var value = part.Trim().Trim('"');
-            if (value.Length > 0) list.Add(value);
-        }
-        return list.ToArray();
+        [JsonProperty("place")] public string Place { get; set; }
+        [JsonProperty("shade")] public string Shade { get; set; }
     }
 }

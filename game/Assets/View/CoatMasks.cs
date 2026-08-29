@@ -153,6 +153,184 @@ namespace CatShelter.View
         }
 
         // ---------------------------------------------------------------
+        // Distinctive marks
+        // ---------------------------------------------------------------
+
+        /// <summary>
+        /// A shapeless patch at one named place on the cat.
+        ///
+        /// The one thing in this file that is about a particular cat rather than
+        /// about cats. Everything else here answers "what kind of cat is this";
+        /// this answers "which cat".
+        ///
+        /// Shapeless on purpose. Naming shapes — heart, star, ring — would ask
+        /// the model to see something it mostly cannot and hand the player back
+        /// an outline she never had. What the eye reads on a real cat is the
+        /// PLACE: a white sock on one foot, a smudge on the chin, a patch over
+        /// one eye. So the outline is an irregular closed curve with no meaning
+        /// of its own, and the place carries everything.
+        ///
+        /// Irregular rather than round: a circle reads as a sticker. The radius
+        /// is bent by three harmonics at a phase drawn from the seed, so two
+        /// cats with a patch in the same place do not have the same patch.
+        /// </summary>
+        public static float[] Spot(bool[] body, int w, int h, float cy, float cx,
+                                   float radius, int seed)
+        {
+            var m = new float[w * h];
+            if (radius <= 1f) return m;
+
+            var rng = new System.Random(seed);
+            float p1 = (float)rng.NextDouble() * 6.2832f;
+            float p2 = (float)rng.NextDouble() * 6.2832f;
+            float p3 = (float)rng.NextDouble() * 6.2832f;
+
+            int y0 = Mathf.Max(0, Mathf.FloorToInt(cy - radius * 1.6f));
+            int y1 = Mathf.Min(h - 1, Mathf.CeilToInt(cy + radius * 1.6f));
+            int x0 = Mathf.Max(0, Mathf.FloorToInt(cx - radius * 1.6f));
+            int x1 = Mathf.Min(w - 1, Mathf.CeilToInt(cx + radius * 1.6f));
+
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    int i = y * w + x;
+                    if (!body[i]) continue;   // never off the cat
+
+                    float dy = y - cy, dx = x - cx;
+                    float d = Mathf.Sqrt(dy * dy + dx * dx);
+                    float a = Mathf.Atan2(dy, dx);
+                    float r = radius * (1f
+                        + 0.20f * Mathf.Sin(a * 2f + p1)
+                        + 0.13f * Mathf.Sin(a * 3f + p2)
+                        + 0.07f * Mathf.Sin(a * 5f + p3));
+                    if (d <= r) m[i] = 1f;
+                }
+
+            // A marking has an edge, but fur does not draw a hard one.
+            return Blur(m, w, h, Mathf.Max(2, Mathf.RoundToInt(radius * 0.18f)), body);
+        }
+
+        /// <summary>
+        /// Where each named place is on this silhouette, and how big a patch
+        /// there should be — in pixels, for this picture.
+        ///
+        /// Everything is derived from the figure itself, so it holds for all
+        /// three poses and for whatever is drawn next. Rows run bottom-up, so
+        /// the head is the HIGH end and going down the cat is decreasing y.
+        ///
+        /// Returns false for a place this silhouette cannot offer — a tail the
+        /// pose tucks away, say — and the caller simply does not draw it. A
+        /// patch invented in the wrong place is worse than a patch missing.
+        /// </summary>
+        public static bool PlaceOf(string place, bool[] body, int w, int h,
+                                   float[] eyes,
+                                   out float cy, out float cx, out float radius)
+        {
+            cy = cx = radius = 0f;
+
+            int top = h, bottom = -1, left = w, right = -1;
+            for (int i = 0; i < body.Length; i++)
+                if (body[i])
+                {
+                    int y = i / w, x = i % w;
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                }
+            if (bottom < 0) return false;
+
+            float height = bottom - top, width = right - left;
+
+            // The head's own horizontal extent, from the topmost band — her ears
+            // are the highest thing on her whatever the pose, which a band of
+            // rows across the whole figure is not.
+            int earsFrom = bottom - Mathf.RoundToInt(height * 0.12f);
+            int hx0 = w, hx1 = -1;
+            for (int y = earsFrom; y <= bottom; y++)
+                for (int x = 0; x < w; x++)
+                    if (body[y * w + x]) { if (x < hx0) hx0 = x; if (x > hx1) hx1 = x; }
+            float headX = hx1 > hx0 ? (hx0 + hx1) * 0.5f : (left + right) * 0.5f;
+            float headW = hx1 > hx0 ? hx1 - hx0 : width * 0.5f;
+
+            // The eyes when they were found: they place the face exactly.
+            float eyeY = bottom - height * 0.18f, eyeL = headX - headW * 0.22f,
+                  eyeR = headX + headW * 0.22f;
+            FindEyeCentre(eyes, w, out float fy, out float fx, out bool haveEyes);
+            if (haveEyes)
+            {
+                eyeY = fy;
+                // Split the eye pixels at the centre to get one eye each side,
+                // rather than assuming a symmetric face.
+                float sumL = 0, nL = 0, sumR = 0, nR = 0;
+                for (int i = 0; i < eyes.Length; i++)
+                    if (eyes[i] > 0.5f)
+                    {
+                        float x = i % w;
+                        if (x < fx) { sumL += x; nL++; } else { sumR += x; nR++; }
+                    }
+                if (nL > 0) eyeL = sumL / nL;
+                if (nR > 0) eyeR = sumR / nR;
+            }
+
+            float small = height * 0.055f, medium = height * 0.085f;
+
+            switch (place)
+            {
+                case "forehead": cy = eyeY + height * 0.07f; cx = headX; radius = small; break;
+                case "eye_left": cy = eyeY; cx = eyeL; radius = small; break;
+                case "eye_right": cy = eyeY; cx = eyeR; radius = small; break;
+                case "muzzle": cy = eyeY - height * 0.075f; cx = headX; radius = small; break;
+                case "chin": cy = eyeY - height * 0.135f; cx = headX; radius = small * 0.8f; break;
+                case "chest": cy = bottom - height * 0.50f; cx = headX; radius = medium; break;
+                case "flank": cy = bottom - height * 0.60f; cx = (left + right) * 0.5f; radius = medium; break;
+
+                case "paw_left":
+                case "paw_right":
+                {
+                    // The paws are the bottom of the figure; take the two
+                    // extremes of that band and pick a side.
+                    int pawTop = top + Mathf.RoundToInt(height * 0.10f);
+                    int px0 = w, px1 = -1;
+                    for (int y = top; y <= pawTop; y++)
+                        for (int x = 0; x < w; x++)
+                            if (body[y * w + x]) { if (x < px0) px0 = x; if (x > px1) px1 = x; }
+                    if (px1 <= px0) return false;
+                    cy = top + height * 0.05f;
+                    cx = place == "paw_left" ? px0 + (px1 - px0) * 0.18f
+                                             : px1 - (px1 - px0) * 0.18f;
+                    radius = small * 0.85f;
+                    break;
+                }
+
+                case "tail_tip":
+                {
+                    // The body pixel furthest from the head, in the lower half.
+                    // On these silhouettes that is the tail, and when the pose
+                    // hides it the answer is simply somewhere unremarkable — so
+                    // it is rejected unless it is genuinely far out.
+                    float bestD = 0f; int bestI = -1;
+                    for (int i = 0; i < body.Length; i++)
+                    {
+                        if (!body[i]) continue;
+                        int y = i / w, x = i % w;
+                        if (y > bottom - height * 0.35f) continue;
+                        float dy = y - bottom, dx = x - headX;
+                        float d = dy * dy + dx * dx;
+                        if (d > bestD) { bestD = d; bestI = i; }
+                    }
+                    if (bestI < 0) return false;
+                    cy = bestI / w; cx = bestI % w; radius = small * 0.8f;
+                    if (Mathf.Abs(cx - headX) < width * 0.20f) return false;
+                    break;
+                }
+
+                default: return false;
+            }
+            return radius > 1f;
+        }
+
+        // ---------------------------------------------------------------
         // Eyes: a pair of dark blobs at the same height on the head
         // ---------------------------------------------------------------
 

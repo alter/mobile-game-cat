@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CatShelter.Core;
 using UnityEngine;
 
@@ -162,6 +163,7 @@ namespace CatShelter.View
             if (traits.Pattern != "tabby")
                 px = Deband(px, w, h, masks, baseCoat.name);
             px = Tint(px, traits, masks, baseCoat.name);
+            px = Marks(px, w, h, traits, masks, baseCoat.name);
             px = Outline(px, w, h, Mathf.RoundToInt(w * 0.016f));
 
             var result = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: false)
@@ -389,8 +391,14 @@ namespace CatShelter.View
         public static Texture2D TryBuildFor(CatTraits traits, int state, int size)
         {
             if (traits == null) return null;
+            // Spots are part of the key. Without them two cats alike in every
+            // class trait and different in the one thing that identifies them —
+            // a sock on one paw — share a cached coat, and the second player
+            // gets the first player's cat.
+            var marks = string.Join(",", traits.Spots.Select(m => $"{m.Place}:{m.Shade}"));
             var key = $"{traits.BaseColor}/{traits.Pattern}/{traits.FurLength}/" +
-                      $"{traits.EyeColor}/{string.Join(",", traits.WhiteMarkings)}/{state}@{size}";
+                      $"{traits.EyeColor}/{string.Join(",", traits.WhiteMarkings)}/" +
+                      $"{marks}/{state}@{size}";
             if (_builtCache.TryGetValue(key, out var hit) && hit != null) return hit;
 
             // Shipped first. The default cat — what a player sees before she has
@@ -942,6 +950,74 @@ namespace CatShelter.View
         /// no code changes, no all-or-nothing milestone.
         /// </summary>
         /// <summary>
+        /// Her distinctive marks, painted last.
+        ///
+        /// Last on purpose: the coat colour, the pattern and the white markings
+        /// all describe a KIND of cat, and this describes THIS cat. It goes over
+        /// them for the same reason a scar goes over skin.
+        ///
+        /// Light or dark against her own coat rather than a colour of its own.
+        /// A white sock on a black cat and a black sock on a white one are the
+        /// same fact from two sides, and asking the model for a colour would
+        /// have it guess at one under whatever light the photograph was taken
+        /// in.
+        ///
+        /// A place the silhouette cannot offer is skipped in silence — a patch
+        /// invented where the tail is not is worse than a patch missing.
+        /// </summary>
+        private static Color32[] Marks(Color32[] px, int w, int h, CatTraits traits,
+                                       Dictionary<string, float[]> masks, string baseName)
+        {
+            if (traits.Spots == null || traits.Spots.Count == 0) return px;
+
+            var body = new bool[px.Length];
+            for (int i = 0; i < px.Length; i++) body[i] = px[i].a > 200;
+
+            var eyes = MaskOf(masks, baseName, CoatMasks.Eyes);
+            var dst = px;
+
+            foreach (var spot in traits.Spots)
+            {
+                if (!CoatMasks.PlaceOf(spot.Place, body, w, h, eyes,
+                                       out float cy, out float cx, out float radius))
+                {
+                    Debug.Log($"[CoatBuilder] no {spot.Place} on this silhouette, " +
+                              "spot not drawn");
+                    continue;
+                }
+
+                // Seeded from the place and the drawing, so the same cat has the
+                // same patch every time it is built, and two cats marked in the
+                // same place do not share an outline.
+                var mask = CoatMasks.Spot(body, w, h, cy, cx, radius,
+                                          (baseName + spot.Place).GetHashCode());
+                int painted = 0;
+
+                bool light = spot.Shade == "light";
+                dst = (Color32[])dst.Clone();
+                for (int i = 0; i < dst.Length; i++)
+                {
+                    float a = mask[i];
+                    if (a <= 0.01f) continue;
+                    painted++;
+
+                    // 0.86 rather than 1: even a white sock keeps a little of
+                    // the fur under it, and a patch painted flat reads as a
+                    // sticker. The shading of the coat shows through.
+                    float k = light ? 1f + 1.35f * a : 1f - 0.62f * a;
+                    dst[i] = new Color32(
+                        (byte)Mathf.Clamp(dst[i].r * k, 0, 255),
+                        (byte)Mathf.Clamp(dst[i].g * k, 0, 255),
+                        (byte)Mathf.Clamp(dst[i].b * k, 0, 255),
+                        dst[i].a);
+                }
+                Debug.Log($"[Spot] {spot.Place} at {cx:F0},{cy:F0} r={radius:F0} " +
+                          $"painted {painted}px");
+            }
+            return dst;
+        }
+
+        /// <summary>
         /// Takes the drawn tabby markings off, and leaves everything else.
         ///
         /// The stripes are the one thing on this drawing that is high-frequency
@@ -1071,6 +1147,7 @@ namespace CatShelter.View
 
             var dst = new Color32[px.Length];
             Array.Copy(px, dst, px.Length);
+            int lifted = 0;
             for (int i = 0; i < px.Length; i++)
             {
                 if (!body[i]) continue;
@@ -1109,7 +1186,9 @@ namespace CatShelter.View
                     (byte)Mathf.Clamp(px[i].g * k, 0, 255),
                     (byte)Mathf.Clamp(px[i].b * k, 0, 255),
                     px[i].a);
+                lifted++;
             }
+            Debug.Log($"[Deband] lifted {lifted}px of {px.Length}");
             return dst;
         }
 

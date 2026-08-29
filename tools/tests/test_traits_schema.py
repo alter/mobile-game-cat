@@ -12,6 +12,10 @@ GOOD = {
     "fur_length": "short",
     "eye_color": "green",
     "white_markings": ["chest", "paws"],
+    # Present and empty on purpose. An empty list is the normal answer — most
+    # cats have nothing that stands out — and the field is required so that
+    # "there is none" and "I did not look" cannot be confused.
+    "spots": [],
 }
 
 
@@ -27,11 +31,18 @@ def test_every_field_is_required():
 
 
 def test_the_schema_matches_the_five_fields_in_the_tech_doc():
-    # cat-shelter-tech.md section 3 names exactly these, and the sprite is
+    # cat-shelter-tech.md section 3 names the first five, and the sprite is
     # assembled from them: silhouette(fur_length) + fill(base_color) +
     # pattern mask + white markings + eyes.
+    #
+    # `spots` is the sixth, added 2026-08-29, and it is a different kind of
+    # thing. Those five are class characteristics in the forensic sense: they
+    # narrow a pool and identify nobody — counted out, they can describe 288
+    # distinguishable cats. `spots` is individuating: a white sock on ONE paw
+    # is what makes an owner recognise her own cat.
     assert set(SCHEMA["properties"]) == {
-        "base_color", "pattern", "fur_length", "eye_color", "white_markings"}
+        "base_color", "pattern", "fur_length", "eye_color", "white_markings",
+        "spots"}
     assert enum_of("base_color") == ["ginger", "grey", "black", "white", "cream", "brown"]
     assert enum_of("pattern") == ["solid", "tabby", "bicolor", "calico", "tuxedo", "pointed"]
     assert enum_of("fur_length") == ["short", "long"]
@@ -102,3 +113,48 @@ def test_request_fragment_uses_output_config_not_output_format():
     assert fragment["format"]["type"] == "json_schema"
     assert fragment["format"]["schema"] is SCHEMA
     assert json.dumps(fragment)   # has to survive serialisation
+
+
+# --- the individuating trait ------------------------------------------------
+
+
+def test_no_spots_is_a_normal_answer():
+    """Most cats have nothing that stands out, and that must not be an error."""
+    assert validate(dict(GOOD, spots=[]))["spots"] == []
+
+
+def test_a_spot_needs_both_a_place_and_a_shade():
+    for broken in ({"place": "paw_left"}, {"shade": "light"}):
+        with pytest.raises(TraitsError, match="missing"):
+            validate(dict(GOOD, spots=[broken]))
+
+
+def test_the_place_and_the_shade_come_from_the_enums():
+    with pytest.raises(TraitsError, match="ear"):
+        validate(dict(GOOD, spots=[{"place": "ear", "shade": "light"}]))
+    with pytest.raises(TraitsError, match="ginger"):
+        validate(dict(GOOD, spots=[{"place": "chin", "shade": "ginger"}]))
+
+
+def test_left_and_right_are_separate_places():
+    """The asymmetry IS the identification: a sock on one paw is worth more
+    than white paws, and a schema that could only say `paws` would throw that
+    away."""
+    places = SCHEMA["properties"]["spots"]["items"]["properties"]["place"]["enum"]
+    for side in ("paw_left", "paw_right", "eye_left", "eye_right"):
+        assert side in places
+
+
+def test_at_most_two_marks():
+    """A cat with a list of marks is a cat nobody looked at properly: if three
+    things stand out, nothing does."""
+    three = [{"place": p, "shade": "light"} for p in ("chin", "flank", "forehead")]
+    with pytest.raises(TraitsError, match="at most"):
+        validate(dict(GOOD, spots=three))
+
+
+def test_the_same_place_twice_is_rejected():
+    twice = [{"place": "chin", "shade": "light"},
+             {"place": "chin", "shade": "dark"}]
+    with pytest.raises(TraitsError, match="two marks"):
+        validate(dict(GOOD, spots=twice))

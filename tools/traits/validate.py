@@ -55,6 +55,17 @@ def validate(traits: dict) -> dict:
 
     for field in sorted(required):
         value = traits[field]
+
+        # `spots` is a list of objects, not of strings — the one field whose
+        # items have a shape. It is the individuating trait: where on the cat
+        # something stands out, and whether it is lighter or darker than the
+        # rest of her. Everything else here is a class characteristic, which is
+        # why the rest of this loop can get away with comparing against a flat
+        # list of allowed words.
+        if field == "spots":
+            _validate_spots(value)
+            continue
+
         allowed = enum_of(field)
         if SCHEMA["properties"][field]["type"] == "array":
             if not isinstance(value, list):
@@ -74,6 +85,45 @@ def validate(traits: dict) -> dict:
                 raise TraitsError(f"{field}: '{value}' is not one of {allowed}")
 
     return traits
+
+
+def _validate_spots(value) -> None:
+    """The distinctive marks, if the model saw any.
+
+    An empty list is the normal answer and is not a failure: most cats have
+    nothing that stands out, and a mark reported on every cat identifies
+    nobody. The field is required so that "there is none" and "I did not look"
+    are different answers.
+    """
+    if not isinstance(value, list):
+        raise TraitsError(f"spots: expected a list, got {type(value).__name__}")
+
+    spec = SCHEMA["properties"]["spots"]
+    cap = spec.get("maxItems", 2)
+    if len(value) > cap:
+        raise TraitsError(f"spots: {len(value)} entries, at most {cap}")
+
+    item = spec["items"]
+    places, shades = item["properties"]["place"]["enum"], item["properties"]["shade"]["enum"]
+    seen = set()
+    for spot in value:
+        if not isinstance(spot, dict):
+            raise TraitsError(f"spots: expected an object, got {type(spot).__name__}")
+        unknown = spot.keys() - set(item["properties"])
+        if unknown:
+            raise TraitsError(f"spots: unexpected field(s): {', '.join(sorted(unknown))}")
+        for key in item["required"]:
+            if key not in spot:
+                raise TraitsError(f"spots: missing '{key}'")
+        if spot["place"] not in places:
+            raise TraitsError(f"spots: '{spot['place']}' is not one of {places}")
+        if spot["shade"] not in shades:
+            raise TraitsError(f"spots: '{spot['shade']}' is not one of {shades}")
+        # Two marks in one place is one mark described twice, and drawing it
+        # would paint the same patch over itself.
+        if spot["place"] in seen:
+            raise TraitsError(f"spots: two marks on the {spot['place']}")
+        seen.add(spot["place"])
 
 
 def parse(text: str) -> dict:

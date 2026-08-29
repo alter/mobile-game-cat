@@ -22,6 +22,17 @@ namespace CatShelter.Core
         public string EyeColor { get; }
         public IReadOnlyList<string> WhiteMarkings { get; }
 
+        /// <summary>
+        /// Her distinctive marks — the only fields here that are not also true
+        /// of thousands of other cats. See <see cref="CatSpot"/> for why they
+        /// were added and what the other five cannot do.
+        ///
+        /// At most two. A cat with a list of marks is a cat nobody looked at
+        /// properly: the model is asked for what stands out, and three things
+        /// standing out means nothing does.
+        /// </summary>
+        public IReadOnlyList<CatSpot> Spots { get; }
+
         /// <summary>How this cat's traits were arrived at. Not part of the coat,
         /// but the difference matters to what the player is told.</summary>
         public TraitsOrigin Origin { get; }
@@ -34,11 +45,25 @@ namespace CatShelter.Core
                 ["fur_length"] = new[] { "short", "long" },
                 ["eye_color"] = new[] { "green", "amber", "blue" },
                 ["white_markings"] = new[] { "chest", "paws", "face" },
+                // Places a mark can be, and every one of them is somewhere the
+                // silhouette can be asked about: the eyes are found, the paws
+                // are the bottom of the figure, the head is the top, the tail
+                // is the far end of the body from the head. Left and right are
+                // separate on purpose — a patch on one paw is the whole point,
+                // and a rule that could only say "paws" would throw away the
+                // asymmetry that does the identifying.
+                ["spot_place"] = new[]
+                {
+                    "muzzle", "forehead", "eye_left", "eye_right", "chin",
+                    "chest", "paw_left", "paw_right", "flank", "tail_tip",
+                },
+                ["spot_shade"] = new[] { "light", "dark" },
             };
 
         public CatTraits(string baseColor, string pattern, string furLength,
                          string eyeColor, IReadOnlyList<string> whiteMarkings,
-                         TraitsOrigin origin = TraitsOrigin.Photo)
+                         TraitsOrigin origin = TraitsOrigin.Photo,
+                         IReadOnlyList<CatSpot> spots = null)
         {
             BaseColor = Check("base_color", baseColor);
             Pattern = Check("pattern", pattern);
@@ -50,8 +75,25 @@ namespace CatShelter.Core
             if (markings.Distinct().Count() != markings.Count)
                 throw new ArgumentException("repeated white markings", nameof(whiteMarkings));
             WhiteMarkings = markings.ToArray();
+
+            var marks = spots ?? Array.Empty<CatSpot>();
+            if (marks.Count > MaxSpots)
+                throw new ArgumentException(
+                    $"at most {MaxSpots} spots, got {marks.Count}", nameof(spots));
+            // Two marks in the same place is one mark described twice, and it
+            // would paint the same patch over itself.
+            if (marks.Select(s => s.Place).Distinct().Count() != marks.Count)
+                throw new ArgumentException("two spots in the same place", nameof(spots));
+            Spots = marks.ToArray();
+
             Origin = origin;
         }
+
+        /// <summary>At most this many marks; see <see cref="Spots"/>.</summary>
+        public const int MaxSpots = 2;
+
+        /// <summary>Public so <see cref="CatSpot"/> can use the one table.</summary>
+        internal static string CheckValue(string field, string value) => Check(field, value);
 
         private static string Check(string field, string value)
         {

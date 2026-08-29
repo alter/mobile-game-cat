@@ -1,30 +1,332 @@
 [
-{"file":"cat_01.jpg","base_color":"black","pattern":"tuxedo","fur_length":"short","eye_color":"green","white_markings":["chest","face"]},
-{"file":"cat_02.jpg","base_color":"grey","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"cat_03.jpg","base_color":"grey","pattern":"bicolor","fur_length":"short","eye_color":"amber","white_markings":["chest","paws"]},
-{"file":"cat_04.jpg","base_color":"black","pattern":"solid","fur_length":"short","eye_color":"amber","white_markings":[]},
-{"file":"cat_05.jpg","base_color":"brown","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"cat_06.jpg","base_color":"ginger","pattern":"calico","fur_length":"short","eye_color":"green","white_markings":["chest","paws"]},
-{"file":"cat_07.jpg","base_color":"ginger","pattern":"tabby","fur_length":"short","eye_color":"amber","white_markings":["chest","paws"]},
-{"file":"cat_08.jpg","base_color":"black","pattern":"solid","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"cat_09.jpg","base_color":"ginger","pattern":"calico","fur_length":"short","eye_color":"amber","white_markings":["chest","paws","face"]},
-{"file":"cat_10.jpg","base_color":"grey","pattern":"calico","fur_length":"short","eye_color":"green","white_markings":["chest","paws"]},
-{"file":"cat_11.jpg","base_color":"black","pattern":"solid","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"cat_12.jpg","base_color":"brown","pattern":"tabby","fur_length":"long","eye_color":"amber","white_markings":[]},
-{"file":"cat_13.jpg","base_color":"brown","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":["chest","face"]},
-{"file":"cat_14.jpg","base_color":"brown","pattern":"tabby","fur_length":"short","eye_color":"amber","white_markings":["face"]},
-{"file":"cat_15.jpg","base_color":"brown","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":["chest"]},
-{"file":"cat_16.jpg","base_color":"cream","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":["paws"]},
-{"file":"cat_17.jpg","base_color":"black","pattern":"tuxedo","fur_length":"short","eye_color":"green","white_markings":["chest","paws","face"]},
-{"file":"cat_18.jpg","base_color":"brown","pattern":"calico","fur_length":"long","eye_color":"green","white_markings":[]},
-{"file":"cat_19.jpg","base_color":"brown","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"cat_20.jpg","base_color":"grey","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":["face"]},
-{"file":"blurry_01.jpg","base_color":"ginger","pattern":"tabby","fur_length":"short","eye_color":"amber","white_markings":["paws"]},
-{"file":"blurry_02.jpg","base_color":"grey","pattern":"solid","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"blurry_03.jpg","base_color":"white","pattern":"solid","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"blurry_04.jpg","base_color":"ginger","pattern":"tabby","fur_length":"short","eye_color":"amber","white_markings":[]},
-{"file":"blurry_05.jpg","base_color":"ginger","pattern":"tabby","fur_length":"long","eye_color":"green","white_markings":["chest","face"]},
-{"file":"ofphoto_01.jpg","base_color":"brown","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"ofphoto_02.jpg","base_color":"brown","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":[]},
-{"file":"ofphoto_03.jpg","base_color":"grey","pattern":"tabby","fur_length":"short","eye_color":"green","white_markings":["chest"]}
+ {
+  "file": "cat_01.jpg",
+  "base_color": "black",
+  "pattern": "tuxedo",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "chest",
+   "face"
+  ],
+  "spots": [
+   {
+    "place": "muzzle",
+    "shade": "light"
+   }
+  ]
+ },
+ {
+  "file": "cat_02.jpg",
+  "base_color": "grey",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "cat_03.jpg",
+  "base_color": "grey",
+  "pattern": "bicolor",
+  "fur_length": "short",
+  "eye_color": "amber",
+  "white_markings": [
+   "chest",
+   "paws"
+  ],
+  "spots": [
+   {
+    "place": "chest",
+    "shade": "light"
+   },
+   {
+    "place": "paw_right",
+    "shade": "light"
+   }
+  ]
+ },
+ {
+  "file": "cat_04.jpg",
+  "base_color": "black",
+  "pattern": "solid",
+  "fur_length": "short",
+  "eye_color": "amber",
+  "white_markings": [],
+  "spots": [
+   {
+    "place": "tail_tip",
+    "shade": "light"
+   }
+  ]
+ },
+ {
+  "file": "cat_05.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "cat_06.jpg",
+  "base_color": "ginger",
+  "pattern": "calico",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "chest",
+   "paws"
+  ],
+  "spots": []
+ },
+ {
+  "file": "cat_07.jpg",
+  "base_color": "ginger",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "amber",
+  "white_markings": [
+   "chest",
+   "paws"
+  ],
+  "spots": []
+ },
+ {
+  "file": "cat_08.jpg",
+  "base_color": "black",
+  "pattern": "solid",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "cat_09.jpg",
+  "base_color": "ginger",
+  "pattern": "calico",
+  "fur_length": "short",
+  "eye_color": "amber",
+  "white_markings": [
+   "chest",
+   "paws",
+   "face"
+  ],
+  "spots": [
+   {
+    "place": "eye_right",
+    "shade": "dark"
+   },
+   {
+    "place": "forehead",
+    "shade": "dark"
+   }
+  ]
+ },
+ {
+  "file": "cat_10.jpg",
+  "base_color": "grey",
+  "pattern": "calico",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "chest",
+   "paws"
+  ],
+  "spots": []
+ },
+ {
+  "file": "cat_11.jpg",
+  "base_color": "black",
+  "pattern": "solid",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "cat_12.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "long",
+  "eye_color": "amber",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "cat_13.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "chest",
+   "face"
+  ],
+  "spots": []
+ },
+ {
+  "file": "cat_14.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "amber",
+  "white_markings": [
+   "face"
+  ],
+  "spots": []
+ },
+ {
+  "file": "cat_15.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "chest"
+  ],
+  "spots": []
+ },
+ {
+  "file": "cat_16.jpg",
+  "base_color": "cream",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "paws"
+  ],
+  "spots": []
+ },
+ {
+  "file": "cat_17.jpg",
+  "base_color": "black",
+  "pattern": "tuxedo",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "chest",
+   "paws",
+   "face"
+  ],
+  "spots": [
+   {
+    "place": "chin",
+    "shade": "light"
+   },
+   {
+    "place": "paw_left",
+    "shade": "light"
+   }
+  ]
+ },
+ {
+  "file": "cat_18.jpg",
+  "base_color": "brown",
+  "pattern": "calico",
+  "fur_length": "long",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "cat_19.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "cat_20.jpg",
+  "base_color": "grey",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "face"
+  ],
+  "spots": []
+ },
+ {
+  "file": "blurry_01.jpg",
+  "base_color": "ginger",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "amber",
+  "white_markings": [
+   "paws"
+  ],
+  "spots": []
+ },
+ {
+  "file": "blurry_02.jpg",
+  "base_color": "grey",
+  "pattern": "solid",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "blurry_03.jpg",
+  "base_color": "white",
+  "pattern": "solid",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "blurry_04.jpg",
+  "base_color": "ginger",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "amber",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "blurry_05.jpg",
+  "base_color": "ginger",
+  "pattern": "tabby",
+  "fur_length": "long",
+  "eye_color": "green",
+  "white_markings": [
+   "chest",
+   "face"
+  ],
+  "spots": []
+ },
+ {
+  "file": "ofphoto_01.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "ofphoto_02.jpg",
+  "base_color": "brown",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [],
+  "spots": []
+ },
+ {
+  "file": "ofphoto_03.jpg",
+  "base_color": "grey",
+  "pattern": "tabby",
+  "fur_length": "short",
+  "eye_color": "green",
+  "white_markings": [
+   "chest"
+  ],
+  "spots": []
+ }
 ]

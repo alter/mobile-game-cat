@@ -1,0 +1,52 @@
+{
+  "_what": "Ground truth for the twenty cat photographs, labelled by eye on 2026-08-30 because manifest.json labels only the category (cat/dog/blurry/…) and nothing about the animal. Without this there is no way to say whether an on-device trait reader works — only whether it runs.",
+  "_who": "Labelled from the photographs themselves, at thumbnail and full size. One person, one pass, no second opinion, so treat a single disagreement as a tie rather than as a failure.",
+  "_vocabulary": "Exactly CatTraits.Allowed. base_color: ginger|grey|black|white|cream|brown. pattern: solid|tabby|bicolor|calico|tuxedo|pointed. fur_length: short|long.",
+  "_confidence": "high — an unambiguous cat. low — I could argue the other way, and a reader that disagrees here has not necessarily failed. Score the high ones; report the low ones separately rather than folding them into one percentage.",
+  "_known_bias": "Twelve of the twenty are tabbies. That is not a sampling choice, it is what a random pull of pet photographs looks like, and it means a reader that answers 'tabby' to everything scores 60% on pattern. Judge pattern by BOTH classes, never by the total.",
+  "_today": "The shipped code answers 'solid' to all twenty and 'short' to all twenty, because CatTraits.FromColourOnly hard-codes both. So the bar to beat on pattern is 8/20, and it is 8/20 for a reason that has nothing to do with reading photographs.",
+
+  "cats": [
+    { "file": "cat_01.jpg", "base_color": "black", "pattern": "solid",  "fur_length": "short", "white_markings": ["chest", "face"], "confidence": "high",
+      "note": "Black with a white bib and a white muzzle stripe. A reader that says tuxedo instead of solid is defensible — the white is exactly a tuxedo's." },
+    { "file": "cat_02.jpg", "base_color": "grey",  "pattern": "tabby",  "fur_length": "short", "white_markings": [], "confidence": "high" },
+    { "file": "cat_03.jpg", "base_color": "grey",  "pattern": "solid",  "fur_length": "short", "white_markings": ["chest", "paws"], "confidence": "high",
+      "note": "Grey and white, no banding anywhere. bicolor is the better answer if the reader offers it." },
+    { "file": "cat_04.jpg", "base_color": "brown", "pattern": "solid",  "fur_length": "short", "white_markings": [], "confidence": "low",
+      "note": "A very dark chocolate cat on a red background. Black is arguable and the red cast makes it worse. Do not score this one against a reader that says black." },
+    { "file": "cat_05.jpg", "base_color": "grey",  "pattern": "tabby",  "fur_length": "short", "white_markings": [], "confidence": "high" },
+    { "file": "cat_06.jpg", "base_color": "white", "pattern": "calico", "fur_length": "short", "white_markings": [], "confidence": "low",
+      "note": "Calico, and the photograph has a heavy blue cast. Base colour of a calico is not a well-formed question in a six-colour palette." },
+    { "file": "cat_07.jpg", "base_color": "ginger", "pattern": "tabby", "fur_length": "short", "white_markings": ["chest", "paws", "face"], "confidence": "high",
+      "note": "A pale ginger tabby with a lot of white. cream is arguable for the base." },
+    { "file": "cat_08.jpg", "base_color": "black", "pattern": "solid",  "fur_length": "short", "white_markings": [], "confidence": "high" },
+    { "file": "cat_09.jpg", "base_color": "white", "pattern": "calico", "fur_length": "short", "white_markings": [], "confidence": "low",
+      "note": "Calico kitten, same objection as cat_06. A human hand is in the frame and will be inside any mask that is not tight." },
+    { "file": "cat_10.jpg", "base_color": "grey",  "pattern": "calico", "fur_length": "short", "white_markings": ["chest"], "confidence": "low",
+      "note": "Dilute tortoiseshell with white. Neither the base nor the pattern maps cleanly onto this palette." },
+    { "file": "cat_11.jpg", "base_color": "black", "pattern": "solid",  "fur_length": "short", "white_markings": [], "confidence": "high" },
+    { "file": "cat_12.jpg", "base_color": "brown", "pattern": "tabby",  "fur_length": "short", "white_markings": [], "confidence": "high",
+      "note": "Coat is fluffier than the others here; long is arguable and I would not fault a reader for it." },
+    { "file": "cat_13.jpg", "base_color": "brown", "pattern": "tabby",  "fur_length": "short", "white_markings": ["chest", "face"], "confidence": "high" },
+    { "file": "cat_14.jpg", "base_color": "brown", "pattern": "tabby",  "fur_length": "short", "white_markings": [], "confidence": "high" },
+    { "file": "cat_15.jpg", "base_color": "brown", "pattern": "tabby",  "fur_length": "short", "white_markings": ["chest"], "confidence": "high",
+      "note": "Shot against a dark background under warm light — the case that pushes a frame-centre mean towards ginger." },
+    { "file": "cat_16.jpg", "base_color": "grey",  "pattern": "tabby",  "fur_length": "short", "white_markings": ["chest", "paws"], "confidence": "high" },
+    { "file": "cat_17.jpg", "base_color": "black", "pattern": "tuxedo", "fur_length": "short", "white_markings": ["chest", "paws"], "confidence": "high",
+      "note": "A textbook tuxedo kitten. solid plus white markings is an equally true description of the same animal." },
+    { "file": "cat_18.jpg", "base_color": "brown", "pattern": "tabby",  "fur_length": "long",  "white_markings": ["chest"], "confidence": "low",
+      "note": "The one plausible long-hair in the set, and even here it is medium rather than long. A fur-length reader has almost nothing to learn from twenty photographs with one positive." },
+    { "file": "cat_19.jpg", "base_color": "brown", "pattern": "tabby",  "fur_length": "short", "white_markings": [], "confidence": "high" },
+    { "file": "cat_20.jpg", "base_color": "grey",  "pattern": "tabby",  "fur_length": "short", "white_markings": [], "confidence": "low",
+      "note": "TWO kittens in the frame. Both are grey tabbies so the labels hold, but any mask will take both or pick one arbitrarily. Useful as a robustness case, not as an accuracy case." }
+  ],
+
+  "owner_cats": [
+    { "file": "../../tmp/test_cat_photo/1-2.jpg", "base_color": "grey", "pattern": "tabby", "fur_length": "short", "confidence": "high",
+      "note": "The owner's own cat. Grey-brown tabby, clearly banded. brown is arguable for the base; tabby is not arguable." },
+    { "file": "../../tmp/test_cat_photo/2-2.jpg", "base_color": "brown", "pattern": "tabby", "fur_length": "short", "white_markings": ["chest", "face"], "confidence": "high",
+      "note": "Exotic shorthair, brown and cream. The shipped code answers ginger here, which is the miss that started this work." },
+    { "file": "../../tmp/test_cat_photo/3-2.jpg", "base_color": "white", "pattern": "solid", "fur_length": "long", "confidence": "high",
+      "note": "White long-haired cat outdoors. cream is arguable for the base — the current estimate says cream and that is not a failure. The shipped code answers short, and that IS one." }
+  ]
+}

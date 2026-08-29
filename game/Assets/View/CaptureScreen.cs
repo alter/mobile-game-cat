@@ -254,14 +254,31 @@ namespace CatShelter.View
 
             if (traits == null)
             {
-                // Task 6.11: no Worker, or it did not answer. Read the one
-                // trait a phone can read and default the rest — never an error
-                // screen, because the photo itself was fine.
-                var colour = Shell.CatColour.Estimate(prepared);
+                // Task 6.11, and 60-coat/01: no Worker, or it did not answer.
+                // Read what the phone can read off the photograph and default
+                // the rest — never an error screen, because the photo itself
+                // was fine.
+                //
+                // Two readers, and the order is the point. CatCoat measures
+                // the cat's OWN pixels, from the subject mask, and gives back
+                // a colour, a pattern and a fur length, each of which may be
+                // null where the measurement would not commit. CatColour is
+                // the older estimate — the mean of the middle of the frame,
+                // background and all — and it is still here because a mask is
+                // not guaranteed: on Android it comes from an optional Play
+                // services module that may not have downloaded yet, and a
+                // player on that phone must still get her cat.
+                //
+                // A null pattern or fur length is not a gap to fill in here.
+                // FromColourOnly keeps solid and short for exactly those, and
+                // that is the shipped behaviour: a cat wrongly called a tabby
+                // is worse than the plain cat nobody was ever surprised by.
+                var coat = Shell.CatCoat.Read(prepared);
+                var colour = coat.BaseColor ?? Shell.CatColour.Estimate(prepared);
                 try
                 {
                     traits = colour != null
-                        ? CatTraits.FromColourOnly(colour)
+                        ? CatTraits.FromColourOnly(colour, coat.Pattern, coat.FurLength)
                         : CatTraits.Default;
                 }
                 catch (ArgumentException e)

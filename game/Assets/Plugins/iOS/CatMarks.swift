@@ -814,3 +814,210 @@ public func CatMarks_measure(_ bytes: UnsafePointer<UInt8>?,
 public func CatMarks_free(_ pointer: UnsafeMutablePointer<CChar>?) {
     free(pointer)
 }
+
+// MARK: - The mask, as pixels
+
+// Task 60-coat/01: the same mask this file already builds, handed to C# as
+// bytes instead of measured here.
+//
+// **Why the mask crosses the boundary rather than the answer.** Everything
+// above returns numbers because a threshold has to be tunable without a device
+// build. The coat reader needs the same freedom and more of it: base colour,
+// banding and edge roughness are three statistics with three thresholds, and
+// Android reaches them from a mask ML Kit hands over as bytes. Writing them
+// here would mean a Swift copy and a Java copy of arithmetic with nothing able
+// to compare the two — the complaint `Shell/CatColour.cs` already makes about
+// the six palette anchors, tripled. So iOS hands over what Android already
+// hands over, `Core/CoatReader.cs` is the only implementation, and
+// `dotnet test` can run it on a fixture.
+//
+// The packet is Android's, byte for byte, from
+// `Plugins/Android/.../Packet.java`, so `Shell/CatVision.Unpack` reads either
+// platform without knowing which produced it:
+//
+//     "CVS1" | int32 big-endian json length | json UTF-8 | mask bytes
+//
+// Nothing is logged and nothing is written down, the same as the rest of this
+// file: the mask is a picture of a player's cat.
+
+private struct SilhouetteAnswer: Encodable {
+    let ok: Bool
+    let error: String?
+    let imageWidth: Int, imageHeight: Int
+    let detections: [Detection]
+    let maskWidth: Int, maskHeight: Int
+    let maskCoverage: Double
+    let maskSource: String
+    let rung: String
+}
+
+/// The shape `CatVision.swift` reports a box in. Repeated here rather than
+/// shared because that one is `private` to its own file and this packet has to
+/// encode the identical field names for `VisionAnswer` to deserialise it.
+private struct Detection: Encodable {
+    let identifier: String
+    let confidence: Double
+    let x: Int, y: Int, width: Int, height: Int
+}
+
+/// Pack a JSON string and a mask into one buffer the caller frees with
+/// `CatVision_freeBuffer`.
+private func packet(_ json: String, _ mask: [UInt8],
+                    _ outLength: UnsafeMutablePointer<Int32>) -> UnsafeMutableRawPointer? {
+    let body = Array(json.utf8)
+    let total = 8 + body.count + mask.count
+    guard let buffer = malloc(total)?.assumingMemoryBound(to: UInt8.self) else { return nil }
+    buffer[0] = UInt8(ascii: "C"); buffer[1] = UInt8(ascii: "V")
+    buffer[2] = UInt8(ascii: "S"); buffer[3] = UInt8(ascii: "1")
+    let n = body.count
+    buffer[4] = UInt8((n >> 24) & 0xFF); buffer[5] = UInt8((n >> 16) & 0xFF)
+    buffer[6] = UInt8((n >> 8) & 0xFF);  buffer[7] = UInt8(n & 0xFF)
+    body.withUnsafeBufferPointer { _ = memcpy(buffer + 8, $0.baseAddress!, n) }
+    if !mask.isEmpty {
+        mask.withUnsafeBufferPointer { _ = memcpy(buffer + 8 + n, $0.baseAddress!, mask.count) }
+    }
+    outLength.pointee = Int32(total)
+    return UnsafeMutableRawPointer(buffer)
+}
+
+/// Nearest-neighbour downscale of a full-resolution boolean mask onto a grid
+/// whose long side is `side`. The confidence byte is 255 or 0 rather than a
+/// soft alpha, because `binarise` has already made that decision at 0.5 — see
+/// `CoatReader.ReadFur`, which is the one measurement that would rather have
+/// had the soft band and says so.
+private func downscale(_ mask: Mask, side: Int) -> (bytes: [UInt8], width: Int, height: Int) {
+    let longest = max(mask.width, mask.height)
+    let scale = longest > side ? Double(side) / Double(longest) : 1.0
+    let outW = max(1, Int((Double(mask.width) * scale).rounded()))
+    let outH = max(1, Int((Double(mask.height) * scale).rounded()))
+    var bytes = [UInt8](repeating: 0, count: outW * outH)
+    for y in 0..<outH {
+        let sy = min(mask.height - 1, y * mask.height / outH)
+        for x in 0..<outW {
+            let sx = min(mask.width - 1, x * mask.width / outW)
+            bytes[y * outW + x] = mask.on[sy * mask.width + sx] ? 255 : 0
+        }
+    }
+    return (bytes, outW, outH)
+}
+
+/// Recognise, and cut out, the animal in a JPEG/PNG held in memory.
+///
+/// The iOS half of `Shell/CatVision.Silhouette`. Returns a malloc'd buffer the
+/// caller frees with `CatVision_freeBuffer`, and writes its length through
+/// `outLength`. Never null for a bad photograph: a packet whose JSON says
+/// `ok:false` and whose mask is empty is a different thing to tell a player
+/// than nothing at all.
+@_cdecl("CatVision_silhouette")
+public func CatVision_silhouette(_ bytes: UnsafePointer<UInt8>?,
+                                 _ length: Int32,
+                                 _ orientationRaw: Int32,
+                                 _ maskSide: Int32,
+                                 _ outLength: UnsafeMutablePointer<Int32>) -> UnsafeMutableRawPointer? {
+    func give(_ answer: SilhouetteAnswer, _ mask: [UInt8]) -> UnsafeMutableRawPointer? {
+        guard let data = try? JSONEncoder().encode(answer),
+              let text = String(data: data, encoding: .utf8) else {
+            return packet("{\"ok\":false}", [], outLength)
+        }
+        return packet(text, mask, outLength)
+    }
+    func refuse(_ message: String) -> UnsafeMutableRawPointer? {
+        give(SilhouetteAnswer(ok: false, error: message, imageWidth: 0, imageHeight: 0,
+                              detections: [], maskWidth: 0, maskHeight: 0,
+                              maskCoverage: 0, maskSource: "none", rung: "none"), [])
+    }
+
+    outLength.pointee = 0
+    guard let bytes = bytes, length > 0 else { return refuse("empty image data") }
+
+    let data = Data(bytes: bytes, count: Int(length))
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+          let decoded = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+        return refuse("not a decodable image")
+    }
+
+    var orientation = CGImagePropertyOrientation.up
+    if orientationRaw > 0 {
+        orientation = CGImagePropertyOrientation(rawValue: UInt32(orientationRaw)) ?? .up
+    } else if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let exif = properties[kCGImagePropertyOrientation] as? UInt32 {
+        orientation = CGImagePropertyOrientation(rawValue: exif) ?? .up
+    }
+    guard let image = upright(decoded, orientation) else {
+        return refuse("could not orient the image")
+    }
+    let width = image.width, height = image.height
+
+    // Rung 0 — which animal, and where. The box is what picks the cat out of
+    // the several foreground objects the segmenter will find.
+    var detections: [Detection] = []
+    var animalBox: CGRect?
+    let animals = VNRecognizeAnimalsRequest()
+    if (try? VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        .perform([animals])) != nil {
+        for observation in animals.results ?? [] {
+            guard let label = observation.labels.first else { continue }
+            let box = VNImageRectForNormalizedRect(observation.boundingBox, width, height)
+            detections.append(Detection(
+                identifier: label.identifier,
+                confidence: Double(label.confidence),
+                x: Int(box.origin.x.rounded()),
+                y: Int((CGFloat(height) - box.origin.y - box.height).rounded()),
+                width: Int(box.width.rounded()),
+                height: Int(box.height.rounded())))
+        }
+        detections.sort { $0.confidence > $1.confidence }
+        if let best = (animals.results ?? []).max(by: {
+            ($0.labels.first?.confidence ?? 0) < ($1.labels.first?.confidence ?? 0)
+        }) {
+            animalBox = best.boundingBox
+        }
+    }
+
+    // Rung 1 — which pixels are her.
+    var mask: Mask?
+    var source_ = "none"
+    if maskSide > 0 {
+        let maskHandler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        let masking = VNGenerateForegroundInstanceMaskRequest()
+        if (try? maskHandler.perform([masking])) != nil,
+           let observation = masking.results?.first {
+            var instances = observation.allInstances
+            if let chosen = chooseInstance(observation, animalBox: animalBox) {
+                instances = IndexSet(integer: chosen)
+                source_ = animalBox == nil ? "subject-unlabelled" : "subject"
+            } else if !instances.isEmpty {
+                source_ = "subject-unlabelled"
+            }
+            if let buffer = try? observation.generateScaledMaskForImage(
+                    forInstances: instances, from: maskHandler),
+               let read = readMask(buffer), read.width == width, read.height == height {
+                mask = binarise(read.values, width: read.width, height: read.height)
+            } else {
+                source_ = "none"
+            }
+        }
+    }
+
+    guard let found = mask, found.count > 0 else {
+        return give(SilhouetteAnswer(
+            ok: true, error: nil, imageWidth: width, imageHeight: height,
+            detections: detections, maskWidth: 0, maskHeight: 0, maskCoverage: 0,
+            maskSource: "none", rung: detections.isEmpty ? "none" : "label"), [])
+    }
+
+    let scaled = downscale(found, side: Int(maskSide))
+    return give(SilhouetteAnswer(
+        ok: true, error: nil, imageWidth: width, imageHeight: height,
+        detections: detections,
+        maskWidth: scaled.width, maskHeight: scaled.height,
+        maskCoverage: Double(found.count) / Double(max(1, found.width * found.height)),
+        maskSource: source_, rung: "subject+label"), scaled.bytes)
+}
+
+/// Free a buffer returned by `CatVision_silhouette`. malloc'd here, so the
+/// marshaller must not reclaim it.
+@_cdecl("CatVision_freeBuffer")
+public func CatVision_freeBuffer(_ pointer: UnsafeMutableRawPointer?) {
+    free(pointer)
+}

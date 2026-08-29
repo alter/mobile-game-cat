@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Scores Core/CoatReader against the labelled photographs, so that a
+       threshold can be moved and the cost of moving it seen in one command.
+
+         tools/coat-probe/README.md   makes tmp/coat-dumps/*.coat
+         dotnet run  (from tools/coat-score)
+
+       It compiles the SAME Core sources the game and core-tests compile —
+       there is no second copy of the reader to drift from the shipped one. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>9</LangVersion>
+    <RollForward>Major</RollForward>
+    <AssemblyName>coat-score</AssemblyName>
+    <RootNamespace>CatShelter.Tools</RootNamespace>
+    <NoWarn>CS8632</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../game/Assets/Core/CoatReader.cs" />
+    <Compile Include="../../game/Assets/Core/CoatReading.cs" />
+    <Compile Include="../../game/Assets/Core/CoatPalette.cs" />
+    <Compile Include="../../game/Assets/Core/CatTraits.cs" />
+    <Compile Include="../../game/Assets/Core/CatSpot.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>

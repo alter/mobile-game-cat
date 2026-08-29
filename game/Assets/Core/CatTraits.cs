@@ -171,14 +171,31 @@ namespace CatShelter.Core
             TraitsOrigin.Skipped);
 
         /// <summary>
-        /// A cat built when the Worker could not be reached (task 6.11).
-        /// Only the base colour is real — read from the photo on device — and
-        /// everything else takes the default, because no on-device API reads a
-        /// coat pattern (knowledge/ios/06-on-device-coat-traits.md).
+        /// A cat built without the Worker, from what the device could read off
+        /// the photograph itself.
+        ///
+        /// <para>It used to be the base colour and nothing else, on the
+        /// grounds that "no on-device API reads a coat pattern"
+        /// (knowledge/ios/06-on-device-coat-traits.md). That is still true of
+        /// Apple's classifier and still true of ML Kit's labeller, and it was
+        /// the wrong conclusion: no API NAMES a pattern, but both platforms
+        /// hand over a subject mask, and banding is a measurement over the
+        /// cat's own pixels rather than a classification.
+        /// <see cref="CoatReader"/> makes it.</para>
+        ///
+        /// <para><paramref name="pattern"/> and <paramref name="furLength"/>
+        /// are null when the measurement would not commit, and null keeps the
+        /// value the game has always used. That is deliberate and it is the
+        /// rule the marks system already follows: a wrong pattern is worse
+        /// than no pattern, because the plain cat is the one nobody has ever
+        /// been surprised by.</para>
         /// </summary>
-        public static CatTraits FromColourOnly(string baseColor) => new CatTraits(
-            baseColor, "solid", "short", "green", Array.Empty<string>(),
-            TraitsOrigin.OfflineColourOnly);
+        public static CatTraits FromColourOnly(string baseColor,
+                                               string pattern = null,
+                                               string furLength = null) =>
+            new CatTraits(baseColor, pattern ?? "solid", furLength ?? "short",
+                          "green", Array.Empty<string>(),
+                          TraitsOrigin.OfflineColourOnly);
 
         public override string ToString() =>
             $"{FurLength} {BaseColor} {Pattern}, {EyeColor} eyes" +

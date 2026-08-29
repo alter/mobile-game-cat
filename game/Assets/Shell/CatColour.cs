@@ -66,26 +66,6 @@ namespace CatShelter.Shell
         }
 
         /// <summary>
-        /// The six base colours the game can draw, as sRGB anchors. Copied
-        /// value for value from <c>Plugins/iOS/CatColour.swift</c>, whose
-        /// comment is the one that matters and is not repeated here: they are
-        /// measured rather than chosen, deliberately dull, and were arrived at
-        /// by scoring against a labelled set
-        /// (50-photo/11-offline-fallback/ground-truth.txt). Changing one of
-        /// these without changing the other side means two phones disagreeing
-        /// about the same cat.
-        /// </summary>
-        private static readonly (string Name, double R, double G, double B)[] Palette =
-        {
-            ("ginger", 0.75, 0.59, 0.42),
-            ("grey",   0.45, 0.43, 0.41),
-            ("black",  0.26, 0.21, 0.20),
-            ("white",  0.85, 0.84, 0.82),
-            ("cream",  0.78, 0.72, 0.60),
-            ("brown",  0.50, 0.43, 0.38),
-        };
-
-        /// <summary>
         /// Mean colour of the centre of the crop, matched to the palette.
         ///
         /// The centre, not the whole frame, because the crop already put the
@@ -165,37 +145,33 @@ namespace CatShelter.Shell
         }
 
         /// <summary>
-        /// Nearest palette entry by plain squared distance. Weighting
-        /// lightness was tried at 1x, 2x and 4x and made it worse every time
-        /// (52%, 44%, 44% against 56%), so it is not there.
+        /// Nearest palette entry, from <see cref="CoatPalette"/>.
         ///
-        /// Returns null rather than a name <see cref="CatTraits"/> does not
-        /// know. That is the check the Swift side cannot make and a test on a
-        /// third language could not make either: here the two lists sit in the
-        /// same assembly, so the comparison is real rather than textual.
+        /// The six anchors used to be a private array here, a second copy of
+        /// the one in <c>Plugins/iOS/CatColour.swift</c>. They moved to
+        /// <c>Core/CoatPalette.cs</c> unchanged, so that
+        /// <see cref="CoatReader"/> matches against the same numbers this does
+        /// — two estimates disagreeing about the same cat would be a defect
+        /// nothing could see — and so that a test compiled by
+        /// <c>core-tests</c> can compare the VALUES against Swift's, which
+        /// nothing did before.
+        ///
+        /// Null rather than a name <see cref="CatTraits"/> does not know is
+        /// still the rule, and it still lives one call away from
+        /// <c>FromColourOnly</c>; it is now <c>CoatPalette.Nearest</c> that
+        /// applies it.
         /// </summary>
         private static string Nearest(double r, double g, double b)
         {
-            string best = null;
-            var bestScore = double.MaxValue;
-            foreach (var entry in Palette)
-            {
-                var score = (r - entry.R) * (r - entry.R)
-                          + (g - entry.G) * (g - entry.G)
-                          + (b - entry.B) * (b - entry.B);
-                if (score >= bestScore) continue;
-                bestScore = score;
-                best = entry.Name;
-            }
-            if (best != null && !CatTraits.Allowed["base_color"].Contains(best))
+            var best = CoatPalette.Nearest(r, g, b);
+            if (best == null)
             {
                 // Never seen, and it must stay that way: this is the drift
                 // CatColourPaletteParityTests guards for on the Swift side,
                 // caught here before it can reach CatTraits.FromColourOnly.
-                Debug.LogError($"[CatColour] '{best}' is not one of " +
+                Debug.LogError("[CatColour] the nearest palette entry is not one of " +
                                "CatTraits.Allowed[\"base_color\"] — the palette " +
                                "and the trait table have drifted apart.");
-                return null;
             }
             return best;
         }

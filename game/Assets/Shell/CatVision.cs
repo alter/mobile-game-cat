@@ -52,6 +52,13 @@ namespace CatShelter.Shell
 
         [DllImport("__Internal")]
         private static extern void CatVision_free(IntPtr text);
+
+        [DllImport("__Internal")]
+        private static extern IntPtr CatVision_silhouette(byte[] bytes, int length,
+            int orientation, int maskSide, out int outLength);
+
+        [DllImport("__Internal")]
+        private static extern void CatVision_freeBuffer(IntPtr buffer);
 #endif
 
         /// <summary>
@@ -125,10 +132,37 @@ namespace CatShelter.Shell
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             return AndroidCall(imageBytes, orientation, Mathf.Max(1, maskSide));
+#elif UNITY_IOS && !UNITY_EDITOR
+            // Until 60-coat/01 this returned the species and no mask, on the
+            // grounds that iOS's mask "arrives already measured rather than as
+            // pixels" through CatMarks. That was true of the MARKS, which are
+            // eleven lightness deltas, and it left the coat with nothing: the
+            // colour, the banding and the edge are three statistics over the
+            // cat's own pixels, and measuring them natively would have meant a
+            // Swift copy and a Java copy that nothing could compare. So iOS
+            // now hands over the same bytes Android does, in the same packet,
+            // and Core/CoatReader is the only implementation of the arithmetic.
+            var buffer = CatVision_silhouette(imageBytes, imageBytes.Length,
+                orientation, Mathf.Max(1, maskSide), out var packedLength);
+            if (buffer == IntPtr.Zero || packedLength <= 0)
+            {
+                return new CatSilhouette
+                {
+                    answer = new VisionAnswer { ok = false, error = "plugin returned nothing" }
+                };
+            }
+            try
+            {
+                var packed = new byte[packedLength];
+                Marshal.Copy(buffer, packed, 0, packedLength);
+                return Unpack(packed);
+            }
+            finally
+            {
+                // Swift allocated this with malloc; the marshaller will not.
+                CatVision_freeBuffer(buffer);
+            }
 #else
-            // iOS has its own mask, from VNGenerateForegroundInstanceMaskRequest
-            // through Plugins/iOS/CatMarks.swift, and it arrives already
-            // measured rather than as pixels. Nothing here duplicates it.
             return new CatSilhouette { answer = Recognise(imageBytes, orientation) };
 #endif
         }

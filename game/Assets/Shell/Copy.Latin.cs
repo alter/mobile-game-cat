@@ -1,0 +1,1175 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CatShelter.Shell
+{
+    /// <summary>
+    /// The eight Latin-script languages, 2026-08-29: Spanish, Portuguese,
+    /// French, German, Italian, Turkish, Indonesian, Vietnamese.
+    ///
+    /// Written against `Copy.cs`, not against a glossary. Every value here was
+    /// read on the card, button or label it lands on, and the narrow ones are
+    /// called out at the key where a longer word would wrap or clip. The
+    /// English table's own comments record why each string says what it says;
+    /// none of those decisions is reversed here.
+    ///
+    /// **Variants.** Unity has one <c>SystemLanguage.Spanish</c> and one
+    /// <c>SystemLanguage.Portuguese</c> — no Iberia/LatAm and no Portugal/Brazil
+    /// split — so each table has to serve both halves from one text. Both are
+    /// written for the larger mobile audience: **Latin American Spanish**
+    /// (es-419) and **Brazilian Portuguese** (pt-BR). Where the two halves of a
+    /// language disagree, the wording chosen is the one that is at worst
+    /// slightly foreign in the smaller market rather than wrong in the larger
+    /// one; the individual cases are commented at their keys.
+    ///
+    /// **Three decisions that hold across all eight tables**, so they are not
+    /// argued again at each key — the full reasoning is in
+    /// `tasks/60-shell-build/16-localisation-ready/NOTES-latin.md`:
+    ///
+    ///  - **Form of address is chosen per language and stated in that table's
+    ///    comment.** English hides the choice; seven of these eight force it.
+    ///    The rule behind every one of them is the same — the audience is women
+    ///    30-55 (`cat-shelter-mvp.md` section 2) and the game does not shout,
+    ///    congratulate or rush — but the register that *sounds* like that is a
+    ///    different one in each language, and copying Russian's "вы" into all
+    ///    eight would be wrong in at least five.
+    ///  - **The kitten stays "she" wherever the language can carry it.** This
+    ///    is `12-copy-english` change 7, which Russian had to give up because
+    ///    "котёнок" is masculine. Six of these eight can keep it — Spanish,
+    ///    Portuguese, French, German and Italian all have a feminine word for a
+    ///    young cat that is ordinary and not baby-talk, so they use it. Turkish,
+    ///    Indonesian and Vietnamese have no grammatical gender at all and simply
+    ///    say "the kitten", which reads as neither.
+    ///  - **`card.game_name` is "Sootpaw" in every table**, exactly as in
+    ///    Russian: it is the name the game is listed under, an app name is not
+    ///    copy, and a caption naming something no store search finds sends
+    ///    nobody anywhere. It is the one key
+    ///    `test_no_value_was_left_untranslated` allows to be identical.
+    ///
+    /// The other proper nouns follow the Russian table's lead too. There are
+    /// none: the game names no character (the kitten is named by the player)
+    /// and no place, so "Sootpaw" is the whole list.
+    /// </summary>
+    public static partial class Copy
+    {
+        static partial void AddLatinScript(
+            Dictionary<SystemLanguage, IReadOnlyDictionary<string, string>> tables)
+        {
+            tables[SystemLanguage.Spanish] = Spanish;
+            tables[SystemLanguage.Portuguese] = Portuguese;
+            tables[SystemLanguage.French] = French;
+            tables[SystemLanguage.German] = German;
+            tables[SystemLanguage.Italian] = Italian;
+            tables[SystemLanguage.Turkish] = Turkish;
+            tables[SystemLanguage.Indonesian] = Indonesian;
+            tables[SystemLanguage.Vietnamese] = Vietnamese;
+        }
+
+        /// <summary>
+        /// Spanish, written as **Latin American Spanish**: Mexico, Colombia and
+        /// Argentina are together several times the mobile audience of Spain,
+        /// and Unity gives us one table for both.
+        ///
+        /// **Address: "tú".** Not the Russian table's formality, and the
+        /// difference is in the languages, not in the decision. Russian "ты"
+        /// from an app to a woman of 45 claims a familiarity she did not grant;
+        /// Spanish "tú" does not — it is what Apple's and Google's own Spanish
+        /// interfaces use, and "usted" in a game about a kitten reads like a
+        /// bank. Two further reasons it is not close: "Su casa" for `map.title`
+        /// is ambiguous with *his/her* house, and "Tu casa" is not; and most of
+        /// this table addresses nobody at all, which is the quieter option and
+        /// is taken wherever it reads naturally, so the choice actually shows
+        /// in seven strings.
+        ///
+        /// **Not "vos".** Argentina says "mirá" and "tenés", and a table written
+        /// in vos is wrong everywhere else; tú forms are read without friction
+        /// in Buenos Aires, so tú is the form that is at worst slightly foreign
+        /// in one market rather than wrong in the rest.
+        ///
+        /// **"la gatita".** The diminutive of "gata" is the ordinary Spanish
+        /// word for a kitten and carries the feminine the English spent a
+        /// change getting right — no baby-talk problem, so the pronoun Russian
+        /// had to drop is kept here.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Spanish =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                // Names what the two photographs above it show, quietly, like
+                // the English and the Russian. 25 characters at `.game__card-title`'s
+                // 22px bold, which does not wrap (DebugGame.uss:412-417) — the
+                // card grows to fit and the overlay is 390 units wide less the
+                // card's 48 of padding, so this is inside 342 with room.
+                ["win.room_clean.title"] = "La habitación está limpia",
+                ["win.room_clean.body"] = "A la gatita ya le gusta más.",
+                // "Montón", one noun for the object every time — the board no
+                // longer names it anywhere (DebugGameView.RenderHeader), so
+                // this card is the only place the player learns the word.
+                ["win.corner.title"] = "Montón despejado",
+                ["win.corner.body"] = "La gatita se acercó a mirar.",
+                // "Seguir", not "Siguiente": one syllable shorter and it is
+                // what a person says, where "Siguiente" is what a form says.
+                ["win.next"] = "Seguir",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Volver",
+                ["card.share_short"] = "Compartir",
+                // {0} is the game's name. Addressed in the plural ("miren"),
+                // which is a feed and not a person — and which sidesteps the
+                // tú/vos split entirely, since Latin America has no "vosotros"
+                // and "ustedes" is the one plural everybody uses.
+                ["card.caption"] = "Miren la gatita que tengo en {0}",
+                ["map.opening"] = "Abriendo la habitación…",
+                // Under a 116px pane at 12px bold (`.game__ba-label`).
+                ["win.before"] = "Antes",
+                ["win.after"] = "Después",
+
+                // --- losing a pile -------------------------------------------
+                // The shelves, plural — there are three, and the body says so.
+                ["lose.title"] = "Estantes llenos",
+                // The rule, then that nothing is lost, in that order — the job
+                // the English does (12-copy-english change 3). 84 characters
+                // against the English 76, inside `.game__card-body`'s 240px at
+                // 15px, so it wraps to one line more than the English on the
+                // narrowest phone. Accepted rather than cut further: the rule
+                // is the only place the game ever states how matching works.
+                ["lose.body"] =
+                    "Todas las casillas están ocupadas y no hay tres iguales. " +
+                    "El montón queda como estaba.",
+                ["lose.replay"] = "Otra vez",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "Toda la casa está limpia",
+                ["house.complete.body"] =
+                    "Las doce, y una gatita que ya no tiene dónde esconder " +
+                    "lo que encuentra." +
+                    "\n\nHasta aquí llega la casa, por ahora.",
+                // A different verb from card.share_short, as in English and
+                // Russian. "Mostrar a alguien" is 17 characters at
+                // Buttons.LabelSize 17, beside the 44px heart inside 342
+                // available (DebugGameView.BuildEndingExtras) — shorter than
+                // the Russian that fitted on the same arithmetic. The literal
+                // "Mostrárselo a alguien" is 21 and buys nothing.
+                ["house.complete.share"] = "Mostrar a alguien",
+                // {0} is the game's name, same as card.caption.
+                ["house.complete.caption"] = "En {0} ya está todo limpio.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Tu casa",
+                ["map.legend"] =
+                    "toca el número claro para jugar   ·   " +
+                    "las habitaciones marcadas están listas   ·   " +
+                    "las oscuras siguen cerradas",
+                ["map.no_levels"] = "no se cargaron las habitaciones — no hay nada que mostrar",
+                // {0} is the system's own reason and arrives in the system
+                // language, not this table's. Kept for the same reason English
+                // keeps it: a reported sentence beats a reported blank screen.
+                ["map.room_failed"] = "no se pudo abrir la habitación: {0}",
+                ["map.map_failed"] = "no se pudo abrir el mapa: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Falta algo",
+                // One instruction, and it is the one that can work — no "try
+                // again later", for the reason the English gives.
+                ["levels.unavailable.body"] =
+                    "No se pudieron cargar las habitaciones. " +
+                    "Vuelve a instalar el juego.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP. CaptureScreen.cs:86-89 builds it at fontSize 26
+                // and never sets whiteSpace = Normal; the panel is 390 units
+                // (PanelSettings.asset, m_Match 1, so 390 is the narrow end)
+                // less 48 of padding. 18 characters, inside the ~24 the Russian
+                // pass measured as the ceiling.
+                ["capture.title"] = "Muéstranos tu gata",
+                // The reason first, the framing advice second — the order the
+                // English pass settled on, and the advice is what keeps
+                // Vision's rejection rate down. "Pelaje" is the word a Spanish-
+                // speaking cat owner uses for a cat's coat.
+                ["capture.hint"] =
+                    "La gatita del juego tendrá su mismo pelaje. " +
+                    "Que ocupe todo el cuadro, si se puede.",
+                ["capture.camera"] = "Tomar una foto",
+                ["capture.gallery"] = "Elegir una que tengo",
+                // In the player's voice, like the English and the Russian: a
+                // person saying what she wants, not asking a favour.
+                ["capture.skip"] = "Ahora no — quiero una gatita",
+                ["capture.skipped"] = "Una gatita te espera igual.",
+                ["capture.opening"] = "Abriendo…",
+                ["capture.looking"] = "Mirando…",
+                ["capture.colours"] = "Copiando su pelaje…",
+                ["capture.cancelled"] = "No hay prisa. Elige una cuando quieras.",
+
+                // --- meeting the cat ------------------------------------------
+                // Also fontSize 26 and also unwrapped (MeetYourCatScreen.cs:78),
+                // and this one has room to spare.
+                ["meet.title"] = "Aquí está",
+                ["meet.name_placeholder"] = "¿Cómo se llama?",
+                ["meet.confirm"] = "Es ella",
+
+                // --- the four outcomes ---------------------------------------
+                // Each says what happened and then offers a way forward, in
+                // that order, and none of them blames the player.
+                ["photo.no_animal"] = "Aquí no hay ninguna gata. Prueba con una foto donde salga más grande.",
+                // "Precioso" agrees with "perro" — a compliment to the dog, so
+                // that a refusal is not a rebuke.
+                ["photo.dog"] = "Parece un perro. Precioso, pero este refugio es para gatas.",
+                ["photo.unclear"] = "Hay una gata, pero está muy borrosa para copiar su pelaje. ¿Otra, con ella quieta?",
+                // "Got her." — she is with us now, not "Listo", which is the
+                // register of a progress bar finishing.
+                ["photo.accepted"] = "Ya está con nosotros.",
+                ["photo.our_fault"] = "Algo falló de nuestro lado. ¿Lo intentas otra vez?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
+                // reads this through `Copy.Of(key)` with no arguments, so a
+                // "{0}" here reaches a lock screen as four literal characters.
+                ["notification.title"] = "Tu gatita encontró algo detrás del sofá",
+                ["notification.body"] = "Te espera para mostrártelo, cuando tengas un minuto.",
+
+                // Android only, and shown in system Settings rather than in
+                // the game.
+                ["notification.channel"] = "Recordatorio de la tarde",
+                ["notification.channel_description"] =
+                    "Un mensaje tranquilo por la tarde, los días que no jugaste.",
+            };
+
+        /// <summary>
+        /// Portuguese, written as **Brazilian Portuguese**: Brazil is by a wide
+        /// margin the larger mobile audience, and Unity gives us one table for
+        /// Brazil and Portugal both.
+        ///
+        /// **Address: "você".** In Brazil this is not the informal half of a
+        /// pair — it is the neutral register, the one a stranger uses to a
+        /// stranger, and it carries none of the familiarity Russian "ты" would.
+        /// The genuinely formal Brazilian forms ("a senhora") would read as
+        /// addressing an elderly customer, which is the opposite of the tone.
+        /// European "tu" is regional in Brazil and is not used here.
+        ///
+        /// **"cômodo", not "quarto" or "sala".** The house has twelve rooms of
+        /// different kinds; "quarto" is a bedroom and "sala" a living room, and
+        /// either would be wrong eleven times out of twelve. "Cômodo" is the
+        /// generic, and it is the word that makes `map.legend` and
+        /// `house.complete.title` agree with the card.
+        ///
+        /// **"a gatinha"** — feminine and ordinary, so the English "she" is
+        /// kept rather than dropped.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Portuguese =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                ["win.room_clean.title"] = "O cômodo está limpo",
+                ["win.room_clean.body"] = "A gatinha já gostou mais daqui.",
+                ["win.corner.title"] = "Pilha arrumada",
+                ["win.corner.body"] = "A gatinha veio ver.",
+                ["win.next"] = "Seguir",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Voltar",
+                ["card.share_short"] = "Compartilhar",
+                // {0} is the game's name. "em {0}" and not "no {0}": the name
+                // is invented and takes no article, and a contraction would
+                // assign it a gender Portuguese has no way to know.
+                ["card.caption"] = "Olhem a gatinha que eu tenho em {0}",
+                ["map.opening"] = "Abrindo o cômodo…",
+                ["win.before"] = "Antes",
+                ["win.after"] = "Depois",
+
+                // --- losing a pile -------------------------------------------
+                ["lose.title"] = "Prateleiras cheias",
+                // 79 characters against the English 76 — the same three lines
+                // in `.game__card-body`'s 240px. "Espaços" rather than
+                // "compartimentos", which is correct and four characters
+                // longer for nothing.
+                ["lose.body"] =
+                    "Todos os espaços estão ocupados e não há três iguais. " +
+                    "A pilha volta como estava.",
+                ["lose.replay"] = "De novo",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "A casa toda está limpa",
+                // Two sentences where the English has one clause and a comma,
+                // as in Russian and for the same reason: the relative clause
+                // costs a line this card cannot spare under two photographs.
+                ["house.complete.body"] =
+                    "Todos os doze. E a gatinha não tem mais onde esconder " +
+                    "o que acha." +
+                    "\n\nA casa vai até aqui, por enquanto.",
+                // 19 characters at Buttons.LabelSize 17, beside the 44px heart
+                // inside 342 available — one shorter than the Russian that fits
+                // on the same arithmetic.
+                ["house.complete.share"] = "Mostrar para alguém",
+                ["house.complete.caption"] = "Em {0} está tudo limpo.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Sua casa",
+                ["map.legend"] =
+                    "toque no número claro para jogar   ·   " +
+                    "os cômodos marcados estão prontos   ·   " +
+                    "os escuros ainda estão fechados",
+                ["map.no_levels"] = "os cômodos não carregaram — não há o que mostrar",
+                ["map.room_failed"] = "não foi possível abrir o cômodo: {0}",
+                ["map.map_failed"] = "não foi possível abrir o mapa: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Falta alguma coisa",
+                ["levels.unavailable.body"] =
+                    "Os cômodos não carregaram. Por favor, instale o jogo de novo.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP — see the Spanish note. 15 characters.
+                // "Mostre para nós a sua gata" is 26 and would run off the
+                // screen; "para nós" adds nothing the sentence needs, the same
+                // cut the Russian pass made with "нам".
+                ["capture.title"] = "Mostre sua gata",
+                ["capture.hint"] =
+                    "A gatinha do jogo vai ficar com a cor dela. " +
+                    "Deixe ela ocupar o quadro todo, se der.",
+                ["capture.camera"] = "Tirar uma foto",
+                ["capture.gallery"] = "Escolher uma que eu tenho",
+                ["capture.skip"] = "Agora não — quero uma gatinha",
+                ["capture.skipped"] = "Uma gatinha espera por você de todo jeito.",
+                ["capture.opening"] = "Abrindo…",
+                ["capture.looking"] = "Olhando…",
+                ["capture.colours"] = "Copiando a cor dela…",
+                ["capture.cancelled"] = "Sem pressa. Escolha quando quiser.",
+
+                // --- meeting the cat ------------------------------------------
+                ["meet.title"] = "Aqui está ela",
+                ["meet.name_placeholder"] = "Qual é o nome dela?",
+                ["meet.confirm"] = "É ela",
+
+                // --- the four outcomes ---------------------------------------
+                ["photo.no_animal"] = "Não tem gata nesta. Tente uma foto em que ela apareça maior.",
+                // "Lindo" agrees with "cachorro": the compliment is to the dog.
+                ["photo.dog"] = "Parece um cachorro. Lindo, mas este abrigo é para gatas.",
+                ["photo.unclear"] = "Tem uma gata, mas está borrada demais para copiar a cor. Mais uma, com ela parada?",
+                ["photo.accepted"] = "Ela está com a gente.",
+                ["photo.our_fault"] = "Algo deu errado do nosso lado. Tenta de novo?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER — see the Spanish note.
+                ["notification.title"] = "Sua gatinha achou algo atrás do sofá",
+                ["notification.body"] = "Ela espera para mostrar, quando você tiver um minuto.",
+
+                ["notification.channel"] = "Lembrete da noite",
+                ["notification.channel_description"] =
+                    "Uma mensagem tranquila à noite, nos dias em que você não jogou.",
+            };
+
+        /// <summary>
+        /// French.
+        ///
+        /// **Address: "vous".** This is the one of the eight where the Russian
+        /// table's reasoning transfers unchanged. French "tu" from an app to an
+        /// adult stranger is a familiarity she did not grant, and French keeps
+        /// that distinction alive in a way Spanish and Portuguese no longer do;
+        /// "vous" is both the correct register and the quieter one. As in
+        /// Russian, most strings address nobody at all — French lets a button
+        /// be an infinitive ("Prendre une photo") and a status a present
+        /// participle ("Ouverture…") — so the choice shows in six strings.
+        ///
+        /// **"la chatonne" is not used.** "Chaton" is the ordinary word and is
+        /// masculine; the feminine "chatonne" exists but is rare enough to read
+        /// as a curiosity. French solves the "she" problem differently from
+        /// Russian: the kitten is "la petite chatte" where she is the subject
+        /// of a sentence — an ordinary phrase, not baby-talk — and plain
+        /// "chaton" where the sentence does not need her sex. The player's own
+        /// cat is "votre chatte", the word a French cat owner uses.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> French =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                ["win.room_clean.title"] = "La pièce est propre",
+                ["win.room_clean.body"] = "La petite chatte s'y sent déjà mieux.",
+                // "Tas", one noun for the object every time — the board names
+                // it nowhere else (DebugGameView.RenderHeader).
+                ["win.corner.title"] = "Tas rangé",
+                ["win.corner.body"] = "La petite chatte est venue voir.",
+                ["win.next"] = "Suivant",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Retour",
+                ["card.share_short"] = "Partager",
+                // {0} is the game's name.
+                ["card.caption"] = "Regardez la petite chatte que j'ai dans {0}",
+                ["map.opening"] = "Ouverture de la pièce…",
+                ["win.before"] = "Avant",
+                ["win.after"] = "Après",
+
+                // --- losing a pile -------------------------------------------
+                ["lose.title"] = "Étagères pleines",
+                // 82 characters against the English 76 — one line more than
+                // the English at worst in `.game__card-body`'s 240px at 15px.
+                // "Emplacements" was the first word tried for a slot and is
+                // twelve characters; "places" is what the shelf actually has.
+                ["lose.body"] =
+                    "Toutes les places sont prises et pas trois pareils. " +
+                    "Le tas revient comme il était.",
+                ["lose.replay"] = "Rejouer",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "Toute la maison est propre",
+                ["house.complete.body"] =
+                    "Les douze, et une petite chatte qui n'a plus où cacher " +
+                    "ses trouvailles." +
+                    "\n\nLa maison s'arrête là, pour l'instant.",
+                // A different verb from card.share_short, as everywhere else.
+                // 19 characters at Buttons.LabelSize 17, beside the 44px heart
+                // inside 342 available.
+                ["house.complete.share"] = "Montrer à quelqu'un",
+                ["house.complete.caption"] = "Dans {0}, tout est propre.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Votre maison",
+                ["map.legend"] =
+                    "touchez le numéro clair pour jouer   ·   " +
+                    "les pièces cochées sont faites   ·   " +
+                    "les pièces sombres sont encore fermées",
+                ["map.no_levels"] = "les pièces n'ont pas chargé — rien à afficher",
+                ["map.room_failed"] = "impossible d'ouvrir la pièce : {0}",
+                ["map.map_failed"] = "impossible d'ouvrir la carte : {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Il manque quelque chose",
+                ["levels.unavailable.body"] =
+                    "Les pièces n'ont pas pu être chargées. " +
+                    "Réinstallez le jeu, s'il vous plaît.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP — CaptureScreen.cs:86-89, fontSize 26, 390 units
+                // less 48 of padding. 21 characters. "Montrez-nous votre
+                // chatte" is 26 and was dropped for that alone: "-nous" adds
+                // nothing the French sentence needs, the same cut Russian made
+                // with "нам" and Portuguese with "para nós".
+                ["capture.title"] = "Montrez votre chatte",
+                // The reason first, the framing advice second. "Robe" is the
+                // word a French cat owner uses for a cat's coat and colouring;
+                // "pelage" is the fur itself and says less here.
+                ["capture.hint"] =
+                    "La petite chatte du jeu prendra sa robe. " +
+                    "Qu'elle remplisse le cadre, si possible.",
+                ["capture.camera"] = "Prendre une photo",
+                ["capture.gallery"] = "En choisir une à moi",
+                // In the player's voice, like the English.
+                ["capture.skip"] = "Pas maintenant — je veux un chaton",
+                ["capture.skipped"] = "Un chaton vous attend de toute façon.",
+                ["capture.opening"] = "Ouverture…",
+                ["capture.looking"] = "On regarde…",
+                ["capture.colours"] = "On copie sa robe…",
+                ["capture.cancelled"] = "Rien ne presse. Choisissez quand vous voulez.",
+
+                // --- meeting the cat ------------------------------------------
+                ["meet.title"] = "La voici",
+                ["meet.name_placeholder"] = "Comment s'appelle-t-elle ?",
+                ["meet.confirm"] = "C'est elle",
+
+                // --- the four outcomes ---------------------------------------
+                ["photo.no_animal"] = "Pas de chatte ici. Essayez une photo où elle tient plus de place.",
+                // "Beau" agrees with "chien": the compliment is to the dog, so
+                // that a refusal is not a rebuke.
+                ["photo.dog"] = "On dirait un chien. Beau, mais ce refuge est pour les chats.",
+                ["photo.unclear"] = "Une chatte, mais trop floue pour copier sa robe. Une autre, pendant qu'elle ne bouge pas ?",
+                ["photo.accepted"] = "Elle est chez nous.",
+                ["photo.our_fault"] = "Quelque chose a échoué de notre côté. On réessaie ?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER — see the Spanish note.
+                // "Votre" dropped, as in Russian and for the same reason: the
+                // possessive costs six characters on a lock screen and French
+                // does not need it. "La petite chatte" and not "Le chaton",
+                // because the body below has her as its subject and French
+                // cannot drop a subject pronoun the way Russian can — "il
+                // attend" would say *he*, which is the sex 12-copy-english
+                // change 7 spent a pass getting right.
+                ["notification.title"] = "La petite chatte a trouvé quelque chose derrière le canapé",
+                ["notification.body"] = "Elle attend de vous le montrer, quand vous aurez une minute.",
+
+                ["notification.channel"] = "Rappel du soir",
+                ["notification.channel_description"] =
+                    "Un message discret le soir, les jours où vous n'avez pas joué.",
+            };
+
+        /// <summary>
+        /// German. **The longest table here, and the one width decided most
+        /// often** — German runs roughly a third longer than English for the
+        /// same sentence, and three call sites have no room for that.
+        ///
+        /// **Address: "du".** The opposite of the Russian decision, on purpose.
+        /// German "Sie" is not the polite default a Russian "вы" is; it is the
+        /// register of a bank, an insurer and a government form, and every
+        /// consumer app this audience already has on her phone — Apple's own
+        /// German, Spotify, Netflix, IKEA — says "du". "Sie" in a quiet game
+        /// about a kitten would not read as respect, it would read as an
+        /// institution. It is also the shorter form nearly every time, which on
+        /// this table is not a small thing. **This is the decision in the pass
+        /// most open to being overruled on taste**; it shows in nine strings
+        /// and is a find-replace.
+        ///
+        /// **"die kleine Katze", not "das Kätzchen"**, wherever she is the
+        /// subject of a sentence. "Kätzchen" is the ordinary word and is
+        /// grammatically neuter, so "es wartet" says *it* — exactly the trap
+        /// Russian hit from the other side. "Die kleine Katze" is plain German,
+        /// keeps the feminine, and lets `notification.body` say "sie". Where
+        /// the sentence does not need her sex, "Kätzchen" stays.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> German =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                ["win.room_clean.title"] = "Das Zimmer ist sauber",
+                ["win.room_clean.body"] = "Der kleinen Katze gefällt es hier schon besser.",
+                // "Haufen", one noun for the object every time.
+                ["win.corner.title"] = "Haufen weggeräumt",
+                ["win.corner.body"] = "Die kleine Katze kam schauen.",
+                ["win.next"] = "Weiter",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Zurück",
+                ["card.share_short"] = "Teilen",
+                // {0} is the game's name. Plural imperative: a feed is people,
+                // not a person, and it keeps the caption clear of the du/Sie
+                // choice the rest of the table makes.
+                ["card.caption"] = "Schaut, welche kleine Katze ich in {0} habe",
+                ["map.opening"] = "Zimmer wird geöffnet…",
+                // Under a 116px pane at 12px bold. The idiomatic German pair,
+                // and both words are shorter than the English they replace.
+                ["win.before"] = "Vorher",
+                ["win.after"] = "Nachher",
+
+                // --- losing a pile -------------------------------------------
+                ["lose.title"] = "Regale voll",
+                // SHORTENED. The faithful sentence is "Alle Plätze sind belegt
+                // und es sind keine drei gleichen dabei. Der Haufen liegt
+                // wieder so, wie er vorher war." — 104 characters, which is
+                // five wrapped lines in `.game__card-body`'s 240px at 15px
+                // under two photographs. What is here is 82 against the
+                // English 76: "es sind … dabei" and the relative clause both
+                // go, and neither carried meaning. 22 characters cut.
+                ["lose.body"] =
+                    "Alle Plätze sind belegt und keine drei gleichen. " +
+                    "Der Haufen liegt wieder wie vorher.",
+                ["lose.replay"] = "Nochmal",
+
+                // --- the end of the house ------------------------------------
+                // 25 characters at `.game__card-title`'s 22px bold, which does
+                // not wrap; the card grows to fit inside the overlay's 390
+                // units less 48 of card padding, so this is the longest title
+                // in the eight tables and still inside 342.
+                ["house.complete.title"] = "Das ganze Haus ist sauber",
+                ["house.complete.body"] =
+                    "Alle zwölf. Und eine kleine Katze, die ihre Funde " +
+                    "nirgends mehr verstecken muss." +
+                    "\n\nWeiter geht das Haus vorerst nicht.",
+                // A different verb from card.share_short, as everywhere else.
+                // 15 characters at Buttons.LabelSize 17, beside the 44px heart
+                // inside 342 available — the shortest of the eight, which
+                // German needed: "Jemandem zeigen" drops the dative object the
+                // literal "Zeig es jemandem" would carry.
+                ["house.complete.share"] = "Jemandem zeigen",
+                ["house.complete.caption"] = "In {0} ist jetzt jedes Zimmer sauber.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Dein Haus",
+                // SHORTENED in the third clause. "dunkle Zimmer sind noch
+                // verschlossen" is the literal and repeats "Zimmer" a second
+                // time in one line; "dunkle sind noch zu" is what a person
+                // says and is 20 characters shorter.
+                ["map.legend"] =
+                    "tippe auf die helle Zahl zum Spielen   ·   " +
+                    "abgehakte Zimmer sind fertig   ·   " +
+                    "dunkle sind noch zu",
+                ["map.no_levels"] = "keine Zimmer geladen — nichts zu zeigen",
+                ["map.room_failed"] = "Zimmer ließ sich nicht öffnen: {0}",
+                ["map.map_failed"] = "Karte ließ sich nicht öffnen: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Da fehlt etwas",
+                ["levels.unavailable.body"] =
+                    "Die Zimmer konnten nicht geladen werden. " +
+                    "Bitte installiere das Spiel neu.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP. CaptureScreen.cs:86-89, fontSize 26, panel 390
+                // units less 48 of padding — about 24 characters. 20 here, and
+                // it is why the address is "du": "Zeigen Sie uns Ihre Katze" is
+                // 25 and clips on the narrowest phone. The width did not decide
+                // the register, but it agrees with it.
+                ["capture.title"] = "Zeig uns deine Katze",
+                // The reason first, the framing advice second. "Fell" is the
+                // word a German cat owner uses; "Fellzeichnung" is what a
+                // breed standard says.
+                ["capture.hint"] =
+                    "Die kleine Katze im Spiel bekommt ihr Fell. " +
+                    "Am besten füllt sie das ganze Bild.",
+                ["capture.camera"] = "Foto aufnehmen",
+                ["capture.gallery"] = "Eines von meinen wählen",
+                // In the player's voice, like the English.
+                ["capture.skip"] = "Jetzt nicht — ich will ein Kätzchen",
+                ["capture.skipped"] = "Ein Kätzchen wartet so oder so auf dich.",
+                ["capture.opening"] = "Wird geöffnet…",
+                ["capture.looking"] = "Wir schauen…",
+                ["capture.colours"] = "Wir übernehmen ihr Fell…",
+                ["capture.cancelled"] = "Keine Eile. Wähle eines, wann du magst.",
+
+                // --- meeting the cat ------------------------------------------
+                // Also fontSize 26 and also unwrapped (MeetYourCatScreen.cs:78).
+                ["meet.title"] = "Da ist sie",
+                ["meet.name_placeholder"] = "Wie heißt sie?",
+                ["meet.confirm"] = "Das ist sie",
+
+                // --- the four outcomes ---------------------------------------
+                ["photo.no_animal"] = "Hier ist keine Katze. Versuch ein Foto, auf dem sie größer ist.",
+                // "Schön" as a compliment to the dog, so that a refusal is not
+                // a rebuke.
+                ["photo.dog"] = "Das sieht nach einem Hund aus. Schön, aber dieses Heim ist für Katzen.",
+                ["photo.unclear"] = "Eine Katze, aber zu unscharf für ihr Fell. Noch eines, während sie still hält?",
+                ["photo.accepted"] = "Sie ist bei uns.",
+                ["photo.our_fault"] = "Bei uns ist etwas schiefgegangen. Versuchst du es noch einmal?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER — see the Spanish note. "Deine" dropped for
+                // length, as in Russian and French: 51 characters against the
+                // English 43, and it is the longest lock-screen title of the
+                // eight. "Kätzchen" would be six characters shorter and would
+                // force "es wartet" in the body below, which says *it*.
+                ["notification.title"] = "Die kleine Katze hat etwas hinter dem Sofa gefunden",
+                ["notification.body"] = "Sie wartet darauf, es dir zu zeigen, wenn du eine Minute hast.",
+
+                ["notification.channel"] = "Abenderinnerung",
+                ["notification.channel_description"] =
+                    "Eine ruhige Nachricht am Abend, an Tagen ohne Spiel.",
+            };
+
+        /// <summary>
+        /// Italian.
+        ///
+        /// **Address: "tu".** "Lei" is alive in Italian, but it belongs to a
+        /// counter, a doctor's office and a letter from the bank; every app on
+        /// this player's phone, Apple's Italian included, says "tu", and "Lei"
+        /// in a game about a kitten would read as a firm writing to a client.
+        /// The same reasoning as Spanish and German, and the same reason it is
+        /// not the Russian decision: Italian "tu" does not claim the
+        /// familiarity Russian "ты" does.
+        ///
+        /// **"la gattina"** — the ordinary Italian word for a young female cat,
+        /// so the English "she" is kept.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Italian =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                ["win.room_clean.title"] = "La stanza è pulita",
+                ["win.room_clean.body"] = "Alla gattina piace già di più.",
+                // "Mucchio", one noun for the object every time.
+                ["win.corner.title"] = "Mucchio sistemato",
+                ["win.corner.body"] = "La gattina è venuta a guardare.",
+                ["win.next"] = "Avanti",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Indietro",
+                ["card.share_short"] = "Condividi",
+                // {0} is the game's name. Plural: a feed is people.
+                ["card.caption"] = "Guardate che gattina ho in {0}",
+                ["map.opening"] = "Apriamo la stanza…",
+                ["win.before"] = "Prima",
+                ["win.after"] = "Dopo",
+
+                // --- losing a pile -------------------------------------------
+                ["lose.title"] = "Scaffali pieni",
+                // 78 characters against the English 76 — the same wrapping in
+                // `.game__card-body`'s 240px. "Com'era" rather than "come era
+                // prima", which is three words for the same thing.
+                ["lose.body"] =
+                    "Tutti i posti sono occupati e non ci sono tre uguali. " +
+                    "Il mucchio torna com'era.",
+                ["lose.replay"] = "Di nuovo",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "Tutta la casa è pulita",
+                ["house.complete.body"] =
+                    "Tutte e dodici. E una gattina che non ha più dove " +
+                    "nascondere quello che trova." +
+                    "\n\nLa casa per ora finisce qui.",
+                // A different verb from card.share_short. 19 characters at
+                // Buttons.LabelSize 17, beside the 44px heart inside 342
+                // available. "Farlo vedere a qualcuno" is 23 and is the more
+                // idiomatic phrase; it was dropped for the width, and
+                // "Mostrare" loses nothing but warmth.
+                ["house.complete.share"] = "Mostrare a qualcuno",
+                ["house.complete.caption"] = "In {0} è tutto pulito.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Casa tua",
+                ["map.legend"] =
+                    "tocca il numero chiaro per giocare   ·   " +
+                    "le stanze con la spunta sono fatte   ·   " +
+                    "quelle scure sono ancora chiuse",
+                ["map.no_levels"] = "stanze non caricate — non c'è nulla da mostrare",
+                ["map.room_failed"] = "non è stato possibile aprire la stanza: {0}",
+                ["map.map_failed"] = "non è stato possibile aprire la mappa: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Manca qualcosa",
+                ["levels.unavailable.body"] =
+                    "Non è stato possibile caricare le stanze. " +
+                    "Reinstalla il gioco, per favore.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP — see the Spanish note. 21 characters, inside the
+                // ~24 the Russian pass measured as the ceiling.
+                ["capture.title"] = "Mostraci la tua gatta",
+                // "Mantello" is the word an Italian cat owner uses for an
+                // animal's coat and its colouring; "pelo" is the fur itself
+                // and says less here.
+                ["capture.hint"] =
+                    "La gattina del gioco prenderà il suo mantello. " +
+                    "Meglio se riempie tutta l'inquadratura.",
+                ["capture.camera"] = "Scattare una foto",
+                ["capture.gallery"] = "Sceglierne una mia",
+                // In the player's voice, like the English.
+                ["capture.skip"] = "Non ora — voglio una gattina",
+                ["capture.skipped"] = "Una gattina ti aspetta comunque.",
+                ["capture.opening"] = "Apriamo…",
+                ["capture.looking"] = "Guardiamo…",
+                ["capture.colours"] = "Copiamo il suo mantello…",
+                ["capture.cancelled"] = "Nessuna fretta. Scegli quando vuoi.",
+
+                // --- meeting the cat ------------------------------------------
+                ["meet.title"] = "Eccola qui",
+                ["meet.name_placeholder"] = "Come si chiama?",
+                ["meet.confirm"] = "È lei",
+
+                // --- the four outcomes ---------------------------------------
+                ["photo.no_animal"] = "Qui non c'è nessuna gatta. Prova una foto in cui si vede più grande.",
+                // "Bello" agrees with "cane": the compliment is to the dog.
+                ["photo.dog"] = "Sembra un cane. Bello, ma questo rifugio è per gatte.",
+                ["photo.unclear"] = "C'è una gatta, ma è troppo sfocata per copiare il mantello. Un'altra, mentre sta ferma?",
+                ["photo.accepted"] = "Ora è con noi.",
+                ["photo.our_fault"] = "Qualcosa è andato storto da parte nostra. Vuoi riprovare?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER — see the Spanish note.
+                ["notification.title"] = "La gattina ha trovato qualcosa dietro il divano",
+                ["notification.body"] = "Aspetta di mostrartelo, quando hai un minuto.",
+
+                ["notification.channel"] = "Promemoria della sera",
+                ["notification.channel_description"] =
+                    "Un messaggio tranquillo la sera, nei giorni in cui non hai giocato.",
+            };
+
+        /// <summary>
+        /// Turkish.
+        ///
+        /// **Address: "siz", in sentences — and the bare imperative on
+        /// buttons.** This is the one language here where the two are not the
+        /// same decision. Turkish addresses a stranger with "siz", and this
+        /// audience is strangers; "sen" from an app to a woman of 45 is the
+        /// familiarity the Russian pass refused, and Turkish holds that line
+        /// more firmly than Spanish or Italian do. But Turkish interface
+        /// convention writes a *button* as a bare imperative stem — "Paylaş",
+        /// "Geri", "Devam" — and that form is read as a label rather than as
+        /// "sen"; writing "Paylaşın" on a 200px button would be both longer and
+        /// stranger. So: full sentences take siz endings ("gösterin",
+        /// "bekliyor… bir dakikanız"), labels take the bare stem.
+        ///
+        /// **No gender to keep.** Turkish has none — "yavru kedi" is a kitten
+        /// and "o" is he, she and it at once — so the English "she" survives
+        /// without a decision being made, and none is made. The same is true of
+        /// Indonesian and Vietnamese below.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Turkish =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                ["win.room_clean.title"] = "Oda artık temiz",
+                ["win.room_clean.body"] = "Yavru kedi burayı şimdiden daha çok sevdi.",
+                // "Yığın", one noun for the object every time.
+                ["win.corner.title"] = "Yığın toplandı",
+                ["win.corner.body"] = "Yavru kedi bakmaya geldi.",
+                ["win.next"] = "Devam",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Geri",
+                ["card.share_short"] = "Paylaş",
+                // {0} is the game's name, and it takes the Turkish suffix
+                // through the noun after it ("{0} oyunundaki") rather than
+                // directly: an invented Latin name cannot take a Turkish
+                // case ending without vowel harmony guessing at its last
+                // syllable, and "Sootpaw'daki" would be a guess on a name the
+                // store search depends on.
+                ["card.caption"] = "{0} oyunundaki yavru kedime bakın",
+                ["map.opening"] = "Oda açılıyor…",
+                ["win.before"] = "Önce",
+                ["win.after"] = "Sonra",
+
+                // --- losing a pile -------------------------------------------
+                ["lose.title"] = "Raflar doldu",
+                // 69 characters against the English 76 — Turkish says this in
+                // less, and it wraps to one line fewer in `.game__card-body`'s
+                // 240px. "Göz" is the word for a shelf's compartment.
+                ["lose.body"] =
+                    "Bütün gözler dolu ve aynı olan üç tane yok. " +
+                    "Yığın eskisi gibi kalıyor.",
+                ["lose.replay"] = "Yeniden",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "Evin her odası temiz",
+                ["house.complete.body"] =
+                    "On iki odanın hepsi. Ve bulduklarını artık saklayacak " +
+                    "yeri kalmayan bir yavru kedi." +
+                    "\n\nEv şimdilik burada bitiyor.",
+                // A button, so the bare imperative — 13 characters at
+                // Buttons.LabelSize 17, beside the 44px heart inside 342
+                // available. A different verb from card.share_short, as
+                // everywhere else.
+                ["house.complete.share"] = "Birine göster",
+                ["house.complete.caption"] = "{0} oyununda her oda temiz.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Eviniz",
+                // A sentence and not a label, so siz: "dokunun".
+                ["map.legend"] =
+                    "oynamak için aydınlık numaraya dokunun   ·   " +
+                    "işaretli odalar bitti   ·   " +
+                    "koyu odalar hâlâ kapalı",
+                ["map.no_levels"] = "odalar yüklenmedi — gösterilecek bir şey yok",
+                ["map.room_failed"] = "oda açılamadı: {0}",
+                ["map.map_failed"] = "harita açılamadı: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Bir şey eksik",
+                ["levels.unavailable.body"] =
+                    "Odalar yüklenemedi. Lütfen oyunu yeniden kurun.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP — see the Spanish note. 17 characters. A
+                // sentence, so siz: "gösterin". "Bize kedinizi gösterin" is 23
+                // and just fits, but "bize" adds nothing the Turkish needs —
+                // the same cut Russian made with "нам".
+                ["capture.title"] = "Kedinizi gösterin",
+                // "Renk" — colour — rather than a coat-pattern term: Turkish
+                // has "post" for a pelt, which is what a rug is made of.
+                ["capture.hint"] =
+                    "Oyundaki yavru kedi onun rengini alacak. " +
+                    "Mümkünse kareyi o doldursun.",
+                ["capture.camera"] = "Fotoğraf çek",
+                ["capture.gallery"] = "Kendi fotoğrafımı seç",
+                // In the player's voice, like the English — and the one place
+                // a first-person verb makes the register plain.
+                ["capture.skip"] = "Şimdi değil — bir yavru kedi istiyorum",
+                ["capture.skipped"] = "Bir yavru kedi yine de sizi bekliyor.",
+                ["capture.opening"] = "Açılıyor…",
+                ["capture.looking"] = "Bakıyoruz…",
+                ["capture.colours"] = "Rengini alıyoruz…",
+                ["capture.cancelled"] = "Acele yok. Ne zaman isterseniz seçin.",
+
+                // --- meeting the cat ------------------------------------------
+                ["meet.title"] = "İşte o",
+                ["meet.name_placeholder"] = "Adı ne?",
+                ["meet.confirm"] = "Evet, o",
+
+                // --- the four outcomes ---------------------------------------
+                ["photo.no_animal"] = "Burada kedi görünmüyor. Onun daha büyük göründüğü bir fotoğraf deneyin.",
+                // "Çok tatlı" as a compliment to the dog, so that a refusal is
+                // not a rebuke.
+                ["photo.dog"] = "Bu bir köpeğe benziyor. Çok tatlı, ama burası kediler için bir barınak.",
+                ["photo.unclear"] = "Kedi var ama rengini almak için fazla bulanık. O dururken bir tane daha?",
+                ["photo.accepted"] = "O artık bizde.",
+                ["photo.our_fault"] = "Bizim tarafımızda bir şey ters gitti. Bir daha denemek ister misiniz?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER — see the Spanish note.
+                ["notification.title"] = "Yavru kediniz kanepenin arkasında bir şey buldu",
+                ["notification.body"] = "Size göstermek için bekliyor, bir dakikanız olduğunda.",
+
+                ["notification.channel"] = "Akşam hatırlatması",
+                ["notification.channel_description"] =
+                    "Akşamları, oynamadığınız günlerde tek bir sakin mesaj.",
+            };
+
+        /// <summary>
+        /// Indonesian.
+        ///
+        /// **Address: "Anda".** Indonesian's other second person, "kamu", is
+        /// what a friend or a younger person is called; from an app to a woman
+        /// of 45 it is the same claim Russian "ты" makes. "Anda" is the
+        /// register every Indonesian interface she already uses is written in,
+        /// including Google's and Apple's own. It is not distant the way German
+        /// "Sie" is — Indonesian has no colder register above it that "Anda"
+        /// could be mistaken for.
+        ///
+        /// Indonesian also drops pronouns freely, and most of this table takes
+        /// that option: the choice actually shows in five strings.
+        ///
+        /// **No gender to keep** — "anak kucing" is a kitten and "dia" is he
+        /// and she at once, so the English's "she" survives without a decision.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Indonesian =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                ["win.room_clean.title"] = "Ruangan sudah bersih",
+                // "Betah" — settled, at home somewhere — is the word this
+                // sentence wants and English has to spend four on.
+                ["win.room_clean.body"] = "Anak kucing makin betah di sini.",
+                // "Tumpukan", one noun for the object every time.
+                ["win.corner.title"] = "Tumpukan beres",
+                ["win.corner.body"] = "Anak kucing datang melihat.",
+                ["win.next"] = "Lanjut",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Kembali",
+                ["card.share_short"] = "Bagikan",
+                // {0} is the game's name.
+                ["card.caption"] = "Lihat anak kucing saya di {0}",
+                ["map.opening"] = "Membuka ruangan…",
+                ["win.before"] = "Sebelum",
+                ["win.after"] = "Sesudah",
+
+                // --- losing a pile -------------------------------------------
+                ["lose.title"] = "Rak penuh",
+                // 81 characters against the English 76.
+                ["lose.body"] =
+                    "Semua tempat terisi dan tidak ada tiga yang sama. " +
+                    "Tumpukan kembali seperti semula.",
+                ["lose.replay"] = "Ulangi",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "Seluruh rumah bersih",
+                // SHORTENED. "Dan seekor anak kucing yang tidak lagi punya
+                // tempat untuk menyembunyikan barang-barang temuannya" is the
+                // faithful clause and is 103 characters on its own — two
+                // wrapped lines more than this card can spare under two
+                // photographs. "Temuannya" is one word for the four the
+                // literal needs, and 24 characters go with it.
+                ["house.complete.body"] =
+                    "Kedua belas ruangan. Dan seekor anak kucing yang tak " +
+                    "punya tempat lagi untuk menyembunyikan temuannya." +
+                    "\n\nSampai di sini dulu rumahnya.",
+                // A different verb from card.share_short, as everywhere else.
+                // 22 characters at Buttons.LabelSize 17 — about 303 units with
+                // the share glyph, the padding and the 44px heart, inside the
+                // 342 available (DebugGameView.BuildEndingExtras). The longest
+                // of the eight, and it fits on arithmetic only.
+                ["house.complete.share"] = "Tunjukkan ke seseorang",
+                ["house.complete.caption"] = "Semua ruangan di {0} sudah bersih.",
+
+                // --- the house map -------------------------------------------
+                ["map.title"] = "Rumah Anda",
+                ["map.legend"] =
+                    "ketuk nomor yang terang untuk bermain   ·   " +
+                    "ruangan bertanda sudah selesai   ·   " +
+                    "yang gelap masih terkunci",
+                ["map.no_levels"] = "ruangan tidak termuat — tidak ada yang bisa ditampilkan",
+                ["map.room_failed"] = "ruangan tidak bisa dibuka: {0}",
+                ["map.map_failed"] = "peta tidak bisa dibuka: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Ada yang hilang",
+                ["levels.unavailable.body"] =
+                    "Ruangan tidak bisa dimuat. Silakan pasang ulang permainan ini.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP — see the Spanish note. 21 characters.
+                ["capture.title"] = "Tunjukkan kucing Anda",
+                // SHORTENED. "Anak kucing di dalam permainan akan mengikuti
+                // warna bulunya" is the full phrase; "bulunya" (its fur) goes,
+                // because "warnanya" already says whose colour it is and the
+                // hint has to leave room for the framing advice that keeps
+                // Vision's rejection rate down. 8 characters.
+                ["capture.hint"] =
+                    "Anak kucing di permainan akan mengikuti warnanya. " +
+                    "Usahakan dia memenuhi bingkai.",
+                ["capture.camera"] = "Ambil foto",
+                ["capture.gallery"] = "Pilih dari foto saya",
+                // In the player's voice, like the English.
+                ["capture.skip"] = "Nanti saja — saya mau anak kucing",
+                ["capture.skipped"] = "Seekor anak kucing tetap menunggu Anda.",
+                ["capture.opening"] = "Membuka…",
+                ["capture.looking"] = "Melihat…",
+                ["capture.colours"] = "Menyalin warnanya…",
+                ["capture.cancelled"] = "Tidak buru-buru. Pilih kapan saja.",
+
+                // --- meeting the cat ------------------------------------------
+                ["meet.title"] = "Ini dia",
+                ["meet.name_placeholder"] = "Siapa namanya?",
+                ["meet.confirm"] = "Ya, dia",
+
+                // --- the four outcomes ---------------------------------------
+                ["photo.no_animal"] = "Tidak ada kucing di sini. Coba foto yang memperlihatkan dia lebih besar.",
+                // "Lucu" as a compliment to the dog, so that a refusal is not
+                // a rebuke.
+                ["photo.dog"] = "Ini sepertinya anjing. Lucu, tapi tempat ini untuk kucing.",
+                ["photo.unclear"] = "Ada kucing, tapi terlalu buram untuk menyalin warnanya. Sekali lagi, saat dia diam?",
+                ["photo.accepted"] = "Dia sudah bersama kami.",
+                ["photo.our_fault"] = "Ada yang salah di pihak kami. Coba sekali lagi?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER — see the Spanish note.
+                ["notification.title"] = "Anak kucing Anda menemukan sesuatu di balik sofa",
+                ["notification.body"] = "Dia menunggu untuk menunjukkannya, kapan pun Anda sempat.",
+
+                ["notification.channel"] = "Pengingat sore",
+                ["notification.channel_description"] =
+                    "Satu pesan tenang di sore hari, pada hari-hari Anda tidak bermain.",
+            };
+
+        /// <summary>
+        /// Vietnamese. **The hardest address decision of the eight, because
+        /// Vietnamese has no neutral "you" to fall back on.**
+        ///
+        /// Every Vietnamese second-person word encodes a relationship: "chị"
+        /// is an older sister, "cô" an aunt or a teacher, "em" a younger
+        /// person, "bà" an old woman, "quý khách" a valued customer. Choosing
+        /// one means the game asserts how old the player is, what sex she is,
+        /// and how she stands to whoever is speaking — from a screen that knows
+        /// none of the three.
+        ///
+        /// **Chosen: "bạn".** Literally "friend", and the one word Vietnamese
+        /// interfaces have settled on precisely because it is the least
+        /// committal: it carries no age, no sex and no hierarchy, and every
+        /// Vietnamese app this player already uses says it. It is not perfect —
+        /// a Vietnamese ear hears it as *slightly* neutral-to-flat, the way a
+        /// form does — and the warmer choice for this audience would be "chị",
+        /// which is what a shop assistant would say to a woman of 45 and would
+        /// suit the tone better. **"Chị" was rejected because it is wrong when
+        /// it is wrong**: it addresses a man as a woman, and a woman of 25 as
+        /// older than she is, and there is no way for the game to find out. A
+        /// flat-but-correct pronoun beats a warm-but-mistaken one on a screen
+        /// this quiet.
+        ///
+        /// Vietnamese drops pronouns even more freely than Russian, and this
+        /// table takes that option nearly everywhere: "bạn" appears in four
+        /// strings out of forty-eight. Where the game speaks of itself it says
+        /// "mình", the soft first person, rather than the plural "chúng tôi",
+        /// which is a company writing to a customer.
+        ///
+        /// **No gender to keep** — "mèo con" is a kitten and Vietnamese marks
+        /// no sex on it, so the English's "she" survives without a decision.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string> Vietnamese =
+            new Dictionary<string, string>
+            {
+                // --- finishing a pile ----------------------------------------
+                ["win.room_clean.title"] = "Căn phòng đã sạch",
+                ["win.room_clean.body"] = "Mèo con thấy thích hơn rồi.",
+                // "Đống", one noun for the object every time.
+                ["win.corner.title"] = "Dọn xong một đống",
+                ["win.corner.body"] = "Mèo con lại gần xem.",
+                ["win.next"] = "Tiếp",
+
+                // --- the kitten's card, and sharing her --------------------
+                ["card.game_name"] = "Sootpaw",
+                ["card.close"] = "Quay lại",
+                ["card.share_short"] = "Chia sẻ",
+                // {0} is the game's name. No second person at all: the caption
+                // is written to a feed, and "mình" keeps it in the player's own
+                // voice without addressing anybody.
+                ["card.caption"] = "Đây là mèo con của mình trong {0}",
+                ["map.opening"] = "Đang mở phòng…",
+                // Under a 116px pane at 12px bold — the shortest pair of the
+                // eight tables.
+                ["win.before"] = "Trước",
+                ["win.after"] = "Sau",
+
+                // --- losing a pile -------------------------------------------
+                ["lose.title"] = "Kệ đã đầy",
+                // 67 characters against the English 76. Vietnamese says this
+                // shorter, which was not expected — the diacritics make it look
+                // long and cost no width at all.
+                ["lose.body"] =
+                    "Mọi ô đều đầy và không có ba món giống nhau. " +
+                    "Đống đồ trở lại như cũ.",
+                ["lose.replay"] = "Chơi lại",
+
+                // --- the end of the house ------------------------------------
+                ["house.complete.title"] = "Cả nhà đã sạch",
+                ["house.complete.body"] =
+                    "Cả mười hai phòng. Và một chú mèo con không còn chỗ nào " +
+                    "để giấu những thứ nhặt được." +
+                    "\n\nNgôi nhà tạm dừng ở đây.",
+                // A different verb from card.share_short, as everywhere else.
+                // 13 characters at Buttons.LabelSize 17, beside the 44px heart
+                // inside 342 available — and "ai đó" (someone) needs no
+                // pronoun, so this button is one of the four that never had to
+                // choose a form of address at all.
+                ["house.complete.share"] = "Cho ai đó xem",
+                ["house.complete.caption"] = "Mọi căn phòng trong {0} đều đã sạch.",
+
+                // --- the house map -------------------------------------------
+                // One of the four strings that says "bạn": the house being the
+                // player's own is the whole point of the screen, and dropping
+                // the possessive would make it anybody's house.
+                ["map.title"] = "Nhà của bạn",
+                ["map.legend"] =
+                    "chạm vào số sáng để chơi   ·   " +
+                    "phòng có dấu là đã xong   ·   " +
+                    "phòng tối vẫn còn khoá",
+                ["map.no_levels"] = "không tải được phòng nào — không có gì để hiện",
+                ["map.room_failed"] = "không mở được phòng: {0}",
+                ["map.map_failed"] = "không mở được bản đồ: {0}",
+
+                // --- levels missing or broken ---------------------------------
+                ["levels.unavailable.title"] = "Thiếu mất gì đó",
+                ["levels.unavailable.body"] =
+                    "Không tải được các phòng. Vui lòng cài lại trò chơi.",
+
+                // --- the photo screen ----------------------------------------
+                // CANNOT WRAP — see the Spanish note. 19 characters. "Cho
+                // chúng mình xem mèo của bạn" is the literal "show US your
+                // cat" and is 30, which clips; "cho xem" carries the same
+                // request with nobody named, the same cut Russian made with
+                // "нам".
+                ["capture.title"] = "Cho xem mèo của bạn",
+                // "Màu lông" — the colour of the fur — is what a Vietnamese cat
+                // owner says. No pronoun for the player's cat: Vietnamese would
+                // need "con mèo ấy" and the sentence before it has just named
+                // her.
+                ["capture.hint"] =
+                    "Mèo con trong trò chơi sẽ mang màu lông ấy. " +
+                    "Nếu được, hãy để mèo chiếm trọn khung hình.",
+                ["capture.camera"] = "Chụp một tấm",
+                ["capture.gallery"] = "Chọn ảnh có sẵn",
+                // In the player's voice, like the English.
+                ["capture.skip"] = "Để sau — mình muốn một chú mèo con",
+                ["capture.skipped"] = "Vẫn có một chú mèo con đang đợi bạn.",
+                ["capture.opening"] = "Đang mở…",
+                ["capture.looking"] = "Đang xem…",
+                ["capture.colours"] = "Đang chép màu lông…",
+                ["capture.cancelled"] = "Không vội đâu. Khi nào muốn thì chọn.",
+
+                // --- meeting the cat ------------------------------------------
+                ["meet.title"] = "Đây rồi",
+                ["meet.name_placeholder"] = "Tên mèo là gì?",
+                ["meet.confirm"] = "Đúng là mèo ấy",
+
+                // --- the four outcomes ---------------------------------------
+                ["photo.no_animal"] = "Không thấy con mèo nào. Thử tấm ảnh có mèo lớn hơn nhé.",
+                // "Dễ thương lắm" as a compliment to the dog, so that a refusal
+                // is not a rebuke.
+                ["photo.dog"] = "Trông giống một chú chó. Dễ thương lắm, nhưng nhà này dành cho mèo.",
+                ["photo.unclear"] = "Có mèo, nhưng ảnh mờ quá nên không chép được màu lông. Thêm một tấm lúc mèo ngồi yên nhé?",
+                ["photo.accepted"] = "Mèo về với nhà rồi.",
+                ["photo.our_fault"] = "Có gì đó hỏng ở phía bên này. Thử lại tấm ấy nhé?",
+
+                // --- the evening reminder ------------------------------------
+                // NO PLACEHOLDER — see the Spanish note.
+                ["notification.title"] = "Mèo con vừa tìm thấy thứ gì đó sau ghế sofa",
+                ["notification.body"] = "Mèo đang đợi để khoe, khi nào bạn rảnh một phút.",
+
+                ["notification.channel"] = "Nhắc buổi tối",
+                ["notification.channel_description"] =
+                    "Một tin nhắn nhẹ nhàng buổi tối, vào những ngày bạn không chơi.",
+            };
+    }
+}

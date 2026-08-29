@@ -19,7 +19,25 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-COPY = ROOT / "game/Assets/Shell/Copy.cs"
+SHELL = ROOT / "game/Assets/Shell"
+COPY = SHELL / "Copy.cs"
+
+# 2026-08-29: the tables were split across files by script, because seventeen
+# languages of forty-eight strings in one file is four thousand lines nobody
+# can review and two translators cannot work in at once. `Copy.cs` keeps
+# English, Russian and the machinery; `Copy.Latin.cs` and `Copy.Scripts.cs`
+# are partial-class companions that fill in the rest through the
+# `AddLatinScript` / `AddOtherScripts` hooks.
+#
+# Globbed rather than listed, and deliberately so: a companion added and not
+# named here would be a whole script's worth of translation that no check in
+# this file ever looks at, which is the exact failure the glob makes
+# impossible. `Copy.cs` stays first — it holds the reference language, and
+# every parse below reads these in order.
+#
+# The glob cannot match `Copy.cs` itself (the pattern needs two dots) and
+# cannot match a `.meta` (it must end `.cs`), so neither is doubled up.
+COPY_SOURCES = [COPY] + sorted(SHELL.glob("Copy.*.cs"))
 UI_DIRS = [ROOT / "game/Assets/View", ROOT / "game/Assets/Shell"]
 SWIFT_DIR = ROOT / "game/Assets/Plugins"
 
@@ -42,10 +60,24 @@ EXTRA_KEY_FILES = [ROOT / "game/Assets/Core/PhotoMessages.cs"]
 # fixed lowercase reason codes and needs no exemption — its reason stopped
 # holding, so it was removed rather than reworded.
 EXEMPT = {
-    "Copy.cs",            # the table itself
     "VisionSelfTest.cs",  # debug harness, never shown to a player
     "SaveFile.cs",        # log lines only
+    # Reached only by dropping a `glyphs.txt` beside the save, like the coat
+    # harness — no player ever sees it. Its samples MUST be written into the
+    # file: the screen exists to answer "can this build draw Thai" before any
+    # Thai table exists, and to keep answering after one is deleted. Reading
+    # them from `Copy` would make it agree with itself and prove nothing. It
+    # is the one file where an untabled Russian sentence is the point rather
+    # than the leak.
+    "GlyphCheckView.cs",
 }
+# The tables themselves — `Copy.cs` and every by-script companion beside it.
+# Exempted by the same glob that parses them, not by a hand-kept list: a
+# companion left out of this set would have all of its translated sentences
+# read as loose English literals by
+# `test_no_player_visible_english_outside_the_table`, and the file would have
+# to be added in two places to be added at all.
+EXEMPT |= {path.name for path in COPY_SOURCES}
 
 # Same idea, for game/Assets/Plugins/**/*.swift. Empty today: no native file
 # needs to hand the player a sentence, and none should — a reason a native
@@ -75,22 +107,46 @@ LITERAL_PIECE = re.compile(r'"((?:[^"\\]|\\.)*)"')
 REFERENCE = "English"
 
 
+def parsed_tables() -> list[tuple[Path, str, str]]:
+    """(file, language, body) for every table in every copy source.
+
+    A table runs from its own declaration line to the next one **in the same
+    file**, or to that file's end — the slicing that already worked inside
+    `Copy.cs`, applied per file rather than to one blob, so a companion's last
+    table stops at its own closing brace instead of swallowing the next file.
+    """
+    found = []
+    for path in COPY_SOURCES:
+        text = strip_noise(path.read_text())
+        marks = [(m.group(1), m.start()) for m in TABLE_DECL.finditer(text)]
+        assert marks, \
+            f"no language table found in {path.name} — these checks are not running"
+        found += [(path, name,
+                   text[start:(marks[i + 1][1] if i + 1 < len(marks) else len(text))])
+                  for i, (name, start) in enumerate(marks)]
+    return found
+
+
 def table_bodies() -> list[tuple[str, str]]:
-    text = strip_noise(COPY.read_text())
-    marks = [(m.group(1), m.start()) for m in TABLE_DECL.finditer(text)]
-    assert marks, "no language table found in Copy.cs — these checks are not running"
-    return [(name,
-             text[start:(marks[i + 1][1] if i + 1 < len(marks) else len(text))])
-            for i, (name, start) in enumerate(marks)]
+    return [(name, body) for _, name, body in parsed_tables()]
 
 
 def tables() -> dict[str, dict[str, str]]:
     out = {}
-    for name, body in table_bodies():
+    for path, name, body in parsed_tables():
+        assert name not in out, (
+            f"two tables are called {name} — the second, in {path.name}, silently "
+            f"replaces the first in every check here and in Copy.BuildTables")
         out[name] = {key: "".join(LITERAL_PIECE.findall(value))
                      for key, value in ENTRY.findall(body)}
     assert REFERENCE in out, f"Copy.cs has no {REFERENCE} table to check against"
     return out
+
+
+def copy_text() -> str:
+    """Every copy source as one string, comments stripped. For the checks that
+    are about the files rather than about a single table."""
+    return "\n".join(strip_noise(path.read_text()) for path in COPY_SOURCES)
 
 
 def keys() -> set[str]:
@@ -255,6 +311,48 @@ def test_the_english_table_is_english():
         assert not CYRILLIC.search(value), f"{REFERENCE}[{key}] is not English: {value}"
 
 
+# Everything a Latin-script table may not contain. Not a whitelist of allowed
+# characters: Vietnamese alone needs most of Latin Extended Additional, Turkish
+# needs the dotless i, and enumerating what is *permitted* would be a list that
+# grows with every language and fails on the first correct string nobody
+# anticipated. The scripts below are the ones this project's other copy file is
+# for, so finding one here means a value landed in the wrong file.
+NON_LATIN = re.compile(
+    "[Ͱ-Ͽ"      # Greek
+    "Ѐ-ӿ"       # Cyrillic
+    "֐-׿"       # Hebrew
+    "؀-ۿ"       # Arabic
+    "ऀ-ॿ"       # Devanagari
+    "฀-๿"       # Thai
+    "぀-ヿ"       # kana
+    "一-鿿"       # CJK
+    "가-힯]")     # Hangul
+
+
+def test_each_copy_file_holds_the_script_it_is_named_for():
+    # `Copy.Latin.cs` exists so that eight Latin-script languages can be
+    # reviewed and edited without touching the file the non-Latin ones live in.
+    # A value pasted into the wrong one still passes every other check here —
+    # the key exists, the placeholders match, it is not English — and the split
+    # stops meaning anything the first time it happens silently.
+    #
+    # Only the Latin file is checked, and in one direction. The companion holds
+    # several scripts at once by design, so "what belongs in Copy.Scripts.cs"
+    # is not a property a regex can state; "no Cyrillic, Greek, CJK, Arabic,
+    # Hebrew, Devanagari, Thai or Hangul in the Latin file" is.
+    latin = [(path, name, body) for path, name, body in parsed_tables()
+             if path.name == "Copy.Latin.cs"]
+    if not latin:
+        pytest.skip("no Copy.Latin.cs in this tree")
+    for path, name, body in latin:
+        for key, value in ENTRY.findall(body):
+            text = "".join(LITERAL_PIECE.findall(value))
+            stray = NON_LATIN.findall(text)
+            assert not stray, (
+                f"{name}[{key}] in {path.name} is not Latin script ({stray}) — "
+                f"it belongs in the companion file, not this one")
+
+
 def test_every_language_has_exactly_the_reference_keys():
     # Both directions, and they fail differently. A key missing from a
     # language renders as "[win.next]" on that player's button — Copy.Of's
@@ -322,15 +420,40 @@ def test_no_value_was_left_untranslated():
 def test_every_table_is_selectable_by_a_device_language():
     # A table nothing maps to is a language that never reaches a player, and
     # every other check in this file would pass while it sat there.
-    text = strip_noise(COPY.read_text())
+    #
+    # Read across every copy source, not just the file the table is written
+    # in: a companion's tables are selected from that companion's own
+    # `AddLatinScript` / `AddOtherScripts` body, and `Copy.cs` never names
+    # them. The `tables[SystemLanguage.Spanish] = Spanish;` a hook is written
+    # with matches the same pattern as `Copy.cs`'s own dictionary initialiser,
+    # so one regex still covers both shapes.
+    text = copy_text()
     for name, _ in table_bodies():
         assert re.search(rf"\[SystemLanguage\.\w+\]\s*=\s*{name}\b", text), \
             f"{name} is a table no device language selects — add it to Copy.Tables"
 
 
+def test_every_table_is_selected_by_its_own_language():
+    # The sharper half of the check above, and the one a copy-paste of eight
+    # hook lines actually gets wrong: `tables[SystemLanguage.Spanish] =
+    # Portuguese;` passes every other check in this file — both tables exist,
+    # both are reachable, both have the right keys — and ships Portuguese to
+    # Spain while Portuguese-speaking Brazil gets English, because nothing maps
+    # to it any more.
+    #
+    # It holds because every table here is named for its own SystemLanguage
+    # value. If a language ever needs a table whose name differs from its
+    # enum value (a regional variant, say), this is the check to widen.
+    text = copy_text()
+    for name, _ in table_bodies():
+        assert re.search(rf"\[SystemLanguage\.{name}\]\s*=\s*{name}\b", text), \
+            (f"{name} is not selected by SystemLanguage.{name} — some other "
+             f"language's table is, or none is")
+
+
 def test_analytics_names_are_not_in_the_table():
     # Event names are protocol, not copy. Translating them breaks the funnel.
-    table = COPY.read_text()
+    table = "\n".join(path.read_text() for path in COPY_SOURCES)
     for name in ("app:open", "photo:uploaded", "level_start", "booster:tap"):
         assert name not in table, f"{name} is protocol and must stay out of the copy table"
 

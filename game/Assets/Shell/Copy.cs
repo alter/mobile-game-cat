@@ -18,7 +18,7 @@ namespace CatShelter.Shell
     /// Analytics event names are deliberately NOT here: they are protocol, not
     /// copy, and translating them would break the funnel.
     /// </summary>
-    public static class Copy
+    public static partial class Copy
     {
         private static IReadOnlyDictionary<string, string> _current;
         private static IReadOnlyDictionary<SystemLanguage,
@@ -35,13 +35,42 @@ namespace CatShelter.Shell
         /// null. Evaluated on first use, both tables are certainly built.
         /// </summary>
         private static IReadOnlyDictionary<SystemLanguage,
-            IReadOnlyDictionary<string, string>> Tables =>
-            _tables ??= new Dictionary<SystemLanguage,
+            IReadOnlyDictionary<string, string>> Tables => _tables ??= BuildTables();
+
+        /// <summary>
+        /// The two languages written here, plus whatever the companion files
+        /// add.
+        ///
+        /// Split into files by script on 2026-08-29, when the game went from two
+        /// languages to seventeen. Seventeen tables of forty-odd strings in one
+        /// file is four thousand lines nobody can review, and — the reason that
+        /// actually forced it — two people cannot translate into one file at
+        /// once without treading on each other.
+        ///
+        /// <c>Copy.Latin.cs</c> and <c>Copy.Scripts.cs</c> each fill in their own
+        /// half through the hooks below. A partial method with no implementation
+        /// compiles to nothing, so removing either file leaves a game that still
+        /// builds and simply speaks fewer languages.
+        /// </summary>
+        private static Dictionary<SystemLanguage,
+            IReadOnlyDictionary<string, string>> BuildTables()
+        {
+            var tables = new Dictionary<SystemLanguage,
                 IReadOnlyDictionary<string, string>>
             {
                 [SystemLanguage.English] = English,
                 [SystemLanguage.Russian] = Russian,
             };
+            AddLatinScript(tables);
+            AddOtherScripts(tables);
+            return tables;
+        }
+
+        static partial void AddLatinScript(
+            Dictionary<SystemLanguage, IReadOnlyDictionary<string, string>> tables);
+
+        static partial void AddOtherScripts(
+            Dictionary<SystemLanguage, IReadOnlyDictionary<string, string>> tables);
 
         /// <summary>
         /// The table for a language, English for every language without one.

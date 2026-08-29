@@ -40,6 +40,27 @@ namespace CatShelter.Core
                 $"traits {t.BaseColor} {t.Pattern} {t.FurLength} {t.EyeColor} "
                     + string.Join(",", t.WhiteMarkings) + $" {t.Origin}",
             };
+
+            // Her distinctive marks, on a line of their own.
+            //
+            // A line rather than more fields on `traits`, because the reader
+            // below skips lines it does not know: a save written today is read
+            // by yesterday's build as a cat without marks, and a save written
+            // yesterday is read today the same way. No version bump, nothing
+            // thrown away.
+            //
+            // Written only when there are any. Most cats have none, and an
+            // empty line in a format this small is noise.
+            //
+            // This was missing until 2026-08-29, and it mattered more than the
+            // other fields put together: the five class traits describe a kind
+            // of cat and would have come back the same anyway, while the marks
+            // are the only thing that says WHICH cat. Losing them on a restart
+            // meant the player's own cat quietly became a generic one.
+            if (t.Spots.Count > 0)
+                lines.Add("spots " + string.Join(",",
+                    t.Spots.Select(m => $"{m.Place}:{m.Shade}")));
+
             return string.Join("\n", lines) + "\n";
         }
 
@@ -59,7 +80,8 @@ namespace CatShelter.Core
                 if (lines.Length == 0 || lines[0].Trim() != Header) return null;
 
                 string name = null;
-                CatTraits traits = null;
+                string[] traitParts = null;
+                var spots = new List<CatSpot>();
 
                 foreach (var raw in lines.Skip(1))
                 {
@@ -69,20 +91,33 @@ namespace CatShelter.Core
                     }
                     else if (raw.StartsWith("traits ", StringComparison.Ordinal))
                     {
-                        var parts = raw.Split(' ');
                         // traits <base> <pattern> <furLength> <eyeColor> <markings> <origin>
-                        if (parts.Length != 7) return null;
-                        if (!Enum.TryParse<TraitsOrigin>(parts[6], out var origin))
-                            return null;
-                        var markings = parts[5].Length == 0
-                            ? Array.Empty<string>()
-                            : parts[5].Split(',');
-                        traits = new CatTraits(parts[1], parts[2], parts[3], parts[4],
-                            markings, origin);
+                        traitParts = raw.Split(' ');
+                        if (traitParts.Length != 7) return null;
+                    }
+                    else if (raw.StartsWith("spots ", StringComparison.Ordinal))
+                    {
+                        foreach (var piece in raw.Substring("spots ".Length).Split(','))
+                        {
+                            var pair = piece.Split(':');
+                            if (pair.Length != 2) return null;
+                            spots.Add(new CatSpot(pair[0], pair[1]));
+                        }
                     }
                 }
 
-                if (name == null || traits == null) return null;
+                // Built at the end, not on the `traits` line: the marks arrive
+                // on a line of their own and the format does not promise an
+                // order.
+                if (name == null || traitParts == null) return null;
+                if (!Enum.TryParse<TraitsOrigin>(traitParts[6], out var origin))
+                    return null;
+                var markings = traitParts[5].Length == 0
+                    ? Array.Empty<string>()
+                    : traitParts[5].Split(',');
+                var traits = new CatTraits(traitParts[1], traitParts[2], traitParts[3],
+                                           traitParts[4], markings, origin, spots);
+
                 return new Cat(name, traits);
             }
             catch (FormatException)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CatShelter.Core;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace CatShelter.Core.Tests
@@ -93,13 +94,163 @@ namespace CatShelter.Core.Tests
                 + "repository layout moved or this walk-up is wrong, and this "
                 + "cross-language check is not running.");
 
-            var json = File.ReadAllText(schemaPath);
+            var schema = JObject.Parse(File.ReadAllText(schemaPath));
+
+            // Where each of CatTraits.Allowed's keys actually lives in the
+            // schema, spelled out explicitly rather than assumed. The five
+            // scalar fields carry their enum directly on the property;
+            // white_markings is an array, so its enum sits on `items`;
+            // spot_place and spot_shade are nested two levels deeper still,
+            // inside `spots.items.properties`, because a spot is an object
+            // with two fields rather than one bare string. A naive
+            // Does.Contain(value) scan of the raw text used to stand in for
+            // this and never actually walked the tree — it would have passed
+            // even if `spot_place`'s values were only ever a substring of
+            // some other, unrelated array.
+            var schemaPaths = new Dictionary<string, string>
+            {
+                ["base_color"] = "properties.base_color.enum",
+                ["pattern"] = "properties.pattern.enum",
+                ["fur_length"] = "properties.fur_length.enum",
+                ["eye_color"] = "properties.eye_color.enum",
+                ["white_markings"] = "properties.white_markings.items.enum",
+                ["spot_place"] = "properties.spots.items.properties.place.enum",
+                ["spot_shade"] = "properties.spots.items.properties.shade.enum",
+            };
+
             foreach (var pair in CatTraits.Allowed)
             {
+                Assert.That(schemaPaths.ContainsKey(pair.Key), Is.True,
+                    $"{pair.Key}: this test does not know where schema.json "
+                    + "keeps it — add it to schemaPaths above.");
+
+                var path = schemaPaths[pair.Key];
+                var node = schema.SelectToken(path);
+                Assert.That(node, Is.Not.Null,
+                    $"{pair.Key}: schema.json has no node at '{path}' — its "
+                    + "shape moved and this test's path needs to follow.");
+
+                var schemaValues = node.Select(t => (string)t).ToArray();
+
+                // CatTraits.Allowed must not accept anything the Worker
+                // cannot describe...
                 foreach (var value in pair.Value)
-                    Assert.That(json, Does.Contain($"\"{value}\""),
-                        $"{pair.Key}: '{value}' is missing from schema.json");
+                    Assert.That(schemaValues, Contains.Item(value),
+                        $"{pair.Key}: '{value}' is in CatTraits.Allowed but "
+                        + "missing from schema.json");
+                // ...and must not refuse anything the Worker can send.
+                foreach (var value in schemaValues)
+                    Assert.That(pair.Value, Contains.Item(value),
+                        $"{pair.Key}: schema.json allows '{value}' but "
+                        + $"CatTraits.Allowed[\"{pair.Key}\"] does not");
             }
+        }
+
+        // --- spots: her distinctive marks ---------------------------------
+        //
+        // See CatSpot for why these exist: every other field is a class
+        // characteristic shared with hundreds of other cats, and a mark in an
+        // asymmetric place is the one thing that actually identifies her.
+        // CatTraits enforces at most two and no two in the same place;
+        // CatSpot enforces that place and shade are each one of the allowed
+        // values. These tests pin both.
+
+        [Test]
+        public void NoSpotsPassed_LeavesTheListEmpty()
+        {
+            var cat = new CatTraits(
+                "grey", "tabby", "short", "green", Array.Empty<string>());
+            Assert.That(cat.Spots, Is.Empty);
+        }
+
+        [Test]
+        public void TheDefaultCatHasNoSpots()
+        {
+            Assert.That(CatTraits.Default.Spots, Is.Empty);
+        }
+
+        [Test]
+        public void OneSpot_IsAcceptedAndRoundTrips()
+        {
+            var spot = new CatSpot("chest", "dark");
+            var cat = new CatTraits("grey", "tabby", "short", "green",
+                Array.Empty<string>(), TraitsOrigin.Photo, new[] { spot });
+
+            Assert.That(cat.Spots.Count, Is.EqualTo(1));
+            Assert.That(cat.Spots[0].Place, Is.EqualTo("chest"));
+            Assert.That(cat.Spots[0].Shade, Is.EqualTo("dark"));
+        }
+
+        [Test]
+        public void TwoSpots_AreAcceptedAndRoundTrip()
+        {
+            var spots = new[]
+            {
+                new CatSpot("chest", "dark"),
+                new CatSpot("tail_tip", "light"),
+            };
+            var cat = new CatTraits("grey", "tabby", "short", "green",
+                Array.Empty<string>(), TraitsOrigin.Photo, spots);
+
+            Assert.That(cat.Spots.Count, Is.EqualTo(2));
+            Assert.That(cat.Spots[0], Is.EqualTo(spots[0]));
+            Assert.That(cat.Spots[1], Is.EqualTo(spots[1]));
+        }
+
+        [Test]
+        public void ThreeSpots_AreRefused()
+        {
+            var spots = new[]
+            {
+                new CatSpot("chest", "dark"),
+                new CatSpot("tail_tip", "light"),
+                new CatSpot("chin", "dark"),
+            };
+            Assert.Throws<ArgumentException>(() => new CatTraits(
+                "grey", "tabby", "short", "green", Array.Empty<string>(),
+                TraitsOrigin.Photo, spots));
+        }
+
+        [Test]
+        public void TwoSpotsInTheSamePlace_AreRefused_EvenWithDifferentShades()
+        {
+            var spots = new[]
+            {
+                new CatSpot("chest", "dark"),
+                new CatSpot("chest", "light"),
+            };
+            Assert.Throws<ArgumentException>(() => new CatTraits(
+                "grey", "tabby", "short", "green", Array.Empty<string>(),
+                TraitsOrigin.Photo, spots));
+        }
+
+        [Test]
+        public void TwoSpotsInDifferentPlaces_AreFine_EvenWithTheSameShade()
+        {
+            var spots = new[]
+            {
+                new CatSpot("chest", "dark"),
+                new CatSpot("tail_tip", "dark"),
+            };
+            Assert.DoesNotThrow(() => new CatTraits(
+                "grey", "tabby", "short", "green", Array.Empty<string>(),
+                TraitsOrigin.Photo, spots));
+        }
+
+        [TestCase("nose")]
+        [TestCase("")]
+        [TestCase(null)]
+        public void AnUnknownOrMissingSpotPlace_IsRefused(string place)
+        {
+            Assert.Throws<ArgumentException>(() => new CatSpot(place, "light"));
+        }
+
+        [TestCase("bright")]
+        [TestCase("")]
+        [TestCase(null)]
+        public void AnUnknownOrMissingSpotShade_IsRefused(string shade)
+        {
+            Assert.Throws<ArgumentException>(() => new CatSpot("chest", shade));
         }
 
         // --- a cat of one's own ------------------------------------------

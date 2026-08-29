@@ -108,5 +108,69 @@ namespace CatShelter.Core.Tests
             var text = CatSave.Write(new Cat("Marmalade", CatTraits.Default));
             Assert.That(text, Does.StartWith(CatSave.Header));
         }
-    }
+    
+        // --- the individuating trait ------------------------------------
+
+        [Test]
+        public void HerMarksSurviveTheRoundTrip()
+        {
+            // The one thing in a save that says WHICH cat rather than what
+            // kind. It was dropped silently until 2026-08-29: the five class
+            // traits came back unchanged, so nothing looked broken, and the
+            // player's own cat quietly turned into a generic one on the next
+            // launch.
+            var traits = new CatTraits("black", "solid", "short", "green",
+                new[] { "chest" }, TraitsOrigin.Photo,
+                new[] { new CatSpot("paw_left", "light"), new CatSpot("chin", "dark") });
+
+            var back = CatSave.Read(CatSave.Write(new Cat("Mishka", traits)));
+
+            Assert.That(back, Is.Not.Null);
+            Assert.That(back.Traits.Spots.Count, Is.EqualTo(2));
+            Assert.That(back.Traits.Spots[0].Place, Is.EqualTo("paw_left"));
+            Assert.That(back.Traits.Spots[0].Shade, Is.EqualTo("light"));
+            Assert.That(back.Traits.Spots[1].Place, Is.EqualTo("chin"));
+            Assert.That(back.Traits.Spots[1].Shade, Is.EqualTo("dark"));
+        }
+
+        [Test]
+        public void ACatWithNoMarksWritesNoSuchLine()
+        {
+            // Most cats have none. An empty line in a format this small is
+            // noise, and its absence has to read back as "none" rather than as
+            // a missing field.
+            var traits = new CatTraits("grey", "tabby", "short", "green",
+                Array.Empty<string>());
+            var text = CatSave.Write(new Cat("Kitty", traits));
+
+            Assert.That(text, Does.Not.Contain("spots"));
+            Assert.That(CatSave.Read(text).Traits.Spots, Is.Empty);
+        }
+
+        [Test]
+        public void ASaveWrittenBeforeMarksExistedStillReads()
+        {
+            // Backward compatibility is the reason marks went on a line of
+            // their own: yesterday's file has no such line and must load as a
+            // cat without marks, not as a corrupt save.
+            var old = "catshelter-cat-v1\nname Barsik\n" +
+                      "traits ginger tabby short amber chest,paws Photo\n";
+
+            var back = CatSave.Read(old);
+
+            Assert.That(back, Is.Not.Null);
+            Assert.That(back.Name, Is.EqualTo("Barsik"));
+            Assert.That(back.Traits.Spots, Is.Empty);
+        }
+
+        [Test]
+        public void AMarkInAPlaceThatDoesNotExistIsACorruptSave()
+        {
+            var bad = "catshelter-cat-v1\nname Barsik\n" +
+                      "traits ginger tabby short amber  Photo\n" +
+                      "spots whisker:light\n";
+
+            Assert.That(CatSave.Read(bad), Is.Null);
+        }
+}
 }

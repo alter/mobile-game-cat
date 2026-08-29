@@ -40,10 +40,61 @@ const ALLOWED_MEDIA = new Set(["image/jpeg", "image/png"]);
  */
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 
+/**
+ * Two instructions, not one, because the schema now holds two different kinds
+ * of fact and the right instruction for one is the wrong instruction for the
+ * other.
+ *
+ * The five coat fields are class characteristics: they narrow a pool and never
+ * identify anybody. For those, "choose the closest allowed value" is right —
+ * some answer is always better than none, and 288 possible cats is the
+ * catalogue we meant to build.
+ *
+ * `spots` is the opposite. It is the only field that can identify one cat, and
+ * it can only do that by being usually empty. A model told to pick the closest
+ * value will find a mark on every cat, and a mark on every cat identifies
+ * nobody — the field would cost a schema, a validator and a renderer and buy
+ * exactly the recognition of a sixth class trait. So the instruction for it has
+ * to push the other way: silence is the expected answer, and a mark is worth
+ * reporting only when it survives being doubted.
+ *
+ * The asymmetry paragraph is doing the real work. "White paws" is coat; "one
+ * white paw" is her. Left and right are already separate values in the enum
+ * (CatSpot.cs), and a model that answers `paw_left` without checking which paw
+ * it is looking at throws that away while appearing to comply.
+ */
 const PROMPT =
-	"Describe this cat's coat. Report only what is visible in the photograph. " +
-	"If a field is genuinely ambiguous, choose the closest allowed value rather " +
-	"than guessing at something unusual.";
+	"Describe this cat from the photograph. Report only what you can actually see.\n\n" +
+
+	"base_color, pattern, fur_length, eye_color and white_markings describe her " +
+	"coat. If one of them is genuinely ambiguous, choose the closest allowed " +
+	"value rather than guessing at something unusual.\n\n" +
+
+	"spots is not a coat description, and the opposite rule applies to it. A spot " +
+	"is one distinctive mark — the thing that would let her owner pick her out of " +
+	"a row of cats that otherwise look exactly like her: a patch over one eye, a " +
+	"white sock on one front paw, a smudge on the chin. Most cats have none, and " +
+	"an empty list is the ordinary and expected answer. Return an empty list " +
+	"unless a mark genuinely stands out. Never add one to fill the field, and " +
+	"when you are unsure, leave it out rather than choosing the closest place for " +
+	"it: a mark on every cat identifies nobody.\n\n" +
+
+	"Anything symmetrical is coat, not a mark. For the paired places — eye_left " +
+	"and eye_right, paw_left and paw_right — report a mark only when it is on one " +
+	"side and not the other. Two white front paws are white_markings; one white " +
+	"front paw is exactly what spots is for, and which paw it is carries the whole " +
+	"meaning, so look before you answer. Left and right are the cat's own, not " +
+	"yours: when she faces the camera, her left side is on your right. Likewise a " +
+	"white chest bib is white_markings, while a single odd patch on the chest is a " +
+	"mark.\n\n" +
+
+	"shade is relative to her own coat, not absolute: light means lighter than the " +
+	"fur immediately around it, dark means darker. A white patch on a black cat is " +
+	"light; a black patch on a white cat is dark.\n\n" +
+
+	"At most two marks, and a second one only if it is as unmistakable as the " +
+	"first. If several things seem worth listing, then none of them is " +
+	"distinctive: give the single most conspicuous one, or none at all.";
 
 function json(body: unknown, status: number): Response {
 	return new Response(JSON.stringify(body), {

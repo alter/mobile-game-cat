@@ -55,6 +55,41 @@ export const TRAITS_SCHEMA = {
           "face"
         ]
       }
+    },
+    "spots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "place": {
+            "type": "string",
+            "enum": [
+              "muzzle",
+              "forehead",
+              "eye_left",
+              "eye_right",
+              "chin",
+              "chest",
+              "paw_left",
+              "paw_right",
+              "flank",
+              "tail_tip"
+            ]
+          },
+          "shade": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark"
+            ]
+          }
+        },
+        "required": [
+          "place",
+          "shade"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [
@@ -62,7 +97,8 @@ export const TRAITS_SCHEMA = {
     "pattern",
     "fur_length",
     "eye_color",
-    "white_markings"
+    "white_markings",
+    "spots"
   ],
   "additionalProperties": false
 } as const;

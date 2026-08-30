@@ -486,9 +486,23 @@ namespace CatShelter.Shell
         /// which arrives on a lock screen where the player is not the only
         /// person who may read it. `card.caption` — "Regardez la petite chatte
         /// que j'ai dans {0}" — is the text a player posts in public, and reads
-        /// as a crude joke to any French speaker. (That key is currently unused
-        /// by any code, which is luck, not design: it ships in every table and
-        /// would go live the moment somebody wires the share text.)
+        /// as a crude joke to any French speaker.
+        ///
+        /// This paragraph said, until it was checked on a device, that
+        /// `card.caption` "is currently unused by any code, which is luck, not
+        /// design". That was wrong, and wrong in the direction that matters:
+        /// `CatCardScreen.cs:466` passes it to `Share.Image` as the caption of
+        /// the picture, and an Android sharesheet on 2026-08-30 duly offered
+        /// "Look at the kitten I have in Sootpaw" beside the rendered card. The
+        /// French line was not a latent risk waiting for someone to wire it up.
+        /// It was live, on the one screen whose whole purpose is to leave the
+        /// phone.
+        ///
+        /// The claim came from a grep for the key that piped through
+        /// `grep -v Copy` to drop the table itself — and the call site reads
+        /// `Shell.Copy.Of("card.caption", …)`, so the filter deleted the single
+        /// line being looked for. Worth remembering: a negative grep result is
+        /// evidence about the grep, not about the program.
         ///
         /// So the kitten is "le chaton" here. The cost is that French alone
         /// loses her sex, which is a real loss and a small one. There is no way

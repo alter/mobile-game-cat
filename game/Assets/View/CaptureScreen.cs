@@ -137,6 +137,16 @@ namespace CatShelter.View
             _message.style.marginBottom = 20;
             _message.style.color = ink;
             _message.style.unityTextAlign = TextAnchor.MiddleCenter;
+            // Padding and a rounded ground it does not use while it is the
+            // hint — see Answer() for why they exist and when they turn on.
+            _message.style.paddingLeft = 14;
+            _message.style.paddingRight = 14;
+            _message.style.paddingTop = 10;
+            _message.style.paddingBottom = 10;
+            _message.style.borderTopLeftRadius = 10;
+            _message.style.borderTopRightRadius = 10;
+            _message.style.borderBottomLeftRadius = 10;
+            _message.style.borderBottomRightRadius = 10;
 
             // Through Buttons, not `new Button`. A bare Button wears UI
             // Toolkit's default theme — a grey rectangle with a grey hairline —
@@ -222,9 +232,12 @@ namespace CatShelter.View
                 // is diagnostic, not copy, and one of them used to arrive
                 // from native Swift as a raw, sometimes system-language,
                 // sentence (60-shell-build/16 VERIFY).
-                _message.text = reason == "cancelled"
-                    ? Shell.Copy.Of("capture.cancelled")
-                    : Shell.Copy.Of("photo.our_fault");
+                // Cancelling is not an answer about a photograph — she
+                // changed her mind, and the screen goes back to offering.
+                if (reason == "cancelled")
+                    HintAgain(Shell.Copy.Of("capture.cancelled"));
+                else
+                    Answer(Shell.Copy.Of("photo.our_fault"));
             };
 
             if (fromCamera) CatPicker.CaptureWithCamera(picked, failed);
@@ -249,7 +262,8 @@ namespace CatShelter.View
                 // cat in this one" copy; same honest message as a crop
                 // failure below, since neither is the player's doing.
                 Debug.LogWarning($"[CaptureScreen] vision failed: {answer.error}");
-                _message.text = Shell.Copy.Of("photo.our_fault");
+                OnTrouble?.Invoke($"vision could not run: {answer.error}");
+                Answer(Shell.Copy.Of("photo.our_fault"));
                 Analytics.PhotoRejected();
                 SetBusy(false);
                 yield break;
@@ -260,7 +274,19 @@ namespace CatShelter.View
                 answer.FoundAnimal ? best.identifier : null,
                 answer.FoundAnimal ? best.confidence : 0f);
 
-            _message.text = PhotoMessages.For(outcome);
+            // The identifier and the confidence, not just the verdict. A photo
+            // turned away as "no cat" and one turned away as "cat, 0.58" are
+            // the same sentence to the player and completely different faults:
+            // the first says the labeller saw something else, the second says
+            // it saw her cat and MinimumConfidence (0.60) was the thing that
+            // stopped it. Without the number there is no way to tell them apart
+            // from a phone that is not here.
+            OnTrouble?.Invoke(
+                $"vision said {(answer.FoundAnimal ? best.identifier : "nothing")} " +
+                $"at {(answer.FoundAnimal ? best.confidence : 0f):F2} -> {outcome}");
+
+            if (PhotoJudge.Accepts(outcome)) HintAgain(PhotoMessages.For(outcome));
+            else Answer(PhotoMessages.For(outcome));
 
             if (!PhotoJudge.Accepts(outcome))
             {
@@ -277,7 +303,8 @@ namespace CatShelter.View
             {
                 // Vision said cat and the crop still failed: not the player's
                 // doing, and not something she can fix by trying harder.
-                _message.text = Shell.Copy.Of("photo.our_fault");
+                OnTrouble?.Invoke("the crop failed on an accepted cat");
+                Answer(Shell.Copy.Of("photo.our_fault"));
                 Analytics.PhotoRejected();
                 SetBusy(false);
                 yield break;
@@ -418,7 +445,7 @@ namespace CatShelter.View
         {
             // No camera, no network, no permission: the same cat every time,
             // so two players who skipped can talk about the same kitten.
-            _message.text = Shell.Copy.Of("capture.skipped");
+            HintAgain(Shell.Copy.Of("capture.skipped"));
             // Wordless — the message above already says what happened, and the
             // bar says the app heard the tap. Skipping is not free either: the
             // default cat's coat is built by the same synchronous CoatBuilder
@@ -542,6 +569,40 @@ namespace CatShelter.View
         /// seventeen tables; GameBoot.Waiting makes the same choice for the
         /// same reason and says so at length.
         /// </param>
+        /// <summary>
+        /// Say something back about the photograph she just chose, so it reads
+        /// as an answer rather than as the screen she started on.
+        ///
+        /// The four outcomes — no cat, a dog, too blurry, our fault — were
+        /// already written into `_message`, and that was the whole of it: the
+        /// same label, the same size, the same grey, in the same place the hint
+        /// had been sitting a second earlier. With the buttons back and the
+        /// title unchanged, a rejected photograph and the opening screen are
+        /// the same picture.
+        ///
+        /// The owner described it exactly that way on 2026-08-31 — he chose a
+        /// photograph of his cat, saw "Looking…", and was "thrown back to the
+        /// screen with the two buttons". He was not thrown anywhere. He was
+        /// told something, in a way that did not read as being told anything.
+        ///
+        /// So an answer gets a ground to sit on and the hint does not. Nothing
+        /// alarming: the same warm ink at a wash, no red, no icon. Being turned
+        /// away is not an error, and three of the four reasons are about the
+        /// photograph rather than about her.
+        /// </summary>
+        private void Answer(string text)
+        {
+            _message.text = text;
+            _message.style.backgroundColor = new Color(0.25f, 0.21f, 0.17f, 0.07f);
+        }
+
+        /// <summary>Back to a plain hint with no ground behind it.</summary>
+        private void HintAgain(string text)
+        {
+            _message.text = text;
+            _message.style.backgroundColor = Color.clear;
+        }
+
         private void SetBusy(bool busy, string text = null)
         {
             _busy.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;

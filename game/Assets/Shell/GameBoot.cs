@@ -684,6 +684,11 @@ namespace CatShelter.Shell
             var screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
             SafeBuild("the capture screen", root, () => screen.Build(root));
             screen.OnAccepted = photo => Report($"accepted a {photo.Length}-byte photo");
+            // Every step of the picker, success or not, into capture-state.txt.
+            // See CaptureScreen.OnTrouble for why: the file used to record only
+            // outcomes that worked, so a phone where nothing works wrote an
+            // empty file and looked exactly like a phone nobody had touched.
+            screen.OnTrouble = note => Report(note);
             screen.OnCatReady = traits =>
             {
                 // Both ways off this screen arrive here: a photograph the

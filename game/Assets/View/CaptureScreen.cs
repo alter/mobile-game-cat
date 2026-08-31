@@ -29,6 +29,33 @@ namespace CatShelter.View
         public Action<CatTraits> OnCatReady;
 
         /// <summary>
+        /// Anything that stopped a photograph becoming a cat, with the reason
+        /// code the picker gave — for `capture-state.txt`, never for the player.
+        ///
+        /// Added 2026-08-31, and the reason it had to be is the point. The
+        /// owner reported that the camera and the gallery both do nothing on
+        /// his phone. Both paths were then driven on an emulator — plain, and
+        /// again with "don't keep activities" on to kill the game's window
+        /// while the picker was in front — and both worked every time. So the
+        /// difference is his device, and the only thing that can describe it is
+        /// the device itself.
+        ///
+        /// It could not. `capture-state.txt` recorded three things — a photo
+        /// accepted, a cat ready, a cat named — every one of them a SUCCESS.
+        /// A run that failed wrote nothing at all, so the file was empty
+        /// precisely when it was needed, and looked the same as a run that
+        /// never happened. `errors.txt` did not cover it either: a picker that
+        /// declines is not an error and must not be logged as one.
+        ///
+        /// The reason code stays out of the copy. `photo.our_fault` is what the
+        /// player reads, and that is deliberate — a code is a diagnostic, and
+        /// one of them once arrived from native Swift as a raw system-language
+        /// sentence (60-shell-build/16 VERIFY). This hook is the other half of
+        /// that decision: the honest message on screen, the exact code on disk.
+        /// </summary>
+        public Action<string> OnTrouble;
+
+        /// <summary>
         /// Ask the Worker for the coat. Injected, and null until
         /// 02-traits-worker exists — which is exactly the "unreachable" case
         /// 11-offline-fallback is about, so the fallback path is the one that
@@ -151,10 +178,23 @@ namespace CatShelter.View
 
         private void Pick(bool fromCamera)
         {
+            var which = fromCamera ? "camera" : "gallery";
+            // Written BEFORE the picker is asked for, not after it answers,
+            // because the failure this is chasing may be that it never answers
+            // at all. A file that says "asked the camera" and then stops is the
+            // difference between "the button did nothing" and "the button did
+            // something and the something never came back" — and those two have
+            // no fix in common.
+            OnTrouble?.Invoke($"asked the {which}");
             SetBusy(true, Shell.Copy.Of("capture.opening"));
-            Action<byte[]> picked = bytes => StartCoroutine(Handle(bytes));
+            Action<byte[]> picked = bytes =>
+            {
+                OnTrouble?.Invoke($"the {which} returned {bytes?.Length ?? 0} bytes");
+                StartCoroutine(Handle(bytes));
+            };
             Action<string> failed = reason =>
             {
+                OnTrouble?.Invoke($"the {which} declined: {reason}");
                 SetBusy(false);
                 // "cancelled" is not a failure and must not read as one: she
                 // changed her mind, which is allowed. Every other reason

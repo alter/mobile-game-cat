@@ -18,10 +18,18 @@ namespace CatShelter.Core.Tests
             new AnimalBox { identifier = id, confidence = confidence };
 
         [Test]
-        public void BestPicksTheHighestConfidenceFromAnUnsortedList()
+        public void ACatBeatsAMoreConfidentDog()
         {
-            // The point of the fix: correctness must not depend on the
-            // caller (Plugins/iOS/CatVision.swift) having sorted anything.
+            // This test asserted the opposite until 2026-09-01 — Dog 0.91 over
+            // Cat 0.75 — and it was not wrong about the code, it was wrong
+            // about the question. It encoded "which detection is the recogniser
+            // surest of", and the game asks "is there a cat in this photograph".
+            //
+            // What that cost: Android cuts every subject out of the frame and
+            // labels each one, so a cat on a sofa arrives as several
+            // detections. Whatever else was in the owner's rooms outscored his
+            // cats, and the game told him "похоже на собаку" — about cats that
+            // score 0.99, 0.97 and 0.88 on their own.
             var answer = new VisionAnswer
             {
                 ok = true,
@@ -33,8 +41,41 @@ namespace CatShelter.Core.Tests
                 },
             };
 
+            Assert.That(answer.Best.identifier, Is.EqualTo("Cat"));
+            // And the best cat of the several, not merely the first one found.
+            Assert.That(answer.Best.confidence, Is.EqualTo(0.75f));
+        }
+
+        [Test]
+        public void WithNoCatTheMostConfidentDetectionStillWins()
+        {
+            // A photograph of somebody's dog is unaffected: no cat to prefer,
+            // so ordering by confidence decides exactly as it did before, and
+            // PhotoJudge still has the kind message about the dog.
+            var answer = new VisionAnswer
+            {
+                ok = true,
+                detections = new[] { Box("Dog", 0.41f), Box("Dog", 0.93f) },
+            };
+
             Assert.That(answer.Best.identifier, Is.EqualTo("Dog"));
-            Assert.That(answer.Best.confidence, Is.EqualTo(0.91f));
+            Assert.That(answer.Best.confidence, Is.EqualTo(0.93f));
+        }
+
+        [Test]
+        public void ADoubtfulCatStillOutranksAConfidentDog()
+        {
+            // Deliberate, and the whole asymmetry in one line: a cat the
+            // recogniser is unsure about is still the thing this shelter is
+            // looking for. She gets "too blurry, try another" — advice she can
+            // act on — instead of being told her cat is a dog.
+            var answer = new VisionAnswer
+            {
+                ok = true,
+                detections = new[] { Box("Cat", 0.31f), Box("Dog", 0.99f) },
+            };
+
+            Assert.That(answer.Best.identifier, Is.EqualTo("Cat"));
         }
 
         [Test]

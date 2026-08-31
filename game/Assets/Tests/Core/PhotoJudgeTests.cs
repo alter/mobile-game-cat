@@ -130,7 +130,13 @@ namespace CatShelter.Core.Tests
         [TestCase("Cat", 0.59f, PhotoOutcome.UnclearCat)]
         [TestCase("Cat", 0.60f, PhotoOutcome.Cat)]
         [TestCase("Cat", 0.00f, PhotoOutcome.UnclearCat)]
-        [TestCase("Dog", 0.10f, PhotoOutcome.Dog)]
+        // Was `("Dog", 0.10f, Dog)` until 2026-09-01, which is the bug written
+        // down as a requirement: the dog branch skipped the confidence gate
+        // entirely, so a 0.10 guess wore the same word as a photograph of an
+        // actual dog. See AFaintDogIsNotADog for what that looked like to a
+        // player.
+        [TestCase("Dog", 0.10f, PhotoOutcome.NoAnimal)]
+        [TestCase("Dog", 0.60f, PhotoOutcome.Dog)]
         [TestCase("", 0.90f, PhotoOutcome.NoAnimal)]
         [TestCase(null, 0.90f, PhotoOutcome.NoAnimal)]
         public void BoundariesAreWhereTheyAreDeclared(string id, float confidence,

@@ -44,11 +44,47 @@ namespace CatShelter.Core
         // handler.perform threw).
         public bool Failed => !ok;
 
-        // 50-photo/06 VERIFY item 2: this used to be detections[0] on the
-        // strength of a comment ("plugin sorts by confidence") — true in
-        // Plugins/iOS/CatVision.swift today, checked nowhere. Picking the max
-        // here means correctness no longer depends on the Swift ordering, or
-        // on remembering to re-check it if that file ever changes.
-        public AnimalBox Best => detections.OrderByDescending(d => d.confidence).First();
+        /// <summary>
+        /// The cat, if this photograph holds one; otherwise whatever the
+        /// recogniser was most sure of.
+        ///
+        /// It was the plain maximum over every detection until 2026-09-01, and
+        /// that is a different question from the one this game asks. Android
+        /// does not label the frame — it cuts every subject out of it and
+        /// labels each crop separately (`CatVision.java`, the loop over
+        /// `subjects`), so a photograph of a cat on a sofa arrives here as
+        /// several detections. Taking the largest number across all of them
+        /// answers "what is the recogniser surest about in this picture",
+        /// which a cushion can win.
+        ///
+        /// The owner's report is what it looks like from the outside: "похоже
+        /// на собаку" on many of his cats. Three of the photographs he sent
+        /// score Cat 0.99, 0.97 and 0.88 here on their own — one of them had
+        /// already been accepted by this same build on an emulator — so
+        /// nothing was wrong with his cats or with the labeller. Something
+        /// ELSE in his rooms scored higher and was called a dog, and his cat
+        /// lost a contest she should never have been entered in.
+        ///
+        /// So a cat outranks everything. We are a cat shelter: the question is
+        /// whether there is a cat in this photograph, not what the largest
+        /// animal in it is. The asymmetry is deliberate and it is the cheap
+        /// direction to be wrong in — a dog admitted beside a cat costs us a
+        /// cat drawn from a dog's colours, while a cat turned away costs the
+        /// player the only thing the game promised her.
+        ///
+        /// A real dog photograph is unaffected: no Cat detection, so the
+        /// maximum still decides, and `PhotoJudge` still has the kind message
+        /// about somebody's dog.
+        ///
+        /// (Before that it was `detections[0]`, on the strength of a comment
+        /// saying the plugin sorts by confidence — true in
+        /// `Plugins/iOS/CatVision.swift`, checked nowhere. Ordering here means
+        /// correctness does not depend on the Swift order or on remembering to
+        /// re-check it. That still holds; only the key has changed.)
+        /// </summary>
+        public AnimalBox Best =>
+            detections.OrderByDescending(d => d.IsCat)
+                      .ThenByDescending(d => d.confidence)
+                      .First();
     }
 }

@@ -697,8 +697,42 @@ namespace CatShelter.Shell
                 // point on except by `traits.Origin`, which is the whole point
                 // of the skip path — she gets a real cat, not a lesser one.
                 Report($"cat ready ({traits.Origin}): {traits}");
-                screen.Hide();
-                ShowMeetYourCat(root, traits);
+
+                // Not in this call, and not on the next tick either — the same
+                // rule, and the same 120ms, as GoToTheHouse below.
+                //
+                // MeetYourCatScreen.Build runs CoatBuilder.TryBuild
+                // synchronously, and on a first run there is nothing cached to
+                // shorten it. Hiding the capture screen and building the meet
+                // screen right here therefore did both halves of the wrong
+                // thing at once: the frame the player was left staring at
+                // during the build was whatever the capture screen looked like
+                // with its waiting indicator already cleared, and the panel had
+                // nothing else in it. The screen simply stopped.
+                //
+                // Deferring means the capture screen's waiting block — which
+                // CaptureScreen.Handle now leaves standing for exactly this
+                // reason — gets painted and gets to move for a few sweeps
+                // before the main thread goes under. She sees "Copying the
+                // colours…" over a bar that was moving a moment ago, rather
+                // than a dead screen; the words are true of the coat build, so
+                // this is not a decoration over a lie.
+                //
+                // Hidden AFTER the meet screen is built, never before. Both
+                // roots are absolute and full-screen and the newer one is added
+                // last, so it covers the older one; hiding first would open a
+                // window of blank panel exactly as wide as the build.
+                if (root == null)
+                {
+                    ShowMeetYourCat(root, traits);
+                    screen.Hide();
+                    return;
+                }
+                root.schedule.Execute(() =>
+                {
+                    ShowMeetYourCat(root, traits);
+                    screen.Hide();
+                }).ExecuteLater(120);
             };
             return screen;
         }

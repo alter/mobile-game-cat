@@ -47,6 +47,8 @@
     { "file": "../../tmp/test_cat_photo/2-2.jpg", "base_color": "brown", "pattern": "tabby", "fur_length": "short", "white_markings": ["chest", "face"], "confidence": "high",
       "note": "Exotic shorthair, brown and cream. The shipped code answers ginger here, which is the miss that started this work." },
     { "file": "../../tmp/test_cat_photo/3-2.jpg", "base_color": "white", "pattern": "solid", "fur_length": "long", "confidence": "high",
-      "note": "White long-haired cat outdoors. cream is arguable for the base — the current estimate says cream and that is not a failure. The shipped code answers short, and that IS one." }
+      "note": "White long-haired cat outdoors. cream is arguable for the base — the current estimate says cream and that is not a failure. The shipped code answers short, and that IS one." },
+    { "file": "../../tmp/photo_4_2026-09-01_02-11-40.jpg", "base_color": "white", "pattern": "solid", "fur_length": "long", "confidence": "high",
+      "note": "Added 2026-09-01. The same white long-haired cat indoors, on a beige chair under a warm lamp, wearing headphones — and the photograph that started the illuminant work: every patch of her fur measures beige (chest rgb 177,148,130, saturation 0.26) while a curtain behind her at the same lightness measures neutral (174,169,164, saturation 0.05). A person discounts the lamp and sees a white cat; a nearest-anchor match on the raw pixels cannot. cream stays arguable here for the same reason it is arguable on 3-2; ginger is not, and neither is tabby." }
   ]
 }

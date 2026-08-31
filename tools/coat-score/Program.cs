@@ -112,6 +112,66 @@ namespace CatShelter.Tools
             return best;
         }
 
+        // ── Experiment: where the reference for the white balance comes from ─
+        //
+        // The correction that shipped is grey-world over the pixels the mask
+        // says are NOT the cat (Core/CoatReader.ReadIlluminant). Four other
+        // references were measured against the same twenty-four photographs
+        // first, and all four were worse or useless:
+        //
+        //   White patch — the brightest near-neutral background pixels, on the
+        //   theory that a white surface under the lamp IS the lamp. On the
+        //   photograph this whole task is about it estimates (0.98,0.99,0.98)
+        //   and asks for no correction at all, because the brightest neutral
+        //   thing in that room is the WINDOW. The scene is lit twice, daylight
+        //   at the window and a warm lamp on the cat, and a white-patch
+        //   estimate finds the brighter light and misses the one falling on the
+        //   animal. Rejected: it does nothing on the case it was built for.
+        //
+        //   Grey-world over near-neutral background pixels only (saturation
+        //   under 0.2). Same objection, milder: it is dominated by the same
+        //   already-neutral surfaces and changes no answer on the set.
+        //
+        //   Minkowski p=6 over the background ("shades of grey"). Scores one
+        //   better than grey-world overall — it moves the outdoor white cat
+        //   3-2 from cream to white — but leaves the owner's indoor white cat
+        //   on ginger, which is the defect. A point on the scoreboard bought by
+        //   not fixing the bug is not a fix.
+        //
+        //   A local band of background hugging the cat, on the theory that in a
+        //   room lit twice, what is BESIDE her is lit the way she is. It is a
+        //   good theory and the numbers say it makes no difference: the gains
+        //   agree with the whole-background ones to two decimals on every one
+        //   of the twenty-four (0.85/1.01/1.19 against 0.88/1.01/1.14 on the
+        //   white cat), and where they differ they are worse — her corrected
+        //   median lands 0.159 from cream against 0.162 from ginger, a two per
+        //   cent margin, where the whole background gives 0.164 against 0.176.
+        //   Rejected as complexity that buys nothing.
+        //
+        // Clamping an out-of-range estimate instead of refusing it was also
+        // measured and lost a cat: see CoatReader.MaxIlluminantGain.
+        //
+        // ── Experiment: read the colour off the HAIRIER half of the mask ─────
+        //
+        // Rejected, and it is worth writing down because the idea is a good one
+        // and the numbers still say no. Fur is grainy at the pixel and an
+        // armchair is not, so when a subject mask swallows the furniture — see
+        // tools/coat-probe/README.md, which is exactly what ML Kit does to the
+        // owner's white cat — the furniture ought to be the smooth part of the
+        // mask, and dropping the smoothest half of her pixels ought to leave
+        // the cat.
+        //
+        // It does the opposite on the one photograph it was built for. Taking
+        // the grainiest half moves her from cream to GINGER on the Mac mask and
+        // from brown to ginger on the device mask, because the grainiest pixels
+        // on a long-haired white cat are not her coat — they are the shaded
+        // gaps between backlit hairs and the fringe where single hairs meet the
+        // room, and both are warmer and more saturated than she is. Measured at
+        // three cut-offs over both mask sets, forty-eight masks in all: at the
+        // top fifth it scores one better on Mac masks (10/18) by breaking one
+        // cat and fixing two, and no better at all on device masks. A rule that
+        // helps by a coin-flip and hurts the case it exists for is not a rule.
+
         private sealed class Label
         {
             public string File, BaseColor, Pattern, FurLength, Confidence, Note;
@@ -152,8 +212,9 @@ namespace CatShelter.Tools
 
             Console.WriteLine();
             Console.WriteLine("cat        conf  label                    read                     " +
-                              "body  L*    contr  band   hf    tex   ratio  p65    p80    edge  soft");
-            Console.WriteLine(new string('-', 128));
+                              "body  L*    contr  band   hf    tex   ratio  light            " +
+                              "as shot -> balanced   p65    p80");
+            Console.WriteLine(new string('-', 140));
             foreach (var (label, r) in rows)
             {
                 var want = $"{label.BaseColor}/{label.Pattern}/{label.FurLength}";
@@ -164,8 +225,10 @@ namespace CatShelter.Tools
                     $"{label.Key,-10} {label.Confidence,-5} {want,-24} {got,-24} " +
                     $"{r.BodyShare,4:P0} {r.BodyLightness,5:F1} {r.Contrast,6:F1} " +
                     $"{r.Banding,6:F3} {r.HighFrequency,5:F2} {r.Texture,5:F2} " +
-                    $"{r.TextureRatio,5:F2} {r.ColourAtP65 ?? "-",-6} {r.ColourAtP80 ?? "-",-6} " +
-                    $"rgb:{r.ColourByMedian ?? "-",-6} lab.3:{LabNearest(r.MedianR, r.MedianG, r.MedianB, 0.3, 4, 14),-6} lab.2:{LabNearest(r.MedianR, r.MedianG, r.MedianB, 0.2, 4, 14),-6}");
+                    $"{r.TextureRatio,5:F2} " +
+                    $"{r.GainR:F2}/{r.GainG:F2}/{r.GainB:F2} bg {r.BackgroundShare,4:P0} " +
+                    $"{r.ColourByMedian ?? "-",-6} -> {r.ColourBalanced ?? "-",-8} " +
+                    $"{r.ColourAtP65 ?? "-",-6} {r.ColourAtP80 ?? "-",-6}");
             }
 
             if (missing.Count > 0)
@@ -261,6 +324,7 @@ namespace CatShelter.Tools
                 Console.WriteLine($"colour {pair.Item1,-11} " +
                     $"shipped {Score(pair.Item2, x => ShippedAnswer[x.label.Key])}  " +
                     $"median {Score(pair.Item2, x => x.reading.ColourByMedian)}  " +
+                    $"BALANCED {Score(pair.Item2, x => x.reading.ColourBalanced)}  " +
                     $"lighthalf {Score(pair.Item2, x => x.reading.ColourByLightHalf)}  " +
                     $"p65 {Score(pair.Item2, x => x.reading.ColourAtP65)}  " +
                     $"p80 {Score(pair.Item2, x => x.reading.ColourAtP80)}  " +
@@ -310,6 +374,20 @@ namespace CatShelter.Tools
                 Console.WriteLine($"pattern    {x.label.Key} is labelled " +
                                   $"{x.label.Pattern}, outside solid/tabby; read " +
                                   $"{x.reading.Pattern ?? "nothing"}");
+
+            // What discounting the light actually did, cat by cat. A correction
+            // is only worth having if this list is short and every line on it
+            // is an improvement — a long list is a metric being reshuffled.
+            var moved = rows.Where(x => x.reading.ColourBalanced != x.reading.ColourByMedian)
+                            .ToList();
+            var applied = rows.Count(x => Math.Abs(x.reading.GainR - 1.0) > 0.005 ||
+                                          Math.Abs(x.reading.GainG - 1.0) > 0.005 ||
+                                          Math.Abs(x.reading.GainB - 1.0) > 0.005);
+            Console.WriteLine($"light      estimated on {applied} of {rows.Count}, " +
+                              $"changed the answer on {moved.Count}" +
+                              (moved.Count == 0 ? "" : ": " + string.Join(", ", moved.Select(x =>
+                                  $"{x.label.Key} {x.reading.ColourByMedian}->" +
+                                  $"{x.reading.ColourBalanced} (label {x.label.BaseColor})"))));
 
             var furSaid = rows.Count(x => x.reading.FurLength != null);
             var longs = rows.Where(x => x.label.FurLength == "long").ToList();

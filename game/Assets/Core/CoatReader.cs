@@ -32,12 +32,69 @@ namespace CatShelter.Core
         public const byte MaskCut = 128;
 
         /// <summary>
+        /// Mask values BELOW this are the room. Not the complement of
+        /// <see cref="MaskCut"/> on purpose: between the two lies the band the
+        /// segmenter could not commit to, which on a long-haired cat is fur and
+        /// wall mixed in one pixel. Averaging those into the light source would
+        /// mix her own colour into the reference the correction is measured
+        /// against, which is the one thing it must not contain.
+        /// </summary>
+        public const byte BackgroundCut = 32;
+
+        /// <summary>
         /// A mask covering less of the frame than this is not a cat we can
         /// measure — a sliver of ear, or a segmenter that latched onto a
         /// cushion. The crop already centred and squared her, so a real cat
         /// fills a large part of it.
         /// </summary>
         public const double MinBodyShare = 0.06;
+
+        // ── The light in the room ───────────────────────────────────────────
+        //
+        // A photograph of a white cat under a tungsten lamp is a photograph of
+        // beige pixels. The owner's own cat measures (177,148,130) on the chest
+        // — saturation 0.26, a solid warm beige — while a curtain behind her at
+        // the same lightness measures (174,169,164), saturation 0.05. He sees a
+        // white cat because a person discounts the light source; CoatPalette
+        // matches sRGB numbers and cannot, so it answered ginger.
+        //
+        // The scene carries its own reference and the mask is what unlocks it.
+        // Grey-world — assume the average of a scene is neutral, and the cast
+        // in that average is the light — is the oldest estimate there is, and
+        // its famous failure is a frame filled with one coloured object: run it
+        // over the whole picture of a ginger cat and it corrects the CAT away.
+        // Run it over the pixels the mask says are NOT her and that failure
+        // cannot happen, because the animal is not in the average.
+
+        /// <summary>
+        /// A background smaller than this cannot say what the light was. The
+        /// number does not decide anything on the labelled set — 0.05 and 0.15
+        /// give identical answers on all twenty-four photographs — so it is set
+        /// where the estimate is worth trusting rather than where it scores.
+        /// </summary>
+        public const double MinBackgroundShare = 0.15;
+
+        /// <summary>
+        /// How far from neutral a channel gain may go before the estimate is
+        /// REFUSED rather than clamped.
+        ///
+        /// <para>This is the whole guard, and refusing beats clamping because
+        /// the two cases are different in kind. A gain of 1.19 is a warm lamp.
+        /// A gain of 1.91 (cat_18's lawn) or 12.63 (cat_04's red backdrop) is
+        /// not a light source at all — it is a large coloured OBJECT behind the
+        /// cat, and grey-world is dutifully removing the object. Clamping such
+        /// an estimate to 1.25 still applies a quarter of a correction that was
+        /// wrong from the start; refusing it leaves the reading exactly as it
+        /// was before this code existed.</para>
+        ///
+        /// <para>Fitted the way a threshold should be: on the twenty-four
+        /// photographs the verdicts are IDENTICAL for every value from 1.20 to
+        /// 1.60, so 1.25 sits in the middle of a plateau and not on an edge.
+        /// Below 1.20 the correction switches off entirely (the owner's white
+        /// cat needs 1.19 on blue) and above 1.60 nothing further is admitted
+        /// on this set.</para>
+        /// </summary>
+        public const double MaxIlluminantGain = 1.25;
 
         // ── Pattern ─────────────────────────────────────────────────────────
         //
@@ -67,6 +124,35 @@ namespace CatShelter.Core
         /// labelled set clears 36; this is a floor against the pathological
         /// case, not a discriminator.</summary>
         public const double TabbyContrast = 20.0;
+
+        /// <summary>
+        /// A pixel joins the stripe-scale average only if this share of the
+        /// wide blur window over it was inside the mask.
+        ///
+        /// <para><b>This is a bias, not a taste.</b> <see cref="BlurBox"/>
+        /// deliberately leaves the room out of both the sum and the count, so
+        /// that the sofa is never blurred into the coat. The price is that a
+        /// pixel near the outline is compared against a window that is mostly
+        /// missing — a handful of neighbours instead of two thousand — and the
+        /// residual there measures where the cutout happens to fall, not
+        /// whether the fur is banded. On a long-haired cat, whose outline is a
+        /// halo of single hairs, that fringe is enormous.</para>
+        ///
+        /// <para>It was costing a real answer. The owner's white long-hair
+        /// measured 4.68 against a <see cref="TabbyTexture"/> of 4.5 and was
+        /// called a tabby — and no threshold could have saved her, because the
+        /// softest TRUE tabby in the labelled set measures 4.65, BELOW her.
+        /// Dropping the pixels whose window is mostly outside moves her to 4.25
+        /// and the softest true tabby to 4.68, turning an overlap of −0.04 into
+        /// a margin of 0.42. It is not a trade: the same nine tabbies of eleven
+        /// are caught, and every plain cat stays plain.</para>
+        ///
+        /// <para>Also fitted on a plateau. At 0.90 the verdicts are the same
+        /// and the margin is 0.53; at 0.50 the fringe is still in and the
+        /// overlap is still there. 0.75 is the loosest setting that separates
+        /// them, which is the one that throws away the fewest real pixels.</para>
+        /// </summary>
+        public const double TextureWindowCoverage = 0.75;
 
         // ── Fur ─────────────────────────────────────────────────────────────
 
@@ -117,8 +203,9 @@ namespace CatShelter.Core
 
             var pixels = width * height;
             var inside = new bool[pixels];
+            var room = new bool[pixels];
             var soft = 0;
-            int minX = width, minY = height, maxX = -1, maxY = -1, body = 0;
+            int minX = width, minY = height, maxX = -1, maxY = -1, body = 0, roomPixels = 0;
 
             for (var y = 0; y < height; y++)
             {
@@ -130,7 +217,8 @@ namespace CatShelter.Core
                     // The half-confident band is fur the segmenter could not
                     // commit to. Counted before binarising, because binarising
                     // is what throws it away.
-                    if (value >= 32 && value <= 223) soft++;
+                    if (value >= BackgroundCut && value <= 223) soft++;
+                    if (value < BackgroundCut) { room[row + x] = true; roomPixels++; }
                     if (value < MaskCut) continue;
                     inside[row + x] = true;
                     body++;
@@ -143,12 +231,14 @@ namespace CatShelter.Core
 
             reading.BodyPixels = body;
             reading.BodyShare = (double)body / pixels;
+            reading.BackgroundShare = (double)roomPixels / pixels;
             if (reading.BodyShare < MinBodyShare)
             {
                 reading.Note = $"mask covers only {reading.BodyShare:P1} of the frame";
                 return reading;
             }
 
+            ReadIlluminant(rgb, room, roomPixels, reading);
             var lightness = Lightness(rgb, inside, pixels);
             ReadColour(rgb, inside, body, lightness, reading);
             ReadPattern(lightness, inside, width, height,
@@ -156,6 +246,102 @@ namespace CatShelter.Core
             ReadFur(inside, width, height, minX, minY, maxX, maxY, soft, reading);
             return reading;
         }
+
+        // ── The light in the room ───────────────────────────────────────────
+
+        /// <summary>
+        /// Estimate the light from the pixels that are not the cat, as three
+        /// channel gains, and leave them at 1 when the estimate cannot be
+        /// trusted.
+        ///
+        /// <para>Grey-world, in LINEAR light. Averaging sRGB bytes and calling
+        /// the ratio an illuminant is a common mistake and a real one: sRGB is
+        /// a power curve, so the mean of the encoded values is not the encoding
+        /// of the mean, and the cast comes out wrong by more the darker the
+        /// room is. The bytes are linearised, averaged, and the gains applied
+        /// in linear light, which is the space in which a light source
+        /// multiplies.</para>
+        ///
+        /// <para>The gains are normalised to leave the average channel alone,
+        /// so the correction turns the coat, and does not lighten or darken it.
+        /// Lightness is <see cref="Lightness"/>'s business and the pattern
+        /// reader's, and neither of them sees this.</para>
+        /// </summary>
+        private static void ReadIlluminant(byte[] rgb, bool[] room, int roomPixels,
+                                           CoatReading reading)
+        {
+            reading.GainR = reading.GainG = reading.GainB = 1.0;
+            if (reading.BackgroundShare < MinBackgroundShare)
+            {
+                reading.Note += $"light: only {reading.BackgroundShare:P0} of the frame " +
+                                "is background, too little to say what the light was. ";
+                return;
+            }
+
+            var table = LinearTable;
+            double r = 0, g = 0, b = 0;
+            for (var i = 0; i < room.Length; i++)
+            {
+                if (!room[i]) continue;
+                var p = i * 3;
+                r += table[rgb[p]];
+                g += table[rgb[p + 1]];
+                b += table[rgb[p + 2]];
+            }
+            r /= roomPixels;
+            g /= roomPixels;
+            b /= roomPixels;
+
+            // A room this dark is noise, not a colour. Nothing in the labelled
+            // set trips this; it is here so that a photograph taken against
+            // black velvet cannot divide by a rounding error.
+            const double floor = 1e-4;
+            if (r < floor || g < floor || b < floor)
+            {
+                reading.Note += "light: the background is too dark to have a colour. ";
+                return;
+            }
+
+            var grey = (r + g + b) / 3.0;
+            double gainR = grey / r, gainG = grey / g, gainB = grey / b;
+            if (Outside(gainR) || Outside(gainG) || Outside(gainB))
+            {
+                reading.Note += $"light: the background asks for gains " +
+                    $"{gainR:F2}/{gainG:F2}/{gainB:F2}, which is a coloured wall " +
+                    $"rather than a lamp, so the colour is read as photographed. ";
+                return;
+            }
+
+            reading.GainR = gainR;
+            reading.GainG = gainG;
+            reading.GainB = gainB;
+        }
+
+        private static bool Outside(double gain) =>
+            gain > MaxIlluminantGain || gain < 1.0 / MaxIlluminantGain;
+
+        /// <summary>
+        /// Apply the gains to one sRGB colour: decode, scale, encode.
+        /// </summary>
+        /// <remarks>Applied to the MEDIAN rather than to every pixel, and the
+        /// two are the same answer. A per-channel gain is monotonic, so scaling
+        /// each pixel and then taking the median of each channel gives exactly
+        /// what scaling the median gives — at a hundred thousandth of the
+        /// cost.</remarks>
+        private static (double R, double G, double B) Balance(
+            double r, double g, double b, CoatReading reading) =>
+            (Encode(Decode(r) * reading.GainR),
+             Encode(Decode(g) * reading.GainG),
+             Encode(Decode(b) * reading.GainB));
+
+        private static double Decode(double v) =>
+            v <= 0.04045 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
+
+        private static double Encode(double v) =>
+            v <= 0.0 ? 0.0
+            : v >= 1.0 ? 1.0
+            : v <= 0.0031308 ? v * 12.92
+            : 1.055 * Math.Pow(v, 1.0 / 2.4) - 0.055;
 
         // ── Colour ──────────────────────────────────────────────────────────
 
@@ -216,6 +402,13 @@ namespace CatShelter.Core
             reading.ColourByMedian = CoatPalette.Nearest(
                 reading.MedianR, reading.MedianG, reading.MedianB);
 
+            var balanced = Balance(reading.MedianR, reading.MedianG, reading.MedianB, reading);
+            reading.BalancedR = balanced.R;
+            reading.BalancedG = balanced.G;
+            reading.BalancedB = balanced.B;
+            reading.ColourBalanced =
+                CoatPalette.Nearest(balanced.R, balanced.G, balanced.B);
+
             reading.ColourByLightHalf = lightBody > 0
                 ? At(lightRed, lightGreen, lightBlue, lightBody, 0.5) : null;
             reading.ColourAtP65 = At(red, green, blue, body, 0.65);
@@ -227,7 +420,11 @@ namespace CatShelter.Core
             reading.VoteShare = body > 0 ? (double)votes[winner] / body : 0.0;
             reading.ColourByVote = CoatPalette.Entries[winner].Name;
 
-            reading.BaseColor = reading.ColourByMedian;
+            // The balanced median, not the raw one. When the light could not be
+            // estimated the gains are 1 and the two are the same string, so
+            // this line is also the old behaviour wherever the new measurement
+            // has nothing to say.
+            reading.BaseColor = reading.ColourBalanced;
             if (reading.BaseColor == null)
                 reading.Note += "colour: the median landed on no palette name. ";
         }
@@ -342,11 +539,24 @@ namespace CatShelter.Core
             var wide = (int)Math.Round(0.03 * span);
             if (wide < 3) wide = 3;
             if (wide > 24) wide = 24;
-            var smooth = BlurBox(blurred, inside, width, height, wide);
+            var smooth = BlurBox(blurred, inside, width, height, wide, out var window);
+
+            // ...and measured only where the wide window was really a window.
+            // See TextureWindowCoverage: near the outline it is a sliver, and
+            // the residual against a sliver is the shape of the cutout rather
+            // than the pattern of the coat.
+            var full = (2.0 * wide + 1) * (2.0 * wide + 1);
+            var need = full * TextureWindowCoverage;
             var coarse = 0.0;
+            var measured = 0;
             for (var i = 0; i < inside.Length; i++)
-                if (inside[i]) coarse += Math.Abs(blurred[i] - smooth[i]) * toL;
-            reading.Texture = body > 0 ? coarse / body : 0.0;
+            {
+                if (!inside[i] || window[i] < need) continue;
+                coarse += Math.Abs(blurred[i] - smooth[i]) * toL;
+                measured++;
+            }
+            reading.TextureShare = body > 0 ? (double)measured / body : 0.0;
+            reading.Texture = measured > 0 ? coarse / measured : 0.0;
             reading.TextureRatio = reading.HighFrequency > 0.01
                 ? reading.Texture / reading.HighFrequency : 0.0;
 
@@ -618,8 +828,14 @@ namespace CatShelter.Core
         /// wide it is. Pixels outside the mask are left out of both the sum and
         /// the count, so the blur never mixes the sofa into her coat.
         /// </summary>
+        /// <param name="window">How many pixels each blurred value was actually
+        /// averaged over. The caller needs it because leaving the room out is
+        /// not free: a value averaged over forty neighbours instead of two
+        /// thousand is not the same measurement, and near the outline that is
+        /// every value. See <see cref="TextureWindowCoverage"/>.</param>
         private static byte[] BlurBox(byte[] source, bool[] inside,
-                                      int width, int height, int radius)
+                                      int width, int height, int radius,
+                                      out int[] window)
         {
             var sums = new int[source.Length];
             var counts = new int[source.Length];
@@ -644,6 +860,7 @@ namespace CatShelter.Core
             }
 
             var result = new byte[source.Length];
+            window = new int[source.Length];
             for (var x = 0; x < width; x++)
             {
                 int sum = 0, n = 0;
@@ -661,6 +878,7 @@ namespace CatShelter.Core
                     var i = centre * width + x;
                     if (!inside[i]) continue;
                     result[i] = n > 0 ? (byte)(sum / n) : source[i];
+                    window[i] = n;
                 }
             }
             return result;

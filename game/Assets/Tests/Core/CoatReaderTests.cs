@@ -118,6 +118,131 @@ namespace CatShelter.Core.Tests
             Assert.That(reading.Texture, Is.GreaterThan(CoatReader.TabbyTexture));
         }
 
+        // ── The light in the room ───────────────────────────────────────────
+
+        /// <summary>
+        /// A circle of <paramref name="cat"/> on a field of
+        /// <paramref name="room"/>, the whole scene then lit by
+        /// <paramref name="light"/> — three multipliers applied in LINEAR
+        /// light, which is where a lamp multiplies.
+        /// </summary>
+        private static (byte[] rgb, byte[] mask) Lit(
+            (int r, int g, int b) cat, (int r, int g, int b) room,
+            double lr, double lg, double lb, double teeth = 0.0)
+        {
+            var rgb = new byte[Side * Side * 3];
+            var mask = new byte[Side * Side];
+            var centre = Side / 2.0;
+            var radius = Side * 0.4;
+            for (var y = 0; y < Side; y++)
+            for (var x = 0; x < Side; x++)
+            {
+                var dx = x - centre;
+                var dy = y - centre;
+                var reach = radius;
+                // A comb around the rim: the halo of single hairs a long-haired
+                // cat leaves in a subject mask.
+                if (teeth > 0) reach += teeth * (((x / 3) + (y / 3)) % 2 == 0 ? 1 : -1);
+                var i = y * Side + x;
+                var here = dx * dx + dy * dy <= reach * reach;
+                if (here) mask[i] = 255;
+                var c = here ? cat : room;
+                rgb[i * 3] = Shine(c.r, lr);
+                rgb[i * 3 + 1] = Shine(c.g, lg);
+                rgb[i * 3 + 2] = Shine(c.b, lb);
+            }
+            return (rgb, mask);
+        }
+
+        private static byte Shine(int value, double gain)
+        {
+            var v = value / 255.0;
+            var linear = (v <= 0.04045 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4)) * gain;
+            var back = linear <= 0.0031308
+                ? linear * 12.92
+                : 1.055 * Math.Pow(linear, 1.0 / 2.4) - 0.055;
+            return (byte)Math.Max(0, Math.Min(255, Math.Round(back * 255.0)));
+        }
+
+        [Test]
+        public void AWarmLampIsDiscountedBeforeTheColourIsNamed()
+        {
+            // The whole point of the exercise, in miniature. A grey cat (115,
+            // 110, 105 — the palette's own grey anchor) in a room with neutral
+            // walls, under a light warm enough to matter and mild enough to be
+            // believable. As photographed she is browner than she is; the walls
+            // say by how much, because they are known to be neutral and are not
+            // her.
+            var scene = Lit((115, 110, 105), (140, 140, 140), 1.12, 1.0, 0.85);
+            var reading = Read(scene);
+
+            Assert.That(reading.ColourByMedian, Is.EqualTo("brown"),
+                "the cast has to be strong enough to change the answer, or this "
+                + "test proves nothing: " + reading);
+            Assert.That(reading.BaseColor, Is.EqualTo("grey"), reading.ToString());
+            Assert.That(reading.GainB, Is.GreaterThan(reading.GainR),
+                "a warm light is short of blue, so blue is what gets gained up");
+        }
+
+        [Test]
+        public void ARedWallIsNotALampAndIsRefused()
+        {
+            // Grey-world cannot tell a red LIGHT from a red WALL, and the two
+            // want opposite treatment: remove the first, keep the second. The
+            // only honest separator is size — a lamp tints a scene by a few per
+            // cent and a painted wall by half. Anything past the gate is
+            // refused outright rather than clamped, so the answer is exactly
+            // the answer this reader gave before the correction existed.
+            var scene = Lit((115, 110, 105), (190, 40, 40), 1.0, 1.0, 1.0);
+            var reading = Read(scene);
+
+            Assert.That(reading.GainR, Is.EqualTo(1.0));
+            Assert.That(reading.GainG, Is.EqualTo(1.0));
+            Assert.That(reading.GainB, Is.EqualTo(1.0));
+            Assert.That(reading.BaseColor, Is.EqualTo(reading.ColourByMedian));
+            Assert.That(reading.Note, Does.Contain("coloured wall"));
+        }
+
+        [Test]
+        public void ACatFillingTheFrameLeavesTheLightAlone()
+        {
+            // Nothing to measure the light against. The reading is the old
+            // reading, and the note says why rather than leaving a person to
+            // wonder whether the correction ran and failed.
+            var rgb = new byte[Side * Side * 3];
+            var mask = new byte[Side * Side];
+            for (var i = 0; i < Side * Side; i++)
+            {
+                mask[i] = 255;
+                rgb[i * 3] = 115;
+                rgb[i * 3 + 1] = 110;
+                rgb[i * 3 + 2] = 105;
+            }
+            var reading = CoatReader.Read(rgb, Side, Side, mask, Side, Side);
+
+            Assert.That(reading.BackgroundShare, Is.EqualTo(0.0));
+            Assert.That(reading.GainR, Is.EqualTo(1.0));
+            Assert.That(reading.BaseColor, Is.EqualTo("grey"));
+            Assert.That(reading.Note, Does.Contain("too little"));
+        }
+
+        [Test]
+        public void ARaggedOutlineDoesNotMakeAPlainCoatBanded()
+        {
+            // The shape that produced the wrong answer: a long-haired cat whose
+            // mask edge is a comb of single hairs. Every one of those rim
+            // pixels is compared against a blur window that is mostly outside
+            // her, and the residual there is the comb rather than the coat.
+            // Measured over her interior only, a flat coat stays flat.
+            var scene = Lit((210, 205, 200), (60, 60, 60), 1.0, 1.0, 1.0, teeth: 6.0);
+            var reading = Read(scene);
+
+            Assert.That(reading.Pattern, Is.Null, reading.ToString());
+            Assert.That(reading.TextureShare, Is.GreaterThan(0.0).And.LessThan(1.0),
+                "the fringe must actually have been dropped, or the gate is "
+                + "not doing anything: " + reading);
+        }
+
         [Test]
         public void FurLengthIsNeverClaimed()
         {

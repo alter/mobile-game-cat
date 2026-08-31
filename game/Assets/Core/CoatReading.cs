@@ -25,11 +25,32 @@ namespace CatShelter.Core
         /// <summary>Their share of the whole frame.</summary>
         public double BodyShare;
 
+        /// <summary>Share of the frame the mask was confident is NOT her — the
+        /// pixels the light was estimated from.</summary>
+        public double BackgroundShare;
+
         /// <summary>Per-channel median of the cat's own pixels, 0..1 sRGB.</summary>
         public double MedianR, MedianG, MedianB;
 
-        /// <summary>The palette name the median lands on.</summary>
+        /// <summary>The palette name the median lands on, as photographed.
+        /// Diagnostic: this is what the reader answered before it discounted
+        /// the light, and the pair is what shows whether the correction did
+        /// anything.</summary>
         public string ColourByMedian;
+
+        /// <summary>
+        /// Per-channel gains that turn the room's own light back to neutral, 1
+        /// when the light could not be estimated or the estimate was refused.
+        /// See <c>CoatReader.ReadIlluminant</c>.
+        /// </summary>
+        public double GainR = 1.0, GainG = 1.0, GainB = 1.0;
+
+        /// <summary>The median after those gains, 0..1 sRGB…</summary>
+        public double BalancedR, BalancedG, BalancedB;
+
+        /// <summary>…and the palette name IT lands on, which is the answer.
+        /// Equal to <see cref="ColourByMedian"/> whenever the gains are 1.</summary>
+        public string ColourBalanced;
 
         /// <summary>The palette name most of her pixels individually land on.</summary>
         public string ColourByVote;
@@ -82,6 +103,11 @@ namespace CatShelter.Core
         /// </summary>
         public double Texture;
 
+        /// <summary>Share of her pixels that were far enough inside the mask
+        /// for <see cref="Texture"/> to be measured on them. Low on a thin or
+        /// ragged animal; a diagnostic, never a verdict.</summary>
+        public double TextureShare;
+
         /// <summary><see cref="Texture"/> over <see cref="HighFrequency"/>.
         /// Scale-free, so a small photograph blown up to the crop and a sharp
         /// one are judged alike.</summary>
@@ -104,7 +130,11 @@ namespace CatShelter.Core
             $"body {BodyPixels}px ({BodyShare:P0}) L* {BodyLightness:F1} " +
             $"contrast {Contrast:F1} cut {DarkCut:F1}/{DarkShare:P0} " +
             $"banding {Banding:F3} hf {HighFrequency:F2} tex {Texture:F2} " +
-            $"ratio {TextureRatio:F2} " +
+            $"ratio {TextureRatio:F2} on {TextureShare:P0} " +
+            // The light, and what it did: without the pair a device log cannot
+            // say whether a wrong colour was a wrong estimate or no estimate.
+            $"light {GainR:F2}/{GainG:F2}/{GainB:F2} bg {BackgroundShare:P0} " +
+            $"({ColourByMedian ?? "—"}→{ColourBalanced ?? "—"}) " +
             $"edge {EdgeRoughness:F3} soft {SoftBand:F2}";
     }
 }

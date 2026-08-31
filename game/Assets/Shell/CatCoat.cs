@@ -63,6 +63,16 @@ namespace CatShelter.Shell
             }
             var maskMs = clock.ElapsedMilliseconds;
 
+            // Which subject the mask came from, and how many there were to
+            // choose between. Cheap, and it is the difference between "the
+            // segmenter merged the cat with the armchair" and "the segmenter
+            // offered us the cat and we took the armchair" — two faults that
+            // look identical in a coat reading and need opposite fixes.
+            var found = silhouette.answer.detections?.Length ?? 0;
+            Debug.Log($"[CatCoat] mask from {silhouette.maskSource ?? "none"} " +
+                      $"(rung {silhouette.rung ?? "none"}), {found} subject(s) offered, " +
+                      $"coverage {silhouette.maskCoverage:P0}");
+
             if (!silhouette.HasMask)
             {
                 Debug.Log($"[CatCoat] no mask (rung {silhouette.rung ?? "none"}), " +
@@ -114,6 +124,7 @@ namespace CatShelter.Shell
                     }
                 }
 
+                Dump(rgb, width, height, silhouette);
                 var reading = CoatReader.Read(rgb, width, height, silhouette.mask,
                                               silhouette.maskWidth, silhouette.maskHeight);
                 Debug.Log($"[CatCoat] {reading} " +
@@ -135,6 +146,75 @@ namespace CatShelter.Shell
                     if (Application.isPlaying) UnityEngine.Object.Destroy(texture);
                     else UnityEngine.Object.DestroyImmediate(texture);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Write the crop and the mask the DEVICE made, in the format
+        /// <c>tools/coat-probe</c> writes and <c>tools/coat-score</c> reads, so
+        /// that the two can be compared instead of argued about.
+        ///
+        /// <para>Dormant unless a file named <c>coatdump.txt</c> sits next to
+        /// the save — the same idiom <c>GameBoot</c>'s <c>capture.txt</c> and
+        /// <c>VisionSelfTest</c>'s <c>visiontest</c> folder already use, and for
+        /// the same reason: a build a player can install must not be writing a
+        /// megabyte of their cat to disk.</para>
+        ///
+        /// <para><b>Why it had to exist.</b> The same photograph of the same cat
+        /// measures a 33% body on macOS Vision and a 52% body through ML Kit,
+        /// and the coat that comes out differs with it. Without a dump there
+        /// was no way to tell a reader that mis-measures a coat from a
+        /// segmenter that handed it the armchair, and every fix would have been
+        /// a guess. The Mac probe's format is used verbatim so that a device
+        /// mask drops straight into <c>tmp/coat-dumps</c> and is scored by the
+        /// tool that already scores the twenty-four photographs.</para>
+        /// </summary>
+        private static void Dump(byte[] rgb, int width, int height,
+                                 CatSilhouette silhouette)
+        {
+            try
+            {
+                var flag = System.IO.Path.Combine(Application.persistentDataPath,
+                                                  "coatdump.txt");
+                if (!System.IO.File.Exists(flag)) return;
+
+                var mask = silhouette.mask ?? new byte[0];
+                var header = new byte[16];
+                header[0] = (byte)'C'; header[1] = (byte)'O';
+                header[2] = (byte)'A'; header[3] = (byte)'T';
+                Buffer.BlockCopy(BitConverter.GetBytes(width), 0, header, 4, 4);
+                Buffer.BlockCopy(BitConverter.GetBytes(height), 0, header, 8, 4);
+                Buffer.BlockCopy(BitConverter.GetBytes(mask.Length > 0 ? 1 : 0),
+                                 0, header, 12, 4);
+
+                // The mask may be coarser than the image, exactly as
+                // CoatReader.Read allows; resample it to the image grid on the
+                // way out so the dump is self-describing and the offline tool
+                // needs no second pair of dimensions.
+                var square = new byte[width * height];
+                if (mask.Length > 0 && silhouette.maskWidth > 0 && silhouette.maskHeight > 0)
+                    for (var y = 0; y < height; y++)
+                    {
+                        var from = (y * silhouette.maskHeight / height) * silhouette.maskWidth;
+                        var to = y * width;
+                        for (var x = 0; x < width; x++)
+                            square[to + x] = mask[from + x * silhouette.maskWidth / width];
+                    }
+
+                var path = System.IO.Path.Combine(Application.persistentDataPath,
+                                                  "device.coat");
+                using (var file = System.IO.File.Create(path))
+                {
+                    file.Write(header, 0, header.Length);
+                    file.Write(rgb, 0, rgb.Length);
+                    file.Write(square, 0, square.Length);
+                }
+                Debug.Log($"[CatCoat] wrote {path} ({16 + rgb.Length + square.Length} bytes)");
+            }
+            catch (Exception e)
+            {
+                // A dump that fails must never cost the player a cat.
+                Debug.LogWarning($"[CatCoat] dump failed: {e.GetType().Name}");
             }
         }
     }

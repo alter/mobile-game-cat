@@ -27,6 +27,34 @@ The second runs the shipped reader over the dumps and scores it against
 Dumps are not committed. They are a megabyte each and they are a function of
 photographs that are already in the repository.
 
+## The same dump, from the phone itself
+
+A Mac mask is not an Android mask, and on at least one photograph the
+difference decides the answer. `Shell/CatCoat.Dump` writes exactly the format
+below from a running device build, so the two segmenters can be scored against
+each other instead of assumed to agree. It is dormant unless a file called
+`coatdump.txt` sits in `Application.persistentDataPath` — the same flag-file
+idiom as `GameBoot`'s `capture.txt` and `VisionSelfTest`'s `visiontest` folder.
+
+```sh
+ADB=/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb
+FILES=/sdcard/Android/data/com.sootpaw.game/files
+
+printf 'yes\n' | tee /tmp/coatdump.txt >/dev/null
+$ADB push /tmp/coatdump.txt "$FILES/coatdump.txt"
+# …run one photograph through the capture screen (GameBoot's capture.txt hook
+# takes a file name and needs no taps), then:
+$ADB pull "$FILES/device.coat" tmp/device-dumps/cat_07.coat
+```
+
+What it found the first time it ran: on the owner's white cat, macOS Vision cuts
+out the cat alone (33% of the crop) and ML Kit's subject segmentation returns
+the cat AND the armchair she is sitting in as one subject (52%), at full
+confidence throughout — the mask is all but binary, so no threshold on the
+segmenter's own confidence can separate them. The coat reader is then reading
+the chair, and answers brown for a white cat. That is a segmentation fault, not
+a colour-matching one, and this is the tool that says so.
+
 ## Why it mirrors the pipeline rather than the photograph
 
 `CaptureScreen` recognises the animal on the ORIGINAL photo, crops to the box

@@ -86,6 +86,8 @@ namespace CatShelter.View
 
         private VisualElement _root;
         private Label _message;
+        /// <summary>The verdict in small type — see where it is built.</summary>
+        private Label _detail;
         private Button _camera;
         private Button _gallery;
         private Button _skip;
@@ -181,8 +183,34 @@ namespace CatShelter.View
 
             BuildBusy(ink);
 
+            // The verdict, in the smallest type on the screen, shown only when
+            // a photograph was turned away.
+            //
+            // Diagnostics belong on disk and not in front of players, and this
+            // file argues that at length above `OnTrouble`. It is still the
+            // right rule, and this is the exception that proves what the rule
+            // is for: on 2026-09-01 the owner could not read the disk. Android
+            // 11 walls `Android/data/<package>` off from every other app, so
+            // `capture-state.txt` is unreachable from a file manager and from
+            // Termux alike — he tried, and got "No such file or directory"
+            // three times over on a path that certainly exists.
+            //
+            // A number he can photograph beats a file he cannot open. The line
+            // is deliberately terse and unexplained — "Cat 0.58" — which is
+            // meaningless to a player and complete to us: it separates "the
+            // labeller saw something else" from "it saw her cat and the 0.60
+            // threshold turned it away", and those have nothing in common but
+            // the sentence above them.
+            _detail = new Label(string.Empty);
+            _detail.style.fontSize = 11;
+            _detail.style.color = new Color(0.25f, 0.21f, 0.17f, 0.45f);
+            _detail.style.marginBottom = 14;
+            _detail.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _detail.style.display = DisplayStyle.None;
+
             _root.Add(title);
             _root.Add(_message);
+            _root.Add(_detail);
             // The waiting block goes HERE — above the buttons, not below them.
             // See BuildBusy for the whole argument; the short version is that
             // the player's eye is on the control she just pressed, and the
@@ -237,7 +265,7 @@ namespace CatShelter.View
                 if (reason == "cancelled")
                     HintAgain(Shell.Copy.Of("capture.cancelled"));
                 else
-                    Answer(Shell.Copy.Of("photo.our_fault"));
+                    Answer(Shell.Copy.Of("photo.our_fault"), $"picker · {reason}");
             };
 
             if (fromCamera) CatPicker.CaptureWithCamera(picked, failed);
@@ -263,7 +291,7 @@ namespace CatShelter.View
                 // failure below, since neither is the player's doing.
                 Debug.LogWarning($"[CaptureScreen] vision failed: {answer.error}");
                 OnTrouble?.Invoke($"vision could not run: {answer.error}");
-                Answer(Shell.Copy.Of("photo.our_fault"));
+                Answer(Shell.Copy.Of("photo.our_fault"), $"vision · {answer.error}");
                 Analytics.PhotoRejected();
                 SetBusy(false);
                 yield break;
@@ -285,8 +313,11 @@ namespace CatShelter.View
                 $"vision said {(answer.FoundAnimal ? best.identifier : "nothing")} " +
                 $"at {(answer.FoundAnimal ? best.confidence : 0f):F2} -> {outcome}");
 
+            var verdict = answer.FoundAnimal
+                ? $"{best.identifier} {best.confidence:F2}"
+                : "nothing";
             if (PhotoJudge.Accepts(outcome)) HintAgain(PhotoMessages.For(outcome));
-            else Answer(PhotoMessages.For(outcome));
+            else Answer(PhotoMessages.For(outcome), verdict);
 
             if (!PhotoJudge.Accepts(outcome))
             {
@@ -304,7 +335,7 @@ namespace CatShelter.View
                 // Vision said cat and the crop still failed: not the player's
                 // doing, and not something she can fix by trying harder.
                 OnTrouble?.Invoke("the crop failed on an accepted cat");
-                Answer(Shell.Copy.Of("photo.our_fault"));
+                Answer(Shell.Copy.Of("photo.our_fault"), "crop");
                 Analytics.PhotoRejected();
                 SetBusy(false);
                 yield break;
@@ -590,10 +621,13 @@ namespace CatShelter.View
         /// away is not an error, and three of the four reasons are about the
         /// photograph rather than about her.
         /// </summary>
-        private void Answer(string text)
+        private void Answer(string text, string detail = null)
         {
             _message.text = text;
             _message.style.backgroundColor = new Color(0.25f, 0.21f, 0.17f, 0.07f);
+            _detail.text = detail ?? string.Empty;
+            _detail.style.display = string.IsNullOrEmpty(detail)
+                ? DisplayStyle.None : DisplayStyle.Flex;
         }
 
         /// <summary>Back to a plain hint with no ground behind it.</summary>
@@ -601,6 +635,7 @@ namespace CatShelter.View
         {
             _message.text = text;
             _message.style.backgroundColor = Color.clear;
+            _detail.style.display = DisplayStyle.None;
         }
 
         private void SetBusy(bool busy, string text = null)

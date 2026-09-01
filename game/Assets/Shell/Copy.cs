@@ -392,9 +392,26 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "Kitty",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "No cat in this one. Try a photo where the cat fills more of the frame.",
-                ["photo.dog"] = "That looks like a dog. Lovely, but this shelter is for cats.",
-                ["photo.unclear"] = "A cat, but too blurry to copy the colours. One more, holding still?",
+                // The four outcome lines were written when each of them ENDED
+                // the run, and they all instruct a retry because a retry was
+                // the only way forward. Since 2026-09-01 nothing ends the run:
+                // the cat is being built while the line is read, and the bar
+                // underneath says "Copying the colours…" as it is. Telling her
+                // to take another photograph in that moment is not merely
+                // stale, it contradicts the screen she is looking at.
+                //
+                // So each one now says what we saw, then what we did, and
+                // offers the better photograph as a choice rather than as an
+                // instruction. The order matters: what happened, then that she
+                // is not stuck, then how to do better if she wants to.
+                ["photo.no_animal"] = "No cat in this one — we used it anyway. Another photo would read better.",
+                // "but this shelter is for cats" was a refusal, and it is not
+                // one any more: the dog's own colours make the kitten. The
+                // compliment stays — it was there so that being turned away was
+                // not a rebuke, and being kind about somebody's dog costs
+                // nothing now that nobody is turned away.
+                ["photo.dog"] = "That looks like a dog. Lovely — the kitten gets those colours.",
+                ["photo.unclear"] = "A cat, but blurry — the colours are a guess. A steadier photo would be surer.",
                 // "Got her." until 2026-08-30. "Got you." keeps the whole point
                 // of it — the small delight of catching something — by speaking
                 // TO the cat instead of about her, which is what a person does
@@ -431,8 +448,8 @@ namespace CatShelter.Shell
                 // formatted into a sentence here is exactly what "capture.failed"
                 // did, and why it is gone (see above).
                 ["photo.our_fault"] =
-                    "Something went wrong on our side. Another photo may work — " +
-                    "and a kitten is waiting either way.",
+                    "Something went wrong on our side. We made her from your " +
+                    "photo anyway — another one may come out better.",
 
                 // --- the evening reminder ------------------------------------
                 // The kitten never gets sick: a discovery, not a chore and not
@@ -690,11 +707,17 @@ namespace CatShelter.Shell
                 // --- the four outcomes ---------------------------------------
                 // Each says what happened and then offers a way forward, in
                 // that order, and none of them blames the player.
-                ["photo.no_animal"] = "Кошки здесь не видно. Попробуйте снимок покрупнее.",
+                // См. английские строки выше: все четыре писались, когда
+                // каждая ЗАКАНЧИВАЛА разбор, и потому советуют переснять. С
+                // 01.09 не заканчивает ни одна — кошка строится, пока строку
+                // читают, и под ней бежит «Переносим окрас…». Совет переснять
+                // в этот миг не просто устарел, он спорит с тем, что человек
+                // видит на экране.
+                ["photo.no_animal"] = "Кота здесь не видно — делаем по этому снимку. Другой вышел бы точнее.",
                 // "Славная" carries the English "Lovely" — a compliment to the
                 // dog, so that a refusal is not a rebuke.
-                ["photo.dog"] = "Похоже на собаку. Славная, но у нас приют для кошек.",
-                ["photo.unclear"] = "Кошка есть, но снимок размыт — окрас не разобрать. Ещё одно, пока сидит смирно?",
+                ["photo.dog"] = "Похоже на собаку. Славная — котёнок возьмёт её окрас.",
+                ["photo.unclear"] = "Кот есть, но снимок размыт — окрас беру наугад. По чёткому вышло бы вернее.",
                 // "Поймали!" — не «Готово», которое звучит как закончившаяся
                 // полоска загрузки. Радость, а не отчёт.
                 //
@@ -711,8 +734,8 @@ namespace CatShelter.Shell
                 // "котёнок всё равно ждёт" is `capture.skipped` word for word,
                 // because it names the button standing right below.
                 ["photo.our_fault"] =
-                    "Что-то пошло не так на нашей стороне. Может помочь другое фото — " +
-                    "и котёнок всё равно вас ждёт.",
+                    "Что-то пошло не так на нашей стороне. Котёнка сделали " +
+                    "по вашему снимку — по другому могло выйти лучше.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52

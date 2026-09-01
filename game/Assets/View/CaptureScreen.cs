@@ -402,9 +402,27 @@ namespace CatShelter.View
                     $"vision said {(answer.FoundAnimal ? best.identifier : "nothing")} " +
                     $"at {(answer.FoundAnimal ? best.confidence : 0f):F2} -> {outcome}");
 
+                // Everything the device knows, in one line she can photograph.
+                //
+                // "Cat 0.58" was enough while the question was "did the
+                // threshold turn her away". It is not enough now. The owner's
+                // phone answers `NoAnimal` and `Dog` on two photographs this
+                // same build reads as `Cat 0.97` and `Cat 0.88` on an emulator
+                // — same APK, same files, opposite verdicts — so the
+                // difference lives inside the recogniser on his hardware and
+                // cannot be reproduced here. What CAN be done is to make one
+                // screenshot carry the whole answer: what was named, how many
+                // things were found at all, and the size of the frame it was
+                // found in.
+                //
+                // Terse and unexplained on purpose. It means nothing to a
+                // player and everything to whoever is holding the other end of
+                // the conversation, which for this build is one person.
                 var verdict = answer.FoundAnimal
                     ? $"{best.identifier} {best.confidence:F2}"
                     : "nothing";
+                verdict += $" · {answer.detections?.Length ?? 0}d";
+                verdict += $" · {answer.imageWidth}x{answer.imageHeight}";
                 // A cat we are sure of gets the plain hint; the other three get
                 // a ground under them, because a remark about the photograph
                 // should still look like a reply rather than like the screen

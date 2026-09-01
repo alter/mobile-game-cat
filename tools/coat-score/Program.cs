@@ -171,6 +171,34 @@ namespace CatShelter.Tools
         // top fifth it scores one better on Mac masks (10/18) by breaking one
         // cat and fixing two, and no better at all on device masks. A rule that
         // helps by a coin-flip and hurts the case it exists for is not a rule.
+        //
+        // ── Experiment: read the colour off the ERODED CORE of the mask ──────
+        //
+        // Rejected. The reasoning was general and good — an animal fills the
+        // middle of her own cutout, and whatever the segmenter wrongly swept in
+        // is attached at the EDGE, so eroding by a radius scaled to the mask's
+        // own size should shed the furniture and barely touch a cat that was
+        // cut out correctly. Swept at ten strengths from 0.01 to 0.20 of the
+        // mask's short side, over both mask sets, scoring colour and pattern.
+        //
+        // There is no plateau. The gentlest erosion that does anything at all,
+        // 0.01, already breaks cat_15 (brown -> ginger) on BOTH mask sets. On
+        // device masks 0.03 to 0.08 fixes 1-2 (brown -> grey) while cat_15
+        // stays broken, so the total sits at 9/18 and never rises above it.
+        // Past 0.12 the pattern reader collapses as well — 9 tabbies of eleven
+        // down to 3 on Mac masks — because a stripe measured over a fifth of
+        // the animal is no longer a stripe. Every setting is a trade and not
+        // one of them is a gain.
+        //
+        // And the premise is false for the case that motivated it. On the
+        // device mask of the owner's white cat the answer is brown at EVERY
+        // strength down to 19% of her remaining, and black after that. The
+        // armchair is not attached at her edge — she is sitting IN it, so the
+        // chair is the deepest interior of that mask and her own thin legs and
+        // fluffy outline are the first thing an erosion throws away. Eroding
+        // towards the core walks towards the chair. cat_09 (a hand in frame)
+        // and cat_20 (two kittens), the other two masks that legitimately hold
+        // something that is not one cat, do not improve at any strength either.
 
         private sealed class Label
         {

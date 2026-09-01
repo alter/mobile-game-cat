@@ -272,13 +272,28 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "小咪",
 
                 // --- the four outcomes ---------------------------------------
-                // Each says what happened and then offers a way forward, in
-                // that order, and none of them blames the player.
-                ["photo.no_animal"] = "这张里没看到猫。换一张猫咪占得更满的试试。",
-                // The compliment to the dog survives, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "这看着像狗。很可爱，不过这里是猫的收容所。",
-                ["photo.unclear"] = "有猫，但太糊了，描不出毛色。再来一张，趁猫咪坐着别动？",
+                // **All four rewritten 2026-09-01, and the change is not a
+                // wording change.** Until then this screen could REFUSE: each
+                // of the four ended the run and sent the player back to the
+                // buttons with nothing, so each one instructed a retry, because
+                // a retry was the only move left. Nothing refuses now — every
+                // photograph makes a kitten, and these lines are read WHILE it
+                // is being made, over a bar that says 正在描毛色…. 换一张试试 in
+                // that moment contradicted the screen underneath it.
+                //
+                // So each line now says what we saw, then what we did, and
+                // offers a better photograph as a choice — 会更准, not 试试.
+                // Chinese carries "we did it anyway" with 还是, which is the
+                // ordinary concessive and needs no subject.
+                ["photo.no_animal"] = "这张里没看到猫，小猫还是照它做的。换一张会更准些。",
+                // "不过这里是猫的收容所" until 2026-09-01 — that clause WAS the
+                // refusal, and there is none. The compliment stays: it was
+                // there so that being turned away was not a rebuke, and it
+                // costs nothing now that nobody is turned away. 毛色 is the
+                // table's word for a coat's colouring throughout, and the dog's
+                // own is what the kitten takes.
+                ["photo.dog"] = "这看着像狗。很可爱，小猫就用这身毛色。",
+                ["photo.unclear"] = "有猫，但太糊了，毛色是猜的。清楚一点的会更准。",
                 // "The kitten's with us now." Not 完成, which is the register of
                 // a progress bar finishing.
                 //
@@ -289,9 +304,15 @@ namespace CatShelter.Shell
                 ["photo.accepted"] = "小猫到我们这儿了。",
                 // "那张再试一次？" until 2026-08-29: it named the same photo,
                 // which is the one thing that fails identically every time on
-                // every path that shows this line. See the English table. The
-                // tail is `capture.skipped`, the button standing below.
-                ["photo.our_fault"] = "是我们这边出了问题。换一张也许就行，小猫都会等着你的。",
+                // every path that shows this line. See the English table.
+                //
+                // The tail was `capture.skipped` — 小猫都会等着你的 — until
+                // 2026-09-01, and it pointed at the skip button because being
+                // sent back to the buttons was what happened next. It is not
+                // what happens next any more: the kitten is made from the photo
+                // even on this path, so the middle clause now says so, and the
+                // offer of another photograph stands where the reassurance did.
+                ["photo.our_fault"] = "是我们这边出了问题。小猫还是照你的照片做了，换一张也许会更好。",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -319,12 +340,19 @@ namespace CatShelter.Shell
         /// Traditional Chinese.
         ///
         /// **Be exact about what this is.** It is the Simplified table above
-        /// converted character by character, plus eleven deliberate lexical
+        /// converted character by character, plus ten deliberate lexical
         /// substitutions where Taiwan and the mainland use different WORDS and
         /// not merely different glyphs — listed at the keys that carry them:
         /// 相簿 for 相册, 載入 for 加载, 訊息 for 消息, 這裡 for 这儿,
-        /// 模糊 for 糊, 試試看 for 试试, and 佔/著/裡 where Taiwan's standard
-        /// character differs from the one a naive converter picks.
+        /// 模糊 for 糊, and 佔/著/裡 where Taiwan's standard character differs
+        /// from the one a naive converter picks.
+        ///
+        /// **Ten, not eleven, since 2026-09-01.** 試試看 for the mainland's
+        /// 試試 was the eleventh and it lived in exactly one string,
+        /// `photo.no_animal`, which no longer asks the player to try anything —
+        /// the photo screen stopped refusing, so none of the four outcome lines
+        /// instructs a retry. The substitution was not withdrawn; the sentence
+        /// that needed it was.
         ///
         /// It has NOT been read by a Taiwanese or Hong Kong reader, and Hong
         /// Kong wording is not addressed at all — Cantonese-influenced usage
@@ -458,21 +486,34 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "小咪",
 
                 // --- the four outcomes ---------------------------------------
-                // 試試看 rather than the mainland's bare 試試 — the Taiwan
-                // idiom carries the same softness the English "Try" has.
-                ["photo.no_animal"] = "這張裡沒看到貓。換一張貓咪佔得更滿的試試看。",
-                ["photo.dog"] = "這看著像狗。很可愛，不過這裡是貓的收容所。",
+                // All four rewritten 2026-09-01 — the screen no longer refuses,
+                // so none of these instructs a retry. The reasoning is written
+                // out at the Simplified table and this is the same copy
+                // converted, as everywhere else here.
+                //
+                // **試試看 is gone with the string that carried it.** The class
+                // note above used to count ELEVEN lexical substitutions between
+                // these two tables; 試試看 for the mainland's 試試 was one of
+                // them and lived only in this key, which no longer offers a try.
+                // Ten now, and the class note says ten. Nothing else moved.
+                ["photo.no_animal"] = "這張裡沒看到貓，小貓還是照它做的。換一張會更準些。",
+                // "不過這裡是貓的收容所" until 2026-09-01 — that clause was the
+                // refusal. The compliment stays; the dog's own 毛色 is what the
+                // kitten takes.
+                ["photo.dog"] = "這看著像狗。很可愛，小貓就用這身毛色。",
                 // 太模糊了, not the mainland colloquial 太糊了.
-                ["photo.unclear"] = "有貓，但太模糊了，描不出毛色。再來一張，趁貓咪坐著別動？",
+                ["photo.unclear"] = "有貓，但太模糊了，毛色是猜的。清楚一點的會更準。",
                 // 這裡, not 這兒: the 兒 suffix is northern-mainland speech and
                 // reads as an accent in Taipei. "她到我們這裡了。" until
                 // 2026-08-30 — this is the moment the photograph becomes the
                 // game's kitten, so 小貓 is the truer subject as well as the
                 // sexless one.
                 ["photo.accepted"] = "小貓到我們這裡了。",
-                // "那張再試一次？" until 2026-08-29 — see the English table.
-                // The tail is `capture.skipped`, the button standing below.
-                ["photo.our_fault"] = "是我們這邊出了問題。換一張也許就行，小貓都會等著你的。",
+                // "那張再試一次？" until 2026-08-29 — see the English table. The
+                // `capture.skipped` tail went on 2026-09-01: nothing sends the
+                // player back to the buttons now, so the middle clause says
+                // that the kitten was made from her photo regardless.
+                ["photo.our_fault"] = "是我們這邊出了問題。小貓還是照你的照片做了，換一張也許會更好。",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added — see the Simplified
@@ -667,23 +708,43 @@ namespace CatShelter.Shell
                 ["meet.confirm"] = "この子にします",
 
                 // --- the four outcomes ---------------------------------------
-                // Each says what happened and then offers a way forward, in
-                // that order, and none of them blames the player.
-                ["photo.no_animal"] = "この写真には猫がいないようです。もっと大きく写っているものをどうぞ。",
-                // The compliment to the dog survives, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "犬のようです。かわいいですが、ここは猫のための家です。",
-                ["photo.unclear"] = "猫はいますが、ぼやけていて毛色が読み取れません。じっとしているところをもう一枚。",
+                // **All four rewritten 2026-09-01.** They were written when
+                // this screen could still REFUSE — each ended the run and sent
+                // the player back to the buttons, so each instructed a retry.
+                // Nothing refuses now: the kitten is being built while the line
+                // is read, under a bar reading 毛色をうつしています…, so
+                // 「もう一枚」 as an instruction contradicted the screen.
+                //
+                // Each now says what we saw, then what we did, then offers a
+                // better photograph as a possibility. Japanese carries the
+                // "anyway" with 〜が + the plain report 「作りました」, and the
+                // offer with 〜なら, which is a condition and not a request:
+                // 「別の写真なら…なります」 states what would follow, and leaves
+                // the choosing to the player. An imperative or 〜てください
+                // would have put the instruction straight back in.
+                ["photo.no_animal"] = "猫は写っていないようですが、この写真から作りました。別の写真なら毛色がもっと近くなります。",
+                // 「ここは猫のための家です」 until 2026-09-01 — that clause WAS
+                // the refusal and there is none. The compliment stays, and the
+                // dog's own 毛色 is now what the kitten takes, which is the
+                // whole of the second sentence.
+                ["photo.dog"] = "犬のようです。かわいいですね。子猫はその毛色をもらいます。",
+                ["photo.unclear"] = "猫はいますが、ぼやけていて毛色はおおよそです。はっきりした写真ならもっと確かです。",
                 // 謙譲語 on purpose, and the only place in the table: this is
                 // the moment the game takes custody of somebody's real cat.
                 ["photo.accepted"] = "お預かりしました。",
                 // "同じ写真をもう一度お願いできますか。" until 2026-08-29 — it
                 // asked for the SAME photograph, which is precisely the one
                 // thing that fails the same way every time. See the English
-                // table. The tail is `capture.skipped`, the button below.
+                // table.
+                //
+                // The `capture.skipped` tail 「どちらでも、子猫は待っています」
+                // went on 2026-09-01. It pointed at the skip button because
+                // being sent back to the buttons was what came next; nothing
+                // does now, so the middle clause reports that the kitten was
+                // made from her photograph on this path too.
                 ["photo.our_fault"] =
-                    "こちらで問題が起きました。別の写真ならうまくいくかもしれません。" +
-                    "どちらでも、子猫は待っています。",
+                    "こちらで問題が起きました。それでも写真から子猫を作りました。" +
+                    "別の写真ならうまくいくかもしれません。",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -864,23 +925,38 @@ namespace CatShelter.Shell
                 ["meet.confirm"] = "이 아이로 할래요",
 
                 // --- the four outcomes ---------------------------------------
-                // Each says what happened and then offers a way forward, in
-                // that order, and none of them blames the player.
-                ["photo.no_animal"] = "이 사진에는 고양이가 없네요. 더 크게 나온 사진으로 해볼까요?",
-                // The compliment to the dog survives, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "강아지 같아요. 예쁘지만 여기는 고양이 보호소예요.",
-                ["photo.unclear"] = "고양이는 있는데 흐려서 털색을 못 읽겠어요. 가만히 있을 때 한 장 더요?",
+                // **All four rewritten 2026-09-01.** Written when the screen
+                // could still REFUSE — each ended the run, so each asked for
+                // another photo, 「해볼까요?」 and 「한 장 더요?」. Nothing refuses
+                // now: the kitten is being built as the line is read, under a
+                // bar saying 털색을 옮기는 중…, and asking for another picture
+                // there contradicted the screen.
+                //
+                // Each now says what we saw, then what we did — 그래도, the
+                // ordinary Korean concessive — then what a better photograph
+                // WOULD give, as a statement rather than a question. The
+                // 〜ㄹ까요? ending was doing the asking, so it is gone from all
+                // four; 해요체 is unchanged everywhere else.
+                ["photo.no_animal"] = "이 사진에는 고양이가 없네요. 그래도 이대로 만들었어요. 다른 사진이면 털색이 더 잘 나와요.",
+                // 「여기는 고양이 보호소예요」 until 2026-09-01 — that clause WAS
+                // the refusal. The compliment stays, and the dog's own 털색 is
+                // what the kitten takes.
+                ["photo.dog"] = "강아지 같아요. 예쁘네요. 아기 고양이가 그 털색을 가져가요.",
+                ["photo.unclear"] = "고양이는 있는데 흐려서 털색은 짐작이에요. 또렷한 사진이면 더 정확해요.",
                 // "Got her." — she is with us now. Not 완료, which is the
                 // register of a progress bar finishing.
                 ["photo.accepted"] = "이제 저희가 데리고 있어요.",
                 // "그 사진으로 한 번 더 해볼까요?" until 2026-08-29 — "그 사진",
                 // that same photo, is the one retry that cannot work. See the
-                // English table. The tail is `capture.skipped`, the button
-                // standing below.
+                // English table.
+                //
+                // The `capture.skipped` tail — 그래도 아기 고양이는 기다리고
+                // 있어요 — went on 2026-09-01. It pointed at the skip button
+                // below, and nothing sends her there now, so the middle clause
+                // reports that the kitten was made from her photo even here.
                 ["photo.our_fault"] =
-                    "저희 쪽에서 문제가 생겼어요. 다른 사진이면 될 수도 있어요. " +
-                    "그래도 아기 고양이는 기다리고 있어요.",
+                    "저희 쪽에서 문제가 생겼어요. 그래도 보내주신 사진으로 만들었어요. " +
+                    "다른 사진이면 더 잘 나올 수도 있어요.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -1110,14 +1186,32 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "เหมียว",
 
                 // --- the four outcomes ---------------------------------------
-                // Each says what happened and then offers a way forward, in
-                // that order, and none of them blames the player. All four are
-                // clause-spaced so the wrapping label can break them.
-                ["photo.no_animal"] = "รูปนี้ไม่มีแมว ลองรูปที่น้องอยู่เต็มเฟรมกว่านี้",
-                // The compliment to the dog survives, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "ดูเหมือนสุนัข น่ารักนะ แต่ที่นี่เป็นบ้านพักของแมว",
-                ["photo.unclear"] = "มีแมวอยู่ แต่เบลอเกินกว่าจะลอกสีขน อีกรูปตอนน้องอยู่นิ่ง ๆ ได้ไหม",
+                // **All four rewritten 2026-09-01, and still clause-spaced so
+                // the wrapping label can break them — that constraint has not
+                // moved and the spaces below are line-break opportunities, not
+                // decoration.** What moved is the message: these were written
+                // when the screen could REFUSE, so each one told the player to
+                // ลอง — to try another picture — because a retry was the only
+                // way on. Nothing refuses now, and the bar under the line reads
+                // กำลังลอกสีขน… while it is read.
+                //
+                // So each says what we saw, then what we did (แต่เรา…แล้ว —
+                // "but we already did"), then what a better photo WOULD give,
+                // with จะ and a comparative rather than with ลอง. No กรุณา:
+                // the one in this table is still the single genuine
+                // instruction, at `levels.unavailable.body`.
+                //
+                // No ครับ/ค่ะ, as everywhere in this table, and no เธอ — see
+                // the class note. น้อง is not needed in any of the four now:
+                // no_animal says there is no cat to point at, dog names the
+                // สุนัข, unclear talks about the สีขน rather than about the
+                // animal wearing it, and our_fault is about us.
+                ["photo.no_animal"] = "รูปนี้ไม่มีแมว แต่เราทำลูกแมวจากรูปนี้แล้ว รูปอื่น จะได้สีขนที่ตรงกว่า",
+                // "แต่ที่นี่เป็นบ้านพักของแมว" until 2026-09-01 — that clause WAS
+                // the refusal and there is none. น่ารักนะ stays; the dog's own
+                // สีขน is what the kitten takes.
+                ["photo.dog"] = "ดูเหมือนสุนัข น่ารักนะ ลูกแมวจะได้สีขนนี้ไป",
+                ["photo.unclear"] = "มีแมวอยู่ แต่เบลอ สีขนจึงเป็นการเดา รูปที่ชัดกว่า จะแม่นกว่า",
                 // **The one string in the table where น้อง could not be used,
                 // and the reason is a collocation rather than a register.**
                 // "รับเธอไว้แล้ว" until 2026-08-30; the obvious repair,
@@ -1133,13 +1227,21 @@ namespace CatShelter.Shell
                 ["photo.accepted"] = "รับไว้แล้ว",
                 // "ลองรูปนั้นอีกครั้งไหม" until 2026-08-29 — "รูปนั้น", that same
                 // picture, is the retry that cannot work. See the English
-                // table. The tail is `capture.skipped`, the button below.
+                // table. The `capture.skipped` tail — ลูกแมว รออยู่เสมอ — went
+                // on 2026-09-01: it pointed at the skip button because being
+                // sent back to the buttons was what came next, and nothing does
+                // now, so the middle clause says the kitten was made from her
+                // photo on this path too.
                 //
                 // Clause-spaced by hand, like the rest of this table: Thai
                 // writes no spaces between words and this build ships no ICU
                 // dictionary to break lines with (NOTES-scripts.md), so the
-                // spaces here ARE the line-break opportunities.
-                ["photo.our_fault"] = "มีบางอย่างผิดพลาดทางเรา รูปอื่นอาจใช้ได้ ลูกแมว รออยู่เสมอ",
+                // spaces here ARE the line-break opportunities. The longest
+                // unbreakable run below is แต่เราทำลูกแมวจากรูปของคุณแล้ว —
+                // twenty-five spacing characters, the vowels and tone marks
+                // adding no width, so about 206 units against the 240 the card
+                // body allows.
+                ["photo.our_fault"] = "มีบางอย่างผิดพลาดทางเรา แต่เราทำลูกแมวจากรูปของคุณแล้ว รูปอื่นอาจได้ผลดีกว่า",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -1437,23 +1539,36 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "مشمش",
 
                 // --- the four outcomes ---------------------------------------
-                // Each says what happened and then offers a way forward, in
-                // that order, and none of them blames the player. All four are
-                // stated rather than commanded, which keeps them genderless.
+                // **All four rewritten 2026-09-01, and the two constraints this
+                // table already had both survive it.** All four are still
+                // STATED and not commanded — no imperative, so no gender is
+                // forced on the player — and none of them makes anything agree
+                // with the photographed cat. What changed is that the screen
+                // stopped refusing: each line now says what we saw, then what
+                // we did (على أيّ حال — "in any case"), then what a better
+                // photograph would give, as a statement.
+                //
+                // الهرّة appears in three of the four and is the GAME's kitten,
+                // which this table keeps feminine on purpose — see the class
+                // note. It is not the animal in the photograph and nothing here
+                // agrees with that one.
+                //
                 // "صورة تملؤها القطّة أكثر ستنفع." until 2026-08-30 — the verb
                 // agreed with the cat and carried a feminine object suffix
                 // besides. صورة أقرب, "a closer photo", says the same thing to
-                // the player and agrees only with صورة.
-                ["photo.no_animal"] = "لا قطّة في هذه الصورة. صورة أقرب ستنفع.",
-                // The compliment to the dog survives, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "يبدو أنّه كلب. جميل، لكنّ هذا الملجأ للقطط.",
+                // the player and agrees only with صورة; it is kept.
+                ["photo.no_animal"] = "لا قطّة في هذه الصورة، وقد صنعنا الهرّة منها على أيّ حال. صورة أقرب ستنفع أكثر.",
+                // "لكنّ هذا الملجأ للقطط" until 2026-09-01 — that clause WAS the
+                // refusal, and there is none. The compliment stays, and the
+                // dog's own colours are what the kitten takes. الألوان with no
+                // possessor, as everywhere on this screen.
+                ["photo.dog"] = "يبدو أنّه كلب. جميل، وستأخذ الهرّة هذه الألوان.",
                 // "نقل ألوانها … وهي ساكنة؟" until 2026-08-30: a feminine
                 // possessive and then a feminine circumstantial clause. الألوان
-                // owns nothing, and في لحظة سكون — "in a still moment" — is a
-                // prepositional phrase, which is the other Arabic construction
-                // with nothing in it to agree.
-                ["photo.unclear"] = "هناك قطّة، لكنّ الصورة ضبابية ولا يمكن نقل الألوان. صورة أخرى في لحظة سكون؟",
+                // owns nothing. في لحظة سكون went with the question mark on
+                // 2026-09-01 — it was asking for another photograph, and the
+                // line no longer asks for anything.
+                ["photo.unclear"] = "هناك قطّة، لكنّ الصورة ضبابية والألوان تخمين. صورة أوضح تجعل الألوان أدقّ.",
                 // "Got you." — spoken TO the cat, following the English.
                 //
                 // "أصبحت عندنا." until 2026-08-30, which was "she has become
@@ -1465,11 +1580,15 @@ namespace CatShelter.Shell
                 ["photo.accepted"] = "أمسكنا بك.",
                 // "تلك الصورة مرّة أخرى؟" until 2026-08-29 — "تلك الصورة", that
                 // same picture, is the one retry that cannot work. See the
-                // English table. The tail is `capture.skipped`, the button
-                // standing below.
+                // English table. The `capture.skipped` tail —
+                // والهرّة بانتظارك على أيّ حال — went on 2026-09-01: it pointed
+                // at the skip button, and nothing sends her there now, so the
+                // middle clause reports that the kitten was made from her photo
+                // even on this path. صنعنا is first person plural, which has no
+                // gender, and صورتك is the same four letters for either player.
                 ["photo.our_fault"] =
-                    "حدث خطأ من جهتنا. قد تنفع صورة أخرى، " +
-                    "والهرّة بانتظارك على أيّ حال.",
+                    "حدث خطأ من جهتنا. صنعنا الهرّة من صورتك على أيّ حال، " +
+                    "وقد تنفع صورة أخرى أكثر.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -1733,21 +1852,41 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "मिनी",
 
                 // --- the four outcomes ---------------------------------------
-                // Each says what happened and then offers a way forward, in
-                // that order, and none of them blames the player.
-                ["photo.no_animal"] = "इसमें बिल्ली नहीं दिख रही। ऐसी फ़ोटो लीजिए जिसमें वह बड़ी दिखे।",
-                // The compliment to the dog survives, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "यह कुत्ता लग रहा है। प्यारा है, पर यह आश्रय बिल्लियों के लिए है।",
-                ["photo.unclear"] = "बिल्ली तो है, पर धुँधली — रंग नहीं उतर पाएगा। एक और, जब वह शांत बैठी हो?",
+                // **All four rewritten 2026-09-01.** They were written when the
+                // screen could REFUSE: each ended the run, so each instructed a
+                // retry — लीजिए, the आप imperative, on a screen that had just
+                // taken the photograph away. Nothing refuses now, and the bar
+                // under the line reads इसका रंग उतारा जा रहा है… as it is read.
+                //
+                // Each now says what we saw, then what we did (फिर भी, the
+                // ordinary concessive), then what a better photograph WOULD
+                // have given — the counterfactual आता/होता, which offers
+                // without instructing. **No imperative in any of the four**,
+                // which is a change: the आप-form verbs the class note requires
+                // are still everywhere else in this table, but there is nothing
+                // left here for the player to be told to do.
+                //
+                // Agreement is unchanged and is still concord with बिल्ली, not
+                // an assertion about the animal — see the class note, which
+                // records that reading as medium confidence.
+                ["photo.no_animal"] = "इसमें बिल्ली नहीं दिख रही, फिर भी हमने इसी से बनाया। किसी और फ़ोटो से रंग और सटीक आता।",
+                // "पर यह आश्रय बिल्लियों के लिए है" until 2026-09-01 — that
+                // clause WAS the refusal, and there is none. प्यारा है stays,
+                // and the dog's own रंग is what the kitten takes.
+                ["photo.dog"] = "यह कुत्ता लग रहा है। प्यारा है — नन्ही बिल्ली को यही रंग मिलेगा।",
+                ["photo.unclear"] = "बिल्ली तो है, पर धुँधली — रंग अंदाज़े से लिया है। साफ़ फ़ोटो से और पक्का होता।",
                 // "Got her." — she is with us now.
                 ["photo.accepted"] = "वह अब हमारे पास है।",
                 // "वही फ़ोटो एक बार और?" until 2026-08-29 — "वही फ़ोटो", that very
                 // photo, is the one retry that cannot work. See the English
-                // table. The tail is `capture.skipped`, the button below.
+                // table. The `capture.skipped` tail — नन्ही बिल्ली वैसे भी आपका
+                // इंतज़ार कर रही है — went on 2026-09-01: it pointed at the skip
+                // button below, and nothing sends her there now, so the middle
+                // clause reports that the kitten was made from her photo here
+                // too.
                 ["photo.our_fault"] =
-                    "हमारी तरफ़ कुछ गड़बड़ हो गई। कोई दूसरी फ़ोटो शायद चल जाए, " +
-                    "और नन्ही बिल्ली वैसे भी आपका इंतज़ार कर रही है।",
+                    "हमारी तरफ़ कुछ गड़बड़ हो गई। फिर भी आपकी फ़ोटो से नन्ही बिल्ली बना दी। " +
+                    "कोई दूसरी फ़ोटो शायद बेहतर आए।",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52

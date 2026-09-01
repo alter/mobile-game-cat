@@ -13,19 +13,46 @@ key rather than inherited.
 
 ## 1. The glyph list — read this first
 
-`glyphs.txt` in this directory. **673 distinct characters** across the seven
+`glyphs.txt` in this directory. **681 distinct characters** across the seven
 tables, written by a script from the parsed string values, not by hand.
 
-| Language | Distinct characters |
-|---|---|
-| Chinese Simplified | 189 |
-| Chinese Traditional | 190 |
-| Japanese | 159 |
-| Korean | 178 |
-| Thai | 60 |
-| Arabic | 58 |
-| Hindi | 69 |
-| **Combined** | **673** |
+| Language | Distinct characters | Was, 2026-08-29 |
+|---|---|---|
+| Chinese Simplified | 191 | 189 |
+| Chinese Traditional | 192 | 190 |
+| Japanese | 160 | 159 |
+| Korean | 186 | 178 |
+| Thai | 60 | 60 |
+| Arabic | 58 | 58 |
+| Hindi | 67 | 69 |
+| **Combined** | **681** | **673** |
+
+**Regenerated 2026-09-01**, after the four `photo.*` outcome strings were
+rewritten in all seven tables — the photo screen stopped refusing, so none of
+them instructs a retry any more. Thai and Arabic did not move at all: the new
+wording reuses letters those tables already had. Hindi went DOWN by two,
+because `ऐ` and `ठ` lived only in the old ऐसी and बैठी and nothing else in the
+table wants them. Korean moved most, by eight syllables, which is what a
+syllabic script does when a sentence is reworded.
+
+Twenty-five characters are new to the combined line and seventeen dropped out
+of it. **The new ones are ordinary, and every one of them is in `glyphs.txt`:**
+
+| Table | Added | Dropped |
+|---|---|---|
+| Chinese Simplified | 做准它楚清照片猜身 | 动坐容得所试趁 |
+| Chinese Traditional | 做它楚清準照片猜身 | 動坐容得所試趁 |
+| Japanese | ね作確近 | 取大枚 |
+| Korean | 내또렷신었올와작잘져짐확 | 겠읽장히 |
+| Thai | — | — |
+| Arabic | — | — |
+| Hindi | — | ऐठ |
+
+A font subset built before this date does not cover the added column, and a
+missing glyph is an empty box on the device — rebuild from the file rather than
+assuming the old subset still fits. Nothing needs to be removed: the dropped
+column is a font that is merely larger than it has to be, which costs nothing
+but bytes.
 
 The file carries three things: one line per language, a combined line, and a
 codepoint table (`U+XXXX`, the character, its Unicode name) so a font tool can
@@ -53,7 +80,20 @@ moment anyone edits a string. The script is 90 lines and lives in this task's
 scratchpad, not in the repo — if it should be permanent, it belongs in `tools/`
 as a test that fails when `glyphs.txt` disagrees with `Copy.Scripts.cs`. That
 would be the right fix and it is **not done**: today the list is correct and
-nothing enforces that it stays correct.
+nothing enforces that it stays correct. The 2026-09-01 pass had to write the
+script again from this description, because the scratchpad it lived in was
+gone — which is the argument for `tools/` making itself.
+
+**How the rewritten script was checked, since it is the only thing standing
+between an edit and a box on the device.** It was run first against the
+`Copy.Scripts.cs` of the previous commit and its output diffed against the
+`glyphs.txt` committed alongside it: byte for byte identical, all eight counts.
+Only then was it run against the edited file. Two traps it has to avoid and a
+naive version does not: values must be unescaped by hand (Python's
+`unicode_escape` codec round-trips through latin-1 and turns every CJK
+character into mojibake, which silently produced 96 "characters" on the first
+attempt), and `\n` — `house.complete.body` has two — is a paragraph break, not
+a glyph any font has to draw.
 
 ---
 
@@ -117,9 +157,15 @@ instruction.
 
 ## 3. How Traditional Chinese was produced — say this plainly
 
-**It is the Simplified table converted character by character, plus eleven
+**It is the Simplified table converted character by character, plus ten
 deliberate lexical substitutions. It is not a Taiwan or Hong Kong
 localisation.**
+
+**Ten, not eleven, since 2026-09-01.** 試試看 for the mainland's 試試 was the
+eleventh and it lived in exactly one string, `photo.no_animal`, which no longer
+asks the player to try anything — the photo screen stopped refusing, so none of
+the four outcome lines instructs a retry. The substitution was not withdrawn;
+the sentence that needed it was.
 
 The substitutions, all of them cases where the two markets use different
 *words* rather than different glyphs:
@@ -131,7 +177,6 @@ The substitutions, all of them cases where the two markets use different
 | 消息 | 訊息 | `notification.channel_description` |
 | 这儿 | 這裡 | `photo.accepted` |
 | 太糊了 | 太模糊了 | `photo.unclear` |
-| 试试 | 試試看 | `photo.no_animal` |
 | 占满 | 佔滿 | `lose.body`, `capture.hint` |
 | 着急 | 著急 | `capture.cancelled` |
 | 里 | 裡 | five keys |
@@ -198,9 +243,11 @@ ICU data asset, and `Shell/PanelSettings.asset` has
 **one unbreakable token** and the 240u card body cannot wrap it. So every long
 Thai value is broken at a clause boundary with a real space, which is where
 written Thai puts its spaces anyway and costs the reader nothing. Measured: the
-longest unbreakable Thai run is 198u against the 240u budget. **Anyone
-"tidying up" those spaces turns a wrapping paragraph into a line that runs off
-the card.**
+longest unbreakable Thai run is **206u** against the 240u budget — it moved from
+198u on 2026-09-01, when `photo.our_fault` gained the clause
+แต่เราทำลูกแมวจากรูปของคุณแล้ว (twenty-five spacing characters; the vowels and
+tone marks stack and add no width). **Anyone "tidying up" those spaces turns a
+wrapping paragraph into a line that runs off the card.**
 
 **CJK wrapping is functional but unpolished.** `PanelSettings.asset` also has
 `textSettings: {fileID: 0}`, so the kinsoku leading/following character lists
@@ -259,8 +306,10 @@ which is precisely what the bidi algorithm exists to resolve.
 Run, by me, on the actual file:
 
 - All seven tables parse with the same regexes `tools/tests/test_copy_table.py`
-  uses. Seven tables, **48 keys each**, matching English exactly — no missing
-  key, no extra key.
+  uses. Seven tables, **49 keys each**, matching English exactly — no missing
+  key, no extra key. (This line said 48 until 2026-09-01. It was not wrong when
+  written; `cat.default_name` landed afterwards and nothing came back to the
+  count. Re-measured today rather than believed.)
 - Placeholders counted per index against English: identical everywhere, and
   `0..n` in every value that has one. `{0}` survives in all four keys that carry
   it (`card.caption`, `house.complete.caption`, `map.room_failed`,
@@ -296,3 +345,81 @@ Run, by me, on the actual file:
   English notes complained about, kept because the string is an error message
   and the alternative was longer. If the map ever shows this to a real player it
   should be rewritten.
+
+---
+
+## 7. The four outcome strings, rewritten 2026-09-01
+
+The photo screen used to be able to REFUSE. Four outcomes — no cat, a dog, too
+blurry, our fault — each ended the run and put the player back on the buttons
+with nothing, so all four were written as instructions to retry, because a retry
+was the only move. **Nothing refuses now.** Every photograph makes a kitten, and
+the line is read WHILE it is being made, over a progress bar that says "copying
+the colours" in the same table. So "try another photo" no longer merely read
+stale — it contradicted the screen underneath it.
+
+All four in all seven tables now say what we saw, then what we did, then offer a
+better photograph as a **choice**. Concretely, per language, the grammar that
+does the offering without instructing:
+
+| Language | "we did it anyway" | the offer |
+|---|---|---|
+| Chinese (both) | 还是／還是 | 会更准／會更準 — a comparative, not 试试 |
+| Japanese | 〜が + 作りました | 〜なら…なります, a condition, not 〜てください |
+| Korean | 그래도 | plain 해요체 statement; the 〜ㄹ까요? that asked is gone |
+| Thai | แต่เรา…แล้ว | จะ + comparative, not ลอง |
+| Arabic | على أيّ حال | a verbless comparison; still no imperative, so still no gender on the player |
+| Hindi | फिर भी | the counterfactual आता／होता, not the imperative लीजिए |
+
+**What was removed, and it was removed on purpose in all seven:** the second
+clause of `photo.dog` was the refusal itself — 不过这里是猫的收容所,
+ここは猫のための家です, 여기는 고양이 보호소예요, แต่ที่นี่เป็นบ้านพักของแมว,
+لكنّ هذا الملجأ للقطط, पर यह आश्रय बिल्लियों के लिए है. The compliment to the dog
+stays in every one of them: it existed so that being turned away was not a
+rebuke, and it costs nothing now that nobody is turned away. The dog's own coat
+colours are what the kitten takes, which is what the second clause now says.
+
+`photo.our_fault` also lost its `capture.skipped` tail in all seven — "the
+kitten is waiting for you either way". That sentence pointed at the skip button
+because being sent back to the buttons was what happened next, and nothing does
+now; the middle clause reports that the kitten was made from her photograph even
+on this path.
+
+### Flagged — what a native reader should look at first
+
+Nothing below is a known error. These are the places where the writer is not
+confident a native speaker would find the line natural, listed so a reviewer can
+disagree with a sentence instead of with a table.
+
+- **Arabic, all four.** This table was already medium confidence and stays
+  there. `صورة أوضح تجعل الألوان أدقّ` (`photo.unclear`) and
+  `ستأخذ الهرّة هذه الألوان` (`photo.dog`) are grammatical and neither agrees
+  with the photographed cat, which was the constraint; whether they read as warm
+  MSA or as a manual is exactly the question `meet.title` and `meet.confirm` are
+  already flagged for. **Same caveat, not a new one.**
+- **Thai `photo.unclear`** — `สีขนจึงเป็นการเดา`, "the coat colour is therefore
+  a guess". จึง is correct and slightly bookish; a Thai writer might reach for
+  เลย. Not changed, because เลย pulls toward the casual register this table
+  avoids. The rest of the Thai four reuse phrasing the table already had.
+- **Hindi `photo.no_animal` and `photo.unclear`** — the counterfactuals
+  `रंग और सटीक आता` and `और पक्का होता`. Hindi drops होता in speech and the bare
+  form can read as clipped on the page. It is the construction that offers
+  without instructing, which is why it is here, but a native reader may want
+  `आ सकता था` / `हो सकता था`.
+- **Japanese `photo.dog`** — 「かわいいですね」. ね is the one sentence-final
+  particle anywhere in this table, and the class note rules out the 〜だよ
+  register it belongs to. It is kept because a compliment with no particle at
+  all reads as a report rather than as warmth, and ね in ですます is level adult
+  speech, not the cute register. **Still, it is the one place this table bends
+  its own rule, and a reader should confirm it does not tip.**
+- **Korean `photo.unclear`** — `털색은 짐작이에요`. 짐작 is the right word and the
+  noun-predicate is compact; whether 해요체 wants 짐작이에요 or the more spoken
+  `짐작으로 했어요` is a judgement no dictionary settles.
+- **Chinese (both), `photo.no_animal`** — `小猫还是照它做的`. 照它 is "going by
+  it", meaning the photograph, and Chinese would more often name the thing than
+  pronominalise it. 这张 is right there in the first clause, so the reference is
+  clear, but a native writer might prefer `照着这张做的`.
+
+Not flagged, and deliberately: the Chinese `photo.dog` 这身毛色 / 這身毛色, where
+身 is the ordinary measure word for a coat; the Thai `photo.dog`; and all four
+`photo.our_fault`, which are the plainest sentences of the twenty-eight.

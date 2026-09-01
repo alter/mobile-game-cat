@@ -79,8 +79,21 @@ public final class CatPhoto {
             }
 
             Rect full = new Rect(0, 0, bounds.outWidth, bounds.outHeight);
+            // The box arrives in UPRIGHT coordinates and the bytes are not
+            // upright. CatVision turns the photograph the right way up before
+            // it looks at it (Decode.applyOrientation) and reports boxes in
+            // that space; BitmapRegionDecoder below reads the file as written.
+            // For a photograph carrying EXIF 6 or 8 — a phone held upright,
+            // which is most of them — those two spaces have their axes swapped,
+            // so the crop lands somewhere else entirely.
+            //
+            // This was harmless until 2026-09-01 and the comment on `orient`
+            // below still says so: "there is no box without Vision", and Android
+            // had no Vision. It has since, and every photograph now carries a
+            // box.
             Rect rect = (boxWidth > 0 && boxHeight > 0)
-                    ? new Rect(boxX, boxY, boxX + boxWidth, boxY + boxHeight)
+                    ? intoFileSpace(new Rect(boxX, boxY, boxX + boxWidth, boxY + boxHeight),
+                                    exifOrientation(bytes), full)
                     : new Rect(full);
 
             // A cat filling a corner of a large photo can be reported as a
@@ -148,6 +161,79 @@ public final class CatPhoto {
             return new Rect(bounds);
         }
         return expanded;
+    }
+
+    /**
+     * The EXIF Orientation tag, 1-8, or 1 when the file carries none.
+     *
+     * The same read {@link #orient} does at the other end of this method, kept
+     * separate because the box has to be converted BEFORE anything is decoded
+     * and the square is rotated AFTER everything is.
+     */
+    static int exifOrientation(byte[] bytes) {
+        try {
+            int value = new ExifInterface(new ByteArrayInputStream(bytes))
+                    .getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                                     ExifInterface.ORIENTATION_NORMAL);
+            return value >= 1 && value <= 8 ? value : 1;
+        } catch (Throwable t) {
+            // No EXIF block, or an unreadable one. A photograph with no
+            // orientation tag is already the right way up.
+            return 1;
+        }
+    }
+
+    /**
+     * A rectangle measured on the UPRIGHT photograph, expressed in the file's
+     * own coordinates.
+     *
+     * <p>The inverse of {@code Decode.applyOrientation}, corner by corner. The
+     * eight cases are the eight EXIF orientations and they are written out
+     * rather than composed, because a sign error in a composed version is
+     * invisible until somebody photographs a cat sideways.
+     *
+     * @param upright the box, in the space CatVision reported it in
+     * @param exif    1-8
+     * @param file    the file's own bounds, i.e. the un-rotated image
+     */
+    static Rect intoFileSpace(Rect upright, int exif, Rect file) {
+        if (exif <= 1 || exif > 8) {
+            return new Rect(upright);
+        }
+        // The upright image's size, which is the file's with the axes swapped
+        // for the four sideways orientations.
+        boolean sideways = exif >= 5;
+        int width = sideways ? file.height() : file.width();
+        int height = sideways ? file.width() : file.height();
+
+        int[] a = point(upright.left, upright.top, exif, width, height);
+        int[] b = point(upright.right - 1, upright.bottom - 1, exif, width, height);
+
+        Rect out = new Rect(Math.min(a[0], b[0]), Math.min(a[1], b[1]),
+                            Math.max(a[0], b[0]) + 1, Math.max(a[1], b[1]) + 1);
+        if (!out.intersect(file)) {
+            return new Rect(file);
+        }
+        return out;
+    }
+
+    /**
+     * One point, from upright coordinates back into the file's.
+     *
+     * @param width  the UPRIGHT image's width
+     * @param height the UPRIGHT image's height
+     */
+    private static int[] point(int x, int y, int exif, int width, int height) {
+        switch (exif) {
+            case 2:  return new int[] { width - 1 - x, y };              // mirrored
+            case 3:  return new int[] { width - 1 - x, height - 1 - y }; // 180
+            case 4:  return new int[] { x, height - 1 - y };             // flipped
+            case 5:  return new int[] { y, x };                          // transposed
+            case 6:  return new int[] { y, width - 1 - x };              // 90 CW
+            case 7:  return new int[] { height - 1 - y, width - 1 - x }; // transverse
+            case 8:  return new int[] { height - 1 - y, x };             // 270 CW
+            default: return new int[] { x, y };
+        }
     }
 
     static Rect square(Rect rect, Rect bounds) {
@@ -257,12 +343,19 @@ public final class CatPhoto {
      * and a phone held upright writes a landscape JPEG with an EXIF tag
      * saying "rotate me".
      *
-     * Rotating the finished 512x512 square rather than the source is exact
-     * for the only case Android ever has: with no box, the crop is the
-     * centred square of the image, and the centred square of an image is the
-     * same set of pixels whichever multiple of 90 degrees you turn it
-     * through. With a box it would not be, and there is no box without
-     * Vision.
+     * Rotating the finished 512x512 square rather than the source is exact,
+     * and the old reason given here was narrower than the truth: "with no box
+     * the crop is the centred square, and there is no box without Vision".
+     * Both halves have expired — Android has had Vision since 50-photo/05, and
+     * every photograph now arrives with a box.
+     *
+     * The real reason it is exact is that a quarter turn is a bijection on a
+     * pixel grid, so ANY square crop holds the same set of pixels whichever
+     * multiple of 90 degrees you turn it through; where the square sits does
+     * not come into it. What DID depend on there being no box is the box
+     * itself, which is measured on the upright photograph and has to be
+     * carried back into the file's own axes before anything is decoded — see
+     * {@link #intoFileSpace}, which is the bug that comment was hiding.
      *
      * android.media.ExifInterface rather than androidx, and that is a
      * deliberate choice against Google's own advice. The platform class

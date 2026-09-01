@@ -149,14 +149,37 @@ namespace CatShelter.View
             portrait.style.marginBottom = 20;
             portrait.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
 
-            var art = CoatBuilder.LoadBase(traits, State);
+            // TryBuildFor, at 256, like every other caller — not TryBuild on the
+            // shipped 1024x1024 silhouette, which is what this screen did until
+            // 2026-09-01.
+            //
+            // The portrait above is 220 points wide, so 1024 was four times more
+            // than could ever be shown, and the cost is superlinear: `Outline`
+            // dilates by 1.6 % of the width and scans a square window per pixel,
+            // so halving the source cuts the work by roughly sixteen. The
+            // project's own measurement of this exact call is recorded on
+            // `CoatBuilder.Downscale`: 21.8 seconds for one coat at 1024.
+            //
+            // It ran on the main thread, on the screen where she meets her cat.
+            // That is the likeliest reason the owner reported being thrown back
+            // to the main screen when he picked a second photograph: a main
+            // thread standing still that long is one Android is entitled to give
+            // up on, and the picker activity dying reaches us as "she changed
+            // her mind" (`CatPickActivity.onDestroy`). Likeliest, not proven —
+            // it has not been reproduced here, and it is being fixed because
+            // building four times the pixels that can be shown is wrong on its
+            // own terms.
+            //
+            // TryBuildFor also remembers: in memory by traits, and on disk
+            // across launches. Nothing on this screen ever needed the big one.
+            var built = CoatBuilder.TryBuildFor(traits, State, 256);
+            // Untinted silhouette rather than no screen at all: this is the
+            // moment she meets her cat, and a coat that will not build must not
+            // cost her the name field with it.
+            var art = built != null ? built : CoatBuilder.LoadBase(traits, State);
             if (art != null)
             {
-                // Untinted silhouette rather than no screen at all: this is the
-                // moment she meets her cat, and a coat that will not build must
-                // not cost her the name field with it.
-                var built = CoatBuilder.TryBuild(art, traits, State);
-                portrait.style.backgroundImage = new StyleBackground(built != null ? built : art);
+                portrait.style.backgroundImage = new StyleBackground(art);
             }
 
             // TextField has no built-in placeholder on the UI Toolkit version

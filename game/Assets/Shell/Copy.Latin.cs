@@ -258,24 +258,45 @@ namespace CatShelter.Shell
                 // is what these three sentences always meant. "Con ella quieta"
                 // had no neutral form to fall back on, so it is "sin que se
                 // mueva" — no animal named, and one character shorter.
-                ["photo.no_animal"] = "Aquí no hay ningún gato. Prueba con una foto donde salga más grande.",
-                // "Precioso" agrees with "perro" — a compliment to the dog, so
-                // that a refusal is not a rebuke.
-                ["photo.dog"] = "Parece un perro. Precioso, pero este refugio es para gatos.",
-                ["photo.unclear"] = "Hay un gato, pero está muy borroso para copiar su pelaje. ¿Otra, sin que se mueva?",
+                //
+                // REWRITTEN 2026-09-01, and the reason is in `Copy.cs` above
+                // `photo.no_animal`: nothing ends the run any more. All four of
+                // these instructed a retry ("Prueba con una foto…", "¿Otra, sin
+                // que se mueva?") because a retry used to be the only way
+                // forward; now the cat is being built while the line is read and
+                // the bar underneath says "Copiando su pelaje…". Each one says
+                // what we saw, then what we did, and offers the better
+                // photograph as a choice. "Igual" for "anyway" throughout — the
+                // word `capture.skipped` already uses on this screen.
+                ["photo.no_animal"] = "Aquí no hay ningún gato — igual usamos la foto. Con otra saldría mejor.",
+                // "Precioso" agrees with "perro" — a compliment to the dog. It
+                // was written so that a refusal would not be a rebuke; there is
+                // no refusal now, and it stays because being kind about
+                // somebody's dog costs nothing. The second half is
+                // `capture.hint` word for word ("tendrá su mismo pelaje"),
+                // which is the promise this screen already made.
+                ["photo.dog"] = "Parece un perro. Precioso — la gatita tendrá su mismo pelaje.",
+                // "A ojo" is what a Spanish speaker says for a measurement made
+                // by eye, which is exactly what the colour is on a blurred
+                // photograph.
+                ["photo.unclear"] = "Hay un gato, pero está borroso — copiamos el pelaje a ojo. Con una foto más nítida saldría más fiel.",
                 // Not "Listo", which is the register of a progress bar
                 // finishing. This one needed no change — "está" carries no
                 // sex — and the English it was written against has since
                 // become "Got you."
                 ["photo.accepted"] = "Ya está con nosotros.",
                 // "¿Lo intentas otra vez?" until 2026-08-29: the one
-                // instruction on the screen that could only fail again. Another
-                // photo is the move that can work, and the second half is
-                // `capture.skipped` word for word — it names the button
-                // standing right below.
+                // instruction on the screen that could only fail again. What
+                // replaced it — "Otra foto puede funcionar, y una gatita te
+                // espera igual", `capture.skipped` word for word — was true
+                // while a failure here still sent the player back to the
+                // buttons empty-handed. Since 2026-09-01 it does not: the
+                // kitten is made from her photo even when our side fails, so
+                // the line says that instead of promising a kitten she is
+                // already watching being built.
                 ["photo.our_fault"] =
-                    "Algo falló de nuestro lado. Otra foto puede funcionar, " +
-                    "y una gatita te espera igual.",
+                    "Algo falló de nuestro lado. Igual hicimos la gatita con " +
+                    "tu foto — con otra podría salir mejor.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER, and none may be added: EveningReminder.cs:52
@@ -435,17 +456,32 @@ namespace CatShelter.Shell
                 // "gata" → "gato" throughout on 2026-08-30, the generic these
                 // three sentences always meant, and the pronouns for the
                 // player's cat dropped with it.
-                ["photo.no_animal"] = "Não tem gato nesta. Tente uma foto em que apareça maior.",
+                //
+                // REWRITTEN 2026-09-01 — see `Copy.cs` above `photo.no_animal`.
+                // Nothing ends the run now, so "Tente uma foto…" and "Mais uma,
+                // sem que se mexa?" told the player to retry while the bar under
+                // them read "Copiando a cor…". What we saw, then what we did,
+                // then the better photograph as a choice.
+                ["photo.no_animal"] = "Não tem gato nesta — usamos assim mesmo. Com outra ficaria melhor.",
                 // "Lindo" agrees with "cachorro": the compliment is to the dog.
-                ["photo.dog"] = "Parece um cachorro. Lindo, mas este abrigo é para gatos.",
-                ["photo.unclear"] = "Tem um gato, mas está borrado demais para copiar a cor. Mais uma, sem que se mexa?",
+                // It existed so that a refusal would not be a rebuke; there is
+                // no refusal now and it stays anyway, because the dog's own
+                // colour is what the kitten gets. The second half repeats
+                // `capture.hint` ("vai ficar com essa cor").
+                ["photo.dog"] = "Parece um cachorro. Lindo — a gatinha vai ficar com essa cor.",
+                ["photo.unclear"] = "Tem um gato, mas está borrado — a cor é um palpite. Com uma foto nítida ficaria mais fiel.",
                 ["photo.accepted"] = "Já está com a gente.",
                 // "Tenta de novo?" until 2026-08-29 — see the English table for
-                // why a retry was the one move guaranteed to fail. The tail is
-                // `capture.skipped`, which is the button below this line.
+                // why a retry was the one move guaranteed to fail. Its
+                // replacement ("Outra foto pode dar certo, e uma gatinha espera
+                // por você de todo jeito", `capture.skipped` word for word) was
+                // right while a failure here left the player with nothing. From
+                // 2026-09-01 the kitten is made from her photo even on this
+                // path, so the line reports that rather than promising a kitten
+                // she can already see being made.
                 ["photo.our_fault"] =
-                    "Algo deu errado do nosso lado. Outra foto pode dar certo, " +
-                    "e uma gatinha espera por você de todo jeito.",
+                    "Algo deu errado do nosso lado. Fizemos a gatinha com a sua " +
+                    "foto mesmo assim — com outra pode sair melhor.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -642,10 +678,20 @@ namespace CatShelter.Shell
                 // "chatte" → "chat" on 2026-08-30, the generic. The advice in
                 // the second half goes to the player instead of describing the
                 // animal, which drops the last pronoun in this line.
-                ["photo.no_animal"] = "Pas de chat ici. Essayez une photo prise de plus près.",
-                // "Beau" agrees with "chien": the compliment is to the dog, so
-                // that a refusal is not a rebuke.
-                ["photo.dog"] = "On dirait un chien. Beau, mais ce refuge est pour les chats.",
+                //
+                // REWRITTEN 2026-09-01 — see `Copy.cs` above `photo.no_animal`:
+                // nothing ends the run, so "Essayez une photo prise de plus
+                // près" was an instruction to retry printed over a progress bar
+                // reading "On copie sa robe…". "On" throughout, as in
+                // `capture.looking` and `capture.colours` — this table's voice
+                // for the game is "on", not "nous".
+                ["photo.no_animal"] = "Pas de chat sur cette photo — on l'a utilisée quand même. Une autre rendrait mieux.",
+                // "Beau" agrees with "chien": the compliment is to the dog. It
+                // was there so that a refusal would not be a rebuke, and it
+                // stays now that there is no refusal — the dog's own robe is
+                // what the chaton takes, which is `capture.hint`'s promise
+                // ("prendra cette robe") kept word for word.
+                ["photo.dog"] = "On dirait un chien. Beau — le chaton prendra sa robe.",
                 // "pendant qu'il ne bouge pas" until 2026-08-30, and the note
                 // here defended it: "il" after "un chat" is the neutral French
                 // for an animal of unknown sex, and no restructure kept the
@@ -657,22 +703,33 @@ namespace CatShelter.Shell
                 // "il" as an unmarked default — it is the one word left on the
                 // screen that says which sex the cat is.
                 //
-                // And a restructure does keep the advice. "Sans bouger" carries
-                // exactly the instruction the blurred photo needs, and it lands
-                // the French where the English already was: "One more, holding
-                // still?" names nobody either, and carries the same small
-                // ambiguity about who is holding still — deliberately.
-                ["photo.unclear"] = "Un chat, mais trop flou pour copier sa robe. Une autre, sans bouger ?",
+                // And a restructure did keep the advice: "Une autre, sans
+                // bouger ?" named nobody either, exactly like the English "One
+                // more, holding still?" it was written against.
+                //
+                // That whole line is gone on 2026-09-01, because it was still a
+                // request for another photograph, and the robe is now copied
+                // from this one while the player reads it. What survives is the
+                // pronoun rule: "on devine la robe" names no animal at all, so
+                // the "il" this note fought over never comes back.
+                ["photo.unclear"] = "Un chat, mais flou — on devine la robe. Une photo plus nette serait plus juste.",
                 // "Elle est chez nous." until 2026-08-30. "Bienvenue" speaks
                 // TO the cat rather than about her, which is what a person does
                 // at that moment anyway — the same move English made with
                 // "Got you."
                 ["photo.accepted"] = "Bienvenue chez nous.",
-                // "On réessaie ?" until 2026-08-29 — see the English table. The
-                // tail is `capture.skipped`, the button standing below.
+                // "On réessaie ?" until 2026-08-29 — see the English table. Its
+                // replacement ("Une autre photo peut marcher, et un chaton vous
+                // attend de toute façon", the tail being `capture.skipped`) held
+                // while this path still ended the run. From 2026-09-01 it does
+                // not end anything: the chaton is built from her photo even
+                // here, so the line says so instead of promising one she is
+                // already watching appear. "Chatte" stays out of it, as
+                // everywhere in this table — see the class note.
                 ["photo.our_fault"] =
-                    "Quelque chose a échoué de notre côté. Une autre photo peut marcher, " +
-                    "et un chaton vous attend de toute façon.",
+                    "Quelque chose a échoué de notre côté. On a quand même fait " +
+                    "le chaton d'après votre photo — une autre marcherait " +
+                    "peut-être mieux.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -868,22 +925,38 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "Mieze",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "Hier ist keine Katze. Versuch ein Foto, auf dem sie größer ist.",
-                // "Schön" as a compliment to the dog, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "Das sieht nach einem Hund aus. Schön, aber dieses Heim ist für Katzen.",
-                ["photo.unclear"] = "Eine Katze, aber zu unscharf für ihr Fell. Noch eines, während sie still hält?",
+                // REWRITTEN 2026-09-01 — see `Copy.cs` above `photo.no_animal`.
+                // "Versuch ein Foto…" and "Noch eines, während sie still hält?"
+                // were retry instructions, and a retry was the only way forward
+                // until the photo screen stopped refusing. It does not refuse
+                // now, and the bar under these lines reads "Wir übernehmen das
+                // Fell…" while they are being read.
+                ["photo.no_animal"] = "Hier ist keine Katze — wir haben das Foto trotzdem genommen. Ein anderes würde besser passen.",
+                // "Schön" as a compliment to the dog. It was written so that a
+                // refusal would not be a rebuke; there is no refusal left, and
+                // it stays because the dog's own Fell is what the kitten gets.
+                // "Die kleine Katze" and not "das Kätzchen" — she is the
+                // subject here, which is the rule stated in the class note.
+                ["photo.dog"] = "Das sieht nach einem Hund aus. Schön — die kleine Katze bekommt dieses Fell.",
+                ["photo.unclear"] = "Eine Katze, aber unscharf — das Fell haben wir geraten. Mit einem schärferen Foto wäre es genauer.",
                 // "Sie ist bei uns." until 2026-08-30 — a bare "sie" with no
                 // noun to agree with. "Willkommen" is said TO the cat, which
                 // is what a person does at that moment anyway, and is the same
                 // move English made with "Got you."
                 ["photo.accepted"] = "Willkommen bei uns.",
                 // "Versuchst du es noch einmal?" until 2026-08-29 — see the
-                // English table. The tail is `capture.skipped`, the button
-                // standing below.
+                // English table. What replaced it ("Ein anderes Foto klappt
+                // vielleicht, und ein Kätzchen wartet so oder so auf dich", the
+                // tail being `capture.skipped`) was true while this path still
+                // sent her back to the buttons. From 2026-09-01 it does not:
+                // the kitten is made from her photo even when our side fails,
+                // so the line reports that rather than promising a Kätzchen she
+                // can already see. "Die kleine Katze" again — subject of the
+                // sentence, so not the neuter "Kätzchen".
                 ["photo.our_fault"] =
-                    "Bei uns ist etwas schiefgegangen. Ein anderes Foto klappt vielleicht, " +
-                    "und ein Kätzchen wartet so oder so auf dich.",
+                    "Bei uns ist etwas schiefgegangen. Wir haben die kleine Katze " +
+                    "trotzdem aus deinem Foto gemacht — ein anderes klappt " +
+                    "vielleicht besser.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note. "Deine" dropped for
@@ -1027,16 +1100,31 @@ namespace CatShelter.Shell
                 // "gatta" → "gatto" throughout on 2026-08-30, the generic these
                 // three sentences always meant. Nothing else moved: Italian had
                 // already dropped every subject in them.
-                ["photo.no_animal"] = "Qui non c'è nessun gatto. Prova una foto in cui si vede più grande.",
-                // "Bello" agrees with "cane": the compliment is to the dog.
-                ["photo.dog"] = "Sembra un cane. Bello, ma questo rifugio è per gatti.",
-                ["photo.unclear"] = "C'è un gatto, ma è troppo sfocato per copiare il mantello. Un'altra, mentre sta fermo?",
+                //
+                // REWRITTEN 2026-09-01 — see `Copy.cs` above `photo.no_animal`.
+                // "Prova una foto…" and "Un'altra, mentre sta fermo?" ordered a
+                // retry, which was the only way forward until this screen
+                // stopped refusing; it reads now over a bar saying "Copiamo il
+                // suo mantello…". "Comunque" for "anyway", the word
+                // `capture.skipped` already uses.
+                ["photo.no_animal"] = "Qui non c'è nessun gatto — la foto l'abbiamo usata comunque. Con un'altra verrebbe meglio.",
+                // "Bello" agrees with "cane": the compliment is to the dog, and
+                // it was there so that a refusal would not be a rebuke. No
+                // refusal is left and it stays anyway — the second half is
+                // `capture.hint`'s own promise ("prenderà il suo mantello").
+                ["photo.dog"] = "Sembra un cane. Bello — la gattina prenderà il suo mantello.",
+                ["photo.unclear"] = "C'è un gatto, ma è sfocato — il mantello lo indoviniamo. Con una foto più nitida verrebbe più fedele.",
                 ["photo.accepted"] = "Ora è con noi.",
                 // "Vuoi riprovare?" until 2026-08-29 — see the English table.
-                // The tail is `capture.skipped`, the button standing below.
+                // Its replacement ("Un'altra foto può funzionare, e una gattina
+                // ti aspetta comunque", the tail being `capture.skipped`) was
+                // true while this path still ended the run empty-handed. From
+                // 2026-09-01 the gattina is made from her photo even here, so
+                // the line says that instead of promising one she is already
+                // watching appear.
                 ["photo.our_fault"] =
-                    "Qualcosa è andato storto da parte nostra. Un'altra foto può funzionare, " +
-                    "e una gattina ti aspetta comunque.",
+                    "Qualcosa è andato storto da parte nostra. La gattina l'abbiamo " +
+                    "fatta lo stesso dalla tua foto — con un'altra potrebbe venire meglio.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -1180,18 +1268,30 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "Mırmır",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "Burada kedi görünmüyor. Onun daha büyük göründüğü bir fotoğraf deneyin.",
-                // "Çok tatlı" as a compliment to the dog, so that a refusal is
-                // not a rebuke.
-                ["photo.dog"] = "Bu bir köpeğe benziyor. Çok tatlı, ama burası kediler için bir barınak.",
-                ["photo.unclear"] = "Kedi var ama rengini almak için fazla bulanık. O dururken bir tane daha?",
+                // REWRITTEN 2026-09-01 — see `Copy.cs` above `photo.no_animal`.
+                // "…bir fotoğraf deneyin" and "O dururken bir tane daha?" told
+                // the player to try again, which was the only way forward until
+                // this screen stopped refusing; they now sit above a bar reading
+                // "Rengini alıyoruz…". Siz endings kept, as everywhere in this
+                // table's sentences.
+                ["photo.no_animal"] = "Burada kedi görünmüyor — fotoğrafı yine de kullandık. Başka bir fotoğraf daha iyi olurdu.",
+                // "Çok tatlı" as a compliment to the dog. It was written so that
+                // a refusal would not be a rebuke; nobody is refused now and it
+                // stays, because the dog's own colour is what the kitten takes —
+                // `capture.hint`'s promise ("onun rengini alacak") word for word.
+                ["photo.dog"] = "Bu bir köpeğe benziyor. Çok tatlı — yavru kedi onun rengini alacak.",
+                ["photo.unclear"] = "Kedi var ama fotoğraf bulanık — rengini tahmin ettik. Daha net bir fotoğrafla daha doğru olurdu.",
                 ["photo.accepted"] = "O artık bizde.",
                 // "Bir daha denemek ister misiniz?" until 2026-08-29 — see the
-                // English table. The tail is `capture.skipped`, the button
-                // standing below.
+                // English table. Its replacement ("Başka bir fotoğraf işe
+                // yarayabilir, bir yavru kedi yine de sizi bekliyor", the tail
+                // being `capture.skipped`) was true while this path still ended
+                // the run. From 2026-09-01 the kitten is made from her photo
+                // even here, so the line reports that rather than promising one
+                // she is already watching being made.
                 ["photo.our_fault"] =
-                    "Bizim tarafımızda bir şey ters gitti. Başka bir fotoğraf işe yarayabilir, " +
-                    "bir yavru kedi yine de sizi bekliyor.",
+                    "Bizim tarafımızda bir şey ters gitti. Yavru kediyi yine de " +
+                    "sizin fotoğrafınızdan yaptık — başka bir fotoğrafla daha iyi çıkabilir.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -1332,17 +1432,30 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "Mimi",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "Tidak ada kucing di sini. Coba foto yang memperlihatkan dia lebih besar.",
-                // "Lucu" as a compliment to the dog, so that a refusal is not
-                // a rebuke.
-                ["photo.dog"] = "Ini sepertinya anjing. Lucu, tapi tempat ini untuk kucing.",
-                ["photo.unclear"] = "Ada kucing, tapi terlalu buram untuk menyalin warnanya. Sekali lagi, saat dia diam?",
+                // REWRITTEN 2026-09-01 — see `Copy.cs` above `photo.no_animal`.
+                // "Coba foto yang…" and "Sekali lagi, saat dia diam?" were
+                // instructions to retry, which was the only way forward until
+                // this screen stopped refusing; they are read now over a bar
+                // saying "Menyalin warnanya…".
+                ["photo.no_animal"] = "Tidak ada kucing di sini — fotonya tetap kami pakai. Foto lain akan lebih pas.",
+                // "Lucu" as a compliment to the dog. It was there so that a
+                // refusal would not be a rebuke; nothing is refused now and it
+                // stays, because the dog's own colour is what the kitten takes —
+                // `capture.hint`'s promise ("akan mengikuti warnanya") word for
+                // word.
+                ["photo.dog"] = "Ini sepertinya anjing. Lucu — anak kucing akan mengikuti warnanya.",
+                ["photo.unclear"] = "Ada kucing, tapi fotonya buram — warnanya masih kira-kira. Foto yang lebih jelas akan lebih tepat.",
                 ["photo.accepted"] = "Dia sudah bersama kami.",
                 // "Coba sekali lagi?" until 2026-08-29 — see the English table.
-                // The tail is `capture.skipped`, the button standing below.
+                // Its replacement ("Foto lain mungkin berhasil, dan seekor anak
+                // kucing tetap menunggu Anda", the tail being `capture.skipped`)
+                // was true while this path still ended the run with nothing.
+                // From 2026-09-01 the kitten is made from her photo even here,
+                // so the line says that instead of promising one she can already
+                // see being made.
                 ["photo.our_fault"] =
-                    "Ada yang salah di pihak kami. Foto lain mungkin berhasil, " +
-                    "dan seekor anak kucing tetap menunggu Anda.",
+                    "Ada yang salah di pihak kami. Anak kucingnya tetap kami buat " +
+                    "dari foto Anda — dengan foto lain hasilnya mungkin lebih baik.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.
@@ -1499,18 +1612,33 @@ namespace CatShelter.Shell
                 ["cat.default_name"] = "Miu",
 
                 // --- the four outcomes ---------------------------------------
-                ["photo.no_animal"] = "Không thấy con mèo nào. Thử tấm ảnh có mèo lớn hơn nhé.",
-                // "Dễ thương lắm" as a compliment to the dog, so that a refusal
-                // is not a rebuke.
-                ["photo.dog"] = "Trông giống một chú chó. Dễ thương lắm, nhưng nhà này dành cho mèo.",
-                ["photo.unclear"] = "Có mèo, nhưng ảnh mờ quá nên không chép được màu lông. Thêm một tấm lúc mèo ngồi yên nhé?",
+                // REWRITTEN 2026-09-01 — see `Copy.cs` above `photo.no_animal`.
+                // "Thử tấm ảnh có mèo lớn hơn nhé" and "Thêm một tấm lúc mèo
+                // ngồi yên nhé?" asked for another photograph, which was the
+                // only way forward until this screen stopped refusing; they are
+                // read now over a bar saying "Đang chép màu lông…". No subject
+                // pronoun for the game, as everywhere in this table — "vẫn dùng
+                // tấm này" needs none, and "chúng tôi" would be a company
+                // writing to a customer.
+                ["photo.no_animal"] = "Không thấy con mèo nào — vẫn dùng tấm này. Tấm khác sẽ hợp hơn.",
+                // "Dễ thương lắm" as a compliment to the dog. It was written so
+                // that a refusal would not be a rebuke; nobody is refused now
+                // and it stays, because the dog's own màu lông is what the
+                // kitten takes — `capture.hint`'s promise ("sẽ mang màu lông
+                // ấy") word for word.
+                ["photo.dog"] = "Trông giống một chú chó. Dễ thương lắm — mèo con sẽ mang màu lông ấy.",
+                ["photo.unclear"] = "Có mèo, nhưng ảnh mờ — màu lông đành đoán thôi. Ảnh rõ hơn sẽ đúng màu hơn.",
                 ["photo.accepted"] = "Mèo về với nhà rồi.",
                 // "Thử lại tấm ấy nhé?" until 2026-08-29, and it named the one
                 // move that could only fail again — "tấm ấy", that same photo.
-                // The tail is `capture.skipped`, the button standing below.
+                // Its replacement ("Một tấm khác có thể được, và vẫn có một chú
+                // mèo con đang đợi bạn", the tail being `capture.skipped`) was
+                // true while this path still ended the run. From 2026-09-01 the
+                // kitten is made from her photo even here, so the line says that
+                // rather than promising one she is already watching appear.
                 ["photo.our_fault"] =
-                    "Có gì đó hỏng ở phía bên này. Một tấm khác có thể được, " +
-                    "và vẫn có một chú mèo con đang đợi bạn.",
+                    "Có gì đó hỏng ở phía bên này. Mèo con vẫn làm theo ảnh của bạn " +
+                    "— tấm khác có thể ra đẹp hơn.",
 
                 // --- the evening reminder ------------------------------------
                 // NO PLACEHOLDER — see the Spanish note.

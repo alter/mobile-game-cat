@@ -88,6 +88,12 @@ namespace CatShelter.View
         private Label _message;
         /// <summary>The verdict in small type — see where it is built.</summary>
         private Label _detail;
+        /// <summary>
+        /// The build stamp — see where it is built in <see cref="Build"/> for
+        /// why it exists and why it is its own label rather than sharing
+        /// <see cref="_detail"/>.
+        /// </summary>
+        private Label _stamp;
         private Button _camera;
         private Button _gallery;
         private Button _skip;
@@ -208,6 +214,41 @@ namespace CatShelter.View
             _detail.style.unityTextAlign = TextAnchor.MiddleCenter;
             _detail.style.display = DisplayStyle.None;
 
+            // The build stamp. Task 90-android/?? — the night this got added,
+            // the owner reported two photographs failing and the fix for
+            // exactly those two had already shipped twenty minutes earlier.
+            // Neither of us could tell whether the APK on his phone was built
+            // before or after it: he installs by hand, and there was no
+            // version anywhere on screen or in the package. We spent the
+            // exchange on that instead of on the bug.
+            //
+            // A separate label from `_detail`, deliberately, even though the
+            // two would sit inches apart: `_detail` is a diagnostic that
+            // appears and disappears with a rejected photograph, and this is
+            // always on screen and never about the photograph. Sharing one
+            // Label would mean either the stamp vanishes whenever a verdict
+            // is shown, or a verdict has to share its line with a commit
+            // hash — both wrong for different reasons.
+            //
+            // Same smallest-type, low-contrast look as `_detail` on purpose:
+            // this is for the person testing the build, not for a player, and
+            // it must read as background texture rather than as a message.
+            // `Application.version` is `PlayerSettings.bundleVersion`, which
+            // BuildScript.StampVersion stamps with the local date-time and the
+            // short git commit before every Android and iOS build — so the
+            // same string that lands here also lands in the APK manifest,
+            // readable with `adb shell dumpsys package <id> | grep
+            // versionName` without launching the app.
+            //
+            // No Copy key: this is a build stamp, not copy. A date and a
+            // commit hash mean the same thing in every one of the seventeen
+            // languages this screen already speaks.
+            _stamp = new Label(Application.version);
+            _stamp.style.fontSize = 11;
+            _stamp.style.color = new Color(0.25f, 0.21f, 0.17f, 0.45f);
+            _stamp.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _stamp.style.marginTop = 14;
+
             _root.Add(title);
             _root.Add(_message);
             _root.Add(_detail);
@@ -219,6 +260,9 @@ namespace CatShelter.View
             _root.Add(_camera);
             _root.Add(_gallery);
             _root.Add(_skip);
+            // Last, so it sits at the bottom of the screen's content — the
+            // one place on this screen nothing else claims.
+            _root.Add(_stamp);
             parent.Add(_root);
 
             // photo:screen_shown counts players who REACHED this screen — the

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
@@ -6,6 +7,70 @@ using UnityEngine;
 
 public static class BuildScript
 {
+    // Task 90-android/??, night of 2026-08-31 into 09-01. The owner reported
+    // two photographs failing on his phone. The fix for exactly those two had
+    // been pushed twenty minutes earlier, and neither of us could tell whether
+    // the APK in his hand was built before or after it — he installs by hand,
+    // there is no version on screen or in the package, and we spent the
+    // exchange on that instead of on the bug.
+    //
+    // `bundleVersion` rather than a separate settings file or a build number
+    // counter: Application.version reads it at runtime with no plumbing, and
+    // it lands in the APK manifest, so `adb shell dumpsys package
+    // com.sootpaw.game | grep versionName` answers the question without even
+    // launching the app. Local date-time plus the short commit hash, because
+    // a build number alone tells nobody which commit it was and a bare hash
+    // tells nobody when it was built relative to a report timestamped in a
+    // chat log.
+    //
+    // MUST NEVER FAIL A BUILD. A stamp that is wrong, or absent, still lets
+    // the game ship; a build that throws while stamping ships nothing. Every
+    // failure path below falls back to something honest rather than an
+    // exception: `git` missing, `git` erroring, or the process call itself
+    // throwing (no shell, no PATH, whatever) all land on the same "nogit"
+    // marker with a logged warning, not a stopped build.
+    private static void StampVersion()
+    {
+        string hash;
+        try
+        {
+            var psi = new ProcessStartInfo("git", "rev-parse --short HEAD")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var proc = Process.Start(psi);
+            hash = proc.StandardOutput.ReadToEnd().Trim();
+            proc.WaitForExit();
+            if (proc.ExitCode != 0 || string.IsNullOrEmpty(hash))
+            {
+                Console.WriteLine("[BuildScript] WARNING git rev-parse --short HEAD " +
+                                  $"exit={proc.ExitCode}, stamping 'nogit' instead");
+                hash = "nogit";
+            }
+        }
+        catch (Exception e)
+        {
+            // No git binary, no PATH, the process could not start at all —
+            // whatever it is, the build goes on without knowing the commit.
+            Console.WriteLine("[BuildScript] WARNING could not run git " +
+                              $"rev-parse: {e.Message}, stamping 'nogit' instead");
+            hash = "nogit";
+        }
+
+        try
+        {
+            PlayerSettings.bundleVersion = $"{DateTime.Now:MM-dd HH:mm} {hash}";
+        }
+        catch (Exception e)
+        {
+            // Belt-and-braces: even setting the field must not stop a build.
+            Console.WriteLine($"[BuildScript] WARNING could not set bundleVersion: {e.Message}");
+        }
+    }
+
     // Headless build entry: -executeMethod BuildScript.BuildOSXPlayer
     public static void BuildOSXPlayer()
     {
@@ -78,6 +143,7 @@ public static class BuildScript
 
     private static void ConfigureAndroid()
     {
+        StampVersion();
         UseTarget(BuildTargetGroup.Android, BuildTarget.Android);
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
@@ -121,6 +187,7 @@ public static class BuildScript
     // Output opens in Xcode: pick your device, set the team, press Play.
     public static void BuildIOSXcodeProject()
     {
+        StampVersion();
         UseTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
         var report = BuildPipeline.BuildPlayer(
             SceneList(),

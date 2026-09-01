@@ -258,18 +258,42 @@ public final class CatVision {
                 }
             }
 
-            if (detections.isEmpty()) {
-                // Rung 2. Either segmentation could not run, or it ran and no
-                // subject's crop was a cat or a dog. Both deserve one look at
-                // the whole frame before we say "no animal": the segmenter can
-                // miss an animal that fills the picture edge to edge.
-                Packet.Detection whole = labelCrop(
-                        context, bitmap,
-                        new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight()),
-                        decoded.scale);
-                if (whole != null) {
-                    detections.add(whole);
-                }
+            // The whole frame, ALWAYS — not only when the subject crops came
+            // back empty.
+            //
+            // It was `if (detections.isEmpty())` until 2026-09-01, and the
+            // reasoning went as far as it went: the segmenter can miss an
+            // animal that fills the picture edge to edge, so look at everything
+            // before saying "no animal". What it missed is that a subject crop
+            // can be WRONG rather than absent, and a wrong answer suppressed
+            // the second look exactly as a right one did.
+            //
+            // That is what the owner hit. On his phone ML Kit hands back his
+            // cat and the armchair she sits in as ONE subject — measured, 52 %
+            // of the crop against Vision's 33 % on the same photograph. The
+            // labeller is then shown a cat-in-a-chair and answers "Dog", or
+            // something unrecognisable. `detections` is not empty, so the frame
+            // was never looked at. Asked directly, that same photograph is
+            // `Cat 0.97`. Two of the photographs he sent came back "кошки здесь
+            // не видно" and "похоже на собаку" on his phone while scoring 0.97
+            // and 0.88 as whole frames here.
+            //
+            // So both questions are asked now: "is any cut-out subject a cat"
+            // and "is there a cat in this picture at all". `VisionAnswer.Best`
+            // prefers a cat over anything else, so finding one either way is
+            // enough. A photograph of a real dog is untouched — no cat is found
+            // in either view and confidence decides, as before.
+            //
+            // The cost is one extra labelling call: 18–130 ms measured over the
+            // reference set, against roughly 250 ms for the mask that has
+            // already been paid for. It buys the difference between accepting
+            // her cat and turning it away.
+            Packet.Detection whole = labelCrop(
+                    context, bitmap,
+                    new Rect(0, 0, bitmap.getWidth(), bitmap.getHeight()),
+                    decoded.scale);
+            if (whole != null) {
+                detections.add(whole);
             }
         } catch (Throwable t) {
             return Packet.failure("vision failed: " + t.getClass().getSimpleName());

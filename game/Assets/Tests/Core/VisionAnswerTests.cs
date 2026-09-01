@@ -47,6 +47,57 @@ namespace CatShelter.Core.Tests
         }
 
         [Test]
+        public void TheWholeFrameNetFindsTheCatWhenTheSubjectCropWasWrong()
+        {
+            // The owner's photograph, 2026-09-01. ML Kit merged his cat with
+            // the armchair into one subject and the labeller called that "Dog";
+            // asked about the picture as a whole it says Cat 0.97. Before the
+            // frame was labelled unconditionally, the wrong subject suppressed
+            // the right answer and he was told "похоже на собаку".
+            var answer = new VisionAnswer
+            {
+                ok = true,
+                imageWidth = 730,
+                imageHeight = 876,
+                detections = new[]
+                {
+                    new AnimalBox { identifier = "Dog", confidence = 0.71f,
+                                    x = 40, y = 120, width = 500, height = 600 },
+                    new AnimalBox { identifier = "Cat", confidence = 0.97f,
+                                    x = 0, y = 0, width = 730, height = 876 },
+                },
+            };
+
+            Assert.That(answer.Best.identifier, Is.EqualTo("Cat"));
+        }
+
+        [Test]
+        public void ALocatedCatOutranksTheWholeFrameEvenWhenLessConfident()
+        {
+            // The net answers "is there a cat here" and localises nothing — its
+            // box is the picture. `CatPhoto.Prepare` crops to that box, so
+            // letting it win where a subject already found the cat would hand
+            // the coat reader a photograph of the room. Cats first, then the
+            // ones that actually located something, then confidence.
+            var answer = new VisionAnswer
+            {
+                ok = true,
+                imageWidth = 730,
+                imageHeight = 876,
+                detections = new[]
+                {
+                    new AnimalBox { identifier = "Cat", confidence = 0.99f,
+                                    x = 0, y = 0, width = 730, height = 876 },
+                    new AnimalBox { identifier = "Cat", confidence = 0.80f,
+                                    x = 90, y = 140, width = 300, height = 380 },
+                },
+            };
+
+            Assert.That(answer.Best.confidence, Is.EqualTo(0.80f));
+            Assert.That(answer.Best.width, Is.EqualTo(300));
+        }
+
+        [Test]
         public void WithNoCatTheMostConfidentDetectionStillWins()
         {
             // A photograph of somebody's dog is unaffected: no cat to prefer,

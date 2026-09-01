@@ -76,15 +76,40 @@ namespace CatShelter.Core
         /// maximum still decides, and `PhotoJudge` still has the kind message
         /// about somebody's dog.
         ///
+        /// Android also labels the WHOLE FRAME now, as a net under the subject
+        /// crops (`CatVision.java`, 2026-09-01) — a subject can come back wrong
+        /// rather than absent, and a wrong one used to suppress the second
+        /// look. That net answers "is there a cat here" and localises nothing:
+        /// its box is the picture. So it is ranked BELOW any subject that found
+        /// the same animal, however confident it is. `CatPhoto.Prepare` crops
+        /// to the winning box, and a crop of the whole room instead of the cat
+        /// is exactly the input that makes the coat reader median the
+        /// furniture.
+        ///
         /// (Before that it was `detections[0]`, on the strength of a comment
         /// saying the plugin sorts by confidence — true in
         /// `Plugins/iOS/CatVision.swift`, checked nowhere. Ordering here means
         /// correctness does not depend on the Swift order or on remembering to
         /// re-check it. That still holds; only the key has changed.)
         /// </summary>
-        public AnimalBox Best =>
-            detections.OrderByDescending(d => d.IsCat)
-                      .ThenByDescending(d => d.confidence)
-                      .First();
+        public AnimalBox Best
+        {
+            get
+            {
+                // Copied out of the struct first: C# forbids a lambda inside a
+                // struct from touching `this` (CS1673), and the ordering below
+                // needs the frame's size to tell a located subject from the
+                // whole-picture net.
+                int w = imageWidth, h = imageHeight;
+                bool WholeFrame(AnimalBox b) =>
+                    w > 0 && h > 0 && b.x <= 0 && b.y <= 0 && b.width >= w && b.height >= h;
+
+                return detections.OrderByDescending(d => d.IsCat)
+                                 .ThenBy(d => WholeFrame(d) ? 1 : 0)
+                                 .ThenByDescending(d => d.confidence)
+                                 .First();
+            }
+        }
+
     }
 }

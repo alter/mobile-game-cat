@@ -823,42 +823,12 @@ namespace CatShelter.View
                 var cut = CatVision.Silhouette(photo);
                 if (!cut.HasMask) return default;
 
-                // The mask is one byte per pixel over the whole image. Its
-                // extent is the box; half confidence is the same threshold
-                // CatCoat reads it at, so the two agree about what "inside her"
-                // means.
-                int left = cut.maskWidth, right = -1, top = cut.maskHeight, bottom = -1;
-                for (int y = 0; y < cut.maskHeight; y++)
-                    for (int x = 0; x < cut.maskWidth; x++)
-                        if (cut.mask[y * cut.maskWidth + x] >= 128)
-                        {
-                            if (x < left) left = x;
-                            if (x > right) right = x;
-                            if (y < top) top = y;
-                            if (y > bottom) bottom = y;
-                        }
-                if (right <= left || bottom <= top) return default;
-
-                // A mask covering essentially the whole frame has located
-                // nothing — that is the "cat merged with the room" case, and a
-                // box around everything is the crop we were already taking.
-                // Saying so is better than pretending to have narrowed it.
-                float share = (float)(right - left) * (bottom - top)
-                              / (cut.maskWidth * cut.maskHeight);
-                if (share > 0.95f) return default;
-
-                return new AnimalBox
-                {
-                    identifier = "Cat",
-                    confidence = 0f,     // located, not identified — and the
-                                         // difference matters: nothing reads
-                                         // this number, and a number here would
-                                         // invite something to.
-                    x = left,
-                    y = top,
-                    width = right - left,
-                    height = bottom - top,
-                };
+                // The whole rule lives in Core.SubjectBox, where the test suite
+                // can reach it. It was eleven lines here and it shipped missing
+                // its conversion back into photograph pixels — see the note on
+                // that class for what that cost and how it was measured.
+                return Core.SubjectBox.Of(cut.mask, cut.maskWidth, cut.maskHeight,
+                                          cut.answer.imageWidth, cut.answer.imageHeight);
             }
             catch (Exception e)
             {

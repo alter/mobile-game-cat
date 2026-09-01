@@ -319,69 +319,143 @@ namespace CatShelter.View
         /// <summary>
         /// The pipeline. Public so a PlayMode test can push a stubbed photo
         /// through it without a picker.
+        ///
+        /// THIS SCREEN NEVER REFUSES TO MAKE A CAT. As of 2026-09-01 there is
+        /// no way out of this method that leaves the player standing on the
+        /// capture screen holding a photograph we would not use. Every branch
+        /// ends at <see cref="OnCatReady"/>.
+        ///
+        /// Until that day there were three `yield break`s in here and each one
+        /// was a dead end: Vision could not run, the judge said "not a cat", or
+        /// the crop failed. The middle one did nearly all the damage. It read
+        /// `if (!PhotoJudge.Accepts(outcome))` and stopped, and what the owner
+        /// saw for two days was his own cat — filling the frame, in focus —
+        /// answered with "кошки здесь не видно" or "похоже на собаку" and an
+        /// instruction to go and take a better photograph. Three separate
+        /// causes for that were found and fixed inside one day and a fourth was
+        /// on its way; <see cref="PhotoJudge"/> carries the full account and
+        /// the argument for why deleting the gate is right rather than lazy.
+        ///
+        /// What recognition is FOR now: locating her, so
+        /// <see cref="Shell.CatPhoto.Prepare"/> can aim the crop at the cat
+        /// rather than at the room. When it locates nothing worth believing,
+        /// the whole frame is the crop — which is exactly what the Android
+        /// build did for months before it had a recogniser at all, so this is a
+        /// path with mileage on it and not a fallback invented today.
+        ///
+        /// The copy still comes off the four outcomes and is still shown. It is
+        /// a remark made in passing about the photograph, not a refusal — the
+        /// dog message in particular is kept precisely because it is a kind and
+        /// true thing to say on the way to giving her the cat anyway.
         /// </summary>
         public IEnumerator Handle(byte[] photo)
         {
             SetBusy(true, Shell.Copy.Of("capture.looking"));
             yield return null;      // let the busy state paint before Vision blocks
 
+            // Where the crop will be aimed. A default box means "use the whole
+            // image" to both halves of CatPhoto (the Swift one and the Java
+            // one say so in as many words), and that is the answer whenever
+            // recognition has not given us somewhere better to point. It is
+            // never a reason to stop.
+            var box = default(AnimalBox);
+
             var answer = Recognise(photo);
             if (answer.Failed)
             {
-                // 50-photo/05 VERIFY: Vision could not run at all - decode
+                // 50-photo/05 VERIFY: Vision could not run at all — decode
                 // failure, not iOS, or the request itself threw. Not a
-                // judgement that there is no cat, so it does not get the "no
-                // cat in this one" copy; same honest message as a crop
-                // failure below, since neither is the player's doing.
+                // judgement that there is no cat, which is why it keeps
+                // `photo.our_fault` instead of borrowing the "no cat in this
+                // one" copy.
+                //
+                // It is one of the two genuine failures and is still said out
+                // loud, but it no longer ends the run. A recogniser that could
+                // not run has told us nothing whatever about the photograph;
+                // there may well be a cat filling it. So: the honest sentence,
+                // and then the whole frame.
                 Debug.LogWarning($"[CaptureScreen] vision failed: {answer.error}");
-                OnTrouble?.Invoke($"vision could not run: {answer.error}");
+                OnTrouble?.Invoke(
+                    $"vision could not run: {answer.error}; cropping the whole frame");
                 Answer(Shell.Copy.Of("photo.our_fault"), $"vision · {answer.error}");
-                Analytics.PhotoRejected();
-                SetBusy(false);
-                yield break;
             }
-
-            var best = answer.FoundAnimal ? answer.Best : default;
-            var outcome = PhotoJudge.Judge(
-                answer.FoundAnimal ? best.identifier : null,
-                answer.FoundAnimal ? best.confidence : 0f);
-
-            // The identifier and the confidence, not just the verdict. A photo
-            // turned away as "no cat" and one turned away as "cat, 0.58" are
-            // the same sentence to the player and completely different faults:
-            // the first says the labeller saw something else, the second says
-            // it saw her cat and MinimumConfidence (0.60) was the thing that
-            // stopped it. Without the number there is no way to tell them apart
-            // from a phone that is not here.
-            OnTrouble?.Invoke(
-                $"vision said {(answer.FoundAnimal ? best.identifier : "nothing")} " +
-                $"at {(answer.FoundAnimal ? best.confidence : 0f):F2} -> {outcome}");
-
-            var verdict = answer.FoundAnimal
-                ? $"{best.identifier} {best.confidence:F2}"
-                : "nothing";
-            if (PhotoJudge.Accepts(outcome)) HintAgain(PhotoMessages.For(outcome));
-            else Answer(PhotoMessages.For(outcome), verdict);
-
-            if (!PhotoJudge.Accepts(outcome))
+            else
             {
-                Analytics.PhotoRejected();
-                SetBusy(false);
-                yield break;
+                var best = answer.FoundAnimal ? answer.Best : default;
+                var outcome = PhotoJudge.Judge(
+                    answer.FoundAnimal ? best.identifier : null,
+                    answer.FoundAnimal ? best.confidence : 0f);
+
+                // The identifier and the confidence, not just the verdict. A
+                // photograph read as "no cat" and one read as "cat, 0.58" are
+                // the same sentence to the player and completely different
+                // facts: the first says the labeller saw something else, the
+                // second says it saw her cat below MinimumConfidence (0.60).
+                //
+                // Both produce a cat now, so this line is no longer the
+                // difference between a player who got one and a player who did
+                // not. It is the difference between a crop aimed at the cat and
+                // a crop of the whole room — and the room is what her coat
+                // would then be read from, so it is still the most useful thing
+                // this file writes down.
+                OnTrouble?.Invoke(
+                    $"vision said {(answer.FoundAnimal ? best.identifier : "nothing")} " +
+                    $"at {(answer.FoundAnimal ? best.confidence : 0f):F2} -> {outcome}");
+
+                var verdict = answer.FoundAnimal
+                    ? $"{best.identifier} {best.confidence:F2}"
+                    : "nothing";
+                // A cat we are sure of gets the plain hint; the other three get
+                // a ground under them, because a remark about the photograph
+                // should still look like a reply rather than like the screen
+                // she started on. Answer() makes that case at length.
+                if (PhotoJudge.SawACat(outcome)) HintAgain(PhotoMessages.For(outcome));
+                else Answer(PhotoMessages.For(outcome), verdict);
+
+                // The one thing the outcome still decides. An animal we are
+                // willing to name has a box worth cropping to — a dog's
+                // included, because a dog's own fur is a better thing to read a
+                // coat off than the sofa behind her, and we are making a cat
+                // from this photograph either way. `NoAnimal` means the label
+                // is not to be believed, and a box we do not believe is worse
+                // than no box at all.
+                if (PhotoJudge.LocatedAnAnimal(outcome)) box = best;
             }
 
             SetBusy(true, Shell.Copy.Of("capture.colours"));
             yield return null;
 
-            var prepared = Crop(photo, best);
+            var prepared = Crop(photo, box);
             if (prepared == null)
             {
-                // Vision said cat and the crop still failed: not the player's
-                // doing, and not something she can fix by trying harder.
-                OnTrouble?.Invoke("the crop failed on an accepted cat");
+                // The other genuine failure, and now the only one that costs
+                // her the cat in her photograph: the bytes could not be
+                // decoded, or this device could not hold them. Nothing to make
+                // a cat FROM — not a judgement we can shrug off, an empty hand.
+                //
+                // So she gets the same kitten the skip button gives rather than
+                // an error screen. CatTraits.Default is a supported, shipped,
+                // deliberately shared cat (see Skip), which makes this the
+                // mildest ending available: one sentence saying it was our
+                // doing, and then a cat.
+                //
+                // SetBusy(false) is deliberately not called, for the reason
+                // spelled out at the end of the path below — whoever handles
+                // OnCatReady owns the next frame, and the last frame this
+                // screen paints must not be the "everything is fine, press
+                // something" one.
+                OnTrouble?.Invoke("the crop failed; handing over the default cat");
                 Answer(Shell.Copy.Of("photo.our_fault"), "crop");
+                // The only surviving meaning of photo:rejected, and a narrower
+                // one than it had. It used to count every photograph the judge
+                // turned away, which was most of the funnel's losses; it now
+                // counts only the ones we could not process at all. Worth
+                // keeping under that name — "she gave us a photograph and did
+                // not get her own cat" is precisely what section 5 wants to
+                // watch — but a reading from before today is not comparable
+                // with one from after.
                 Analytics.PhotoRejected();
-                SetBusy(false);
+                OnCatReady?.Invoke(CatTraits.Default);
                 yield break;
             }
 

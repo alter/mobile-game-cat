@@ -425,6 +425,38 @@ namespace CatShelter.View
             SetBusy(true, Shell.Copy.Of("capture.colours"));
             yield return null;
 
+            // No box from the labeller? Ask the segmenter where the subject is
+            // before falling back to the whole picture.
+            //
+            // The two are independent, and that is the point. The labeller says
+            // WHAT it saw and can be wrong about it; the segmenter says WHERE
+            // something is and does not care what it is called. On the owner's
+            // phone the first fails on photographs the second handles fine — he
+            // gets "кота тут не видно" on a cat filling the frame, a file that
+            // measures Cat 0.97 here — and until now a failed label meant a
+            // crop of the entire room.
+            //
+            // What that cost, measured on his `photo_3` on 2026-09-01: the
+            // colour taken over the whole frame reads `ginger`, over the
+            // subject's own pixels `brown`. He reported a ginger kitten from a
+            // brown cat, and this is where the ginger came from — the room, not
+            // the animal. The species line he saw was wrong and harmless; the
+            // crop underneath it was wrong and on screen.
+            //
+            // Deliberately AFTER the message is painted and the bar is moving:
+            // this costs a mask over the full photograph, a few hundred
+            // milliseconds, and it must not delay her being told what happened.
+            if (box.width <= 0 || box.height <= 0)
+            {
+                var found = SubjectBox(photo);
+                if (found.width > 0 && found.height > 0)
+                {
+                    OnTrouble?.Invoke("no label box; cropping to the subject " +
+                                      $"mask {found.width}x{found.height}");
+                    box = found;
+                }
+            }
+
             var prepared = Crop(photo, box);
             if (prepared == null)
             {
@@ -755,6 +787,67 @@ namespace CatShelter.View
             _message.style.backgroundColor = Color.clear;
             _detail.style.display = DisplayStyle.None;
         }
+
+        /// <summary>
+        /// Where the segmenter thinks the subject is, as a box, or an empty box
+        /// when it has nothing to say.
+        ///
+        /// Injected like <see cref="Recognise"/> and <see cref="Crop"/> so a
+        /// test can drive this path without a device — the whole point of this
+        /// fallback is a phone whose labeller behaves differently from ours,
+        /// and a path only exercised on hardware nobody has is a path nobody
+        /// checks.
+        /// </summary>
+        public Func<byte[], AnimalBox> SubjectBox = photo =>
+        {
+            try
+            {
+                var cut = CatVision.Silhouette(photo);
+                if (!cut.HasMask) return default;
+
+                // The mask is one byte per pixel over the whole image. Its
+                // extent is the box; half confidence is the same threshold
+                // CatCoat reads it at, so the two agree about what "inside her"
+                // means.
+                int left = cut.maskWidth, right = -1, top = cut.maskHeight, bottom = -1;
+                for (int y = 0; y < cut.maskHeight; y++)
+                    for (int x = 0; x < cut.maskWidth; x++)
+                        if (cut.mask[y * cut.maskWidth + x] >= 128)
+                        {
+                            if (x < left) left = x;
+                            if (x > right) right = x;
+                            if (y < top) top = y;
+                            if (y > bottom) bottom = y;
+                        }
+                if (right <= left || bottom <= top) return default;
+
+                // A mask covering essentially the whole frame has located
+                // nothing — that is the "cat merged with the room" case, and a
+                // box around everything is the crop we were already taking.
+                // Saying so is better than pretending to have narrowed it.
+                float share = (float)(right - left) * (bottom - top)
+                              / (cut.maskWidth * cut.maskHeight);
+                if (share > 0.95f) return default;
+
+                return new AnimalBox
+                {
+                    identifier = "Cat",
+                    confidence = 0f,     // located, not identified — and the
+                                         // difference matters: nothing reads
+                                         // this number, and a number here would
+                                         // invite something to.
+                    x = left,
+                    y = top,
+                    width = right - left,
+                    height = bottom - top,
+                };
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[CaptureScreen] subject box failed: {e.Message}");
+                return default;
+            }
+        };
 
         private void SetBusy(bool busy, string text = null)
         {

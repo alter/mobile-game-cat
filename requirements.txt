@@ -27,3 +27,9 @@ Pillow>=10.0
 # A dependency that only exists on the machine that wrote it is not a
 # dependency, it is a local accident.
 numpy>=1.24
+
+# tools/fonts/subset.py (cuts the shipped Noto faces down to the characters
+# Copy*.cs actually uses) and tools/tests/test_font_coverage.py (reads the
+# cut faces' cmaps back to prove no character was left out — task
+# 60-shell-build/23, after commit 9478eb4 caught 25 missing glyphs by hand).
+fonttools>=4.0

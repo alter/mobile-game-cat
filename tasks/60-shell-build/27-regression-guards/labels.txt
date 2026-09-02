@@ -1,0 +1,7 @@
+phase:shell
+role:QA
+type:chore
+priority:P1
+status:done
+verify:pending
+milestone:M6

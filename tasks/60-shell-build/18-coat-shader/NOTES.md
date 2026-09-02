@@ -202,3 +202,23 @@ distinguishable from each other. My first attempt to measure that compared rows
 at fixed coordinates and then by content bounding box, and both are unsound —
 the three poses crop differently, so the numbers were measuring alignment, not
 pattern. It needs a proper per-cell comparison and it is not done.
+
+# Закрыто 2026-09-02 — обе части OUTCOME на месте
+
+**Составная часть, дающая цветного кота из (CatTraits, state):**
+`View/CoatBuilder.cs` — `TryBuildFor(traits, state, size)`, работает от трёх
+коротких основ и накладывает маски, когда они есть (`CoatMasks`, маски полос
+`cat_N_short_base_pattern_tabby.png`). С 02.09 есть и пошаговый вариант,
+уступающий кадр (`TryBuildForOverFrames`), тождественный синхронному
+побайтно — доказано стендом.
+
+**Сетка сочетаний, чтобы смотреть без игры до девятой комнаты:** две штуки,
+и обе живые. `View/CoatGridView.cs` — на устройстве по признаку `coat.txt`;
+`build/coat-harness/` — на этой машине, без Unity, 26 шуб за прогон плюс
+проверка глаз (`EYE CHECK PASSED`). Снимки сетки лежат в этом же каталоге
+(`grid-2026-08-27.png`, `ios-coat-grid.png`, `shots/`).
+
+Чего эта задача НЕ обещала и что осталось за ней: длинношёрстные основы
+(`40-art/03`, ждёт генерации — OWNER-TODO пункт 14) и цвет глаз, который
+измеряется, но не рисуется (`CoatBuilder.Eyes` объявлен и не применяется —
+решение по правилу Парето: пусть остаётся невидимым, чем красить неверно).

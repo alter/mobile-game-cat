@@ -147,7 +147,7 @@ PlayerSettings:
   loadStoreDebugModeEnabled: 0
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
-  bundleVersion: 09-02 21:05 ddc64d7 vc260
+  bundleVersion: 09-02 21:19 af2fac3 vc261
   preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
@@ -176,10 +176,10 @@ PlayerSettings:
   buildNumber:
     Standalone: 0
     VisionOS: 0
-    iPhone: 260
+    iPhone: 261
     tvOS: 0
   overrideDefaultApplicationIdentifier: 0
-  AndroidBundleVersionCode: 260
+  AndroidBundleVersionCode: 261
   AndroidMinSdkVersion: 33
   AndroidTargetSdkVersion: 0
   AndroidPreferredInstallLocation: 1

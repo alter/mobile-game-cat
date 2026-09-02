@@ -114,3 +114,43 @@ def test_open_and_rejection_are_not_the_same_site():
     # and nowhere near the photo flow.
     assert "GameBoot.cs" in calls_of("AppOpen")
     assert "CaptureScreen.cs" not in calls_of("AppOpen")
+
+
+def _call_count(helper: str) -> int:
+    pattern = re.compile(rf"Analytics\.{helper}\s*\(")
+    return sum(len(pattern.findall(strip_comments(text))) for _, text in sources())
+
+
+def test_photo_uploaded_fires_from_exactly_one_place():
+    # A 2026-09-02 device run (task 70-analytics/02 VERIFY) confirmed
+    # photo:uploaded appears exactly once per real photo accepted — a second
+    # call site would double-count the metric-two funnel without anyone
+    # noticing, since the log would still show *an* event.
+    assert _call_count("PhotoUploaded") == 1
+
+
+def test_photo_uploaded_fires_after_the_crop_can_fail():
+    # Watched on device: the crop-failure branch (prepared == null) ends in
+    # PhotoRejected + the default cat and returns before PhotoUploaded is
+    # ever reached, so PhotoUploaded only fires on a photograph that was
+    # actually cropped — "accepted", not merely "handled".
+    capture = (ROOT / "game/Assets/View/CaptureScreen.cs").read_text()
+    null_check = capture.index("if (prepared == null)")
+    uploaded = capture.index("Analytics.PhotoUploaded()")
+    assert null_check < uploaded, "PhotoUploaded moved ahead of the crop-failure check"
+
+
+def test_level_start_fires_from_new_level_and_from_resume():
+    # A 2026-09-02 device run resumed a crafted mid-level save and watched
+    # level_start fire from Resume(), not just StartLevel() — both are real
+    # entry points (a fresh level, a relaunch mid-level) and both must report.
+    assert _call_count("LevelStart") == 2
+
+
+def test_level_win_and_fail_fire_from_exactly_one_place():
+    # Both watched on device (crafted one-move-from-win/-jam saves, see this
+    # task's NOTES.md): Finish() is the only place either can fire from, so a
+    # second site would be either a duplicate report or a second, unreviewed
+    # ending path.
+    assert _call_count("LevelWin") == 1
+    assert _call_count("LevelFail") == 1

@@ -27,6 +27,11 @@ namespace CatShelter.Shell
             // identical to today's behaviour until a key exists.
             var (designSink, progressionSink) =
                 GameAnalyticsSink.TryConfigure(gameObject);
+            // Observability harness for this task's VERIFY: drop an
+            // `analytics.txt` beside the save and every call also lands in
+            // the log and in `analytics-log.txt`. No file, no change.
+            (designSink, progressionSink) =
+                AnalyticsDebugSink.Wrap(gameObject, (designSink, progressionSink));
             Core.Analytics.Configure(designSink, progressionSink);
             // Core cannot reach Debug.LogWarning itself; without this line an
             // event dropped by Analytics (fired before Configure, or a level

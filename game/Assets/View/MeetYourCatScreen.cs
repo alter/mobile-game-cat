@@ -172,14 +172,40 @@ namespace CatShelter.View
             //
             // TryBuildFor also remembers: in memory by traits, and on disk
             // across launches. Nothing on this screen ever needed the big one.
-            var built = CoatBuilder.TryBuildFor(traits, State, 256);
-            // Untinted silhouette rather than no screen at all: this is the
-            // moment she meets her cat, and a coat that will not build must not
-            // cost her the name field with it.
-            var art = built != null ? built : CoatBuilder.LoadBase(traits, State);
+            //
+            // Over frames since 2026-09-02 (60-shell-build/19), and the number
+            // decided it rather than a feeling: one 256 coat measured 74 ms of
+            // held main thread on emulator-5554, which is four frames at 60 Hz
+            // on the one screen where she is watching her cat appear. Below a
+            // frame it would have been left alone; it is not below a frame.
+            //
+            // So the silhouette goes up now and her colour arrives a few frames
+            // later. This is also the untinted fallback: a coat that will not
+            // build must not cost her the name field with it, so the silhouette
+            // is painted first and simply stays if nothing replaces it.
+            var art = CoatBuilder.LoadBase(traits, State);
             if (art != null)
             {
                 portrait.style.backgroundImage = new StyleBackground(art);
+            }
+
+            // Coroutines need a live component. Nothing in the game builds this
+            // screen on a disabled object, but a test that news one up would,
+            // and it should get a cat rather than an exception — the
+            // synchronous path is kept for exactly that.
+            if (isActiveAndEnabled)
+            {
+                StartCoroutine(CoatBuilder.TryBuildForOverFrames(traits, State, 256, built =>
+                {
+                    if (built != null)
+                        portrait.style.backgroundImage = new StyleBackground(built);
+                }));
+            }
+            else
+            {
+                var built = CoatBuilder.TryBuildFor(traits, State, 256);
+                if (built != null)
+                    portrait.style.backgroundImage = new StyleBackground(built);
             }
 
             // TextField has no built-in placeholder on the UI Toolkit version

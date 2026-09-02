@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -76,6 +78,28 @@ namespace CatShelter.View
         /// <summary>Every mask for one silhouette, as coverage 0..1 per pixel.</summary>
         public static Dictionary<string, float[]> Build(Color32[] px, int w, int h, int seed)
         {
+            // Drained in one frame. See BuildOverFrames for why the work lives
+            // in an enumerator: there is one sequence, and only the crank
+            // differs. 60-shell-build/19.
+            Dictionary<string, float[]> built = null;
+            var steps = BuildOverFrames(px, w, h, seed, m => built = m);
+            while (steps.MoveNext()) { }
+            return built;
+        }
+
+        /// <summary>
+        /// <see cref="Build"/> with a frame boundary between its stages.
+        ///
+        /// This pass became the dearest single step of a coat once
+        /// `CoatBuilder.Outline` was cut into bands — measured at 190 ms for one
+        /// 512 silhouette on emulator-5554, eleven frames at 60 Hz. It is a
+        /// sequence of independent searches over the same body mask, so the
+        /// seams are where one finishes and the next begins; nothing here reads
+        /// a field the stage before it is still writing.
+        /// </summary>
+        public static IEnumerator BuildOverFrames(Color32[] px, int w, int h, int seed,
+                                                  Action<Dictionary<string, float[]>> onBuilt)
+        {
             var body = new bool[px.Length];
             var lum = new float[px.Length];
             int top = h, bottom = -1, left = w, right = -1;
@@ -93,7 +117,8 @@ namespace CatShelter.View
                 }
 
             var masks = new Dictionary<string, float[]>();
-            if (bottom < 0) return masks;
+            if (bottom < 0) { onBuilt?.Invoke(masks); yield break; }
+            yield return null;
 
             // Rows run bottom-up in a texture, so "top of the cat" is the high
             // row index. Everything below is written in that space.
@@ -101,7 +126,10 @@ namespace CatShelter.View
 
             var eyes = FindEyes(body, lum, w, h, top, bottom);
             masks[Eyes] = eyes;
+            yield return null;
+
             masks[EyeGuard] = FindEyeGuard(body, lum, w, h, top, bottom);
+            yield return null;
 
             FindEyeCentre(eyes, w, out float eyeY, out float eyeX, out bool haveEyes);
             // Head box: the upper 42% of the figure.
@@ -142,18 +170,27 @@ namespace CatShelter.View
             // cat has an edge — a soft one, not none.
             masks[MarkFace] = Blur(Ellipse(w, h, eyeY - height * 0.10f, eyeX,
                                            height * 0.11f, width * 0.11f), w, h, 5, body);
+            yield return null;
+
             masks[MarkChest] = Blur(Ellipse(w, h, headBottom - height * 0.10f, eyeX,
                                             height * 0.13f, width * 0.10f), w, h, 6, body);
+            yield return null;
 
             var paws = new float[px.Length];
             int pawTop = top + Mathf.RoundToInt(height * 0.14f);
             for (int i = 0; i < px.Length; i++)
                 if (body[i] && i / w < pawTop) paws[i] = 1f;
             masks[MarkPaws] = Blur(paws, w, h, 4, body);
+            yield return null;
 
             masks[PatternPointed] = Pointed(body, w, h, top, bottom, left, right);
+            yield return null;
+
             masks[PatternBicolor] = Blur(Patches(body, w, h, 4, 0.52f, 10, seed), w, h, 8, body);
+            yield return null;
+
             masks[PatternCalico] = Blur(Patches(body, w, h, 7, 0.55f, 6, seed + 1), w, h, 5, body);
+            yield return null;
             // Not computed any more. The 28.08 cat delivery draws real tabby
             // markings into the silhouette — rings round the legs and tail, an M
             // on the forehead, stripes leaving the spine and curving over the
@@ -177,7 +214,7 @@ namespace CatShelter.View
                 tuxedo[i] = Mathf.Clamp01(masks[MarkChest][i] + masks[MarkPaws][i]);
             masks[PatternTuxedo] = tuxedo;
 
-            return masks;
+            onBuilt?.Invoke(masks);
         }
 
         // ---------------------------------------------------------------

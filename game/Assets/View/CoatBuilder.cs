@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using CatShelter.Core;
@@ -182,18 +183,88 @@ namespace CatShelter.View
         /// </summary>
         public static Texture2D Build(Texture2D baseCoat, CatTraits traits, int state)
         {
+            // The synchronous path is the frame-sliced one, drained in a single
+            // frame. Written this way on purpose (60-shell-build/19): the first
+            // attempt kept two copies of the pass order — one here, one in the
+            // coroutine — and two copies of a nine-stage pipeline is a cat that
+            // renders differently depending on which screen asked for it. There
+            // is one sequence, and the only difference is who spins the crank.
+            Texture2D result = null;
+            var steps = Steps(baseCoat, traits, state, t => result = t);
+            while (steps.MoveNext()) { }
+            return result;
+        }
+
+        /// <summary>
+        /// The pass order, with a frame boundary between every expensive stage.
+        ///
+        /// Each `yield return null` is a place the work can be put down and
+        /// picked up next frame. They sit where they do because that is where
+        /// the pixel arrays are handed on whole — every stage takes the finished
+        /// output of the one before and nothing is half-written across the seam.
+        ///
+        /// Not a worker thread, and that is not laziness. <see cref="ReadPixels"/>
+        /// and the texture at the end are `Texture2D`, which Unity permits only
+        /// on the main thread; the arithmetic in between could move, but then
+        /// the two ends would have to marshal back and the seams would be in the
+        /// same places anyway. Frames buy the same thing — a screen that keeps
+        /// drawing — at a fraction of the risk.
+        /// </summary>
+        private static IEnumerator Steps(Texture2D baseCoat, CatTraits traits,
+                                         int state, Action<Texture2D> onBuilt)
+        {
             if (baseCoat == null) throw new ArgumentNullException(nameof(baseCoat));
             if (traits == null) throw new ArgumentNullException(nameof(traits));
             state = Mathf.Clamp(state, 1, 3);
 
             int w = baseCoat.width, h = baseCoat.height;
+
+            // The longest single stage, and its name. Wall-clock time across a
+            // frame-sliced build says nothing about the main thread — most of it
+            // is waiting for the screen — so this is the number that answers
+            // "did anything here hold a frame". Reported by the callers'
+            // `[Perf] coat` lines.
+            // Restart, work, Mark: the clock is started immediately before a
+            // pass and read immediately after, so the frame the build spent
+            // waiting in between never lands on anybody's stage. Left running
+            // across the yield the first time, it charged CoatMasks with the
+            // board's own first render — 247 ms for a pass that takes 12.
+            var stage = new System.Diagnostics.Stopwatch();
+            LongestStageMs = 0; LongestStage = "-";
+            void Mark(string name)
+            {
+                var ms = stage.ElapsedMilliseconds;
+                if (ms > LongestStageMs) { LongestStageMs = ms; LongestStage = name; }
+                stage.Reset();
+            }
+
+            stage.Start();
             var px = ReadPixels(baseCoat);
+            Mark("read");
+            yield return null;
 
             // Masks come from the silhouette itself (CoatMasks), so they line
             // up exactly, and a hand-drawn file replaces any of them the moment
             // one exists — see MaskOf.
-            var masks = CoatMasks.Build(px, w, h, seed: baseCoat.name.GetHashCode());
+            // Driven stage by stage rather than called in one piece: CoatMasks
+            // is a run of independent searches over the same body, and once
+            // Outline had been cut into bands this became the longest thing left
+            // — 190 ms for one 512 silhouette on emulator-5554, measured rather
+            // than guessed. Its own enumerator hands a frame back between them.
+            Dictionary<string, float[]> masks = null;
+            var maskSteps = CoatMasks.BuildOverFrames(
+                px, w, h, seed: baseCoat.name.GetHashCode(), m => masks = m);
+            while (true)
+            {
+                stage.Start();
+                bool more = maskSteps.MoveNext();
+                Mark("masks");
+                if (!more) break;
+                yield return null;
+            }
+            yield return null;
 
+            stage.Start();
             px = Reshape(px, w, h, Waist[state]);
 
             // The drawing's own silhouette, kept before any fur is grown on it.
@@ -210,8 +281,13 @@ namespace CatShelter.View
             // The rim belongs to the drawing, not to the fur standing off it.
             var drawn = new bool[px.Length];
             for (int i = 0; i < px.Length; i++) drawn[i] = px[i].a > 200;
+            Mark("reshape");
+            yield return null;
 
+            stage.Start();
             px = Weather(px, w, h, Neglect[state], seed: 5);
+            Mark("weather");
+            yield return null;
 
             // The stripes come off for every cat that is not a tabby — but only
             // while the drawing HAS stripes, and since 2026-08-29 it does not.
@@ -241,11 +317,52 @@ namespace CatShelter.View
             // with a coat pattern returns, this is the code that takes it off.
             const bool basesHaveDrawnStripes = false;
             if (basesHaveDrawnStripes && traits.Pattern != "tabby")
+            {
+                stage.Start();
                 px = Deband(px, w, h, masks, baseCoat.name);
-            px = Tint(px, traits, masks, baseCoat.name);
-            px = Marks(px, w, h, traits, masks, baseCoat.name);
-            px = Outline(px, w, h, Mathf.RoundToInt(w * 0.016f), drawn);
+                Mark("deband");
+                yield return null;
+            }
 
+            stage.Start();
+            px = Tint(px, traits, masks, baseCoat.name);
+            Mark("tint");
+            yield return null;
+
+            stage.Start();
+            px = Marks(px, w, h, traits, masks, baseCoat.name);
+            Mark("marks");
+            yield return null;
+
+            // The dear one, and the only pass cut open rather than merely
+            // fenced off. Outline scans a square window per pixel — 33×33 at
+            // 1024 — so a frame boundary on each side of it still leaves one
+            // step far longer than a frame, which is the thing this whole
+            // exercise is against. Bands of rows instead: each band reads the
+            // untouched source and writes only its own rows, so the picture is
+            // the same whatever the band size (proved against the coat harness,
+            // 26 of 26 coats byte-identical).
+            //
+            // 32 rows: at 256 that is eight bands and at 512 sixteen, which
+            // keeps the band's cost roughly level as the source grows instead of
+            // letting it climb with the picture.
+            int rim = Mathf.RoundToInt(w * 0.016f);
+            if (rim > 0)
+            {
+                var outlined = new Color32[px.Length];
+                Array.Copy(px, outlined, px.Length);
+                const int Band = 32;
+                for (int y0 = 0; y0 < h; y0 += Band)
+                {
+                    stage.Start();
+                    OutlineRows(px, outlined, w, h, rim, drawn, y0, Mathf.Min(y0 + Band, h));
+                    Mark($"outline@{y0}");
+                    yield return null;
+                }
+                px = outlined;
+            }
+
+            stage.Start();
             var result = new Texture2D(w, h, TextureFormat.RGBA32, mipChain: false)
             {
                 name = $"{baseCoat.name}_{traits.BaseColor}_{state}",
@@ -254,8 +371,16 @@ namespace CatShelter.View
             };
             result.SetPixels32(px);
             result.Apply(updateMipmaps: false);
-            return result;
+            Mark("upload");
+            onBuilt?.Invoke(result);
         }
+
+        /// <summary>How long the dearest single stage of the last build took,
+        /// and which one it was. See <see cref="Steps"/>.</summary>
+        public static long LongestStageMs { get; private set; }
+
+        /// <inheritdoc cref="LongestStageMs"/>
+        public static string LongestStage { get; private set; } = "-";
 
         /// <summary>
         /// What stopped the last <see cref="TryBuild"/>, or null if none has
@@ -394,6 +519,20 @@ namespace CatShelter.View
         /// <summary>
         /// A built coat, kept so re-entering a room does not rebuild it. Keyed
         /// by everything that changes the result.
+        ///
+        /// **This dictionary owns what is in it.** No caller may destroy a
+        /// texture handed back by <see cref="TryBuildFor"/>, and the rule is not
+        /// bookkeeping: two of the three things stored here are not ours to
+        /// destroy in the first place. A default cat's coat is the baked
+        /// `Art/coat_default_N` asset straight out of Resources — destroying it
+        /// takes the art out of the game for the rest of the run — and every
+        /// entry is shared by whoever asks for the same cat at the same size,
+        /// so one screen tidying up on its way out empties another's portrait.
+        /// The board did exactly that until 2026-09-02 (`DebugGameView.RenderCat`).
+        ///
+        /// The cache outlives every screen on purpose. It is static, it survives
+        /// the board being destroyed on the way back to the house map, and that
+        /// is what makes returning to a room free.
         /// </summary>
         private static readonly Dictionary<string, Texture2D> _builtCache = new();
 
@@ -476,14 +615,74 @@ namespace CatShelter.View
         public static Texture2D TryBuildFor(CatTraits traits, int state, int size)
         {
             if (traits == null) return null;
-            // Spots are part of the key. Without them two cats alike in every
-            // class trait and different in the one thing that identifies them —
-            // a sock on one paw — share a cached coat, and the second player
-            // gets the first player's cat.
+            var key = KeyFor(traits, state, size);
+            var ready = Remembered(key, traits, state, size);
+            if (ready != null) return ready;
+
+            var art = LoadBase(traits, state);
+            if (art == null) return null;
+            var built = TryBuild(Downscale(art, size), traits, state);
+            Keep(key, built);
+            return built;
+        }
+
+        /// <summary>
+        /// <see cref="TryBuildFor"/> spread over frames — what a caller that can
+        /// run a coroutine should use. <paramref name="onDone"/> is called with
+        /// the coat (or null), possibly on the very first pass when the answer
+        /// was already remembered.
+        ///
+        /// The three cheap answers — memory, the baked default, the file on
+        /// disk — are still given without yielding, because they are the
+        /// ordinary case: a player re-opening a room pays nothing and should not
+        /// be made to wait a frame for the privilege.
+        /// </summary>
+        public static IEnumerator TryBuildForOverFrames(CatTraits traits, int state,
+                                                        int size, Action<Texture2D> onDone)
+        {
+            if (traits == null) { onDone?.Invoke(null); yield break; }
+
+            var key = KeyFor(traits, state, size);
+            var ready = Remembered(key, traits, state, size);
+            if (ready != null) { onDone?.Invoke(ready); yield break; }
+
+            var art = LoadBase(traits, state);
+            if (art == null) { onDone?.Invoke(null); yield break; }
+
+            // Downscale gets its own frame: it reads back a whole 1024×1024 and
+            // box-filters it, which is one of the larger single stages here and
+            // is not part of Steps.
+            var small = Downscale(art, size);
+            yield return null;
+
+            Texture2D built = null;
+            yield return TryBuildOverFrames(small, traits, state, t => built = t);
+            Keep(key, built);
+            onDone?.Invoke(built);
+        }
+
+        /// <summary>
+        /// Everything that changes what the coat looks like, in one string.
+        ///
+        /// Spots are part of it. Without them two cats alike in every class
+        /// trait and different in the one thing that identifies them — a sock on
+        /// one paw — share a cached coat, and the second player gets the first
+        /// player's cat.
+        /// </summary>
+        private static string KeyFor(CatTraits traits, int state, int size)
+        {
             var marks = string.Join(",", traits.Spots.Select(m => $"{m.Place}:{m.Shade}"));
-            var key = $"{traits.BaseColor}/{traits.Pattern}/{traits.FurLength}/" +
-                      $"{traits.EyeColor}/{string.Join(",", traits.WhiteMarkings)}/" +
-                      $"{marks}/{state}@{size}";
+            return $"{traits.BaseColor}/{traits.Pattern}/{traits.FurLength}/" +
+                   $"{traits.EyeColor}/{string.Join(",", traits.WhiteMarkings)}/" +
+                   $"{marks}/{state}@{size}";
+        }
+
+        /// <summary>
+        /// The coat we already have, or null. Memory, then the baked default,
+        /// then the file beside the save — cheapest first.
+        /// </summary>
+        private static Texture2D Remembered(string key, CatTraits traits, int state, int size)
+        {
             if (_builtCache.TryGetValue(key, out var hit) && hit != null) return hit;
 
             // Shipped first. The default cat — what a player sees before she has
@@ -510,16 +709,14 @@ namespace CatShelter.View
             // twice for the same picture.
             var onDisk = LoadCached(key, size);
             if (onDisk != null) { _builtCache[key] = onDisk; return onDisk; }
+            return null;
+        }
 
-            var art = LoadBase(traits, state);
-            if (art == null) return null;
-            var built = TryBuild(Downscale(art, size), traits, state);
-            if (built != null)
-            {
-                _builtCache[key] = built;
-                SaveCached(key, built);
-            }
-            return built;
+        private static void Keep(string key, Texture2D built)
+        {
+            if (built == null) return;
+            _builtCache[key] = built;
+            SaveCached(key, built);
         }
 
         public static Texture2D TryBuild(Texture2D baseCoat, CatTraits traits, int state)
@@ -536,24 +733,71 @@ namespace CatShelter.View
             }
             catch (Exception e)
             {
-                LastFailure = $"{e.GetType().Name}: {e.Message}";
-                if (_warned.Add("coat-build-failure"))
-                {
-                    Debug.LogWarning($"[CoatBuilder] coat not built ({LastFailure}); " +
-                                     "painting the untinted silhouette instead");
-                    try
-                    {
-                        System.IO.File.AppendAllText(
-                            System.IO.Path.Combine(Application.persistentDataPath,
-                                                   "coat-failure.txt"),
-                            $"{LastFailure}\n{e.StackTrace}\n");
-                    }
-                    catch (Exception)
-                    {
-                    }
-                }
+                Failed(e);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// The record a failed build leaves behind. Lifted out of
+        /// <see cref="TryBuild"/>'s catch so the frame-sliced path can leave
+        /// exactly the same one: C# forbids `yield` inside a try that has a
+        /// catch, so that path catches around a single `MoveNext` instead, and
+        /// without this it would have grown its own second version of the
+        /// warning, the file and the once-only guard.
+        /// </summary>
+        private static void Failed(Exception e)
+        {
+            LastFailure = $"{e.GetType().Name}: {e.Message}";
+            if (!_warned.Add("coat-build-failure")) return;
+
+            Debug.LogWarning($"[CoatBuilder] coat not built ({LastFailure}); " +
+                             "painting the untinted silhouette instead");
+            try
+            {
+                System.IO.File.AppendAllText(
+                    System.IO.Path.Combine(Application.persistentDataPath,
+                                           "coat-failure.txt"),
+                    $"{LastFailure}\n{e.StackTrace}\n");
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        /// <summary>
+        /// <see cref="TryBuild"/> spread over frames. Drive it with
+        /// <c>StartCoroutine</c>; <paramref name="onDone"/> is handed the coat,
+        /// or null if it could not be built — the same two answers the
+        /// synchronous call gives, arriving a few frames later.
+        /// </summary>
+        public static IEnumerator TryBuildOverFrames(Texture2D baseCoat, CatTraits traits,
+                                                     int state, Action<Texture2D> onDone)
+        {
+            if (Skipped)
+            {
+                LastFailure = "skipped by nocat.txt";
+                onDone?.Invoke(null);
+                yield break;
+            }
+
+            Texture2D built = null;
+            var steps = Steps(baseCoat, traits, state, t => built = t);
+            while (true)
+            {
+                bool more = false, broke = false;
+                // One stage per iteration, each inside its own catch. The
+                // guarantee TryBuild makes — a coat that will not build costs a
+                // coat and nothing else — has to survive being cut up, and a
+                // half-finished pipeline must not leave the caller waiting.
+                try { more = steps.MoveNext(); }
+                catch (Exception e) { Failed(e); broke = true; }
+
+                if (broke) { onDone?.Invoke(null); yield break; }
+                if (!more) break;
+                yield return null;
+            }
+            onDone?.Invoke(built);
         }
 
         /// <summary>
@@ -1950,18 +2194,24 @@ namespace CatShelter.View
         /// Built from the alpha edge, so it applies to every silhouette
         /// delivered later without anyone having to draw it.
         /// </summary>
+        /// Done a horizontal band at a time — rows <paramref name="y0"/> up to
+        /// <paramref name="y1"/> — because <see cref="Steps"/> puts this pass
+        /// down between bands. Every row reads `px` and `drawn` and writes only
+        /// its own rows of `dst`, so where the bands fall makes no difference to
+        /// the result: the dilation window reads the *source*, which no band
+        /// ever touches. The seam had to go inside this pass rather than merely
+        /// around it — it scans a square window per pixel and is the single most
+        /// expensive stage of the build, so a frame boundary on either side of
+        /// it would still have left one step far longer than a frame.
+        /// </summary>
         /// <param name="drawn">The silhouette the artist delivered, before the
         /// tufts were grown on it. The rim is a dilation of this and not of the
         /// finished alpha, so a strand of matted fur no longer drags an ink blob
         /// out with it — see <see cref="Build"/>.</param>
-        private static Color32[] Outline(Color32[] px, int w, int h, int width,
-                                         bool[] drawn)
+        private static void OutlineRows(Color32[] px, Color32[] dst, int w, int h,
+                                        int width, bool[] drawn, int y0, int y1)
         {
-            if (width <= 0) return px;
-            var dst = new Color32[px.Length];
-            Array.Copy(px, dst, px.Length);
-
-            for (int y = 0; y < h; y++)
+            for (int y = y0; y < y1; y++)
                 for (int x = 0; x < w; x++)
                 {
                     int i = y * w + x;
@@ -2007,7 +2257,6 @@ namespace CatShelter.View
                     byte a = (byte)Mathf.Max(px[i].a, (byte)235);
                     dst[i] = new Color32(Ink.r, Ink.g, Ink.b, a);
                 }
-            return dst;
         }
 
         /// <summary>

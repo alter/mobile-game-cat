@@ -550,8 +550,19 @@ namespace CatShelter.View
         /// </summary>
         private void ShowCatCard()
         {
+            // One at a time. The 512 coat below now takes several frames, and
+            // the board stays live — and tappable — for all of them.
+            if (_openingCard) return;
+            _openingCard = true;
+            StartCoroutine(OpenCatCard());
+        }
+
+        private bool _openingCard;
+
+        private System.Collections.IEnumerator OpenCatCard()
+        {
             var uid = GetComponent<UIDocument>();
-            if (uid?.rootVisualElement == null) return;
+            if (uid?.rootVisualElement == null) { _openingCard = false; yield break; }
 
             if (_catCard == null)
             {
@@ -569,7 +580,27 @@ namespace CatShelter.View
                 // For the default cat this is a baked file and costs nothing;
                 // for a cat built from a photograph it is one build, cached to
                 // disk, paid on a screen most players never open.
-                var big = CoatBuilder.TryBuildFor(CatStateTraits, _progress?.CatState ?? 1, 512);
+                // Over frames, and the card waits rather than the phone: this is
+                // the largest coat the game asks for and it measured 243 ms held
+                // on the main thread on emulator-5554 — fifteen frames at 60 Hz
+                // with nothing drawn. The board underneath goes on drawing for
+                // those frames and the card opens when she is ready.
+                //
+                // Built before the card rather than swapped in after, because
+                // CatCardScreen composes the kitten into its stage at Build time
+                // (`Prop(cat)` returns null for a null texture, and there is
+                // then no element to fill in later). Giving the card a way to be
+                // told about a cat afterwards is a change to that file for a
+                // delay nobody can see.
+                var _t512 = System.Diagnostics.Stopwatch.StartNew();
+                int _f0 = Time.frameCount;
+                Texture2D big = null;
+                yield return CoatBuilder.TryBuildForOverFrames(
+                    CatStateTraits, _progress?.CatState ?? 1, 512, t => big = t);
+                Debug.Log($"[Perf] coat 512 {_t512.ElapsedMilliseconds}ms, " +
+                          $"{Time.frameCount - _f0} frame(s) drawn while it ran, " +
+                          $"longest stage {CoatBuilder.LongestStage} " +
+                          $"{CoatBuilder.LongestStageMs}ms");
                 _catCard.Build(uid.rootVisualElement, big != null ? big : _catTexture,
                                SpriteNamed($"Art/share_room_{roomNo}"), RenderShareCard);
                 // Hide(), not Destroy(): the card is expensive enough to build
@@ -591,6 +622,7 @@ namespace CatShelter.View
 
             Debug.Log($"[Board] cat card opened, state={state}");
             _catCard.Show();
+            _openingCard = false;
         }
 
         /// <summary>
@@ -728,21 +760,62 @@ namespace CatShelter.View
             var baseArt = CoatBuilder.LoadBase(CatStateTraits, state);
             if (baseArt == null) return; // art not shipped yet; portrait stays blank
 
-            // 256, not the shipped 1024: the portrait is about 52 points, and
-            // building at full size cost 21.8 seconds of the board's opening on
-            // the iOS simulator — the whole of it. Cached, so coming back to a
-            // room does not pay again. See CoatBuilder.Downscale.
-            var _tc = System.Diagnostics.Stopwatch.StartNew();
-            var built = CoatBuilder.TryBuildFor(CatStateTraits, state, 256);
-            Debug.Log($"[Perf] coat {_tc.ElapsedMilliseconds}ms");
-            if (_catTexture != null) UnityEngine.Object.Destroy(_catTexture);
-            // Null when the coat could not be built: own nothing, and paint the
-            // untinted silhouette. `baseArt` is the Resources asset itself, so
-            // destroying it on the next state change would take the art out of
-            // the game for the rest of the run.
-            _catTexture = built;
+            // Claimed before the work starts, not after. The state recorded is
+            // the one last *attempted*, and now that the build takes several
+            // frames that also has to keep Render() — which runs on every tap —
+            // from starting a second coroutine for the same cat.
             _catTextureState = state;
-            Paint(_catPortrait, built != null ? built : baseArt);
+
+            // The silhouette now, the coat when it is ready. She is the right
+            // shape and the right size on this frame; what arrives a few frames
+            // later is her colour.
+            Paint(_catPortrait, baseArt);
+            StartCoroutine(BuildCatCoat(state, baseArt));
+        }
+
+        /// <summary>
+        /// 256, not the shipped 1024: the portrait is about 52 points, and
+        /// building at full size cost 21.8 seconds of the board's opening on the
+        /// iOS simulator — the whole of it. Cached, so coming back to a room
+        /// does not pay again. See CoatBuilder.Downscale.
+        ///
+        /// Over frames since 2026-09-02 (60-shell-build/19). Measured on
+        /// emulator-5554 the synchronous call held the main thread 74 ms for one
+        /// 256 coat — four frames at 60 Hz, on the frame the board opens.
+        /// </summary>
+        private System.Collections.IEnumerator BuildCatCoat(int state, Texture2D baseArt)
+        {
+            // Frames drawn is the honest number, not the wall clock. Cut into
+            // frames the build finishes *later* — it now waits for the screen
+            // between stages — and a stopwatch alone would read that as a
+            // regression. What the task is about is whether anything was drawn
+            // while it ran, and only a frame count says so.
+            var _tc = System.Diagnostics.Stopwatch.StartNew();
+            int _f0 = Time.frameCount;
+            Texture2D built = null;
+            yield return CoatBuilder.TryBuildForOverFrames(
+                CatStateTraits, state, 256, t => built = t);
+            Debug.Log($"[Perf] coat 256 {_tc.ElapsedMilliseconds}ms, " +
+                      $"{Time.frameCount - _f0} frame(s) drawn while it ran, " +
+                      $"longest stage {CoatBuilder.LongestStage} " +
+                      $"{CoatBuilder.LongestStageMs}ms");
+
+            // The player may have won a pile while this ran, and a later
+            // RenderCat would then have started a build for the newer state.
+            // Painting this one now would put the old cat back.
+            if (_catPortrait == null || _catTextureState != state) yield break;
+
+            // Not destroyed, and it never should have been: CoatBuilder's cache
+            // owns what it hands back, shares it between screens, and for the
+            // default cat hands back the baked Resources asset itself. Until
+            // 2026-09-02 this line read `Destroy(_catTexture)`, which for a
+            // default cat took `Art/coat_default_N` out of the game for the rest
+            // of the run and for anyone else quietly emptied the cache's own
+            // entry. Nothing here allocates a texture, so nothing here frees one.
+            _catTexture = built;
+            // Null when the coat could not be built: leave the untinted
+            // silhouette already painted above standing.
+            if (built != null) Paint(_catPortrait, built);
         }
 
         /// <summary>

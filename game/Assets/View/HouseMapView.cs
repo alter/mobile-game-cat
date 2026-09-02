@@ -964,10 +964,17 @@ namespace CatShelter.View
                 // still point at the tree that was just thrown away — so the
                 // cat and the win card's before/after would never be inserted
                 // into the new one. A fresh component has no such memory.
-                // (The board's built cat texture goes unreleased when it dies;
-                // DebugGameView owns it and has no OnDestroy. One texture per
-                // return trip — recorded in NOTES.md for whoever holds that
-                // file.)
+                // This used to warn that the board's cat texture leaks one per
+                // return trip. It does not, and it never did — checked properly
+                // on 2026-09-02 (60-shell-build/19). The board creates exactly
+                // one texture of its own, the 1080×1080 share card, and destroys
+                // it in the same method that made it; everything else it paints
+                // is a Resources asset or belongs to `CoatBuilder`'s static
+                // cache, which is meant to outlive this and is what makes coming
+                // back to a room free. There is nothing here for an OnDestroy to
+                // release. What was real is the opposite mistake, and it lived in
+                // the board: it destroyed the cache's texture on a state change.
+                // See `DebugGameView.BuildCatCoat`.
                 if (board != null) Destroy(board);
 
                 // Three cases, one line each. Absent is impossible here (this

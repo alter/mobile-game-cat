@@ -479,10 +479,14 @@ namespace CatShelter.Core.Tests
         [Test]
         public void Booster_StaysJammedWhenItOpensNoMove()
         {
-            // shelf grows, but every remaining item is locked out of reach
+            // shelf grows, but every remaining item is locked out of reach.
+            // 2, not some arbitrarily large number: task 07 caps
+            // LockedAfterTriples at the pile's max achievable triples (here
+            // 6 items / 3 = 2) — one more than "a" alone can ever supply, so
+            // it still never opens.
             var board = new Board(L(
                 E(1, "a"), E(2, "a"), E(3, "a"),
-                Locked(4, "b", 5), Locked(5, "b", 5), Locked(6, "b", 5)));
+                Locked(4, "b", 2), Locked(5, "b", 2), Locked(6, "b", 2)));
             board.TakeItem(1);
             board.TakeItem(2);
             board.TakeItem(3);

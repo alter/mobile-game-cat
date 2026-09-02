@@ -60,6 +60,26 @@ namespace CatShelter.Core
                         $"duplicate item id {entry.Item.Id}", nameof(pile));
             }
 
+            // Task 07 (2026-09-02): a triple completes for every 3 items that
+            // ever leave the pile (kind counts are already enforced above to
+            // be multiples of three), so Pile.Count / 3 is the most triples
+            // this level can ever produce in a full clear. LockedAfterTriples
+            // had no ceiling before this: a level with 6 items accepted 999,
+            // a threshold no playthrough of that level could ever reach, and
+            // Board had no way to tell that apart from a merely large but
+            // legitimate one. Board's own jam guard (see its constructor)
+            // catches the live symptom; this catches the bad data at the
+            // door, same split as the checks above and below it.
+            var maxAchievableTriples = Pile.Count / 3;
+            foreach (var entry in Pile)
+            {
+                if (entry.Item.LockedAfterTriples > maxAchievableTriples)
+                    throw new ArgumentException(
+                        $"item {entry.Item.Id}: locked_after_triples " +
+                        $"{entry.Item.LockedAfterTriples} exceeds {maxAchievableTriples}, " +
+                        "the most triples this pile can ever complete", nameof(pile));
+            }
+
             // The two checks below existed in tools/solver/schema.py from the
             // start and never here — found on 2026-08-27 while verifying
             // 05-ship-37-levels. The comment above cites the Python side as the

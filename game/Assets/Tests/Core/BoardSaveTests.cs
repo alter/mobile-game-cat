@@ -15,6 +15,9 @@ namespace CatShelter.Core.Tests
         private static PileEntry E(int id, string kind, params int[] blockedBy) =>
             new(new Item(id, new ItemKind(kind, kind)), blockedBy.ToList());
 
+        private static PileEntry Locked(int id, string kind, int unlockAfter) =>
+            new(new Item(id, new ItemKind(kind, kind), unlockAfter), Array.Empty<int>());
+
         private static Level L(params PileEntry[] pile)
         {
             var list = pile.ToList();
@@ -110,6 +113,34 @@ namespace CatShelter.Core.Tests
 
             Assert.Throws<InvalidOperationException>(
                 () => BoardSave.Restore(level, tampered));
+        }
+
+        /// <summary>
+        /// Task 07: Restore rebuilds the Board fresh (TriplesCompleted 0,
+        /// nothing taken) before replaying the saved moves, and the new
+        /// no-first-move guard in Board's constructor runs at that exact
+        /// point. A save earned by clearing the unlocked kind first must not
+        /// have that fresh, pre-replay moment mistaken for a jam just
+        /// because the locked kind is not yet open — the guard sees "a" is
+        /// available and stays quiet, same as ordinary play saw at move one.
+        /// </summary>
+        [Test]
+        public void Restore_WithEarnedTriples_DoesNotFalselyJamOnRebuild()
+        {
+            var level = L(
+                E(1, "a"), E(2, "a"), E(3, "a"),
+                Locked(4, "b", 1), Locked(5, "b", 1), Locked(6, "b", 1));
+            var original = new Board(level);
+            original.TakeItem(1);
+            original.TakeItem(2);
+            original.TakeItem(3);   // 'a' triple completes, unlocks 'b'
+
+            var restored = BoardSave.Restore(level, BoardSave.Capture(original));
+
+            Assert.That(restored.IsOver, Is.False, "earned progress must not read back as a jam");
+            Assert.That(restored.TriplesCompleted, Is.EqualTo(1));
+            Assert.That(restored.GetAvailable().Select(i => i.Id),
+                Is.EquivalentTo(new[] { 4, 5, 6 }));
         }
 
         [Test]

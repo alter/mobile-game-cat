@@ -97,8 +97,13 @@ namespace CatShelter.Core.Tests
         [Test]
         public void LockedItem_IsRevealedButNotTakeable()
         {
+            // 2, not some arbitrarily large number: task 07 caps
+            // LockedAfterTriples at the pile's max achievable triples (here
+            // 6 items / 3 = 2), so 2 is the largest threshold Level accepts
+            // and is already unreachable within this fixture, which never
+            // takes anything.
             var board = new Board(L(
-                Locked(1, "x", 5),          // never unlocks in this level
+                Locked(1, "x", 2),          // never unlocks in this level
                 E(10, "a"), E(11, "a"), E(12, "a")));
             var locked = _item(board, 1);
             Assert.That(board.IsRevealed(locked), Is.True, "the player must see which kind is withheld");
@@ -118,12 +123,15 @@ namespace CatShelter.Core.Tests
         [Test]
         public void EveryRemainingItemLocked_EndsAsJam_NotAHang()
         {
-            // one free triple, then three items locked behind five triples that
-            // can never be collected: the board used to sit with no outcome and
-            // no legal move, which on a phone is a dead screen.
+            // one free triple, then three items locked behind the pile's own
+            // ceiling of two triples (task 07: Level rejects anything past
+            // Pile.Count / 3) — one triple short of what completing "a"
+            // supplies, so it can never be collected: the board used to sit
+            // with no outcome and no legal move, which on a phone is a dead
+            // screen.
             var board = new Board(L(
                 E(1, "a"), E(2, "a"), E(3, "a"),
-                Locked(4, "b", 5), Locked(5, "b", 5), Locked(6, "b", 5)));
+                Locked(4, "b", 2), Locked(5, "b", 2), Locked(6, "b", 2)));
 
             board.TakeItem(1);
             board.TakeItem(2);
@@ -131,6 +139,26 @@ namespace CatShelter.Core.Tests
 
             Assert.That(board.GetAvailable(), Is.Empty);
             Assert.That(board.IsOver, Is.True, "no move exists, so the game is over");
+            Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
+        }
+
+        /// <summary>
+        /// Task 07: the test above passes through a successful first take
+        /// before the jam is detected, which is exactly the gap the previous
+        /// guard had — it lived at the end of TakeItem, so it never fired for
+        /// a level where even the FIRST move is unavailable (every top item
+        /// already locked). Here nothing is ever taken; the board must arrive
+        /// pre-jammed straight out of its constructor.
+        /// </summary>
+        [Test]
+        public void EveryItemLockedFromTheStart_EndsAsJam_BeforeFirstMove()
+        {
+            var board = new Board(L(
+                Locked(1, "a", 1), Locked(2, "a", 1), Locked(3, "a", 1)));
+
+            Assert.That(board.TakenOrder, Is.Empty, "no move was ever made");
+            Assert.That(board.GetAvailable(), Is.Empty);
+            Assert.That(board.IsOver, Is.True, "construction itself must end the game");
             Assert.That(board.Outcome, Is.EqualTo(GameOutcome.ShelfJammed));
         }
 

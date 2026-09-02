@@ -135,5 +135,41 @@ namespace CatShelter.Core.Tests
         private static PileEntry Entry(int id, string kind, params int[] blockedBy) =>
             new(new Item(id, new ItemKind(kind, kind)),
                 new System.Collections.Generic.List<int>(blockedBy));
+
+        // ---- task 07: LockedAfterTriples needs a ceiling ---------------------
+        // A triple completes for every 3 items the pile ever gives up, so
+        // Pile.Count / 3 is the most triples any playthrough can produce.
+        // Before this, a 6-item pile accepted 999 as a threshold — a value no
+        // game of that level could ever reach — and Board had no way to tell
+        // that apart from an ordinary, reachable one.
+
+        private static PileEntry LockedEntry(int id, string kind, int lockedAfterTriples) =>
+            new(new Item(id, new ItemKind(kind, kind), lockedAfterTriples),
+                Array.Empty<int>());
+
+        [Test]
+        public void LockedAfterTriples_AboveWhatThePileCanEverReach_IsRejected()
+        {
+            // 6 items total -> at most 2 triples ever completed; 999 is not
+            // reachable by any playthrough of this pile.
+            var pile = new[]
+            {
+                LockedEntry(1, "a", 999), Entry(2, "a"), Entry(3, "a"),
+                Entry(4, "b"), Entry(5, "b"), Entry(6, "b"),
+            };
+            var ex = Assert.Throws<ArgumentException>(() => new Level(1, "room_1", 0, pile));
+            Assert.That(ex!.Message, Does.Contain("exceeds 2"));
+        }
+
+        [Test]
+        public void LockedAfterTriples_AtTheReachableCeiling_IsAccepted()
+        {
+            var pile = new[]
+            {
+                LockedEntry(1, "a", 2), Entry(2, "a"), Entry(3, "a"),
+                Entry(4, "b"), Entry(5, "b"), Entry(6, "b"),
+            };
+            Assert.DoesNotThrow(() => new Level(1, "room_1", 0, pile));
+        }
 }
 }

@@ -59,6 +59,19 @@ namespace CatShelter.Core
             // a Board cannot be handed a pile that breaks either.
             _entries = level.Pile.ToDictionary(e => e.Item.Id);
             _taken = new HashSet<int>();
+
+            // Task 07 (2026-09-02): the jam check at the bottom of TakeItem
+            // only ever runs after a successful take, so a level where every
+            // top-of-pile item is locked (LockedAfterTriples > 0, and no
+            // triple has been completed yet) never reached it — IsOver stayed
+            // false and Outcome null forever, a dead screen with no move and
+            // no way out. Catching it here, right after GetAvailable() first
+            // becomes computable, closes that gap at its only entry point:
+            // both public constructors funnel through this one, so this also
+            // covers BoardSave.Restore's fresh rebuild before it replays the
+            // saved takes (see the constructor's own note below).
+            if (_entries.Count > 0 && GetAvailable().Count == 0)
+                Finish(GameOutcome.ShelfJammed);
         }
 
         /// <summary>

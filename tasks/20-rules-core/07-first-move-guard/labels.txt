@@ -2,6 +2,6 @@ phase:core
 role:CORE
 type:fix
 priority:P1
-status:todo
+status:done
 verify:pending
 milestone:M2

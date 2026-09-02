@@ -2,7 +2,7 @@ phase:levels
 role:TOOLS
 type:fix
 priority:P1
-status:todo
+status:done
 verify:pending
 depends:30-levels-solver/05-ship-37-levels
 milestone:M3

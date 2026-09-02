@@ -32,10 +32,13 @@ android {
     buildToolsVersion unityLib.buildToolsVersion
 
     defaultConfig {
-        // Matches ProjectSettings AndroidMinSdkVersion: 25. FileProvider and
-        // ACTION_SEND both predate it; the FLAG_GRANT_READ_URI_PERMISSION on
-        // the chooser (rather than on each target) needs API 21.
-        minSdkVersion 25
+        // Matches ProjectSettings AndroidMinSdkVersion: 33 (BuildScript.cs
+        // sets AndroidApiLevel33) - was 25 here until 50-photo/13, stale
+        // against a floor the rest of the project had already moved to.
+        // FileProvider, ACTION_SEND and FLAG_GRANT_READ_URI_PERMISSION on the
+        // chooser all predate 25 by a wide margin, so nothing here needed the
+        // old number either.
+        minSdkVersion 33
     }
 
     compileOptions {

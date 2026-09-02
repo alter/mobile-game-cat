@@ -51,7 +51,7 @@ private func deliver(_ image: UIImage?) {
         send("OnPickFailed", "read_failed")
         return
     }
-    let path = NSTemporaryDirectory() + "catpick-\(UUID().uuidString).jpg"
+    let path = NSTemporaryDirectory() + "\(filePrefix)\(UUID().uuidString)\(fileSuffix)"
     do {
         try jpeg.write(to: URL(fileURLWithPath: path))
         send("OnPicked", path)
@@ -95,6 +95,31 @@ private final class PickerDelegate: NSObject, PHPickerViewControllerDelegate,
     }
 }
 
+/// The prefix and suffix every file `deliver(_:)` writes, so purging only
+/// ever touches this plugin's own leftovers in a directory the whole app
+/// shares.
+private let filePrefix = "catpick-"
+private let fileSuffix = ".jpg"
+
+/// Delete leftover picked photographs from the temporary directory.
+///
+/// Task 50-photo/13: the iOS counterpart of `CatPicker.purge()` /
+/// `CatPickActivity.onCreate`, which empties Android's cache directory before
+/// every pick "because the photograph must not outlive the run". iOS wrote to
+/// `NSTemporaryDirectory()` with a fresh UUID name per pick and never revisited
+/// it, so a process killed between `deliver(_:)` writing the JPEG and Unity
+/// reading the path left a stranger's cat on disk indefinitely — the OS
+/// reclaims `NSTemporaryDirectory()` on its own schedule, not on the next
+/// launch. Called at the start of every pick, same as Android: a dead process
+/// cannot clean up after itself, but the next one it starts can.
+private func purge() {
+    let directory = NSTemporaryDirectory()
+    guard let names = try? FileManager.default.contentsOfDirectory(atPath: directory) else { return }
+    for name in names where name.hasPrefix(filePrefix) && name.hasSuffix(fileSuffix) {
+        try? FileManager.default.removeItem(atPath: directory + name)
+    }
+}
+
 private func present(_ controller: UIViewController) {
     guard let root = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?
         .rootViewController else {
@@ -107,6 +132,7 @@ private func present(_ controller: UIViewController) {
 @_cdecl("CatPicker_openGallery")
 public func CatPicker_openGallery() {
     DispatchQueue.main.async {
+        purge()
         var configuration = PHPickerConfiguration()
         configuration.filter = .images
         configuration.selectionLimit = 1
@@ -119,6 +145,7 @@ public func CatPicker_openGallery() {
 @_cdecl("CatPicker_openCamera")
 public func CatPicker_openCamera() {
     DispatchQueue.main.async {
+        purge()
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
             // The simulator has no camera, and neither do some iPads. The
             // shell shows the gallery path instead of a dead button.

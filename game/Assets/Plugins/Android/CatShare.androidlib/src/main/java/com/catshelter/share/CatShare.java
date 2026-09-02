@@ -1,9 +1,15 @@
 package com.catshelter.share;
 
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.core.content.FileProvider;
@@ -38,8 +44,9 @@ import java.io.FileOutputStream;
  * depending on the project's write-permission setting, so a path chosen on
  * the C# side could land outside anything the provider is allowed to serve.
  *
- * NOT COMPILED as part of this change - the project has no Android build yet
- * (90-android/02-build-pipeline). Verify on a device or emulator.
+ * Task 50-photo/13 VERIFY: run the Android build and drive a share on an
+ * emulator or device - stale claim removed, the build pipeline
+ * (90-android/02-build-pipeline) exists now.
  */
 public final class CatShare {
 
@@ -61,6 +68,23 @@ public final class CatShare {
     private static final String AUTHORITY_SUFFIX = ".catshare";
 
     private static final String MIME = "image/png";
+
+    /**
+     * Task 50-photo/13: how long to wait, after the player has picked a share
+     * target, before the card is deleted.
+     *
+     * <p>iOS deletes the file the instant its bytes are copied into a UIImage
+     * (CatShare.swift:85), before the sheet is even shown — the file has done
+     * its one job as a way across the C boundary by then. Android cannot do
+     * that: the FileProvider URI has to keep resolving for as long as the
+     * chosen app is reading it, and there is no OS callback for "finished
+     * reading". EXTRA_CHOSEN_COMPONENT_INTENT_SENDER only says a target was
+     * picked, not that it is done with the stream. A short delay after that
+     * signal is the accepted compromise (developer.android.com/training/sharing/send);
+     * the purge in {@link #send} below is the defensive half, for the run
+     * where the player backs out of the chooser and no target is ever chosen.
+     */
+    private static final long CLEANUP_DELAY_MS = 3_000;
 
     private CatShare() {
     }
@@ -97,6 +121,13 @@ public final class CatShare {
             }
 
             File file = new File(directory, FILE_NAME);
+            // Whatever a previous share left behind — the player backed out
+            // of the chooser, or the process died before the callback below
+            // fired — must not survive into a second share under the same
+            // fixed name. Same purge-before idiom CatPicker.purge uses.
+            if (file.exists() && !file.delete()) {
+                Log.w(TAG, "could not delete the previous card");
+            }
             FileOutputStream out = new FileOutputStream(file);
             try {
                 out.write(png);
@@ -142,11 +173,60 @@ public final class CatShare {
             // the device's language. A title of ours would be one more English
             // string outside Copy.cs, crossing the native boundary, which is
             // the exact fault 60-shell-build/16 went and fixed in CatPicker.
-            activity.startActivity(Intent.createChooser(send, null));
+            activity.startActivity(Intent.createChooser(
+                    send, null, chosenTargetSender(activity, file).getIntentSender()));
         } catch (Exception e) {
             // Diagnostic only. Nothing here reaches the player: an OS message
             // follows the device's language, not the game's.
             Log.w(TAG, "share_failed", e);
         }
+    }
+
+    /**
+     * A PendingIntent the Sharesheet fires once, with the chosen target's
+     * ComponentName, as soon as the player picks one. The broadcast itself
+     * only schedules the delete (see {@link #CLEANUP_DELAY_MS}); the receiver
+     * unregisters itself immediately so it cannot fire twice.
+     *
+     * <p>RECEIVER_NOT_EXPORTED and FLAG_MUTABLE are both mandatory rather than
+     * defensive: minSdk 33 means every device here predates neither
+     * requirement — registerReceiver throws without the flags argument, and
+     * the system needs write access to stamp EXTRA_CHOSEN_COMPONENT onto an
+     * immutable PendingIntent's intent.
+     */
+    private static PendingIntent chosenTargetSender(final Activity activity, final File file) {
+        final String action = activity.getPackageName() + ".CATSHARE_CHOSEN";
+        activity.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                try {
+                    context.unregisterReceiver(this);
+                } catch (Exception ignored) {
+                    // Already gone is fine; the point was exactly-once.
+                }
+                new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!file.exists()) {
+                            return;
+                        }
+                        if (file.delete()) {
+                            // Worth a Log.i, unlike the rest of this class:
+                            // task 50-photo/13 VERIFY needed a signal reachable
+                            // without root on a non-debuggable build, since
+                            // run-as and a private cache ls are both closed off
+                            // on a Play-services emulator image.
+                            Log.i(TAG, "deleted the sent card");
+                        } else {
+                            Log.w(TAG, "could not delete the sent card");
+                        }
+                    }
+                }, CLEANUP_DELAY_MS);
+            }
+        }, new IntentFilter(action), Context.RECEIVER_NOT_EXPORTED);
+
+        Intent chosen = new Intent(action).setPackage(activity.getPackageName());
+        return PendingIntent.getBroadcast(activity, 0, chosen,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
     }
 }

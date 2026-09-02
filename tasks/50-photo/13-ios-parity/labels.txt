@@ -2,7 +2,7 @@ phase:photo
 role:NATIVE
 type:fix
 priority:P1
-status:todo
+status:in_progress
 verify:pending
 depends:10-accounts/03-xcode
 milestone:M5

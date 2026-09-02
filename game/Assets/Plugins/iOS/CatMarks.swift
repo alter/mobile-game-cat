@@ -117,6 +117,20 @@ private func fail(_ message: String) -> UnsafeMutablePointer<CChar>? {
                   bodyLightness: -1, bodyPixels: 0, marks: []))
 }
 
+/// A short, stable code for a Vision error — the framework's own domain and
+/// numeric code, e.g. "com.apple.Vision/9" for VNErrorInvalidFormat. Never
+/// error.localizedDescription: that string follows the DEVICE's system
+/// language, not the game's, and `notes` crosses to C# same as `error` does —
+/// see CatPicker.swift:20-29, where that rule was bought the hard way. This
+/// file's own header already bans naming a pixel, a path or a size here; a
+/// localised OS sentence is the same violation. Duplicated in CatVision.swift
+/// rather than shared: `private` is file scope, and the two files already
+/// duplicate `Detection` for the same reason (see below).
+private func code(_ error: Error) -> String {
+    let ns = error as NSError
+    return "\(ns.domain)/\(ns.code)"
+}
+
 // MARK: - Lightness
 
 /// CIE L* from 8-bit sRGB, 0…100. Not the raw green channel and not the mean
@@ -619,7 +633,7 @@ public func CatMarks_measure(_ bytes: UnsafePointer<UInt8>?,
             animalBox = best.boundingBox
         }
     } catch {
-        notes.append("recognise-animals failed: \(error.localizedDescription)")
+        notes.append("recognise-animals failed: \(code(error))")
     }
 
     // --- Rung 1: which pixels are her --------------------------------------
@@ -653,7 +667,7 @@ public func CatMarks_measure(_ bytes: UnsafePointer<UInt8>?,
             notes.append("foreground segmentation found no object to separate")
         }
     } catch {
-        notes.append("foreground mask failed: \(error.localizedDescription)")
+        notes.append("foreground mask failed: \(code(error))")
     }
 
     // --- Rung 2: the 25 landmarks ------------------------------------------
@@ -704,7 +718,7 @@ public func CatMarks_measure(_ bytes: UnsafePointer<UInt8>?,
             notes.append("no animal body pose found")
         }
     } catch {
-        notes.append("animal body pose failed: \(error.localizedDescription)")
+        notes.append("animal body pose failed: \(code(error))")
     }
 
     // --- Rung 3: the measurement -------------------------------------------

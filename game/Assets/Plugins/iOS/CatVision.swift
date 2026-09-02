@@ -43,6 +43,18 @@ private func fail(_ message: String) -> UnsafeMutablePointer<CChar>? {
     encode(Answer(ok: false, error: message, imageWidth: 0, imageHeight: 0, detections: []))
 }
 
+/// A short, stable code for a Vision error — the framework's own domain and
+/// numeric code, e.g. "com.apple.Vision/9" for VNErrorInvalidFormat. Never
+/// error.localizedDescription: that string follows the DEVICE's system
+/// language, not the game's, and crosses straight into a player-visible
+/// message once it reaches C# — see CatPicker.swift:20-29, where that rule was
+/// bought the hard way. Compare CatVision.java's reason(), which does the same
+/// job on Android with an MlKitException code or a class name.
+private func code(_ error: Error) -> String {
+    let ns = error as NSError
+    return "\(ns.domain)/\(ns.code)"
+}
+
 /// Recognise animals in a JPEG/PNG held in memory.
 /// - Parameter orientationRaw: a CGImagePropertyOrientation raw value. Vision
 ///   stores no orientation of its own and silently mis-detects when it is
@@ -73,7 +85,7 @@ public func CatVision_recognise(_ bytes: UnsafePointer<UInt8>?,
     do {
         try handler.perform([request])
     } catch {
-        return fail("vision failed: \(error.localizedDescription)")
+        return fail("vision failed: \(code(error))")
     }
 
     // Vision reports the box against the oriented image, so the pixel sizes

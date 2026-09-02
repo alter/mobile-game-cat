@@ -28,6 +28,10 @@ namespace CatShelter.Shell
             var (designSink, progressionSink) =
                 GameAnalyticsSink.TryConfigure(gameObject);
             Core.Analytics.Configure(designSink, progressionSink);
+            // Core cannot reach Debug.LogWarning itself; without this line an
+            // event dropped by Analytics (fired before Configure, or a level
+            // number out of range) would vanish without a trace anywhere.
+            Core.Analytics.WarnSink = message => Debug.LogWarning($"[Analytics] {message}");
 
             // app:open, the denominator every other number is read against.
             Core.Analytics.AppOpen();

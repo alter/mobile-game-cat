@@ -44,6 +44,19 @@ namespace CatShelter.Core
         private static Action<string, int, string> _progressionSink;
         private static bool _validated;
 
+        /// <summary>
+        /// Diagnostic sink for recoverable Analytics misuse (Configure not
+        /// called yet, level number outside 1..999). Core has no UnityEngine
+        /// reference so it cannot call Debug.LogWarning itself; wiring this
+        /// to one — same as the design/progression sinks above — is the
+        /// Shell's job. Null is a valid, silent no-op: telemetry must never
+        /// end a level (task 60-shell-build/21) even when nobody is
+        /// listening for the warning.
+        /// </summary>
+        public static Action<string> WarnSink { get; set; }
+
+        private static void Warn(string message) => WarnSink?.Invoke(message);
+
         /// <summary>Wire once at startup. Nulls are allowed (no-op mode).</summary>
         public static void Configure(
             Action<string, double, string> designSink,
@@ -63,8 +76,13 @@ namespace CatShelter.Core
 
         public static void Design(string name, double value = 0, string extra = null)
         {
-            if (!_validated) throw new InvalidOperationException(
-                "Analytics.Configure was not called");
+            // An event firing before Configure is a wiring bug, but it must
+            // lose the event, not the level (task 60-shell-build/21).
+            if (!_validated)
+            {
+                Warn($"Analytics.Design('{name}') before Configure — event dropped");
+                return;
+            }
             EnsureValid(name);
             _designSink?.Invoke(name, value, extra);
         }
@@ -72,11 +90,23 @@ namespace CatShelter.Core
         /// <summary>Progression event with 1-based level number as score.</summary>
         public static void Progression(string name, int levelNumber)
         {
-            if (!_validated) throw new InvalidOperationException(
-                "Analytics.Configure was not called");
+            // Same rule as Design: "level_start" must never be able to end
+            // the level it is reporting on (task 60-shell-build/21).
+            if (!_validated)
+            {
+                Warn($"Analytics.Progression('{name}') before Configure — event dropped");
+                return;
+            }
             EnsureValid(name);
             if (levelNumber < 1 || levelNumber > 999)
-                throw new ArgumentOutOfRangeException(nameof(levelNumber));
+            {
+                // Out-of-range level numbers are dropped, not clamped: a
+                // clamped 1000 -> 999 would silently misreport which level
+                // the player is on, which is worse than losing the sample.
+                Warn($"Analytics.Progression('{name}') levelNumber={levelNumber} " +
+                    "outside 1..999 — event dropped");
+                return;
+            }
             _progressionSink?.Invoke(name, levelNumber, levelNumber.ToString());
         }
 
@@ -124,5 +154,10 @@ namespace CatShelter.Core
                         $"event name has character '{c}': {name}");
             }
         }
+
+        // Core and Tests compile into one assembly (build/core-tests/
+        // core-tests.csproj), so internal is enough here — no need for
+        // InternalsVisibleTo or a public reset method just for one test.
+        internal static void ResetForTests() => _validated = false;
     }
 }

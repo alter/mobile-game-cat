@@ -93,5 +93,60 @@ namespace CatShelter.Core.Tests
             Assert.DoesNotThrow(() => Analytics.AppOpen(),
                 "null sink = no-op mode, still valid");
         }
+
+        // -- task 60-shell-build/21: telemetry must not end the game --------
+
+        [Test]
+        public void Progression_BeforeConfigure_DropsEventInsteadOfThrowing()
+        {
+            Analytics.ResetForTests();
+            try
+            {
+                Assert.DoesNotThrow(() => Analytics.LevelStart(3));
+                Assert.That(_progression, Is.Empty,
+                    "sink must not fire before Configure ran");
+            }
+            finally
+            {
+                // Leave _validated=true so later tests in the run are unaffected.
+                Analytics.Configure(
+                    (name, value, extra) => _design.Add(name),
+                    (name, score, levelId) => _progression.Add((name, score)));
+            }
+        }
+
+        [Test]
+        public void Design_BeforeConfigure_DropsEventInsteadOfThrowing()
+        {
+            Analytics.ResetForTests();
+            try
+            {
+                Assert.DoesNotThrow(() => Analytics.AppOpen());
+                Assert.That(_design, Is.Empty,
+                    "sink must not fire before Configure ran");
+            }
+            finally
+            {
+                Analytics.Configure(
+                    (name, value, extra) => _design.Add(name),
+                    (name, score, levelId) => _progression.Add((name, score)));
+            }
+        }
+
+        [Test]
+        public void Progression_LevelNumberBoundaries_OutOfRangeDroppedNotThrown()
+        {
+            Assert.DoesNotThrow(() => Analytics.LevelStart(0));
+            Assert.DoesNotThrow(() => Analytics.LevelStart(1));
+            Assert.DoesNotThrow(() => Analytics.LevelStart(999));
+            Assert.DoesNotThrow(() => Analytics.LevelStart(1000));
+
+            // 0 and 1000 are out of 1..999: dropped, not clamped into range —
+            // a clamped 1000->999 would misreport the level as a valid one.
+            Assert.That(_progression, Is.EqualTo(new[]
+            {
+                ("level_start", 1), ("level_start", 999),
+            }));
+        }
     }
 }

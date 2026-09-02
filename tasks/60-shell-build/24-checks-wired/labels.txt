@@ -2,6 +2,6 @@ phase:shell
 role:TOOLS
 type:chore
 priority:P2
-status:todo
+status:done
 verify:pending
 milestone:M6

@@ -130,6 +130,62 @@ fi
 stage "coverage gate (>= 90% on Core, task 20-rules-core/05-coverage)"
 "$PYTEST_BIN" build/coverage-summary.py --min 90
 
+# ---------------------------------------------------------------------------
+stage "Android photo rotation check (tools/tests/android-photo, task 60-shell-build/24)"
+# Same JDK the rest of the Android build path uses (see the Unity Android
+# build stage and tools/tests/android-vision/run.sh's JAVA_HOME default).
+# Needs only javac/java, runs in about a second — no excuse to skip it if
+# that JDK is there, so a missing JDK is a named skip, not a silent one.
+ANDROID_JDK_BIN="/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/OpenJDK/bin"
+if [ -x "$ANDROID_JDK_BIN/javac" ]; then
+  PATH="$ANDROID_JDK_BIN:$PATH" tools/tests/android-photo/run.sh
+else
+  echo "No JDK at $ANDROID_JDK_BIN (Unity's Android player JDK) —" >&2
+  echo "skipping tools/tests/android-photo. Run it by hand once a JDK is" >&2
+  echo "there: tools/tests/android-photo/run.sh" >&2
+fi
+
+# ---------------------------------------------------------------------------
+stage "Android vision check availability (tools/tests/android-vision, task 60-shell-build/24) — optional"
+# Optional on purpose: the real run needs an emulator with Play services,
+# installs an APK, and takes minutes — not a build's job. This stage only
+# says, honestly, whether that run is possible right now, instead of the
+# silent nothing it got before this task.
+ANDROID_ADB="${ANDROID_HOME:-/Applications/Unity/Hub/Editor/6000.3.22f1/PlaybackEngines/AndroidPlayer/SDK}/platform-tools/adb"
+if [ ! -x "$ANDROID_ADB" ]; then
+  echo "No adb at $ANDROID_ADB — skipping tools/tests/android-vision." >&2
+  echo "Run it by hand once the Android SDK is there: tools/tests/android-vision/run.sh" >&2
+elif ! "$ANDROID_ADB" devices | grep -qE $'\tdevice$'; then
+  echo "adb sees no device or emulator — skipping tools/tests/android-vision." >&2
+  echo "Run it by hand once one is attached: tools/tests/android-vision/run.sh" >&2
+else
+  echo "adb sees a device — tools/tests/android-vision/run.sh was NOT run" >&2
+  echo "automatically (it installs an APK and takes minutes; not this stage's" >&2
+  echo "job). Run it by hand: tools/tests/android-vision/run.sh" >&2
+fi
+
+# ---------------------------------------------------------------------------
+stage "Swift plugins parse (game/Assets/Plugins/iOS/*.swift, task 60-shell-build/24)"
+# swiftc -parse catches syntax errors from a source read alone — it does not
+# resolve imports (UIKit/Vision/PhotosUI are iOS-only and unavailable to a
+# macOS-hosted compile), so no SDK flag or target triple is needed and there
+# is nothing here to link. Real logic checks are a separate decision — see
+# NOTES.md in tasks/60-shell-build/24-checks-wired.
+shopt -s nullglob
+SWIFT_FILES=("$ROOT"/game/Assets/Plugins/iOS/*.swift)
+shopt -u nullglob
+if [ "${#SWIFT_FILES[@]}" -eq 0 ]; then
+  echo "No files matched game/Assets/Plugins/iOS/*.swift — nothing to parse." >&2
+elif ! xcrun --find swiftc >/dev/null 2>&1; then
+  echo "No swiftc via xcrun on this machine — skipping the Swift parse" >&2
+  echo "check. See NOTES.md in tasks/60-shell-build/24-checks-wired." >&2
+else
+  for f in "${SWIFT_FILES[@]}"; do
+    echo "swiftc -parse: $f"
+    xcrun swiftc -parse "$f"
+  done
+fi
+
 if [ "$TESTS_ONLY" -eq 1 ]; then
   echo ""
   echo "== --tests-only: skipping Unity build stages and the signing stage =="

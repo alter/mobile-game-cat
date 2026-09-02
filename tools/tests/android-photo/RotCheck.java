@@ -91,5 +91,6 @@ public class RotCheck {
             if (!whole) bad++;
         }
         System.out.println(bad == 0 ? "ВСЁ СОШЛОСЬ" : "ЕСТЬ ОШИБКИ: " + bad);
+        if (bad != 0) System.exit(1);
     }
 }

@@ -60,15 +60,112 @@ public static class BuildScript
             hash = "nogit";
         }
 
+        var code = BumpVersionCode();
+
         try
         {
-            PlayerSettings.bundleVersion = $"{DateTime.Now:MM-dd HH:mm} {hash}";
+            PlayerSettings.bundleVersion = $"{DateTime.Now:MM-dd HH:mm} {hash} vc{code}";
         }
         catch (Exception e)
         {
             // Belt-and-braces: even setting the field must not stop a build.
             Console.WriteLine($"[BuildScript] WARNING could not set bundleVersion: {e.Message}");
         }
+    }
+
+    // Task 60-shell-build/22. Play rejects a second upload with the same
+    // AndroidBundleVersionCode, which had been frozen at 1 since the field
+    // was created — nobody had wired anything to move it.
+    //
+    // Source of the number: git commit count (`git rev-list --count HEAD`)
+    // rather than "recorded+1" on every build. Commit count is reproducible
+    // — the same commit always yields the same number, so two machines
+    // building the same commit agree — where "recorded+1" only reflects
+    // whatever ProjectSettings.asset happened to have checked in last, which
+    // is exactly the kind of state a branch or a fresh checkout can lose.
+    //
+    // versionCode must only ever grow, never repeat or go backwards, so
+    // commit count alone is not enough: a branch that is behind main, or an
+    // archive with a shallow/rewritten history, can report a count lower
+    // than what a previous build already stamped. When that happens this
+    // falls back to recorded+1 and says so in the build log — still
+    // growing, just not off the (untrustworthy, here) commit count.
+    //
+    // No git at all (building from a source archive with no .git) lands on
+    // the same recorded+1 fallback, logged the same way — this must never
+    // throw and stop a build, same rule as the hash lookup above.
+    private static int BumpVersionCode()
+    {
+        int recorded = PlayerSettings.Android.bundleVersionCode;
+        int? commitCount = null;
+        try
+        {
+            var psi = new ProcessStartInfo("git", "rev-list --count HEAD")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var proc = Process.Start(psi);
+            var output = proc.StandardOutput.ReadToEnd().Trim();
+            proc.WaitForExit();
+            if (proc.ExitCode == 0 && int.TryParse(output, out var n))
+            {
+                commitCount = n;
+            }
+            else
+            {
+                Console.WriteLine("[BuildScript] WARNING git rev-list --count HEAD " +
+                                  $"exit={proc.ExitCode} output='{output}', " +
+                                  "cannot use commit count for versionCode");
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("[BuildScript] WARNING could not run git rev-list: " +
+                              $"{e.Message}, cannot use commit count for versionCode");
+        }
+
+        int next;
+        if (commitCount.HasValue && commitCount.Value > recorded)
+        {
+            next = commitCount.Value;
+        }
+        else
+        {
+            next = recorded + 1;
+            if (commitCount.HasValue)
+                Console.WriteLine($"[BuildScript] WARNING commit count {commitCount.Value} " +
+                                  $"<= recorded versionCode {recorded} (branch behind, or a " +
+                                  $"shallow/rewritten history) — using recorded+1 = {next} instead");
+            else
+                Console.WriteLine($"[BuildScript] no git commit count available, " +
+                                  $"using recorded versionCode+1 = {next}");
+        }
+
+        try
+        {
+            PlayerSettings.Android.bundleVersionCode = next;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"[BuildScript] WARNING could not set Android bundleVersionCode: {e.Message}");
+        }
+
+        try
+        {
+            // Same number on iOS so a screenshot from either platform names
+            // one build, not two. CFBundleVersion (PlayerSettings.iOS.buildNumber)
+            // is iOS's counterpart to Android's versionCode.
+            PlayerSettings.iOS.buildNumber = next.ToString();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"[BuildScript] WARNING could not set iOS buildNumber: {e.Message}");
+        }
+
+        return next;
     }
 
     // Headless build entry: -executeMethod BuildScript.BuildOSXPlayer

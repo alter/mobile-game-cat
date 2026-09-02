@@ -2,7 +2,7 @@ phase:shell
 role:TOOLS
 type:chore
 priority:P1
-status:todo
+status:in_progress
 verify:pending
 depends:90-android/02-build-pipeline
 milestone:M7

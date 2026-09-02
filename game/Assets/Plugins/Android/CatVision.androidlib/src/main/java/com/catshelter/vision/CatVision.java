@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  * photograph competes with the sofa, the window and the rug for the labeller's
  * attention, and on a crop she does not.
  *
- * <h2>Three rungs, and the photo never leaves</h2>
+ * <h2>Three rungs, and this layer never sends or stores anything</h2>
  *
  * <p>Each rung survives the loss of the one above, the same shape
  * {@code CatMarks.swift} uses:
@@ -69,8 +69,14 @@ import java.util.concurrent.TimeUnit;
  *
  * <p><b>There is not one log statement in this package on purpose.</b> The
  * photograph exists as bytes in memory for the length of one call, is written
- * nowhere, and no error string here names a pixel, a path or a size. Compare
- * the same paragraph in {@code CatMarks.swift}.
+ * nowhere by this package, and no error string here names a pixel, a path or a
+ * size. Compare the same paragraph in {@code CatMarks.swift}. That is the
+ * whole claim this file can make for itself: what the game does with the
+ * accepted photo afterwards - {@code Shell/CatPhoto.cs} crops it and
+ * {@code Core/TraitsRequest.cs} sends that crop to the traits Worker
+ * ({@code worker/src/index.ts}) - is a different layer with a different
+ * story, told in full in
+ * {@code tasks/50-photo/15-privacy-wording/NOTES.md}.
  *
  * <h2>Threading</h2>
  *

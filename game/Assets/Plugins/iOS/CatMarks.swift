@@ -28,10 +28,17 @@ import CoreVideo
 // `fixtures/reference-photos`, and a number that crossed the boundary as
 // "light"/"dark" could never be re-tuned without another device build.
 //
-// Nothing leaves the device and nothing is written down. There is no NSLog in
-// this file on purpose: an error string may name a Vision failure, never a
-// pixel, a path or a size. The photo exists as bytes in memory for the length
-// of one call.
+// Nothing leaves this file and nothing is written down here. There is no
+// NSLog in this file on purpose: an error string may name a Vision failure,
+// never a pixel, a path or a size. The photo exists as bytes in memory for
+// the length of one call, and this measurement is the only use it is put to
+// here.
+//
+// What the game does with the accepted photo afterwards is a different layer
+// and a different claim: Shell/CatPhoto.cs crops it, and Core/TraitsRequest.cs
+// sends that crop to the traits Worker (worker/src/index.ts), which forwards
+// it to a model. See tasks/50-photo/15-privacy-wording/NOTES.md for the whole
+// path, told honestly rather than by extension from this file.
 
 // MARK: - What crosses to C#
 

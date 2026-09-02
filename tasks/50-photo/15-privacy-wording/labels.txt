@@ -2,7 +2,7 @@ phase:photo
 role:ARCH
 type:chore
 priority:P2
-status:todo
+status:done
 verify:pending
 depends:50-photo/02-traits-worker
 milestone:M5

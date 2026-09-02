@@ -351,7 +351,11 @@ namespace CatShelter.View
         public IEnumerator Handle(byte[] photo)
         {
             SetBusy(true, Shell.Copy.Of("capture.looking"));
-            yield return null;      // let the busy state paint before Vision blocks
+            // Let the busy state paint before the first call goes out. It no
+            // longer has to be the last frame for a while — since
+            // 60-shell-build/19 every step below is awaited a frame at a time —
+            // but the words still want to be on screen before the work starts.
+            yield return null;
 
             // Where the crop will be aimed. A default box means "use the whole
             // image" to both halves of CatPhoto (the Swift one and the Java
@@ -360,7 +364,28 @@ namespace CatShelter.View
             // never a reason to stop.
             var box = default(AnimalBox);
 
-            var answer = Recognise(photo);
+            // 60-shell-build/19. This used to read `var answer = Recognise(photo)`
+            // and that one line is most of what this task was about: on Android
+            // it is a JNI call into ML Kit with a 30-second ceiling behind it,
+            // and it was made from the main thread, so the bar under
+            // "Looking at her…" stopped dead for as long as the recogniser
+            // took. Two more calls with the same ceiling followed on the same
+            // photograph.
+            var recognising = OffMain.Run(() => Recognise(photo), "recognise");
+            yield return Await(recognising, "recognise");
+            var answer = recognising.Value;
+            if (recognising.Fault != null)
+            {
+                // Before, a throw out of Recognise killed the coroutine and the
+                // player was left on a screen that would never answer. It comes
+                // back as a fact now, and the branch below already knows what a
+                // recogniser that could not run means.
+                answer = new VisionAnswer
+                {
+                    ok = false,
+                    error = "vision threw: " + recognising.Fault.GetType().Name,
+                };
+            }
             if (answer.Failed)
             {
                 // 50-photo/05 VERIFY: Vision could not run at all — decode
@@ -466,7 +491,9 @@ namespace CatShelter.View
             // milliseconds, and it must not delay her being told what happened.
             if (box.width <= 0 || box.height <= 0)
             {
-                var found = SubjectBox(photo);
+                var subject = OffMain.Run(() => SubjectBox(photo), "subject box");
+                yield return Await(subject, "subject box");
+                var found = subject.Value;
                 if (found.width > 0 && found.height > 0)
                 {
                     OnTrouble?.Invoke("no label box; cropping to the subject " +
@@ -475,7 +502,15 @@ namespace CatShelter.View
                 }
             }
 
-            var prepared = Crop(photo, box);
+            // Off the main thread with the rest of them. The crop is not a
+            // vision call and has no 30-second ceiling, but on Android it is
+            // still JNI, and what it decodes is the player's ORIGINAL — a
+            // 3000×4000 photograph, twelve megapixels, scaled to 512 in Java.
+            // That is the largest single piece of work on the path and it was
+            // sitting between two frames.
+            var cropping = OffMain.Run(() => Crop(photo, box), "crop");
+            yield return Await(cropping, "crop");
+            var prepared = cropping.Value;
             if (prepared == null)
             {
                 // The other genuine failure, and now the only one that costs
@@ -557,7 +592,19 @@ namespace CatShelter.View
                 // FromColourOnly keeps solid and short for exactly those, and
                 // that is the shipped behaviour: a cat wrongly called a tabby
                 // is worse than the plain cat nobody was ever surprised by.
-                var coat = Shell.CatCoat.Read(prepared);
+                // Three steps and only the middle one on the main thread — see
+                // CatCoat.ReadOverFrames, which is where the cut is explained.
+                // It replaces `CatCoat.Read(prepared)`, one call that held the
+                // main thread for the mask (232 ms on an emulator, the
+                // plug-in's 30 s at worst) and the arithmetic together.
+                CoatReading coat = null;
+                yield return Shell.CatCoat.ReadOverFrames(prepared, r => coat = r);
+
+                // CatColour stays on the main thread, deliberately and for the
+                // same reason CoatBuilder does: it is Texture2D from end to
+                // end, and Texture2D does not exist off it. It reads one 512×512
+                // crop, it is the fallback for a phone with no mask, and it is
+                // not what this task was called for.
                 var colour = coat.BaseColor ?? Shell.CatColour.Estimate(prepared);
                 try
                 {
@@ -596,9 +643,18 @@ namespace CatShelter.View
             //
             // Never fatal. A cat without marks is the cat we shipped yesterday;
             // a screen that hangs because Vision threw is not.
+            // Off the main thread with the rest. It is iOS-only and a
+            // DllImport rather than JNI, so there is no attach rule to obey and
+            // no 30-second ceiling — but it is a whole Vision request over the
+            // crop, which is more than a frame, and a photo path with one
+            // blocking call left on it is a photo path with a blocking call on
+            // it. The android build returns "marks are iOS-only" and pays
+            // nothing either way.
+            var measuring = OffMain.Run(() => Shell.CatMarks.Measure(prepared), "marks");
+            yield return Await(measuring, "marks");
             try
             {
-                var measured = Shell.CatMarks.Measure(prepared);
+                var measured = measuring.Value;
                 var spots = measured.ToSpots();
                 if (spots.Count > 0)
                 {
@@ -638,6 +694,37 @@ namespace CatShelter.View
             // from here — and GameBoot gives the bar a moment to be seen
             // moving before it starts the build (see GameBoot.ShowCapture).
             OnCatReady?.Invoke(traits);
+        }
+
+        /// <summary>
+        /// Wait for a piece of work <see cref="OffMain"/> is running, a frame
+        /// at a time, and write down what the wait cost.
+        ///
+        /// <para>This is the whole of 60-shell-build/19 in four lines: the main
+        /// thread comes back here every frame, finds the answer not ready, and
+        /// goes off to draw. The bar under the stage's words is on the panel's
+        /// scheduler and moves on each of those frames, so "still running" is
+        /// now a true statement the player can see rather than a still picture
+        /// she reads as a hung app.</para>
+        ///
+        /// <para>The log line is the measurement the task asks for, and it is
+        /// deliberately in frames rather than milliseconds. Milliseconds were
+        /// never the complaint — the mask call took 232 ms on an emulator and
+        /// would have taken the same 232 ms in either arrangement. What changed
+        /// is the number after it: frames drawn while it ran, which was 0 by
+        /// construction before this and cannot be 0 now.</para>
+        /// </summary>
+        private static IEnumerator Await<T>(OffMain.Call<T> call, string what)
+        {
+            var frames = 0;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            while (!call.Done)
+            {
+                frames++;
+                yield return null;
+            }
+            Debug.Log($"[CaptureScreen] {what}: {clock.ElapsedMilliseconds} ms, " +
+                      $"{frames} frame(s) drawn while it ran");
         }
 
         private void Skip()

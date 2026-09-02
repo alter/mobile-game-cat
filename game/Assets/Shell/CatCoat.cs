@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Diagnostics;
 using CatShelter.Core;
 using UnityEngine;
@@ -36,11 +37,66 @@ namespace CatShelter.Shell
     {
         /// <summary>
         /// Read the coat from the 512×512 JPEG <see cref="CatPhoto.Prepare"/>
-        /// makes.
+        /// makes, a frame at a time, with the two long steps on threads of
+        /// their own. This is the form the capture screen uses; drive it with
+        /// <c>yield return CatCoat.ReadOverFrames(jpeg, r => coat = r)</c>.
+        ///
+        /// <para>The whole of 60-shell-build/19 is in the shape of this method.
+        /// Step one is <see cref="CatVision.Silhouette"/>, which on Android is
+        /// a JNI call with a 30-second ceiling on the far side of it; step
+        /// three is <see cref="CoatReader"/> over a quarter of a million
+        /// pixels. Neither belongs on the main thread and neither may leave it:
+        /// step two decodes the crop, and <see cref="Texture2D"/> exists only
+        /// on the main thread. So the work is cut where the engine forces it to
+        /// be cut rather than where it would read most tidily — off, on for one
+        /// frame, off again.</para>
+        ///
+        /// <para>Frames go on being drawn between the steps, which is the
+        /// point: the capture screen's bar rides the panel's own scheduler and
+        /// moves whenever a frame is drawn. Before this it did not move at all
+        /// between "Copying the colours…" appearing and the cat arriving,
+        /// because the mask call alone held the main thread for 232 ms on an
+        /// emulator and for up to the plug-in's 30-second ceiling on a phone
+        /// whose Play services module is still coming down.</para>
         /// </summary>
         /// <param name="orientation">A CGImagePropertyOrientation value; 0
         /// reads it from the file's own metadata. A prepared crop is already
         /// upright, so 0 is right for the live path.</param>
+        /// <param name="then">Called exactly once, with the reading.</param>
+        public static IEnumerator ReadOverFrames(byte[] croppedJpeg,
+                                                 Action<CoatReading> then,
+                                                 int orientation = 0)
+        {
+            if (croppedJpeg == null || croppedJpeg.Length == 0)
+            {
+                then(new CoatReading { Note = "no photo" });
+                yield break;
+            }
+
+            var clock = Stopwatch.StartNew();
+            var look = OffMain.Run(() => Look(croppedJpeg, orientation), "coat mask");
+            while (!look.Done) yield return null;
+            var maskMs = clock.ElapsedMilliseconds;
+
+            if (!Decode(croppedJpeg, look.Value, out var pixels, out var early))
+            {
+                then(early);
+                yield break;
+            }
+
+            var read = OffMain.Run(
+                () => Measure(pixels, look.Value, maskMs, clock), "coat");
+            while (!read.Done) yield return null;
+            then(read.Value);
+        }
+
+        /// <summary>
+        /// The same three steps in a row, blocking, on whatever thread calls.
+        /// For anything that is not a coroutine — the editor, a tool. The
+        /// shipping photo path uses <see cref="ReadOverFrames"/>; this is kept
+        /// because the steps only mean anything in this order, and a caller
+        /// with no frames to spend should not have to work that out again.
+        /// </summary>
         /// <returns>Never null.</returns>
         public static CoatReading Read(byte[] croppedJpeg, int orientation = 0)
         {
@@ -48,10 +104,24 @@ namespace CatShelter.Shell
                 return new CoatReading { Note = "no photo" };
 
             var clock = Stopwatch.StartNew();
-            CatSilhouette silhouette;
+            var silhouette = Look(croppedJpeg, orientation);
+            var maskMs = clock.ElapsedMilliseconds;
+            return Decode(croppedJpeg, silhouette, out var pixels, out var early)
+                ? Measure(pixels, silhouette, maskMs, clock)
+                : early;
+        }
+
+        /// <summary>
+        /// Step one, off the main thread: ask the plug-in which pixels are the
+        /// cat. Nothing in here touches the engine — a JNI call on Android, a
+        /// <c>DllImport</c> on iOS — and <see cref="OffMain"/> has attached the
+        /// thread to the VM before it runs.
+        /// </summary>
+        private static CatSilhouette Look(byte[] croppedJpeg, int orientation)
+        {
             try
             {
-                silhouette = CatVision.Silhouette(croppedJpeg, orientation);
+                return CatVision.Silhouette(croppedJpeg, orientation);
             }
             catch (Exception e)
             {
@@ -59,9 +129,50 @@ namespace CatShelter.Shell
                 // could name a file. The same rule CatVision.AndroidCall
                 // follows.
                 Debug.LogWarning($"[CatCoat] silhouette failed: {e.GetType().Name}");
-                return new CoatReading { Note = "the mask could not be made" };
+                return new CatSilhouette
+                {
+                    answer = new VisionAnswer { ok = false, error = Threw },
+                };
             }
-            var maskMs = clock.ElapsedMilliseconds;
+        }
+
+        /// <summary>
+        /// The marker <see cref="Look"/> leaves on an answer it never got, so
+        /// <see cref="Decode"/> can tell "the plug-in fell over" from "the
+        /// plug-in has no mask for this photograph". The two readings say
+        /// different things to whoever reads the log and used to be told apart
+        /// by a <c>catch</c> that a worker thread cannot hand back.
+        /// </summary>
+        private const string Threw = "silhouette threw";
+
+        /// <summary>
+        /// Step two, main thread, one frame: the crop's own pixels. All of it
+        /// is <see cref="Texture2D"/>, which is why the step exists — decoding
+        /// a 512×512 JPEG cannot be moved off the main thread at all, so this
+        /// is the one place on this path where the main thread does real work.
+        /// Measured at 39 ms on the emulator, against 232 ms for the mask call
+        /// that now runs beside it.
+        /// </summary>
+        /// <returns>
+        /// False when there is nothing to measure, with the reading to hand
+        /// back in <paramref name="early"/>.
+        /// </returns>
+        private static bool Decode(byte[] croppedJpeg, CatSilhouette silhouette,
+                                   out CoatPixels pixels, out CoatReading early)
+        {
+            pixels = default;
+            early = null;
+
+            // Read here and carried, not read where it is used: Application's
+            // properties, persistentDataPath among them, are main-thread only,
+            // and Dump runs in step three on a worker.
+            pixels.savePath = Application.persistentDataPath;
+
+            if (silhouette.answer.error == Threw)
+            {
+                early = new CoatReading { Note = "the mask could not be made" };
+                return false;
+            }
 
             // Which subject the mask came from, and how many there were to
             // choose between. Cheap, and it is the difference between "the
@@ -77,12 +188,14 @@ namespace CatShelter.Shell
             {
                 Debug.Log($"[CatCoat] no mask (rung {silhouette.rung ?? "none"}), " +
                           "so the coat is not read; the colour estimate stands");
-                return new CoatReading
+                early = new CoatReading
                 {
                     Note = "no mask, so nothing here can tell her coat from the sofa",
                 };
+                return false;
             }
 
+            var decodeClock = Stopwatch.StartNew();
             Texture2D texture = null;
             try
             {
@@ -95,15 +208,19 @@ namespace CatShelter.Shell
                 if (!texture.LoadImage(croppedJpeg, markNonReadable: false))
                 {
                     Debug.LogWarning("[CatCoat] could not decode the crop");
-                    return new CoatReading { Note = "the crop would not decode" };
+                    early = new CoatReading { Note = "the crop would not decode" };
+                    return false;
                 }
 
                 var width = texture.width;
                 var height = texture.height;
                 if (width <= 0 || height <= 0)
-                    return new CoatReading { Note = "the crop is empty" };
+                {
+                    early = new CoatReading { Note = "the crop is empty" };
+                    return false;
+                }
 
-                var pixels = texture.GetPixels32();
+                var raw = texture.GetPixels32();
                 var rgb = new byte[width * height * 3];
                 for (var y = 0; y < height; y++)
                 {
@@ -117,27 +234,26 @@ namespace CatShelter.Shell
                     var to = y * width * 3;
                     for (var x = 0; x < width; x++)
                     {
-                        var pixel = pixels[from + x];
+                        var pixel = raw[from + x];
                         rgb[to + x * 3] = pixel.r;
                         rgb[to + x * 3 + 1] = pixel.g;
                         rgb[to + x * 3 + 2] = pixel.b;
                     }
                 }
 
-                Dump(rgb, width, height, silhouette);
-                var reading = CoatReader.Read(rgb, width, height, silhouette.mask,
-                                              silhouette.maskWidth, silhouette.maskHeight);
-                Debug.Log($"[CatCoat] {reading} " +
-                          $"(mask {maskMs} ms, all {clock.ElapsedMilliseconds} ms) " +
-                          $"{reading.Note}");
-                return reading;
+                pixels.rgb = rgb;
+                pixels.width = width;
+                pixels.height = height;
+                pixels.decodeMs = decodeClock.ElapsedMilliseconds;
+                return true;
             }
             catch (Exception e)
             {
                 // A coat that cannot be read is not an error screen: the caller
                 // keeps the traits it has and the photograph itself was fine.
-                Debug.LogWarning($"[CatCoat] read failed: {e.GetType().Name}");
-                return new CoatReading { Note = "the coat could not be read" };
+                Debug.LogWarning($"[CatCoat] decode failed: {e.GetType().Name}");
+                early = new CoatReading { Note = "the coat could not be read" };
+                return false;
             }
             finally
             {
@@ -147,6 +263,49 @@ namespace CatShelter.Shell
                     else UnityEngine.Object.DestroyImmediate(texture);
                 }
             }
+        }
+
+        /// <summary>
+        /// Step three, off the main thread: the arithmetic.
+        /// <see cref="CoatReader"/> over a quarter of a million pixels, several
+        /// passes, and not one engine call in any of it — which is what makes
+        /// the move legal. <see cref="Dump"/> writes from here too, which is
+        /// why it is handed a path rather than asking for one.
+        /// </summary>
+        private static CoatReading Measure(CoatPixels pixels, CatSilhouette silhouette,
+                                           long maskMs, Stopwatch clock)
+        {
+            try
+            {
+                Dump(pixels, silhouette);
+                var reading = CoatReader.Read(pixels.rgb, pixels.width, pixels.height,
+                                              silhouette.mask,
+                                              silhouette.maskWidth, silhouette.maskHeight);
+                // The three numbers this task is measured by: what the mask
+                // cost, what the main thread had to keep, and the whole of it.
+                Debug.Log($"[CatCoat] {reading} " +
+                          $"(mask {maskMs} ms, decode {pixels.decodeMs} ms on the main " +
+                          $"thread, all {clock.ElapsedMilliseconds} ms) {reading.Note}");
+                return reading;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[CatCoat] read failed: {e.GetType().Name}");
+                return new CoatReading { Note = "the coat could not be read" };
+            }
+        }
+
+        /// <summary>
+        /// The crop's own pixels on the way from step two to step three, plus
+        /// the one piece of engine state step three needs and cannot ask for
+        /// itself. See <see cref="Decode"/> for why the path travels.
+        /// </summary>
+        private struct CoatPixels
+        {
+            public byte[] rgb;
+            public int width, height;
+            public long decodeMs;
+            public string savePath;
         }
 
         /// <summary>
@@ -169,13 +328,18 @@ namespace CatShelter.Shell
         /// mask drops straight into <c>tmp/coat-dumps</c> and is scored by the
         /// tool that already scores the twenty-four photographs.</para>
         /// </summary>
-        private static void Dump(byte[] rgb, int width, int height,
-                                 CatSilhouette silhouette)
+        private static void Dump(CoatPixels pixels, CatSilhouette silhouette)
         {
             try
             {
-                var flag = System.IO.Path.Combine(Application.persistentDataPath,
-                                                  "coatdump.txt");
+                // pixels.savePath, not Application.persistentDataPath: this
+                // runs on a worker thread since 60-shell-build/19, and reading
+                // an Application property there is a UnityException, not a
+                // slow answer. Decode read it for us on the main thread.
+                if (string.IsNullOrEmpty(pixels.savePath)) return;
+                byte[] rgb = pixels.rgb;
+                int width = pixels.width, height = pixels.height;
+                var flag = System.IO.Path.Combine(pixels.savePath, "coatdump.txt");
                 if (!System.IO.File.Exists(flag)) return;
 
                 var mask = silhouette.mask ?? new byte[0];
@@ -201,8 +365,7 @@ namespace CatShelter.Shell
                             square[to + x] = mask[from + x * silhouette.maskWidth / width];
                     }
 
-                var path = System.IO.Path.Combine(Application.persistentDataPath,
-                                                  "device.coat");
+                var path = System.IO.Path.Combine(pixels.savePath, "device.coat");
                 using (var file = System.IO.File.Create(path))
                 {
                     file.Write(header, 0, header.Length);

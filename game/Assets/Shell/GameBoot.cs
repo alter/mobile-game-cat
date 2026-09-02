@@ -60,9 +60,23 @@ namespace CatShelter.Shell
             // Here rather than on the capture screen, though its summary
             // suggests that: boot is earlier by the whole of the loading screen
             // and the room choice, and the download needs every second it can
-            // get. It does not block, it returns ready/requested/unavailable,
-            // and off Android it is a no-op.
-            Debug.Log($"[GameBoot] subject segmentation: {CatVision.Prepare()}");
+            // get. It returns ready/requested/unavailable, and off Android it
+            // is a no-op.
+            //
+            // 60-shell-build/19: started here, not waited for. "It does not
+            // block" was written about the DOWNLOAD and read as being about the
+            // call — but the call is JNI into Play services, and the plug-in
+            // gives it twelve seconds to answer in. Twelve seconds inside
+            // Awake is a game that shows nothing whatever on a cold start, and
+            // the reason nobody saw it is that an emulator answers "ready" in
+            // well under a second. The answer still reaches the log; it arrives
+            // from the worker thread a moment later.
+            OffMain.Run(() =>
+            {
+                var state = CatVision.Prepare();
+                Debug.Log($"[GameBoot] subject segmentation: {state}");
+                return state;
+            }, "vision prepare");
 
             // Does nothing unless a `visiontest` folder was pushed into the
             // app container; see VisionSelfTest.

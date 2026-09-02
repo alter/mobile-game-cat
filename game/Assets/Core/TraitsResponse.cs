@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CatShelter.Core
 {
@@ -24,6 +25,14 @@ namespace CatShelter.Core
     /// Every failure returns null rather than throwing. A Worker that answers
     /// nonsense must leave the player with the fallback cat, never with an
     /// error screen: she took a perfectly good photograph.
+    ///
+    /// That principle used to stop at the whole reply: one extra spot, one
+    /// repeated place or one place the schema doesn't know threw inside
+    /// <see cref="CatTraits"/>'s constructor, and the catch below discarded a
+    /// base colour, pattern, fur length and eye colour that were all read
+    /// correctly. <see cref="Spots"/> now applies CatTraits.cs:186-191's own
+    /// rule — stay silent about one field, not the whole answer — one layer
+    /// earlier, by filtering before construction instead of after a throw.
     /// </summary>
     public static class TraitsResponse
     {
@@ -61,7 +70,7 @@ namespace CatShelter.Core
         private static string String(string json, string name)
         {
             var at = Value(json, name);
-            if (at < 0) return null;
+            if (at < 0 || IsNull(json, at)) return null;
             var open = json.IndexOf('"', at);
             if (open < 0) return null;
             var close = json.IndexOf('"', open + 1);
@@ -73,7 +82,7 @@ namespace CatShelter.Core
         private static string[] Strings(string json, string name)
         {
             var at = Value(json, name);
-            if (at < 0) return Array.Empty<string>();
+            if (at < 0 || IsNull(json, at)) return Array.Empty<string>();
             var open = json.IndexOf('[', at);
             var close = open < 0 ? -1 : json.IndexOf(']', open + 1);
             if (open < 0 || close < 0) return Array.Empty<string>();
@@ -94,24 +103,55 @@ namespace CatShelter.Core
         /// An empty list is the ordinary answer and the one the prompt asks for
         /// when nothing stands out: most cats have no distinctive mark, and a
         /// mark reported on every cat identifies nobody.
+        ///
+        /// Every candidate is checked against <see cref="CatTraits.Allowed"/>
+        /// here, before <see cref="CatSpot"/> ever sees it, so a spot the model
+        /// invented, a place already used or a third mark past
+        /// <see cref="CatTraits.MaxSpots"/> is dropped one at a time instead of
+        /// throwing out of the constructor and taking the whole reply with it —
+        /// the schema and CatTraits itself stay exactly as they were.
         /// </summary>
         private static CatSpot[] Spots(string json)
         {
             var at = Value(json, "spots");
-            if (at < 0) return Array.Empty<CatSpot>();
+            if (at < 0 || IsNull(json, at)) return Array.Empty<CatSpot>();
             var open = json.IndexOf('[', at);
             var close = open < 0 ? -1 : json.IndexOf(']', open + 1);
             if (open < 0 || close < 0) return Array.Empty<CatSpot>();
 
             var found = new List<CatSpot>();
+            var places = new HashSet<string>();
             var inside = json.Substring(open + 1, close - open - 1);
             foreach (var piece in inside.Split('}'))
             {
+                if (found.Count >= CatTraits.MaxSpots) break;
+
                 var place = String(piece, "place");
                 var shade = String(piece, "shade");
-                if (place != null && shade != null) found.Add(new CatSpot(place, shade));
+                if (place == null || shade == null) continue;
+                if (!CatTraits.Allowed["spot_place"].Contains(place)) continue;
+                if (!CatTraits.Allowed["spot_shade"].Contains(shade)) continue;
+                if (!places.Add(place)) continue; // same place reported twice
+
+                found.Add(new CatSpot(place, shade));
             }
             return found.ToArray();
+        }
+
+        /// <summary>Whether the value at <paramref name="at"/> is the JSON
+        /// literal `null`. `String`/`Strings` used to skip straight to the
+        /// next quote or bracket for a value that has neither — on
+        /// `"base_color":null,"pattern":"tabby"` that quote belongs to the
+        /// *next* key, so the reader silently swallowed a neighbour's name (or,
+        /// for `Strings`, a neighbour's whole array) as if it were this field's
+        /// own value. `null` means the field is absent, the same as if the
+        /// Worker had left it out entirely.</summary>
+        private static bool IsNull(string json, int at)
+        {
+            var i = at;
+            while (i < json.Length && char.IsWhiteSpace(json[i])) i++;
+            return i + 4 <= json.Length && string.CompareOrdinal(json, i, "null", 0, 4) == 0 &&
+                   (i + 4 == json.Length || !char.IsLetterOrDigit(json[i + 4]));
         }
 
         /// <summary>Where a field's value starts, or -1. Matches the key with

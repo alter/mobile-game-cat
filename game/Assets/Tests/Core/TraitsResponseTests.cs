@@ -93,5 +93,93 @@ namespace CatShelter.Core.Tests
 
             Assert.That(TraitsResponse.Read(body).Pattern, Is.EqualTo("solid"));
         }
+
+        [Test]
+        public void AThirdSpotIsDroppedNotTheAnswer()
+        {
+            // CatTraits.MaxSpots is two. A model that names three no longer
+            // costs the player the whole cat — the first two valid marks are
+            // kept and the rest is quietly pruned, same as CatTraits.cs:186-191.
+            var body = Body.Replace(
+                "[{\"place\":\"paw_left\",\"shade\":\"light\"}]",
+                "[{\"place\":\"paw_left\",\"shade\":\"light\"}," +
+                "{\"place\":\"paw_right\",\"shade\":\"dark\"}," +
+                "{\"place\":\"flank\",\"shade\":\"light\"}]");
+
+            var traits = TraitsResponse.Read(body);
+
+            Assert.That(traits, Is.Not.Null);
+            Assert.That(traits.Spots.Count, Is.EqualTo(2));
+            Assert.That(traits.Spots[0].Place, Is.EqualTo("paw_left"));
+            Assert.That(traits.Spots[1].Place, Is.EqualTo("paw_right"));
+        }
+
+        [Test]
+        public void ARepeatedPlaceDropsTheSecondSpotNotTheAnswer()
+        {
+            // Two marks in the same place is one mark described twice
+            // (CatTraits' own constructor says as much); the first report wins
+            // and the duplicate is dropped rather than the whole reply.
+            var body = Body.Replace(
+                "[{\"place\":\"paw_left\",\"shade\":\"light\"}]",
+                "[{\"place\":\"paw_left\",\"shade\":\"light\"}," +
+                "{\"place\":\"paw_left\",\"shade\":\"dark\"}]");
+
+            var traits = TraitsResponse.Read(body);
+
+            Assert.That(traits, Is.Not.Null);
+            Assert.That(traits.Spots.Count, Is.EqualTo(1));
+            Assert.That(traits.Spots[0].Shade, Is.EqualTo("light"));
+        }
+
+        [Test]
+        public void AnUnknownPlaceDropsTheSpotNotTheAnswer()
+        {
+            // "tail" is not in CatTraits.Allowed["spot_place"] (the real value
+            // is "tail_tip") — a schema drift the Worker didn't catch. The
+            // spot goes, the four class traits the model got right do not.
+            var body = Body.Replace(
+                "[{\"place\":\"paw_left\",\"shade\":\"light\"}]",
+                "[{\"place\":\"tail\",\"shade\":\"light\"}]");
+
+            var traits = TraitsResponse.Read(body);
+
+            Assert.That(traits, Is.Not.Null);
+            Assert.That(traits.BaseColor, Is.EqualTo("ginger"));
+            Assert.That(traits.Spots, Is.Empty);
+        }
+
+        [Test]
+        public void ANullRequiredFieldIsAbsentNotTheNextKeysName()
+        {
+            // Before the fix, String() hunted for the next quote after the
+            // colon and, finding none of its own, read the following key's
+            // NAME ("pattern") as if it were base_color's value — which then
+            // failed Allowed's check for the wrong reason. null must read as
+            // simply absent, and a required field that is absent still means
+            // no cat rather than a guess (see AMissingFieldGivesNull above).
+            var body = Body.Replace("\"base_color\":\"ginger\"", "\"base_color\":null");
+
+            Assert.That(TraitsResponse.Read(body), Is.Null);
+        }
+
+        [Test]
+        public void ANullOptionalListDoesNotSwallowTheNextField()
+        {
+            // Before the fix, Strings() hunted forward for the next '[' and,
+            // finding none of its own after `null`, took the "spots" array
+            // that follows white_markings in the wire format instead. null
+            // must mean no markings, and it must not eat the marks that come
+            // after it.
+            var body = Body.Replace(
+                "\"white_markings\":[\"chest\",\"paws\"]", "\"white_markings\":null");
+
+            var traits = TraitsResponse.Read(body);
+
+            Assert.That(traits, Is.Not.Null);
+            Assert.That(traits.WhiteMarkings, Is.Empty);
+            Assert.That(traits.Spots.Count, Is.EqualTo(1));
+            Assert.That(traits.Spots[0].Place, Is.EqualTo("paw_left"));
+        }
     }
 }

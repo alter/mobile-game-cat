@@ -42,6 +42,68 @@ namespace CatShelter.Core.Tests
             ("ofphoto_01", "Cat", 0.64f), ("ofphoto_02", "", 0.00f), ("ofphoto_03", "Cat", 0.62f),
         };
 
+        /// <summary>
+        /// The same reference set through ML Kit on Android, plus the owner's
+        /// four photographs — measured 2026-09-01/02 on emulator-5554 with the
+        /// shipped plugin, after the frame-size fix (`Decode.ANALYSIS_MAX_SIDE`
+        /// dropped to 1280). Task 90-android/07.
+        ///
+        /// It sits beside the iOS table on purpose. `PhotoJudge` is ONE rule
+        /// for both platforms, and the only way to know it fits both is to run
+        /// both sets of numbers through it in one file: a threshold edited for
+        /// one platform now breaks the other's test in the same run.
+        ///
+        /// What the two tables say read together — the whole answer to "does
+        /// Android need its own threshold":
+        ///
+        /// <code>
+        ///                   iOS (Vision)         Android (ML Kit)
+        ///   cats named      18 of 20             20 of 20
+        ///   cat confidence  0.60 - 0.81          0.88 - 1.00
+        ///   dogs            5 of 5, 0.69-0.79    5 of 5, 0.93-0.99
+        ///   empty rooms     nothing at all       Dog 0.11 - 0.30
+        ///   blurry cats     4 of 5               5 of 5
+        /// </code>
+        ///
+        /// On iOS the threshold sits ON the floor of the cat range: 0.60 IS
+        /// the lowest genuine cat, and one step up starts refusing real ones.
+        /// On Android there is a gulf — worst cat 0.88, best empty room 0.30 —
+        /// so 0.60 lands mid-gap and nothing is marginal. One constant serves
+        /// both, and no second one is warranted. It is also load-bearing on
+        /// Android in a way it never was on iOS: without it, an empty kitchen
+        /// labelled `Dog 0.30` would be named a dog to the player.
+        ///
+        /// The one category where the platforms genuinely DISAGREE: a
+        /// photograph of a cat on a screen. iOS calls it a confident cat
+        /// (0.62, 0.64); Android does not (0.43, 0.17, 0.46). Since the gate
+        /// was deleted on 2026-09-01 both still make a cat out of it, so the
+        /// disagreement costs a different sentence and nothing more.
+        /// </summary>
+        private static readonly (string File, string Id, float Confidence)[] MeasuredAndroid =
+        {
+            ("blurry_01", "Cat", 0.96f), ("blurry_02", "Cat", 0.99f), ("blurry_03", "Cat", 1.00f),
+            ("blurry_04", "Cat", 1.00f), ("blurry_05", "Cat", 1.00f),
+            ("cat_01", "Cat", 1.00f), ("cat_02", "Cat", 0.99f), ("cat_03", "Cat", 1.00f),
+            ("cat_04", "Cat", 0.97f), ("cat_05", "Cat", 1.00f), ("cat_06", "Cat", 0.98f),
+            ("cat_07", "Cat", 1.00f), ("cat_08", "Cat", 0.99f), ("cat_09", "Cat", 0.99f),
+            ("cat_10", "Cat", 1.00f), ("cat_11", "Cat", 0.99f), ("cat_12", "Cat", 1.00f),
+            ("cat_13", "Cat", 1.00f), ("cat_14", "Cat", 1.00f), ("cat_15", "Cat", 1.00f),
+            ("cat_16", "Cat", 0.99f), ("cat_17", "Cat", 0.99f), ("cat_18", "Cat", 1.00f),
+            ("cat_19", "Cat", 1.00f), ("cat_20", "Cat", 1.00f),
+            ("dog_01", "Dog", 0.99f), ("dog_02", "Dog", 0.99f), ("dog_03", "Dog", 0.99f),
+            ("dog_04", "Dog", 0.99f), ("dog_05", "Dog", 0.93f),
+            // Empty rooms come back NAMED on Android, unlike iOS, and it is
+            // the threshold that turns them into NoAnimal.
+            ("empty_01", "Dog", 0.26f), ("empty_02", "", 0.00f), ("empty_03", "Dog", 0.15f),
+            ("empty_04", "Dog", 0.11f), ("empty_05", "Dog", 0.30f),
+            ("multi_01", "Cat", 0.92f), ("multi_02", "Cat", 0.95f), ("multi_03", "Cat", 0.99f),
+            ("ofphoto_01", "Dog", 0.43f), ("ofphoto_02", "Dog", 0.17f), ("ofphoto_03", "Cat", 0.46f),
+            // The owner's own four — the ones that spent a week coming back as
+            // "похоже на собаку" until the frame reaching ML Kit was capped.
+            ("photo_1", "Cat", 0.99f), ("photo_2", "Cat", 0.97f),
+            ("photo_3", "Cat", 0.88f), ("photo_4", "Cat", 0.97f),
+        };
+
         private static PhotoOutcome Judge(string file) =>
             Measured.Where(m => m.File == file)
                     .Select(m => PhotoJudge.Judge(m.Id, m.Confidence))
@@ -274,5 +336,82 @@ namespace CatShelter.Core.Tests
                 Assert.That(PhotoMessageKey.For(outcome), Is.Not.Empty, file);
             }
         }
+
+        // --- Task 90-android/07: the same rule over the Android numbers -----
+
+        [Test]
+        public void EveryAndroidMeasurementAlsoLandsInExactlyOneBranch()
+        {
+            var branches = Enum.GetValues(typeof(PhotoOutcome)).Cast<PhotoOutcome>().ToList();
+            foreach (var (file, id, confidence) in MeasuredAndroid)
+            {
+                var outcome = PhotoJudge.Judge(id, confidence);
+                Assert.That(branches, Contains.Item(outcome), file);
+                Assert.That(PhotoMessageKey.For(outcome), Is.Not.Empty, file);
+            }
+            Assert.That(MeasuredAndroid.Length, Is.EqualTo(45),
+                "41 reference photographs plus the owner's four");
+        }
+
+        [Test]
+        public void AndroidNamesEveryCatAndEveryDogCorrectly()
+        {
+            foreach (var (file, _, _) in MeasuredAndroid.Where(m => m.File.StartsWith("cat")))
+                Assert.That(AndroidJudge(file), Is.EqualTo(PhotoOutcome.Cat), file);
+            foreach (var (file, _, _) in MeasuredAndroid.Where(m => m.File.StartsWith("dog")))
+                Assert.That(AndroidJudge(file), Is.EqualTo(PhotoOutcome.Dog), file);
+        }
+
+        /// <summary>
+        /// The threshold is what stands between the player and being told her
+        /// empty kitchen is a dog. On iOS this case cannot arise — Vision
+        /// returns nothing for an empty room — so this assertion exists only
+        /// because Android measured differently, and it is the reason the
+        /// constant may not be lowered towards ML Kit's own 0.05 floor.
+        /// </summary>
+        [Test]
+        public void AndroidEmptyRoomsAreNoAnimalDespiteBeingNamedDog()
+        {
+            var named = MeasuredAndroid
+                .Where(m => m.File.StartsWith("empty") && m.Id == "Dog")
+                .ToList();
+            Assert.That(named, Is.Not.Empty,
+                "the point of this test is that ML Kit DOES name empty rooms");
+
+            foreach (var (file, _, _) in MeasuredAndroid.Where(m => m.File.StartsWith("empty")))
+                Assert.That(AndroidJudge(file), Is.EqualTo(PhotoOutcome.NoAnimal), file);
+        }
+
+        /// <summary>
+        /// One constant, not two — asserted rather than asserted-in-prose.
+        /// Every Android cat clears the threshold with room to spare, and
+        /// every Android empty room falls short of it with room to spare, so
+        /// there is no measurement here that would justify a second named
+        /// constant for the platform.
+        /// </summary>
+        [Test]
+        public void OneThresholdServesBothPlatformsWithRoomToSpare()
+        {
+            var worstCat = MeasuredAndroid
+                .Where(m => m.File.StartsWith("cat")).Min(m => m.Confidence);
+            var bestEmpty = MeasuredAndroid
+                .Where(m => m.File.StartsWith("empty")).Max(m => m.Confidence);
+
+            Assert.That(worstCat, Is.GreaterThan(PhotoJudge.MinimumConfidence + 0.2f),
+                "Android's worst cat should clear the shared threshold comfortably");
+            Assert.That(bestEmpty, Is.LessThan(PhotoJudge.MinimumConfidence - 0.2f),
+                "Android's loudest empty room should fall short of it comfortably");
+
+            // iOS is the tight side, and that is what fixes the number: its
+            // lowest genuine cat IS the threshold.
+            var worstIosCat = Measured
+                .Where(m => m.File.StartsWith("cat") && m.Id == "Cat").Min(m => m.Confidence);
+            Assert.That(worstIosCat, Is.EqualTo(PhotoJudge.MinimumConfidence).Within(0.001f));
+        }
+
+        private static PhotoOutcome AndroidJudge(string file) =>
+            MeasuredAndroid.Where(m => m.File == file)
+                           .Select(m => PhotoJudge.Judge(m.Id, m.Confidence))
+                           .Single();
     }
 }

@@ -2,7 +2,7 @@ phase:android
 role:VIEW
 type:feature
 priority:P2
-status:todo
+status:done
 verify:pending
 depends:90-android/05-recognition-plugin
 milestone:M9

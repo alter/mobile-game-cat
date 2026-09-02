@@ -76,3 +76,10 @@ OUTCOME asks with data that exists, and if per-item corners are ever added, the
 same rendering can read them instead of the pile index.
 
 Waiting on `DebugGameView.cs`, which another worker is in.
+
+# Открытый дефект — 2026-09-01
+
+Последний угол комнаты 12 не открывается (наблюдение владельца, задача пока
+нигде не велась — теперь ведётся здесь). Пока он не разобран, OUTCOME «чистота
+растёт угол за углом и на последней куче фон меняется на чистый» наблюдается
+на комнатах 1–11 и не наблюдается на 12-й.

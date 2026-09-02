@@ -1,0 +1,7 @@
+phase:shell
+role:CORE
+type:fix
+priority:P2
+status:todo
+verify:pending
+milestone:M6

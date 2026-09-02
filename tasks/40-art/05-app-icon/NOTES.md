@@ -81,3 +81,11 @@
   в Unity 6 это `GetSupportedIconKinds` + `GetPlatformIcons`/`SetPlatformIcons`,
   а **не** `GetSupportedPlatformIconKinds` и не старый `SetIcons(IconKind)`.
   Записано здесь, чтобы не искать заново.
+
+# Почему не done — 2026-09-01
+
+OUTCOME обещает 5 PNG 1024×1024 без прозрачности; на диске icon_1..5 —
+**1328×1328** (чтение IHDR). В сборку значок ставится и работает (см. выше),
+но артефакт с обещанием не совпадает, поэтому по правилу status:done задача
+остаётся in_progress: либо пересжать до 1024, либо поправить OUTCOME — решить
+при закрытии, а не молча.

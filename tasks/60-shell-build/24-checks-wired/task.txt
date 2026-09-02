@@ -1,0 +1,30 @@
+TASK: Every check runs from one command
+
+GOAL
+  Java-проверки (tools/tests/android-photo, android-vision) не подключены ни к
+  pytest, ни к headless-build.sh — работают, только когда о них вспомнят.
+  Swift не проверяется вообще ничем.
+
+CONTEXT
+  build/headless-build.sh, tools/tests/android-photo/run.sh (сам признаёт, что
+  проверяет копию восьми случаев, а не CatPhoto.point), tools/tests/
+  android-vision/run.sh (нужен эмулятор с Play), Plugins/iOS/*.swift.
+
+SCOPE
+  + android-photo/run.sh — в headless-build.sh (нужен только JDK, секунда).
+  + android-vision — отдельной необязательной ступенью с внятным пропуском,
+    когда эмулятора нет (это честнее, чем молча не гонять).
+  + Swift: хотя бы компиляция swiftc -parse под macOS в цепочке; настоящие
+    проверки логики — отдельным решением, записать варианты в NOTES.md.
+  - CI-облако не заводить: правило проекта — не платить за облако.
+
+OUTCOME
+  build/headless-build.sh падает, если Java-проверка красная или Swift не
+  разбирается; пропуски ступеней печатаются словами.
+
+VERIFY (QA)
+  1. Мутация в RotCheck-копии → headless-build падает.
+  2. Прогон без эмулятора: ступень android-vision пропущена со словами.
+
+ROLE
+  TOOLS

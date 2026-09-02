@@ -1,0 +1,8 @@
+phase:shell
+role:TOOLS
+type:chore
+priority:P2
+status:todo
+verify:pending
+depends:60-shell-build/16-localisation-ready
+milestone:M6

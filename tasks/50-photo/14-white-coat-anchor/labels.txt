@@ -1,0 +1,8 @@
+phase:photo
+role:CORE
+type:fix
+priority:P1
+status:blocked
+verify:pending
+depends:50-photo/11-offline-fallback
+milestone:M5

@@ -1,0 +1,23 @@
+TASK: Telemetry must not be able to end the game
+
+GOAL
+  Analytics.Progression бросает исключение при уровне вне 1..999 и при
+  незваном Configure. Событие «уровень начат» не должно уметь прервать уровень.
+
+CONTEXT
+  Core/Analytics.cs (:66,:75,:78-79), Tests/Core/AnalyticsTests.cs (:57-59 —
+  только 3 и 4, границ нет).
+
+SCOPE
+  + Броски → предупреждение в журнал и возврат; событие теряется, игра нет.
+  + Тесты границ: 0, 1, 999, 1000, вызов до Configure.
+  - Валидацию имён событий не ослаблять — она ловит опечатки при разработке.
+
+OUTCOME
+  Ни один путь Analytics не бросает; тесты границ зелёные.
+
+VERIFY (QA)
+  1. dotnet test.
+
+ROLE
+  CORE

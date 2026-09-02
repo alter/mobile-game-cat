@@ -1,8 +1,8 @@
-phase:photo
+phase:shell
 role:VIEW
-type:feature
+type:fix
 priority:P0
-status:done
+status:todo
 verify:pending
 depends:50-photo/08-capture-screen
-milestone:M5
+milestone:M6

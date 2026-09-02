@@ -20,6 +20,9 @@ the goal.
 **Gate 1 — `00-validate-demand/09-go-no-go`.** Does the promise sell. Eight
 creatives, $300 of advertising, cost per install. Until it returns "go", nothing
 from the shell, the art, the photo capture or the store gets built.
+*Deferred by the owner on 2026-09-01 — D18 in DECISIONS.md: build without the
+demand check. The gate's question returns the day the game approaches a store;
+gates 2 and 3 stand unchanged.*
 
 **Gate 2 — `30-levels-solver/07-outsiders-playtest`.** Is this worth building.
 Five outsiders play the debug build made of plain rectangles. The cheapest gate

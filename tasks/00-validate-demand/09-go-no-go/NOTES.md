@@ -13,3 +13,10 @@ in the written decision - don't let the number stay ambiguous about which
 job it's doing.
 
 Source: knowledge/analytics/02-benchmarks-and-attribution.md.
+
+# Отложено решением D18 — 2026-09-01
+
+Владелец: «пока без всяких проверок спроса, просто будем делать». Задача не
+закрыта и не отменена: вопрос «продаёт ли обещание» вернётся при выходе к
+магазину — и тогда разбор порога CPI выше снова станет актуальным.
+Подробности и цена решения — tasks/DECISIONS.md, D18.

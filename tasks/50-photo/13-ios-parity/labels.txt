@@ -1,0 +1,8 @@
+phase:photo
+role:NATIVE
+type:fix
+priority:P1
+status:todo
+verify:pending
+depends:10-accounts/03-xcode
+milestone:M5

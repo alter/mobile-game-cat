@@ -1,0 +1,40 @@
+TASK: Heavy work off the main thread
+
+GOAL
+  The main thread never stands longer than a frame on the photo path. Today it
+  may stand over a minute, and Android is entitled to kill the app for it.
+
+CONTEXT
+  game/Assets/Shell/CatVision.cs (AndroidCall), Shell/CatCoat.cs,
+  View/CaptureScreen.cs (Handle), View/CoatBuilder.cs, Shell/GameBoot.cs:65,
+  reviews: аудит 2026-09-01 (отчёт-артефакт), Plugins/Android/.../CatVision.java
+  (потолки 30 с и 12 с).
+
+SCOPE
+  + Recognise / Silhouette / CatCoat.Read вызываются с рабочего потока;
+    главный поток получает готовый ответ через очередь на кадр.
+  + CatVision.Prepare() уходит из первой строки Awake — запускается не блокируя.
+  + Сборка шубы (TryBuildFor) — либо на рабочем потоке (вычислительная часть),
+    либо порезана на кадры; полоса ожидания на экране остаётся живой.
+  + Замер до/после в NOTES.md: сколько стоял главный поток на пути
+    «выбрал снимок → котёнок готов» (эмулятор, оригинал 3000x4000).
+  - Не переписывать Java/Swift: их потолки и потоки уже верные, беда только в
+    том, что C# ждёт их на главном потоке.
+  - Не трогать путь capture.txt — прогоны должны остаться воспроизводимыми.
+
+OUTCOME
+  На пути фотографии нет ни одного вызова тяжелее кадра на главном потоке;
+  замер в NOTES.md это показывает числом до и после.
+
+VERIFY (QA)
+  1. Прогон capture.txt с оригиналом 3000x4000: «cat ready» приходит, экран
+     анимирует полосу всё время работы (снимки экрана в динамике).
+  2. grep по CaptureScreen/CatCoat/GameBoot: блокирующих вызовов AndroidCall
+     с главного потока не осталось.
+  3. dotnet test — 261+ зелёные.
+
+ROLE
+  VIEW
+
+DEPENDS
+  50-photo/08-capture-screen

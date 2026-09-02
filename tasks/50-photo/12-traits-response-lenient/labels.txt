@@ -1,0 +1,8 @@
+phase:photo
+role:CORE
+type:fix
+priority:P0
+status:todo
+verify:pending
+depends:50-photo/03-traits-schema
+milestone:M5

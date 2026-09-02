@@ -1,0 +1,34 @@
+TASK: A build that a store will accept twice
+
+GOAL
+  Сборка идёт отладочным ключом, AndroidBundleVersionCode застыл на 1 —
+  второй файл Play не примет. До магазина это не блокирует ничего, поэтому P1
+  со сроком «перед первой раздачей наружу».
+
+CONTEXT
+  game/ProjectSettings/ProjectSettings.asset (:182 versionCode, :278-291 ключи
+  пусты), game/Assets/Editor/BuildScript.cs (StampVersion — строка версии уже
+  автоматическая).
+
+SCOPE
+  + Ключ подписи Android (создание — владелец; хранение вне git, путь через
+    файл рядом с analytics-keys.txt).
+  + versionCode растёт при сборке (например, из числа коммитов), StampVersion
+    дописывает его же в строку.
+  + Тот же проход для iOS: appleDeveloperTeamID и автоподпись — когда
+    появится платная учётка (D17).
+  - TestFlight и Play Console — свои задачи (60/14, 90/12), тут только сборка.
+
+OUTCOME
+  Две сборки подряд дают разные versionCode и обе подписаны релизным ключом;
+  ключа в git нет.
+
+VERIFY (QA)
+  1. apkanalyzer или aapt: подпись не debug, versionCode двух сборок различен.
+  2. git ls-files: ключа и паролей нет.
+
+ROLE
+  TOOLS, HUMAN
+
+DEPENDS
+  90-android/02-build-pipeline

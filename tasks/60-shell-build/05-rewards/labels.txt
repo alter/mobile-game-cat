@@ -2,7 +2,7 @@ phase:shell
 role:VIEW
 type:feature
 priority:P1
-status:todo
+status:in_progress
 verify:pending
 depends:60-shell-build/04-cat-states
 milestone:M6

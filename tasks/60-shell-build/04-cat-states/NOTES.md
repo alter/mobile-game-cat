@@ -156,3 +156,105 @@ available=N` on every tile taken, `[Board] tap <id> refused` when a tap changes
 nothing, and a line for each ending — win, lose, house complete. A tap that does
 nothing is either a locked tile behaving correctly or a bug, and from outside the
 app those look identical.
+
+## The two transitions, actually watched — 2026-09-03
+
+`VERIFY.md` (2026-08-28 pass) was explicit: the two QA checks in `task.txt`
+had never been run, and neither shipped screenshot showed a state change —
+both were state 1. This closes that gap. No code changed; the installed APK
+(`versionName=09-02 21:23 d4c2926 vc262`) already matches `HEAD` for every
+file this task touches (`git log d4c2926..HEAD` on `PlayerProgress.cs`,
+`DebugGameView.cs`, `CoatBuilder.cs`, `GameSave.cs`, `SaveResume.cs`,
+`SaveFile.cs`, `RoomPlan.cs` — empty), so the shipped build was used as-is.
+Android only (`emulator-5554`); no iOS simulator was part of this task's
+tooling, so the iOS side of the standing "check both platforms" rule is not
+covered by this run.
+
+**How the boundary was reached.** Same trick `06-win-screen` and
+`70-analytics/02-nine-events` used: read the level JSON, compute a full
+winning move order with `tools/solver.solve()`, replay all but the last move
+through `tools/solver/rules.RulesState` (the tested mirror of `Board.cs`), and
+write a `board.save` that is one tap from winning — this time picking the
+*last pile of room 4* (`l09_room04_pile2.json`, level 9) and the *last pile of
+room 8* (`l21_room08_pile2.json`, level 21), found from
+`game/Assets/Resources/Levels/` (`l01_room01_pile0.json` ...
+`l37_room12_pile3.json`; piles per room 1,2,3,3,3,3,3,3,4,4,4,4, so level 9
+closes room 4 and level 21 closes room 8 — matches `RoomPlanTests.cs:119-135`
+which walks all 37 and asserts exactly 2 transitions). Script:
+`tools/solver`-based, kept only in the scratchpad, not committed (throwaway,
+same as the earlier tasks' scripts).
+
+One wrinkle found while doing this: `DebugGameView.Resume()`
+(`View/DebugGameView.cs:199-221`) does **not** use the save's `cursor`/
+`roomsdone` lines at all — those are written by `GameSave.Write` but the only
+reader that uses them is `HouseMapView` (`View/HouseMapView.cs:229,256-257`),
+for the map screen. `Resume()` instead rebuilds `PlayerProgress` by replaying
+`CompletePile(_levels[i].PileIndex)` for every level before the resumed one
+(comment at `DebugGameView.cs:214-218`: "Progress is not saved ... so it is
+replayed"). So the crafted saves omitted `cursor`/`roomsdone` entirely — only
+`level 9 room_04 2` / `level 21 room_08 2` matters — and the house map still
+drew the right ticks (rooms 1–3 done, 4 open, then 1–7 done, 8 open) purely
+from that level line, confirming the replay path is what actually drives
+`PlayerProgress.CatState` in play.
+
+**Room 4 boundary** (`android-room4-*.png`):
+- `android-room4-before-board.png` / `-before-card.png`: room 4, pile 3 of 3,
+  one tile left (a cloth). Portrait and full cat card both show **state 1** —
+  hunched sitting pose, muted/dull coat (`CoatBuilder.Neglect[1] = 1.0`).
+- Tapped the remaining cloth. The win card ("The room is clean", before/after
+  room art) came up immediately, and **the portrait behind the card had
+  already changed** — `android-room4-after-board.png` was taken with the win
+  card still on screen, before touching "Next". Portrait is now standing,
+  upright, visibly cleaner coat.
+- Pressed Next (into room 5, pile 1), tapped the portrait:
+  `android-room4-after-card.png` — full cat card, standing state-2 pose, and a
+  reward bowl prop is now in the scene (that prop is `05-rewards` scope, not
+  this task's — noted, not touched).
+
+**Room 8 boundary** (`android-room8-*.png`): same routine, level 21.
+- `android-room8-before-board.png` / `-before-card.png`: room 8, pile 3 of 3,
+  one board left. Portrait and card both still **state 2** — same standing
+  pose as after room 4, confirming state 2 holds steady across rooms 5–7 and
+  only changes again at room 8.
+- Tapped the last board. Win card up immediately; `android-room8-after-board.png`
+  shows the portrait **already** in a third, distinct pose — lying down,
+  glossier coat — again captured with the win card still on screen, before
+  "Next".
+- `android-room8-after-card.png`: full cat card, state 3, lying/relaxed, with
+  both the bowl and a blanket prop now present.
+
+**VERIFY QA 1 (transition fires the instant the 4th/8th room closes, not
+before, not on a later level) — confirmed by direct observation.** Both
+`*-after-board.png` shots were taken while the win card for that exact pile
+was still on screen, before advancing. The portrait was still state 1 (resp.
+2) on the pile immediately before the last one, and was already state 2
+(resp. 3) the moment the last tile of the room's last pile landed — matching
+the `RenderCat()` call inside `Finish()`'s win branch
+(`View/DebugGameView.cs:1216`, right after `CompletePile`), not the one at the
+top of `Render()` for the next level. Answers task point 5 directly: **the cat
+changes at the moment of victory itself, before the player has done anything
+else — not merely on the next render.**
+
+**VERIFY QA 2 (pile_count changes don't shift the transition)** — not
+re-verified by a device run (would need editing shipped level data, more than
+a small change, out of scope for this pass). Already covered on the Core side:
+`PlayerProgress.CatStateFor` (`Core/PlayerProgress.cs:150-156`) is a pure
+function of `_roomsDone.Count`, with no reference to level numbers, and
+`RoomPlanTests.cs:119-135` walks the real 37-level, 12-room shipped plan and
+asserts exactly 2 state changes regardless of the 1..4 piles-per-room curve.
+No discrepancy found between the promise ("ровно дважды, на 4 и 8, независимо
+от числа уровней в комнате") and the implementation.
+
+**No discrepancy found overall.** The three states are visibly, unmistakably
+different (pose, coat brightness/texture from `Neglect = {_, 1.0, 0.30, 0}`,
+and — incidentally — the reward props from `05-rewards` riding the same two
+boundaries), the swap is exactly two, exactly at rooms 4 and 8, and it is
+already on screen before the player takes any further action.
+
+Device cleaned: `board.save` removed from
+`/sdcard/Android/data/com.sootpaw.game/files/` after the run, no other file
+added or left behind.
+
+`dotnet test build/core-tests/core-tests.csproj` was not re-run in this pass
+(no code changed); the 2026-08-28 VERIFY run already logged 195 passed / 0
+failed on this exact code.

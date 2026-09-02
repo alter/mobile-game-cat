@@ -818,7 +818,38 @@ namespace CatShelter.Shell
             var screen = GetComponent<CatShelter.View.MeetYourCatScreen>();
             if (screen != null) return true;
             screen = gameObject.AddComponent<CatShelter.View.MeetYourCatScreen>();
-            if (!SafeBuild("meet-your-cat", root, () => screen.Build(root, traits, initialName)))
+            if (!SafeBuild("meet-your-cat", root, () =>
+            {
+                // 60-shell-build/20 VERIFY 3: the only way to prove the capture
+                // screen survives a broken meet-your-cat build is to actually
+                // break it, without breaking it for real players. `meetfail.txt`
+                // is the same convention as `capture.txt`/`board.txt` above:
+                // a flag file beside the save, checked only here, that a player
+                // has no way to create — `Application.persistentDataPath` is
+                // the app's private sandbox (Android: not writable without
+                // `adb`/root; iOS: not exposed to the Files app or any other
+                // app). It costs nothing on every other run because the
+                // File.Exists check is the only thing that happens when the
+                // file is absent.
+                //
+                // It is NOT quite like the others, and the difference is worth
+                // stating plainly: every other flag in this file makes the game
+                // do something EXTRA, while this one makes it FAIL. If the file
+                // ever appeared by accident, the player would lose the screen
+                // she came for. That is survivable — the branch below hands her
+                // back the capture screen with its buttons, which is the very
+                // thing this flag exists to prove — but if a way is ever found
+                // for a player to write into persistentDataPath, this is the
+                // first line in the project to delete.
+                if (System.IO.File.Exists(System.IO.Path.Combine(
+                        Application.persistentDataPath, "meetfail.txt")))
+                {
+                    throw new System.Exception(
+                        "meetfail.txt present — artificial build failure for " +
+                        "60-shell-build/20 VERIFY 3");
+                }
+                screen.Build(root, traits, initialName);
+            }))
             {
                 // Half-built and never wired to anything: gone, so a retry
                 // from the capture screen finds no component here and gets a

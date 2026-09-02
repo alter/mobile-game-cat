@@ -185,3 +185,104 @@ stays `in_progress` rather than moving to `review`. `verify:` is left
 untouched. What changed: the false blocker (`run-as`) is retired, item 1 is
 closed, and item 2 has real (if partial) evidence instead of none — the
 remaining gap is narrowed to exactly one thing, an iOS device.
+
+---
+
+# Прогон на Android-эмуляторе, 2026-09-03
+
+Package name has since changed to `com.sootpaw.game` (the `am` commands
+above used `com.DefaultCompany.game` — outdated; this pass used the current
+name throughout). `emulator-5554`, real installed build.
+
+## VERIFY 1 — kill mid-level, relaunch, same board
+
+Reached level 1 via `board.txt` debug flag (`Shell/GameBoot.cs` — same
+convention as `capture.txt`, skips the map, avoids fighting UI-Toolkit text
+input over `adb input text`, which does not reach the name field). Took two
+items, checked `board.save` on-device:
+
+```
+catshelter-save-v1
+level 1 room_01 0
+cap 9
+shelf prop_board prop_crate _ _ _ _ _ _ _
+triples 0
+taken 1 6
+```
+
+`am force-stop com.sootpaw.game`, relaunch: lands on the house map (this
+build's default screen — see `08-mid-level-save`'s own history), tapping
+room 1 shows **"Items left: 33"** with the shelf holding
+board/crate/board — the exact same position, not a fresh board.
+`snapshots/level1.png` (before, 36 left), `snapshots/level1b.png` (after
+taking 3, 33 left, a different play-through from the board.save capture
+above), `snapshots/resumed.png` (house map after relaunch),
+`snapshots/resumed2.png` (room 1 after relaunch — same position).
+**Settled by a real device run.**
+
+## VERIFY 2 — corrupted save falls back to a fresh board, no crash
+
+Three distinct kinds of corruption, each pushed over a valid `board.save`,
+each followed by `am force-stop` + relaunch:
+
+1. **Truncated** — `head -c 30` cuts the file mid-line
+   (`catshelter-save-v1\nlevel 1 roo`). Result: fresh level 1, 36 items,
+   empty shelf, app alive. `snapshots/corrupt1-truncated.png`.
+2. **Garbage bytes** — a non-UTF8 byte and nonsense tokens in every field
+   (`sh3lf t0tally b0rk3n !!! <0xC3><0x28> garbage`, `triples abc`,
+   `taken x y z`). Result: fresh level 1, 36 items, app alive, no crash, no
+   black screen. `snapshots/corrupt2-garbage.png`.
+3. **Valid format, nonexistent level** — well-formed save naming
+   `level 9999 room_99 0`. Result: fresh level 1, 36 items — `GameSave.Read`
+   parses it fine but the level-load path rejects a level that does not
+   ship, same as the unit-test coverage (`LevelLoadPolicyTests`).
+   `snapshots/corrupt3-badlevel.png`.
+
+All three: app came up alive, no crash, no black screen, and the file was
+rewritten with a fresh save (confirmed by reading `board.save` after each
+relaunch). **Settled by three separate device runs**, not just the one kind
+already covered in `08-mid-level-save`.
+
+## VERIFY 3 — iOS ↔ Android byte-for-byte
+
+**Not attempted — needs an iOS device/simulator, out of scope for this
+pass** (coordinator's instruction: "третья требует iOS — её не делай").
+Still blocked on the same thing `08-mid-level-save` names: no Apple
+developer account/device, defers to `14-testflight`. A fresh
+Android-written save was captured this pass as `android-board.save` in this
+directory (level 1, `cap 9`,
+`shelf prop_board prop_crate _ _ _ _ _ _ _`, `taken 1 6`) for whoever runs
+the iOS side later to diff against.
+
+## Extra check — File.Replace atomic write under a kill mid-write
+
+Attempted to reproduce a torn write: 8 cycles of
+`input tap <shelf item>; am force-stop com.sootpaw.game` issued as one
+`adb shell` round trip (minimum achievable latency), then immediate
+relaunch, checking for a leftover `board.save.tmp` or a malformed
+`board.save` after each cycle. **Not reproduced** — every cycle left a
+well-formed `board.save` (or no write at all), no `board.save.tmp` was ever
+observed on disk, and the app never failed to boot across all 8 cycles.
+Consistent with `File.WriteAllText` + `File.Replace`/`File.Move` on a file
+this small (well under 100 bytes) completing far faster than an `adb shell`
+round trip can land a kill signal inside the write — the race window is
+real in principle (it is `SaveFile.cs`'s own stated reason for using
+`File.Replace` at all) but this pass's tooling could not hit it. Not
+claiming it is impossible on a slower device or under memory pressure —
+only that it was not reproduced here, honestly. `snapshots/race-final.png`
+shows the app healthy after the attempt.
+
+## Cleanup
+
+`board.save`, `board.txt`, `capture.txt`, the one extra coat PNG generated
+during this pass, and `screen-failure.txt` (belongs to the other task's
+`meetfail.txt` test, ran on the same device) were removed from
+`/sdcard/Android/data/com.sootpaw.game/files/` after the relevant runs.
+`dotnet test build/core-tests/core-tests.csproj`: 283 passed, 0 failed.
+
+## Status
+
+VERIFY 1 and 2 are now settled by real device runs on Android (this pass).
+VERIFY 3 remains open, scoped to iOS and explicitly not attempted here per
+the coordinator's instruction. `status` stays `in_progress` — two of three
+VERIFY items are closed, the third needs an iOS run this pass could not do.

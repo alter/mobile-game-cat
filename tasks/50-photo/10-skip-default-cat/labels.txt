@@ -2,7 +2,7 @@ phase:photo
 role:VIEW
 type:feature
 priority:P0
-status:in_progress
+status:done
 verify:passed
 depends:50-photo/08-capture-screen
 milestone:M5

@@ -93,3 +93,21 @@ Record the answers verbatim in `VERIFY.md`, including the words used. Per
 `ROLES.md` and this task's own `role:HUMAN`, an agent neither performs nor
 simulates this: the whole point is a judgement by someone with nothing invested
 in the answer.
+
+# Состояние на 2026-09-02 — почему задача всё ещё in_progress
+
+OUTCOME просит шесть силуэтов (три состояния × две длины шерсти). На диске
+четыре, все короткошёрстные: `Resources/Art/cat_{1,2,3,4}_short_base.png`
+(плюс маски полос `cat_{1,2,3}_short_base_pattern_tabby.png`, добавленные
+30.08 вместе с новой простой основой).
+
+Длинношёрстных нет вовсе, и `CoatBuilder.LoadBase` честно об этом
+предупреждает в журнал, подставляя короткошёрстную основу. Последствие
+записываю прямо, потому что оно бьёт по обещанию игры: **у игрока с
+длинношёрстным котом игра нарисует короткошёрстного**. Признак «длина
+шерсти» измеряется (`CoatReader`), сохраняется, показывается словами — и не
+влияет на рисунок ни в одном пикселе.
+
+Это работа на генерацию, а не на код: нужны три основы длинной шерсти в том
+же стиле и с той же геометрией, что нынешние короткие. Внесено в
+`tasks/OWNER-TODO.md`.

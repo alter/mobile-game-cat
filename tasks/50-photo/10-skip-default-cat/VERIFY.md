@@ -90,3 +90,25 @@ Raw baseline test log used for this VERIFY (run in the repo, 2026-08-27):
 - The `Cat.DefaultName`/`Copy.cs` question (item 4) was judged on the code as
   it stands today; it was not re-checked against whatever `09-meet-your-cat`
   or `16-localisation-ready` eventually implement, since neither exists yet.
+
+---
+
+# Дополнение 2026-09-02 — причина `in_progress` истекла
+
+Проверка выше признавала `in_progress` честным статусом по одной причине,
+записанной в пункте 1: экрана `09-meet-your-cat` не существовало, `Skip()`
+отдавал безымянный `CatTraits`, и «названный и играбельный» из OUTCOME не
+выполнялось от начала до конца.
+
+Сегодня выполняется. `CaptureScreen.Skip()` (см. его тело) зовёт
+`OnCatReady?.Invoke(CatTraits.Default)`, а `GameBoot.cs:728` ведёт ОБА пути —
+снимок и пропуск — в один и тот же `ShowMeetYourCat`, где игрок вводит имя, и
+единственная в игре запись `cat.save` происходит в его `OnNamed`
+(проверено grep'ом при закрытии `60-shell-build/20`). Задача переведена в
+`status:done`.
+
+Что от той проверки осталось в силе и не закрыто: пункт 4 — `Cat.DefaultName`
+живёт в Core и потому вне охвата `test_copy_table.py`, а сегодняшний
+`test_font_coverage.py` (60-shell-build/23) эту дыру тоже не закрывает: он
+проверяет знаки таблиц `Copy*.cs`, а не имена из Core. Записано здесь, чтобы
+не пропало.

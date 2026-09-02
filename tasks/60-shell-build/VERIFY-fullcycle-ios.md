@@ -11,6 +11,15 @@ after `simctl uninstall`, so step 1 started with an empty container.
 Screenshots: `shots-fullcycle-ios/`. Every claim below comes from a command that was run;
 console lines are quoted verbatim from `xcrun simctl launch --console-pty booted com.sootpaw.game`.
 
+> **Шаг 1 устарел — примечание от 2026-09-02.** Ниже написано, что первый
+> запуск ведёт прямо на карту дома, «без вступления, котёнка и знакомства».
+> С тех пор экран съёмки стал воротами первого запуска: пустой контейнер
+> теперь даёт «Show us your cat», и на карту игра попадает только после
+> снимка, отказа от него или уже сохранённого кота. Проверено на Android —
+> `VERIFY-fullcycle-android.md`, шаг 1. Остальные шаги этого документа
+> перепроверить было нечем: устройства и симулятора iOS в сессии 02.09 не
+> было, поэтому их следует читать как описание той сборки, а не сегодняшней.
+
 ## The steps
 
 | # | Step | Result | Shot |

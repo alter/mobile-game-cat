@@ -1168,7 +1168,22 @@ namespace CatShelter.View
                               $"[{string.Join(",", _progress.RoomsDone)}] " +
                               $"cursor={_progress.CurrentRoom}/{_progress.CurrentPile} " +
                               $"pileIndex={_level.PileIndex}");
-                    ShowEndingCard();
+
+                    // 26-room12-reveal: this branch used to call
+                    // ShowEndingCard() straight away, so the twelfth room's
+                    // own fourth-corner/clean-room reveal — which every other
+                    // room's last pile gets on the ordinary card a few lines
+                    // below — never reached the screen. lastPileOfRoom is
+                    // always true here (the house's last pile is trivially
+                    // its room's last pile too), so show that same
+                    // win.room_clean card and transformation first, and only
+                    // hand off to the ending card from its "next" button.
+                    ShowCard(
+                        Shell.Copy.Of("win.room_clean.title"),
+                        Shell.Copy.Of("win.room_clean.body"),
+                        Shell.Copy.Of("win.next"), () => { HideCard(); ShowEndingCard(); },
+                        null, null);
+                    ShowRoomTransformation(_level);
                     return;
                 }
 

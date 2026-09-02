@@ -2,7 +2,7 @@ phase:shell
 role:VIEW
 type:fix
 priority:P1
-status:todo
+status:done
 verify:pending
 depends:60-shell-build/11-post-level-12
 milestone:M6

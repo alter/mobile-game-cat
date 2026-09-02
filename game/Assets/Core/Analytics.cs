@@ -1,4 +1,14 @@
 using System;
+using System.Runtime.CompilerServices;
+
+// 26-room12-reveal: Unity compiles Assets/Core and Assets/Tests/Core into two
+// separate asmdef assemblies (CatShelter.Core / CatShelter.Core.Tests), so
+// ResetForTests()'s `internal` below was invisible to the test assembly and
+// every Unity Editor build failed to compile — "Core and Tests compile into
+// one assembly" is only true of build/core-tests/core-tests.csproj, which
+// folds both folders into a single dotnet-test assembly and so never caught
+// this. Found while building an APK for this task's VERIFY.
+[assembly: InternalsVisibleTo("CatShelter.Core.Tests")]
 
 namespace CatShelter.Core
 {
@@ -155,9 +165,8 @@ namespace CatShelter.Core
             }
         }
 
-        // Core and Tests compile into one assembly (build/core-tests/
-        // core-tests.csproj), so internal is enough here — no need for
-        // InternalsVisibleTo or a public reset method just for one test.
+        // internal, not public, kept usable from the Tests asmdef only via
+        // the InternalsVisibleTo at the top of this file — see its comment.
         internal static void ResetForTests() => _validated = false;
     }
 }

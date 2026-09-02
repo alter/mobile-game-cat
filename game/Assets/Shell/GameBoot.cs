@@ -421,11 +421,19 @@ namespace CatShelter.Shell
         /// not, and that claim is why a day was spent inferring from
         /// screenshots what one line of log would have said.
         /// </summary>
-        private static void SafeBuild(string what, VisualElement root, System.Action build)
+        /// <returns>
+        /// True if <paramref name="build"/> ran without throwing. 60-shell-
+        /// build/20: callers that hand a player off to whatever this built —
+        /// ShowCapture's move into meet-your-cat is the one that matters —
+        /// need to know it actually stood up before they tear down the
+        /// screen that got her this far.
+        /// </returns>
+        private static bool SafeBuild(string what, VisualElement root, System.Action build)
         {
             try
             {
                 build();
+                return true;
             }
             catch (System.Exception e)
             {
@@ -442,7 +450,7 @@ namespace CatShelter.Shell
                 {
                 }
 
-                if (root == null) return;
+                if (root == null) return false;
                 var note = new Label(line);
                 note.style.position = Position.Absolute;
                 note.style.left = 12;
@@ -454,6 +462,7 @@ namespace CatShelter.Shell
                 note.style.paddingLeft = note.style.paddingRight = 10;
                 note.style.paddingTop = note.style.paddingBottom = 10;
                 root.Add(note);
+                return false;
             }
         }
 
@@ -695,8 +704,17 @@ namespace CatShelter.Shell
         /// </summary>
         private CatShelter.View.CaptureScreen ShowCapture(VisualElement root)
         {
-            var screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
-            SafeBuild("the capture screen", root, () => screen.Build(root));
+            // Same guard as the six other AddComponent call sites (see
+            // MeetYourCatScreen.Requested above): OnEnable can run more than
+            // once, and a second CaptureScreen stacked on the same
+            // GameObject would build a second tree and wire a second set of
+            // handlers over the first.
+            var screen = GetComponent<CatShelter.View.CaptureScreen>();
+            if (screen == null)
+            {
+                screen = gameObject.AddComponent<CatShelter.View.CaptureScreen>();
+                SafeBuild("the capture screen", root, () => screen.Build(root));
+            }
             screen.OnAccepted = photo => Report($"accepted a {photo.Length}-byte photo");
             // Every step of the picker, success or not, into capture-state.txt.
             // See CaptureScreen.OnTrouble for why: the file used to record only
@@ -736,16 +754,29 @@ namespace CatShelter.Shell
                 // roots are absolute and full-screen and the newer one is added
                 // last, so it covers the older one; hiding first would open a
                 // window of blank panel exactly as wide as the build.
+                //
+                // 60-shell-build/20: ShowMeetYourCat now reports whether its
+                // SafeBuild actually stood the screen up. Hiding this one
+                // used to be unconditional, so a broken meet-your-cat build
+                // used to leave the player looking at SafeBuild's red error
+                // label with nothing behind it and no button anywhere — the
+                // only screen that could get her back to the camera was gone.
+                // On failure this screen stays up instead: SetBusy(false)
+                // takes the waiting bar down and puts the buttons back, and
+                // photo.our_fault says a true thing ("something went wrong on
+                // our side") that also happens to fit — her traits are still
+                // good, only the naming screen fell over, and camera/gallery/
+                // skip all lead back into this same OnCatReady.
                 if (root == null)
                 {
-                    ShowMeetYourCat(root, traits);
-                    screen.Hide();
+                    if (ShowMeetYourCat(root, traits)) screen.Hide();
+                    else screen.BackToButtons(Copy.Of("photo.our_fault"));
                     return;
                 }
                 root.schedule.Execute(() =>
                 {
-                    ShowMeetYourCat(root, traits);
-                    screen.Hide();
+                    if (ShowMeetYourCat(root, traits)) screen.Hide();
+                    else screen.BackToButtons(Copy.Of("photo.our_fault"));
                 }).ExecuteLater(120);
             };
             return screen;
@@ -760,12 +791,33 @@ namespace CatShelter.Shell
         /// across the tap on 2026-08-29: the screen before and the screen after
         /// were identical files. The name was saved and the player was left
         /// looking at the cat she had just named with nothing to press.
+        ///
+        /// 60-shell-build/20: two more things this now does, both matching the
+        /// six other AddComponent call sites in this file (MeetYourCatScreen's
+        /// own `meet.txt` branch above is one). First, it will not stack a
+        /// second component on a GameObject that already carries one — the
+        /// same re-entrancy guard as everywhere else. Second, `Build` runs
+        /// through `SafeBuild` and the result comes back to the caller: the
+        /// path from the capture screen (ShowCapture, above) is bare
+        /// `screen.Build` before this and had no way to know a throw had
+        /// happened, so it hid the working capture screen behind whatever
+        /// SafeBuild's error label left on the panel — no cat, no buttons.
         /// </summary>
-        private void ShowMeetYourCat(VisualElement root, CatShelter.Core.CatTraits traits,
+        private bool ShowMeetYourCat(VisualElement root, CatShelter.Core.CatTraits traits,
                                      string initialName = null)
         {
-            var screen = gameObject.AddComponent<CatShelter.View.MeetYourCatScreen>();
-            screen.Build(root, traits, initialName);
+            var screen = GetComponent<CatShelter.View.MeetYourCatScreen>();
+            if (screen != null) return true;
+            screen = gameObject.AddComponent<CatShelter.View.MeetYourCatScreen>();
+            if (!SafeBuild("meet-your-cat", root, () => screen.Build(root, traits, initialName)))
+            {
+                // Half-built and never wired to anything: gone, so a retry
+                // from the capture screen finds no component here and gets a
+                // clean AddComponent rather than tripping the guard above on
+                // a screen that never worked.
+                Destroy(screen);
+                return false;
+            }
             screen.OnNamed = cat =>
             {
                 // Saved BEFORE the swap, not after it. The house map's own
@@ -777,6 +829,7 @@ namespace CatShelter.Shell
                 Report($"cat named: {cat.Name}");
                 GoToTheHouse(root);
             };
+            return true;
         }
 
         /// <summary>

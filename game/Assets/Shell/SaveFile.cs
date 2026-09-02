@@ -45,8 +45,16 @@ namespace CatShelter.Shell
             try
             {
                 File.WriteAllText(TempPath, text);
-                File.Copy(TempPath, Path, overwrite: true);
-                File.Delete(TempPath);
+                // File.Copy is not a move: it truncates and rewrites the
+                // destination in place, so a kill mid-copy leaves exactly the
+                // half-written file this class exists to avoid. File.Replace
+                // (or Move, when there is nothing yet to replace) renames the
+                // temp file onto the target, which the filesystem commits as
+                // one step.
+                if (File.Exists(Path))
+                    File.Replace(TempPath, Path, null);
+                else
+                    File.Move(TempPath, Path);
             }
             catch (Exception e)
             {

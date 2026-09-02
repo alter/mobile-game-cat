@@ -108,9 +108,21 @@ namespace CatShelter.Core
             progress.CurrentPile = cursorPile;
             if (roomsDone != null)
             {
+                // GameSave.Read already rejects a roomsDone entry below 1 or
+                // a duplicate (whole file, not just the field), but Restore
+                // is a public entry point of its own — a caller could still
+                // hand it [-4, 99, 99, 7] for a two-room house directly, so
+                // it checks the one thing only it can know: whether the room
+                // exists in this shipped plan. Same shape as the cursorRoom
+                // check above, and the same exception, so callers (e.g.
+                // HouseMapView) already fall back on it.
                 foreach (var room in roomsDone)
+                {
+                    if (room < 1 || room > pilesPerRoom.Count)
+                        throw new ArgumentOutOfRangeException(nameof(roomsDone));
                     if (!progress._roomsDone.Contains(room))
                         progress._roomsDone.Add(room);
+                }
             }
             return progress;
         }

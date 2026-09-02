@@ -48,8 +48,15 @@ namespace CatShelter.Shell
             try
             {
                 File.WriteAllText(TempPath, text);
-                File.Copy(TempPath, Path, overwrite: true);
-                File.Delete(TempPath);
+                // See SaveFile.Write: File.Copy truncates the destination in
+                // place rather than moving onto it, so a kill mid-copy left a
+                // half-written cat.save. File.Replace (Move when there is no
+                // existing file to replace) renames instead, which the
+                // filesystem commits as one step.
+                if (File.Exists(Path))
+                    File.Replace(TempPath, Path, null);
+                else
+                    File.Move(TempPath, Path);
             }
             catch (Exception e)
             {

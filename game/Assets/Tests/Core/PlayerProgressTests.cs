@@ -194,6 +194,16 @@ namespace CatShelter.Core.Tests
                 () => PlayerProgress.Restore(Curve, 1, 1, new List<int>())); // room 1 has 1 pile
         }
 
+        [Test]
+        public void Restore_RejectsRoomsDoneOutsideRoomCount()
+        {
+            // A save naming a room this plan does not have (task
+            // 08-save-hardening) must not resume silently — same rejection
+            // as an out-of-range cursor, one room too many for this curve.
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => PlayerProgress.Restore(Curve, 1, 0, new List<int> { Curve.Length + 1 }));
+        }
+
         // --- house map: done / open / locked ----------------------------
         //
         // The map's first question is where the player may go, which is not

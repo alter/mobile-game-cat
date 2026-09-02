@@ -276,6 +276,28 @@ namespace CatShelter.View
         public void Show() => _root.style.display = DisplayStyle.Flex;
         public void Hide() => _root.style.display = DisplayStyle.None;
 
+        /// <summary>
+        /// Back out of the waiting state and speak, for a failure that
+        /// happened after this screen was done — GameBoot's move into
+        /// MeetYourCatScreen, specifically (60-shell-build/20).
+        ///
+        /// <see cref="Handle"/> deliberately leaves the waiting block up on
+        /// its way out ("whoever handles OnCatReady owns the frame from
+        /// here" — see that method's note) on the promise that the next
+        /// screen takes over within moments. When it does not — the next
+        /// screen's own Build threw — nobody was ever going to call
+        /// <c>SetBusy(false)</c> again, and the bar would have kept sliding
+        /// forever behind whatever error label landed on the panel. This is
+        /// that call, plus the message that turns "still working" into
+        /// "here's what happened", from a caller outside the class that has
+        /// no reason to know this screen's private waiting state exists.
+        /// </summary>
+        public void BackToButtons(string message)
+        {
+            SetBusy(false);
+            Answer(message);
+        }
+
         private void Pick(bool fromCamera)
         {
             var which = fromCamera ? "camera" : "gallery";
@@ -926,6 +948,15 @@ namespace CatShelter.View
 
         private void SetBusy(bool busy, string text = null)
         {
+            // 60-shell-build/20: capture.txt can drive Handle() straight
+            // through StartCoroutine(RunAndReport(...)) without ever
+            // confirming Build() got past the point that assigns `_busy` —
+            // an artificially broken Build (GameBoot.ShowCapture's SafeBuild
+            // catches the throw and moves on) used to turn this into a
+            // NullReferenceException on the very first SetBusy call inside
+            // Handle. Nothing to update on a screen that never finished
+            // building, so there is nothing wrong with doing nothing here.
+            if (_busy == null) return;
             _busy.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
             if (text != null)
             {

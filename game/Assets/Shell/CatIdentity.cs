@@ -26,9 +26,28 @@ namespace CatShelter.Shell
         private static CatTraits _cached;
 
         /// <summary>
-        /// The player's cat. Reads the save; rolls and writes one if there is
-        /// none. Never returns null — a launch that cannot read or write a file
-        /// still has to show somebody.
+        /// The player's cat. Reads the save; rolls one in memory if there is
+        /// none. Never returns null — a launch with no saved cat still has to
+        /// show somebody.
+        ///
+        /// 60-shell-build/20: this used to write the rolled cat to
+        /// <see cref="CatSaveFile"/> as well, "so a player who opens the game
+        /// and closes it should not meet a different animal next time" — true
+        /// when this was written (28.08), before the saved cat became the
+        /// first-run gate itself (<c>GameBoot.HasACat</c>, 50-photo/10). A
+        /// write here fired the moment anything read <see cref="Traits"/> —
+        /// which board.txt's debug harness does on a device that has never met
+        /// a cat, through <c>DebugGameView.CatStateTraits</c> — and planted a
+        /// nameless `cat.save` that made every later launch think the first
+        /// run was already answered.
+        ///
+        /// The reason still stands but needs no write to hold: the seed below
+        /// is a pure function of the device and its language, so the same
+        /// phone rolls the same cat every time it asks, on disk or not — see
+        /// <see cref="CatTraits.Roll"/>'s own doc. Persisting it is not this
+        /// property's job any more; the one write that should close the gate
+        /// happens where the player actually answers it, in
+        /// <c>GameBoot.ShowMeetYourCat</c>'s <c>OnNamed</c>.
         /// </summary>
         public static CatTraits Traits
         {
@@ -51,19 +70,6 @@ namespace CatShelter.Shell
                            ^ SystemInfo.deviceUniqueIdentifier.GetHashCode();
                 _cached = CatTraits.Roll(seed);
                 Debug.Log($"[CatIdentity] rolled a cat: {_cached}");
-
-                // Written straight away, not on the next save: a player who
-                // opens the game and closes it should not meet a different
-                // animal next time.
-                try
-                {
-                    CatSaveFile.Write(CatSave.Write(new Cat(null, _cached)));
-                }
-                catch (System.Exception e)
-                {
-                    // A cat that cannot be written is still a cat for this run.
-                    Debug.LogWarning($"[CatIdentity] could not save the rolled cat: {e.Message}");
-                }
 
                 return _cached;
             }

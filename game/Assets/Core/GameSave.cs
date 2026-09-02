@@ -39,9 +39,16 @@ namespace CatShelter.Core
                 Header,
                 // level identity
                 $"level {snap.LevelNumber} {snap.RoomId} {snap.PileIndex}",
-                // shelf: kind ids, '_' for empty, then capacity
-                "shelf " + string.Join(" ", snap.Shelf.Select(s => s ?? "_"))
-                        + $" cap{snap.Shelf.Count}",
+                // capacity on its own line, ahead of the shelf contents: a
+                // real kind name can start with "cap" (e.g. "prop_capstan"),
+                // and folding capacity into the shelf line as a trailing
+                // "capN" token made that name indistinguishable from the
+                // marker — int.Parse on its non-numeric tail threw and lost
+                // the whole file. A dedicated line has nothing to collide
+                // with.
+                $"cap {snap.Shelf.Count}",
+                // shelf: kind ids, '_' for empty
+                "shelf " + string.Join(" ", snap.Shelf.Select(s => s ?? "_")),
                 $"triples {snap.TriplesCompleted}",
                 // taken ids in take order (replay drives occlusion + locks)
                 "taken " + string.Join(" ", snap.Taken),
@@ -71,6 +78,10 @@ namespace CatShelter.Core
                 List<string> shelf = null; int triples = -1;
                 List<int> taken = null;
                 int cursorRoom = 1, cursorPile = 0; List<int> roomsDone = null;
+                // Set only by a "cap" line, written ahead of "shelf" since
+                // 08-save-hardening. Old files never have one; see the
+                // "shelf" case below for the two read paths this drives.
+                int? capLine = null;
 
                 foreach (var raw in lines.Skip(1))
                 {
@@ -82,15 +93,36 @@ namespace CatShelter.Core
                             roomId = parts[2];
                             pileIndex = int.Parse(parts[3], CultureInfo.InvariantCulture);
                             break;
+                        case "cap":
+                            capLine = int.Parse(parts[1], CultureInfo.InvariantCulture);
+                            break;
                         case "shelf":
                             shelf = new List<string>();
-                            int capacity = 9;
-                            foreach (var tok in parts.Skip(1))
+                            int capacity;
+                            if (capLine.HasValue)
                             {
-                                if (tok.StartsWith("cap", StringComparison.Ordinal))
-                                    capacity = int.Parse(tok.Substring(3), CultureInfo.InvariantCulture);
-                                else
+                                // Current format: capacity already came off its
+                                // own "cap" line, so every token here is a plain
+                                // item — including one that happens to start
+                                // with "cap" (e.g. "prop_capstan").
+                                capacity = capLine.Value;
+                                foreach (var tok in parts.Skip(1))
                                     shelf.Add(tok == "_" ? null : tok);
+                            }
+                            else
+                            {
+                                // Pre-08-save-hardening format: capacity was a
+                                // trailing "capN" token on the shelf line
+                                // itself. Kept so saves written before this fix
+                                // still resume instead of vanishing.
+                                capacity = 9;
+                                foreach (var tok in parts.Skip(1))
+                                {
+                                    if (tok.StartsWith("cap", StringComparison.Ordinal))
+                                        capacity = int.Parse(tok.Substring(3), CultureInfo.InvariantCulture);
+                                    else
+                                        shelf.Add(tok == "_" ? null : tok);
+                                }
                             }
                             // A shelf shorter than its own capacity is padded; one
                             // longer, or a nonsense capacity, is a broken file —
@@ -124,6 +156,16 @@ namespace CatShelter.Core
                 if (levelNumber < 1 || pileIndex < 0 || cursorRoom < 1 || cursorPile < 0)
                     return null;
                 if (taken.Any(id => id < 0))
+                    return null;
+                // Same rule as cursorRoom just above: a room number is
+                // 1-based, and this level has no view of the shipped room
+                // count to bound it further (PlayerProgress.Restore checks
+                // the upper bound once it does). A repeat entry is not
+                // garbage in the same sense, but it is not a real position
+                // either — RoomsDone is a set, so reject rather than let a
+                // duplicate through unnoticed.
+                if (roomsDone != null && (roomsDone.Any(r => r < 1) ||
+                    roomsDone.Distinct().Count() != roomsDone.Count))
                     return null;
 
                 return new SavedGame(levelNumber, roomId, pileIndex,

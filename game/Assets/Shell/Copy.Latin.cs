@@ -154,6 +154,9 @@ namespace CatShelter.Shell
                     "El montón queda como estaba.",
                 ["lose.replay"] = "Otra vez",
 
+                ["lesson.tap"] = "Toca este.",
+                ["lesson.shelf"] = "Las cosas esperan en el estante.",
+                ["lesson.match"] = "Tres iguales, y desaparecen.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Toda la casa está limpia",
                 ["house.complete.body"] =
@@ -368,6 +371,9 @@ namespace CatShelter.Shell
                     "A pilha volta como estava.",
                 ["lose.replay"] = "De novo",
 
+                ["lesson.tap"] = "Toque neste.",
+                ["lesson.shelf"] = "As coisas esperam na prateleira.",
+                ["lesson.match"] = "Três iguais, e desaparecem.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "A casa toda está limpa",
                 // Two sentences where the English has one clause and a comma,
@@ -587,6 +593,9 @@ namespace CatShelter.Shell
                     "Le tas revient comme il était.",
                 ["lose.replay"] = "Rejouer",
 
+                ["lesson.tap"] = "Touchez celui-ci.",
+                ["lesson.shelf"] = "Les objets attendent sur l'étagère.",
+                ["lesson.match"] = "Trois pareils, et ils s'en vont.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Toute la maison est propre",
                 ["house.complete.body"] =
@@ -827,6 +836,9 @@ namespace CatShelter.Shell
                     "Der Haufen liegt wieder wie vorher.",
                 ["lose.replay"] = "Nochmal",
 
+                ["lesson.tap"] = "Tippe hier.",
+                ["lesson.shelf"] = "Dinge warten im Regal.",
+                ["lesson.match"] = "Drei gleiche — und weg sind sie.",
                 // --- the end of the house ------------------------------------
                 // 25 characters at `.game__card-title`'s 22px bold, which does
                 // not wrap; the card grows to fit inside the overlay's 390
@@ -1021,6 +1033,9 @@ namespace CatShelter.Shell
                     "Il mucchio torna com'era.",
                 ["lose.replay"] = "Di nuovo",
 
+                ["lesson.tap"] = "Tocca questo.",
+                ["lesson.shelf"] = "Le cose aspettano sulla mensola.",
+                ["lesson.match"] = "Tre uguali, e spariscono.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Tutta la casa è pulita",
                 ["house.complete.body"] =
@@ -1192,6 +1207,9 @@ namespace CatShelter.Shell
                     "Yığın eskisi gibi kalıyor.",
                 ["lose.replay"] = "Yeniden",
 
+                ["lesson.tap"] = "Buna dokun.",
+                ["lesson.shelf"] = "Eşyalar rafta bekler.",
+                ["lesson.match"] = "Üç aynı — ve gittiler.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Evin her odası temiz",
                 ["house.complete.body"] =
@@ -1351,6 +1369,9 @@ namespace CatShelter.Shell
                     "Tumpukan kembali seperti semula.",
                 ["lose.replay"] = "Ulangi",
 
+                ["lesson.tap"] = "Ketuk yang ini.",
+                ["lesson.shelf"] = "Barang menunggu di rak.",
+                ["lesson.match"] = "Tiga yang sama — dan hilang.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Seluruh rumah bersih",
                 // SHORTENED. "Dan seekor anak kucing yang tidak lagi punya
@@ -1535,6 +1556,9 @@ namespace CatShelter.Shell
                     "Đống đồ trở lại như cũ.",
                 ["lose.replay"] = "Chơi lại",
 
+                ["lesson.tap"] = "Chạm vào cái này.",
+                ["lesson.shelf"] = "Đồ vật chờ trên kệ.",
+                ["lesson.match"] = "Ba cái giống nhau — và biến mất.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Cả nhà đã sạch",
                 ["house.complete.body"] =

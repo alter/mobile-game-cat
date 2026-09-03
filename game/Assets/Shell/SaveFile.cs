@@ -62,10 +62,29 @@ namespace CatShelter.Shell
             }
         }
 
+        /// <summary>
+        /// Throw the position away.
+        ///
+        /// Not quite a delete since 60-shell-build/28: whatever
+        /// <see cref="Core.GameSave.Residue"/> says must outlive a position is
+        /// written back in its place — today that is one line saying the first
+        /// lesson has been played. A loss on the first pile used to delete the
+        /// whole file, and the replay then taught the player to tap three boards
+        /// all over again, which is the one thing that task's SCOPE rules out.
+        /// The residue is not a resumable save and `GameSave.Read` rejects it,
+        /// so every caller asking for a position still gets a fresh board,
+        /// exactly as it did when the file was simply gone.
+        /// </summary>
         public static void Clear()
         {
             try
             {
+                var residue = Core.GameSave.Residue(Read());
+                if (residue != null)
+                {
+                    Write(residue);
+                    return;
+                }
                 if (File.Exists(Path)) File.Delete(Path);
             }
             catch (Exception e)

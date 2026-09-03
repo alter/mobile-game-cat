@@ -23,15 +23,29 @@ namespace CatShelter.Core
     {
         public const string Header = "catshelter-save-v1";
 
+        /// <summary>
+        /// The line that says the first lesson has been played
+        /// (60-shell-build/28). Written only when it has; an older file simply
+        /// has no such line and reads back as "not played", which is the same
+        /// shape as the `cap` fallback below.
+        /// </summary>
+        private const string LessonLine = "lesson 1";
+
         /// <summary>Capture the live board plus progress cursor.</summary>
-        public static string Write(Board board, PlayerProgress progress)
+        /// <param name="lessonSeen">Whether the first lesson has been played
+        /// through. Carried in the save because it must outlive the process and
+        /// there is nowhere else in this game that a player-lifetime fact
+        /// lives.</param>
+        public static string Write(Board board, PlayerProgress progress,
+                                   bool lessonSeen = false)
         {
             if (board is null) throw new ArgumentNullException(nameof(board));
             var snap = BoardSave.Capture(board);
-            return Write(snap, progress);
+            return Write(snap, progress, lessonSeen);
         }
 
-        public static string Write(BoardSnapshot snap, PlayerProgress progress)
+        public static string Write(BoardSnapshot snap, PlayerProgress progress,
+                                   bool lessonSeen = false)
         {
             if (snap is null) throw new ArgumentNullException(nameof(snap));
             var lines = new List<string>
@@ -53,6 +67,7 @@ namespace CatShelter.Core
                 // taken ids in take order (replay drives occlusion + locks)
                 "taken " + string.Join(" ", snap.Taken),
             };
+            if (lessonSeen) lines.Add(LessonLine);
             if (progress != null)
             {
                 lines.Add($"cursor {progress.CurrentRoom} {progress.CurrentPile}");
@@ -78,6 +93,7 @@ namespace CatShelter.Core
                 List<string> shelf = null; int triples = -1;
                 List<int> taken = null;
                 int cursorRoom = 1, cursorPile = 0; List<int> roomsDone = null;
+                bool lessonSeen = false;
                 // Set only by a "cap" line, written ahead of "shelf" since
                 // 08-save-hardening. Old files never have one; see the
                 // "shelf" case below for the two read paths this drives.
@@ -143,6 +159,15 @@ namespace CatShelter.Core
                             cursorRoom = int.Parse(parts[1], CultureInfo.InvariantCulture);
                             cursorPile = int.Parse(parts[2], CultureInfo.InvariantCulture);
                             break;
+                        case "lesson":
+                            // Present or absent, never "lesson 0": a file that
+                            // does not carry the line is a file from before the
+                            // lesson existed, and both cases mean the same
+                            // thing. Anything other than 1 is treated as absent
+                            // rather than rejected — a stray token here must not
+                            // cost the player the position it is attached to.
+                            lessonSeen = parts.Length > 1 && parts[1] == "1";
+                            break;
                         case "roomsdone":
                             roomsDone = parts.Skip(1)
                                 .Select(t => int.Parse(t, CultureInfo.InvariantCulture))
@@ -170,7 +195,7 @@ namespace CatShelter.Core
 
                 return new SavedGame(levelNumber, roomId, pileIndex,
                     taken, shelf, triples, cursorRoom, cursorPile,
-                    roomsDone ?? new List<int>());
+                    roomsDone ?? new List<int>(), lessonSeen);
             }
             catch (FormatException)
             {
@@ -187,6 +212,45 @@ namespace CatShelter.Core
                 return null;
             }
         }
+
+        /// <summary>
+        /// Has the first lesson been played? Answered WITHOUT parsing a
+        /// position, and that is the whole reason it exists.
+        ///
+        /// <see cref="Read"/> returns null for any save whose board is not
+        /// resumable — truncated, from a level that no longer ships, already
+        /// over. All of those are ordinary and all of them start a fresh board,
+        /// which is right. What is not right is showing a player the tutorial
+        /// again because the position they were in stopped being readable: the
+        /// lesson is a fact about the person, not about the pile.
+        /// </summary>
+        public static bool LessonSeenIn(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            var lines = text.Replace("\r\n", "\n")
+                            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            if (lines[0].Trim() != Header) return false;
+            foreach (var raw in lines)
+                if (raw.Trim() == LessonLine) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// What has to survive deleting the save, or null when nothing does.
+        ///
+        /// The board file is deleted on a loss and when a save names a level
+        /// past the end (DebugGameView.Finish, Shell.SaveFile.Clear). Losing the
+        /// first pile after being taught how to play would otherwise teach the
+        /// player again on the replay — the one thing SCOPE rules out ("the
+        /// lesson runs once in the life of an install"). So a clear leaves
+        /// behind a header and the lesson line and nothing else.
+        ///
+        /// Deliberately NOT a resumable save: <see cref="Read"/> rejects this
+        /// text — no level, no shelf, no taken list — so every caller that asks
+        /// for a position gets exactly what it got before, a fresh board.
+        /// </summary>
+        public static string Residue(string text) =>
+            LessonSeenIn(text) ? Header + "\n" + LessonLine + "\n" : null;
     }
 
     /// <summary>Parsed save payload — everything needed to resume exactly.</summary>
@@ -203,13 +267,20 @@ namespace CatShelter.Core
         public int CursorPile { get; }
         public IReadOnlyList<int> RoomsDone { get; }
 
+        /// <summary>Whether the first lesson has already been played through
+        /// (60-shell-build/28). False for every file written before it
+        /// existed.</summary>
+        public bool LessonSeen { get; }
+
         public SavedGame(int levelNumber, string roomId, int pileIndex,
                          IReadOnlyList<int> takenOrder,
                          IReadOnlyList<string> shelfKinds,
                          int triplesCompleted,
                          int cursorRoom, int cursorPile,
-                         IReadOnlyList<int> roomsDone)
+                         IReadOnlyList<int> roomsDone,
+                         bool lessonSeen = false)
         {
+            LessonSeen = lessonSeen;
             LevelNumber = levelNumber;
             RoomId = roomId;
             PileIndex = pileIndex;

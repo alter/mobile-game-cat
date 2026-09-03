@@ -219,6 +219,9 @@ namespace CatShelter.Shell
                     "Every slot is full and no three the same. " +
                     "The pile goes back the way it was.",
                 ["lose.replay"] = "Replay",
+                ["lesson.tap"] = "Tap this one.",
+                ["lesson.shelf"] = "Things wait on the shelf.",
+                ["lesson.match"] = "Three the same — and they're gone.",
                 // "One more shelf" / "Coming soon." lived here until
                 // 2026-08-27. The offer is gone until there is a price behind
                 // it (D4); the wording is kept in that decision, not here,
@@ -584,6 +587,9 @@ namespace CatShelter.Shell
                     "Куча вернётся такой, какой была.",
                 ["lose.replay"] = "Заново",
 
+                ["lesson.tap"] = "Нажмите сюда.",
+                ["lesson.shelf"] = "Вещи ждут на полке.",
+                ["lesson.match"] = "Три одинаковых — и их нет.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "Во всём доме чисто",
                 // Two sentences where the English has one clause and a comma:

@@ -585,3 +585,115 @@
     -unity-font-style: bold;
     margin-top: 4px;
 }
+
+/* =====================================================================
+   60-shell-build/28: the first lesson.
+
+   The owner watched living people play and none of them worked out that
+   the game is about three of a kind. So the first pile now walks one
+   real move, and everything below is how that move is pointed at.
+
+   No holes are cut in the dark, because UI Toolkit has no masking and
+   because geometry chasing three tiles would have to be recomputed on
+   every layout pass. Instead: one sheet over the room photograph, a dim
+   class on every tile except the three, and a ring on the one being
+   asked for. Nothing here is measured or positioned from C#.
+
+   These rules come LAST in the file on purpose. `.game__tile--dim`
+   (reachable but not takeable) can be on the same tile at the same
+   specificity, and the later rule is the one that wins — during the
+   lesson the lesson decides how a tile looks.
+   ===================================================================== */
+
+/* Over the room photograph, under everything the player reads. A child
+   of the room layer, so it inherits the negative safe-area insets that
+   already carry that layer out to the glass. */
+.game__lesson-scrim {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(20, 15, 9, 0.62);
+}
+
+/* Not part of the lesson: still on the board, still legible as an
+   object, but plainly not what is being asked for. Opacity rather than
+   the background tint `.game__tile--dim` uses — that one has to leave a
+   lock badge at full strength, and this one has nothing to protect. */
+.game__tile--lesson-dimmed {
+    opacity: 0.26;
+}
+
+/* The same, for the two controls that are not tiles: the kitten and the
+   way back to the map. They live in the header, which is in front of the
+   room and so in front of the scrim, and on the first screenshot run they
+   sat at full brightness while answering nothing at all — a bright button
+   that ignores a finger is a worse thing to put in front of a new player
+   than a dim one. */
+.game__lesson-dimmed {
+    opacity: 0.26;
+}
+
+/* Tap THIS one. A heavy ink ring in the cream of the shelf, on a tile
+   that is at full brightness while its neighbours are at a quarter. */
+.game__tile--lesson-cue {
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-left-color: #F6EEDC;
+    border-right-color: #F6EEDC;
+    border-top-color: #F6EEDC;
+    border-bottom-color: #F6EEDC;
+    scale: 1.06;
+}
+
+/* The breathing half of the ring. USS has no keyframes, so FirstLesson
+   toggles this class on a timer and `.game__tile`'s own scale transition
+   (110ms, further up this file) does the moving. */
+.game__tile--lesson-cue-on {
+    scale: 1.18;
+}
+
+/* Where it went. Shown only during the stop after the first take.
+
+   Scale and colour, deliberately NOT a border: `.game__shelf` declares no
+   border width, so a cue would have to add one, and in UI Toolkit a
+   border eats the content box — nine 32-unit slots in a row that just
+   lost six units of width is a reflow of the one element the player is
+   being told to look at. Scale moves the ink and leaves the layout
+   alone, the same reason `.game__tile--refused` uses it. */
+.game__shelf--lesson-cue {
+    background-color: #F6EEDC;
+    scale: 1.05;
+}
+
+/* The phrase. Low on the screen because the three props are high — ids
+   1, 5 and 8 land in the top two rows of a six-wide pile, and a caption
+   must never cover the thing it points at. */
+.game__lesson-word {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 70px;
+    align-items: center;
+    justify-content: center;
+}
+
+.game__lesson-word-text {
+    font-size: 20px;
+    color: #F6EEDC;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 14px;
+    padding-right: 14px;
+    background-color: rgba(20, 15, 9, 0.72);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}

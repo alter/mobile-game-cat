@@ -257,5 +257,140 @@ namespace CatShelter.Core.Tests
             Assert.That(text.All(c => c < 128), Is.True,
                 "save stays ASCII so it can be inspected in a crash log");
         }
+
+        // ---- 60-shell-build/28: LessonSeen, LessonSeenIn, Residue --------
+
+        [Test]
+        public void Write_LessonNotSeen_EmitsNoLessonLine_ReadsBackFalse()
+        {
+            var level = L(E(1, "a"), E(2, "b"), E(3, "c"));
+            var board = new Board(level);
+
+            var text = GameSave.Write(board, Progress()); // lessonSeen defaults to false
+            Assert.That(text, Does.Not.Contain("lesson"));
+
+            var saved = GameSave.Read(text);
+            Assert.That(saved, Is.Not.Null);
+            Assert.That(saved.LessonSeen, Is.False);
+        }
+
+        [Test]
+        public void Write_LessonSeen_RoundTripsTrue()
+        {
+            var level = L(E(1, "a"), E(2, "b"), E(3, "c"));
+            var board = new Board(level);
+
+            var text = GameSave.Write(board, Progress(), lessonSeen: true);
+            Assert.That(text, Does.Contain("lesson 1"));
+
+            var saved = GameSave.Read(text);
+            Assert.That(saved, Is.Not.Null);
+            Assert.That(saved.LessonSeen, Is.True);
+        }
+
+        [Test]
+        public void OldFormatFile_WithNoLessonLine_StillParses_LessonSeenFalse()
+        {
+            // Same pre-08-save-hardening fixture as
+            // OldFormatShelfLine_WithEmbeddedCapToken_StillReads above: a real
+            // save written before this task existed has no "lesson" line at
+            // all. It must still parse, and read back as "lesson not seen" -
+            // the same "old files still read" rule the `cap` fallback has.
+            var text = "catshelter-save-v1\n" +
+                        "level 1 room_01 0\n" +
+                        "shelf prop_board _ _ cap3\n" +
+                        "triples 0\n" +
+                        "taken 1\n";
+            var saved = GameSave.Read(text);
+
+            Assert.That(saved, Is.Not.Null);
+            Assert.That(saved.LessonSeen, Is.False);
+        }
+
+        [Test]
+        public void LessonSeenIn_NullBlankOrWrongHeader_IsFalse()
+        {
+            Assert.That(GameSave.LessonSeenIn(null), Is.False);
+            Assert.That(GameSave.LessonSeenIn(""), Is.False);
+            Assert.That(GameSave.LessonSeenIn("   "), Is.False);
+            Assert.That(GameSave.LessonSeenIn("garbage"), Is.False);
+            Assert.That(GameSave.LessonSeenIn("catshelter-save-v9\nlesson 1\n"), Is.False,
+                "the header itself is wrong; a lesson-line lookalike under the wrong header must not count");
+        }
+
+        [Test]
+        public void LessonSeenIn_SaveWithoutTheLine_IsFalse()
+        {
+            var level = L(E(1, "a"), E(2, "b"), E(3, "c"));
+            var board = new Board(level);
+            var text = GameSave.Write(board, Progress());
+
+            Assert.That(GameSave.LessonSeenIn(text), Is.False);
+        }
+
+        [Test]
+        public void LessonSeenIn_SaveWithTheLine_IsTrue()
+        {
+            var level = L(E(1, "a"), E(2, "b"), E(3, "c"));
+            var board = new Board(level);
+            var text = GameSave.Write(board, Progress(), lessonSeen: true);
+
+            Assert.That(GameSave.LessonSeenIn(text), Is.True);
+        }
+
+        [Test]
+        public void LessonSeenIn_IsTrueEvenWhenGameSaveReadRejectsTheFile()
+        {
+            // Truncated mid-"cursor" line: the pile-index token is cut off,
+            // so GameSave.Read has no valid position to return (checked
+            // below). LessonSeenIn answers a narrower question than Read -
+            // "was the lesson line written" - and must not need a parseable
+            // position to answer it; that is the whole point of the method
+            // (Shell.SaveFile.Clear() calls it on files it is about to
+            // discard for other reasons).
+            const string truncated =
+                "catshelter-save-v1\n" +
+                "level 1 room_01 0\n" +
+                "cap 3\nshelf _ _ _\n" +
+                "triples 0\ntaken \n" +
+                "lesson 1\n" +
+                "cursor 1";
+
+            Assert.That(GameSave.Read(truncated), Is.Null,
+                "sanity check: this fixture really is unparseable as a position");
+            Assert.That(GameSave.LessonSeenIn(truncated), Is.True);
+        }
+
+        [Test]
+        public void Residue_NullWhenLessonWasNotSeen()
+        {
+            var level = L(E(1, "a"), E(2, "b"), E(3, "c"));
+            var board = new Board(level);
+            var text = GameSave.Write(board, Progress());
+
+            Assert.That(GameSave.Residue(text), Is.Null);
+        }
+
+        [Test]
+        public void Residue_WhenLessonSeen_HasNoPositionButKeepsTheFact()
+        {
+            // The invariant the task calls out by name: Residue produces text
+            // that Read cannot turn into a position (there is none left in
+            // it), while LessonSeenIn still finds the fact intact. This is
+            // what lets Shell.SaveFile.Clear() forget a lost position without
+            // also forgetting that the lesson was already played.
+            var level = L(E(1, "a"), E(2, "b"), E(3, "c"));
+            var board = new Board(level);
+            board.TakeItem(1);
+            var text = GameSave.Write(board, Progress(), lessonSeen: true);
+
+            var residue = GameSave.Residue(text);
+
+            Assert.That(residue, Is.Not.Null);
+            Assert.That(GameSave.Read(residue), Is.Null,
+                "residue must carry no position for Read to resume");
+            Assert.That(GameSave.LessonSeenIn(residue), Is.True,
+                "residue must still say the lesson was played");
+        }
     }
 }

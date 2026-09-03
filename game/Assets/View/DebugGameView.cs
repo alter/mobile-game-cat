@@ -122,6 +122,18 @@ namespace CatShelter.View
         // DebugGame.uss for why it cannot live on the real elements.
         private VisualElement _fxLayer;
 
+        // --- 60-shell-build/28: the first lesson -----------------------------
+        // Living players did not work out that the game is about three of a
+        // kind, so the first pile walks one real move. Everything about how it
+        // looks and what it swallows is in View/FirstLesson.cs; the board only
+        // starts it, tells it when an item was taken, and remembers that it
+        // happened.
+        private FirstLesson _lesson;
+
+        /// <summary>Carried on every save this view writes, so the lesson runs
+        /// once in the life of an install and not once per launch.</summary>
+        private bool _lessonSeen;
+
         private VisualElement _beforeAfter;
         private VisualElement _beforeCollage;
         private VisualElement _afterCollage;
@@ -185,7 +197,15 @@ namespace CatShelter.View
             _levels.AddRange(loaded.Levels);
             _plan = new RoomPlan(_levels);
             _progress = new PlayerProgress(_plan.PilesPerRoomInOrder());
-            if (!Resume())
+
+            // Read before anything resumes, and read with LessonSeenIn rather
+            // than off SavedGame: a save whose POSITION is unusable (truncated,
+            // already over, from a level that no longer ships) still knows
+            // whether this player has been taught the game. Losing a pile must
+            // not cost her the answer to "do I already know how to play".
+            var savedText = Shell.SaveFile.Read();
+            _lessonSeen = GameSave.LessonSeenIn(savedText);
+            if (!Resume(savedText))
                 StartLevel(0);
             Debug.Log($"[Perf] board ready {_t0.ElapsedMilliseconds}ms");
         }
@@ -197,9 +217,9 @@ namespace CatShelter.View
         /// board instead of throwing. Losing a pile is a setback; a launch
         /// crash loses the player.
         /// </summary>
-        private bool Resume()
+        private bool Resume(string savedText)
         {
-            var board = SaveResume.TryResume(Shell.SaveFile.Read(), _levels, out var reason);
+            var board = SaveResume.TryResume(savedText, _levels, out var reason);
             if (board == null)
             {
                 if (reason != "no readable save")
@@ -220,11 +240,13 @@ namespace CatShelter.View
                 _progress.CompletePile(_levels[i].PileIndex);
             Analytics.LevelStart(_level.Number);
             Render();
+            MaybeStartLesson();
             return true;
         }
 
         /// <summary>Every move-completing path goes through here (VERIFY 3).</summary>
-        private void Save() => Shell.SaveFile.Write(GameSave.Write(_board, null));
+        private void Save() =>
+            Shell.SaveFile.Write(GameSave.Write(_board, null, _lessonSeen));
 
         private void StartLevel(int index)
         {
@@ -245,6 +267,7 @@ namespace CatShelter.View
             Analytics.LevelStart(_level.Number);
             Save();
             Render();
+            MaybeStartLesson();
         }
 
         private void Render()
@@ -254,6 +277,72 @@ namespace CatShelter.View
             RenderPile();
             RenderShelf();
             RenderCat();
+            // Last, and every time: RenderPile just destroyed and rebuilt every
+            // tile, so the lesson's dimming, its ring and — the part that
+            // matters — the picking modes that swallow every tap but one all
+            // went with them. Nothing happens here when no lesson is running.
+            _lesson?.AfterRender();
+        }
+
+        // =====================================================================
+        // 60-shell-build/28: starting and finishing the first lesson.
+        // =====================================================================
+
+        /// <summary>
+        /// Run the lesson if it is due. Called from both ways a board comes to
+        /// exist — a fresh level and a resumed save.
+        /// </summary>
+        private void MaybeStartLesson()
+        {
+            if (!FirstLesson.WantedOn(_level, _lessonSeen)) return;
+            if (_lesson != null && _lesson.Active) return;
+
+            if (_board.TakenOrder.Count > 0)
+            {
+                // The player quit part-way through the lesson. VERIFY 4 asks
+                // for it to be shown "again from the beginning", and there is
+                // no honest way to do that on a pile whose first prop is
+                // already on the shelf — the lesson would have to point at a
+                // tile that is not there. So the pile starts over. What that
+                // costs is at most two taps; what it buys is that the sentence
+                // "from the beginning" is true.
+                Debug.Log($"[Lesson] resumed mid-lesson with " +
+                          $"{_board.TakenOrder.Count} item(s) taken — " +
+                          "starting the pile over so it can run from the top");
+                StartLevel(_levelIndex);
+                return;
+            }
+
+            _lesson ??= new FirstLesson();
+            _lesson.Begin(_gameRoot, _room, _pileArea, _shelfArea, _catSeat,
+                          OnLessonPassed, OnLessonEnded);
+        }
+
+        /// <summary>
+        /// The third item is on the shelf. SCOPE: passed on the third
+        /// SUCCESSFUL take, not on the third tap and not when the dark lifts.
+        /// Setting the field is enough to persist it — Take() calls Save() a
+        /// few lines after it calls into the lesson, and every save this view
+        /// writes carries the flag.
+        /// </summary>
+        private void OnLessonPassed()
+        {
+            _lessonSeen = true;
+            Debug.Log("[Lesson] marked as played; it will not be shown again");
+        }
+
+        /// <summary>The dark is gone. Redraw, which is what actually returns
+        /// the tiles to full brightness and gives every one of them its taps
+        /// back — Render() builds new elements carrying none of the lesson's
+        /// classes or picking modes.</summary>
+        private void OnLessonEnded()
+        {
+            Render();
+            // Belt and braces: the flag is written on the third take by the
+            // Save() inside Take(), but a lesson that ended some other way
+            // (the pile no longer holds one of the three) must not leave the
+            // board holding a truth it never wrote down.
+            if (_lessonSeen) Save();
         }
 
         /// <summary>
@@ -844,6 +933,12 @@ namespace CatShelter.View
 
             var tile = new VisualElement();
             tile.AddToClassList("game__tile");
+            // 60-shell-build/28: which item this rectangle is. The first lesson
+            // has to find three named ids among sixty tiles after every redraw,
+            // and the alternative — a parallel dictionary rebuilt in RenderPile
+            // — is a second copy of the pile that can fall out of step with the
+            // one on screen. userData travels with the element and dies with it.
+            tile.userData = entry.Item.Id;
 
             if (!revealed)
             {
@@ -965,6 +1060,13 @@ namespace CatShelter.View
             // Feedback before the redraw: the tap should answer the finger, not
             // wait for a frame of layout. A match speaks louder than a
             // placement, which is the only difference the player needs to hear.
+            // Told after the model moved and before Render(), so the redraw a
+            // few lines down already carries the next step of the lesson — the
+            // next tile lit, or nothing lit at all while the board holds still
+            // on the shelf. A tap the board REFUSED never reaches here, which
+            // is what makes "the third successful take" a fact this can count.
+            _lesson?.Taken(itemId);
+
             bool matched = _board.TriplesCompleted > triplesBefore;
             if (matched)
                 Shell.Feedback.Match();
@@ -1197,7 +1299,8 @@ namespace CatShelter.View
             // player should land — the next level after a win, the start of this
             // one after a jam, which is what "Replay" does anyway.
             if (_board.Outcome == GameOutcome.Win && _levelIndex + 1 < _levels.Count)
-                Shell.SaveFile.Write(GameSave.Write(new Board(_levels[_levelIndex + 1]), null));
+                Shell.SaveFile.Write(GameSave.Write(
+                    new Board(_levels[_levelIndex + 1]), null, _lessonSeen));
             else
                 Shell.SaveFile.Clear();
 
@@ -1236,7 +1339,7 @@ namespace CatShelter.View
                     // is the finished one, which `SaveResume` will refuse — and
                     // that is right, there is nothing to resume into. What
                     // survives is the house.
-                    Shell.SaveFile.Write(GameSave.Write(_board, _progress));
+                    Shell.SaveFile.Write(GameSave.Write(_board, _progress, _lessonSeen));
                     Debug.Log($"[Board] house complete, rooms done=" +
                               $"[{string.Join(",", _progress.RoomsDone)}] " +
                               $"cursor={_progress.CurrentRoom}/{_progress.CurrentPile} " +

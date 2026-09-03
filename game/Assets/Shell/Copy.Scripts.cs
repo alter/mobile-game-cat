@@ -158,6 +158,9 @@ namespace CatShelter.Shell
                     "这堆会恢复原样。",
                 ["lose.replay"] = "再来一次",
 
+                ["lesson.tap"] = "点这个。",
+                ["lesson.shelf"] = "东西先放在架子上。",
+                ["lesson.match"] = "三个一样的，就消失了。",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "整座房子都干净了",
                 // Two sentences, as in Russian and for the same reason: the
@@ -410,6 +413,9 @@ namespace CatShelter.Shell
                     "這堆會恢復原樣。",
                 ["lose.replay"] = "再來一次",
 
+                ["lesson.tap"] = "點這個。",
+                ["lesson.shelf"] = "東西先放在架子上。",
+                ["lesson.match"] = "三個一樣的，就消失了。",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "整座房子都乾淨了",
                 ["house.complete.body"] =
@@ -624,6 +630,9 @@ namespace CatShelter.Shell
                     "山は元どおりに戻ります。",
                 ["lose.replay"] = "もう一度",
 
+                ["lesson.tap"] = "これをタップ。",
+                ["lesson.shelf"] = "棚で待ちます。",
+                ["lesson.match"] = "同じものが三つで、消えます。",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "どの部屋もきれいです",
                 ["house.complete.body"] =
@@ -841,6 +850,9 @@ namespace CatShelter.Shell
                     "더미는 원래대로 돌아가요.",
                 ["lose.replay"] = "다시 하기",
 
+                ["lesson.tap"] = "이걸 눌러요.",
+                ["lesson.shelf"] = "선반에서 기다려요.",
+                ["lesson.match"] = "같은 것 셋이면 사라져요.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "집 안이 다 깨끗해요",
                 ["house.complete.body"] =
@@ -1079,6 +1091,9 @@ namespace CatShelter.Shell
                     "กองนี้ จะกลับไปเป็นเหมือนเดิม",
                 ["lose.replay"] = "เล่นใหม่",
 
+                ["lesson.tap"] = "แตะอันนี้",
+                ["lesson.shelf"] = "ของจะรออยู่บนชั้น",
+                ["lesson.match"] = "สามอันเหมือนกัน แล้วก็หายไป",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "ทุกห้องสะอาดแล้ว",
                 ["house.complete.body"] =
@@ -1383,6 +1398,9 @@ namespace CatShelter.Shell
                     "تعود الكومة كما كانت.",
                 ["lose.replay"] = "من جديد",
 
+                ["lesson.tap"] = "المس هذا.",
+                ["lesson.shelf"] = "الأشياء تنتظر على الرف.",
+                ["lesson.match"] = "ثلاثة متشابهة — وتختفي.",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "كلّ الغرف نظيفة",
                 ["house.complete.body"] =
@@ -1724,6 +1742,9 @@ namespace CatShelter.Shell
                     "ढेर जैसा था वैसा ही लौट आएगा।",
                 ["lose.replay"] = "फिर से",
 
+                ["lesson.tap"] = "इसे दबाएँ।",
+                ["lesson.shelf"] = "चीज़ें शेल्फ़ पर इंतज़ार करती हैं।",
+                ["lesson.match"] = "तीन एक जैसे — और गायब।",
                 // --- the end of the house ------------------------------------
                 ["house.complete.title"] = "हर कमरा साफ़ है",
                 ["house.complete.body"] =
